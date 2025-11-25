@@ -1,0 +1,35 @@
+/* 滚动条样式 */
+
+/* 全局滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(2, 6, 23, 0.8); 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0e7490; 
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #22d3ee; 
+  box-shadow: 0 0 10px #22d3ee;
+}
+
+/* 自定义滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #0891b2;
+  border-radius: 2px;
+}
