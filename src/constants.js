@@ -35,6 +35,9 @@ export const getLayersByOcean = (oceanName) => {
                 { id: 'typhoon', label: '台风路径预警', active: false },
                 { id: 'surge', label: '风暴潮预警', active: false },
                 { id: 'tsunami', label: '海啸传播预警', active: false },
+                { id: 'extreme_ocean', label: '极端海洋环境', active: false },
+                { id: 'extreme_atmosphere', label: '极端大气环境', active: false },
+                { id: 'internal_wave', label: '内波', active: false },
             ]
         },
         {
