@@ -100,6 +100,8 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
+import { loadWindGrid } from '../utils/windLoader.js';
+import { createWindParticleLayer } from '../utils/windParticles.js';
 
 export default {
     props: {
@@ -114,6 +116,11 @@ export default {
                 oceans: [],
                 countries: []
             })
+        },
+        // 左侧图层控制的当前状态（用于控制风场等专题图层）
+        layerState: {
+            type: Array,
+            default: () => []
         }
     },
     emits: ['dataLoaded'],
@@ -127,6 +134,7 @@ export default {
         const is3D = ref(true);
         let allEntities = []; // 存储所有实体
         let previousEntity = null; // 存储上一个选中的实体
+        let windLayer = null; // 粒子风场图层
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
@@ -200,6 +208,63 @@ export default {
 
             // 加载 GeoJSON 数据
             loadMiningData();
+
+            // 根据当前图层控制状态，决定是否加载风场
+            updateWindVisibility(props.layerState);
+        };
+
+        // 判断图层控制中“10日风场预报”是否开启
+        const isWindLayerEnabled = (layers) => {
+            if (!layers || !layers.length) return false;
+            
+            // 父图层需要是激活状态，且其子图层 wind 也为激活状态
+            for (const layer of layers) {
+                if (!layer.active || !layer.subLayers) continue;
+                const windSub = layer.subLayers.find(s => s.id === 'wind' && s.active);
+                if (windSub) return true;
+            }
+            return false;
+        };
+
+        // 根据当前图层控制状态，更新风场图层的显隐
+        const updateWindVisibility = (layers) => {
+            if (!viewer) return;
+            const enabled = isWindLayerEnabled(layers);
+
+            if (enabled && !windLayer) {
+                loadWindLayer();
+            } else if (!enabled && windLayer) {
+                windLayer.destroy();
+                windLayer = null;
+                viewer.scene.requestRender();
+            }
+        };
+
+        // 加载并渲染粒子风场（测试用）
+        const loadWindLayer = async () => {
+            if (!viewer) return;
+
+            try {
+                const grid = await loadWindGrid();
+
+                // 清理旧图层
+                if (windLayer) {
+                    windLayer.destroy();
+                    windLayer = null;
+                }
+
+                // 创建新的粒子风场图层
+                windLayer = createWindParticleLayer(viewer, grid, {
+                    particleCount: 400,
+                    maxAge: 200,
+                    speedFactor: 0.15,
+                    height: 80000
+                });
+
+                console.log('💨 已加载粒子风场图层');
+            } catch (err) {
+                console.error('❌ 粒子风场数据加载失败:', err);
+            }
         };
 
         // 加载海洋采矿数据（简化版）
@@ -629,6 +694,11 @@ export default {
             applyFilters();
         }, { deep: true });
 
+        // 监听图层控制变化（控制风场显隐）
+        watch(() => props.layerState, (newLayers) => {
+            updateWindVisibility(newLayers);
+        }, { deep: true });
+
         onMounted(() => {
             setTimeout(initCesium, 100);
         });
@@ -637,6 +707,12 @@ export default {
             if (clickHandler) {
                 clickHandler.destroy();
             }
+
+            if (windLayer) {
+                windLayer.destroy();
+                windLayer = null;
+            }
+
             if (viewer) {
                 viewer.destroy();
             }

@@ -8,6 +8,7 @@
             <MapContainer 
                 :showToolbar="activePanels.mapTools" 
                 :filters="filters"
+                :layerState="layerState"
                 @dataLoaded="handleDataLoaded"
             />
             
@@ -19,6 +20,7 @@
                     :showQueryPanel="activePanels.query"
                     :showLayersPanel="activePanels.layers"
                     @filterChange="handleFilterChange"
+                    @layersChange="handleLayersChange"
                 />
                 <RightPanel 
                     @toggleList="toggleList"
@@ -92,6 +94,9 @@ export default {
         
         // 所有矿区数据（从 GeoJSON 加载）
         const allMiningData = ref([]);
+
+        // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
+        const layerState = ref([]);
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -227,6 +232,15 @@ export default {
             filters.value = newFilters;
             console.log('🔍 App.vue 筛选条件变化:', newFilters);
         };
+
+        /**
+         * 处理图层控制变化事件
+         * @param {Array} layers - 左侧图层面板当前状态
+         */
+        const handleLayersChange = (layers) => {
+            layerState.value = layers;
+            console.log('🗺️ App.vue 图层状态变化:', layers);
+        };
         
         /**
          * 处理顶部选项卡切换事件
@@ -285,11 +299,13 @@ export default {
             toggleLayers,
             handleDataLoaded,
             handleFilterChange,
+            handleLayersChange,
             handleTabChange,
             filters,
             availableCountries,
             allMiningData,
             filteredMiningData,
+            layerState,
             containerStyle
         };
     }
