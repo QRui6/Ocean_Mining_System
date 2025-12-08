@@ -142,12 +142,8 @@ export default {
         const is3D = ref(true);
         let allEntities = []; // 存储所有实体
         let previousEntity = null; // 存储上一个选中的实体
-<<<<<<< Updated upstream
-        let windLayer = null; // 粒子风场图层
-=======
         let windLayer = null; // 风场图层实例
         const showWind = ref(false); // 风场显示状态
->>>>>>> Stashed changes
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
