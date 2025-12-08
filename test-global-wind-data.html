@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试全球风场数据加载</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .log {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #00ff00;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .info { color: #00ffff; }
+        .warning { color: #ffff00; }
+    </style>
+</head>
+<body>
+    <h1>🌍 全球风场数据加载测试</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+            console.log(message);
+        }
+
+        async function testLoadGlobalWindData() {
+            try {
+                log('🔄 开始加载 global_wind_1deg.json...', 'info');
+                
+                const response = await fetch('/global_wind_1deg.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                log('✅ 文件加载成功', 'success');
+                
+                const data = await response.json();
+                log(`📦 JSON 解析成功`, 'success');
+                
+                if (!data.wind || !Array.isArray(data.wind)) {
+                    throw new Error('数据格式错误：缺少 wind 数组');
+                }
+                
+                log(`📊 数据点数量: ${data.wind.length}`, 'info');
+                log(`📍 第一个数据点: lat=${data.wind[0].lat}, lon=${data.wind[0].lon}, u=${data.wind[0].u}, v=${data.wind[0].v}`, 'info');
+                
+                // 提取唯一的经纬度值
+                const lats = [...new Set(data.wind.map(p => p.lat))].sort((a, b) => a - b);
+                const lons = [...new Set(data.wind.map(p => p.lon))].sort((a, b) => a - b);
+                
+                log(`🌐 纬度范围: ${lats[0]}° 到 ${lats[lats.length - 1]}° (${lats.length} 个点)`, 'info');
+                log(`🌐 经度范围: ${lons[0]}° 到 ${lons[lons.length - 1]}° (${lons.length} 个点)`, 'info');
+                log(`📐 网格大小: ${lats.length} × ${lons.length} = ${lats.length * lons.length} 个点`, 'info');
+                
+                // 转换为网格格式
+                const rows = lats.length;
+                const cols = lons.length;
+                const totalSize = rows * cols;
+                
+                const uData = new Float32Array(totalSize);
+                const vData = new Float32Array(totalSize);
+                
+                const dataMap = new Map();
+                data.wind.forEach(point => {
+                    const key = `${point.lat},${point.lon}`;
+                    dataMap.set(key, { u: point.u, v: point.v });
+                });
+                
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const lat = lats[i];
+                        const lon = lons[j];
+                        const key = `${lat},${lon}`;
+                        const point = dataMap.get(key);
+                        
+                        const index = i * cols + j;
+                        if (point) {
+                            uData[index] = point.u;
+                            vData[index] = point.v;
+                        } else {
+                            uData[index] = 0;
+                            vData[index] = 0;
+                        }
+                    }
+                }
+                
+                log('✅ 数据转换完成', 'success');
+                log(`📊 U 分量前 5 个值: [${Array.from(uData.slice(0, 5)).join(', ')}]`, 'info');
+                log(`📊 V 分量前 5 个值: [${Array.from(vData.slice(0, 5)).join(', ')}]`, 'info');
+                
+                // 统计风速
+                let maxSpeed = 0;
+                let minSpeed = Infinity;
+                let totalSpeed = 0;
+                
+                for (let i = 0; i < totalSize; i++) {
+                    const speed = Math.sqrt(uData[i] * uData[i] + vData[i] * vData[i]);
+                    maxSpeed = Math.max(maxSpeed, speed);
+                    minSpeed = Math.min(minSpeed, speed);
+                    totalSpeed += speed;
+                }
+                
+                const avgSpeed = totalSpeed / totalSize;
+                
+                log(`🌬️ 风速统计:`, 'info');
+                log(`   - 最大风速: ${maxSpeed.toFixed(2)} m/s`, 'info');
+                log(`   - 最小风速: ${minSpeed.toFixed(2)} m/s`, 'info');
+                log(`   - 平均风速: ${avgSpeed.toFixed(2)} m/s`, 'info');
+                
+                log('🎉 测试完成！数据格式正确，可以用于 Cesium 风场可视化', 'success');
+                
+            } catch (error) {
+                log(`❌ 错误: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // 运行测试
+        testLoadGlobalWindData();
+    </script>
+</body>
+</html>

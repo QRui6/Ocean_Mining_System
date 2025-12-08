@@ -46,6 +46,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                     </svg>
                 </button>
+                
+                <!-- 风场图层 -->
+                <button @click="toggleWindLayer" class="map-tool-btn group" :title="showWind ? '隐藏风场' : '显示风场'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                    <div v-if="showWind" class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                </button>
             </div>
         </transition>
 
@@ -100,8 +108,8 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
-import { loadWindGrid } from '../utils/windLoader.js';
-import { createWindParticleLayer } from '../utils/windParticles.js';
+import { StreamlineWindLayer } from '../utils/streamlineWindLayer.js';
+import { loadGlobalWindData } from '../utils/windDataLoader.js';
 
 export default {
     props: {
@@ -134,7 +142,12 @@ export default {
         const is3D = ref(true);
         let allEntities = []; // 存储所有实体
         let previousEntity = null; // 存储上一个选中的实体
+<<<<<<< Updated upstream
         let windLayer = null; // 粒子风场图层
+=======
+        let windLayer = null; // 风场图层实例
+        const showWind = ref(false); // 风场显示状态
+>>>>>>> Stashed changes
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
@@ -572,6 +585,129 @@ export default {
             }
         };
 
+        // 初始化风场图层
+        const initWindLayer = async () => {
+            console.log('🔧 initWindLayer 被调用');
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - windLayer 已存在:', !!windLayer);
+            
+            if (!viewer || windLayer) {
+                console.warn('⚠️ 跳过初始化:', !viewer ? 'viewer 不存在' : 'windLayer 已存在');
+                return;
+            }
+            
+            try {
+                console.log('🌬️ 开始加载全球风场数据...');
+                
+                // 加载全球 1 度分辨率风场数据
+                console.log('⏳ 调用 loadGlobalWindData()...');
+                const windData = await loadGlobalWindData();
+                console.log('✅ 全球风场数据加载成功');
+                
+                console.log('📊 风场数据详情:', {
+                    范围: `经度 ${windData.bounds.west}° 到 ${windData.bounds.east}°, 纬度 ${windData.bounds.south}° 到 ${windData.bounds.north}°`,
+                    分辨率: `${windData.height} × ${windData.width}`,
+                    数据点: windData.u.array.length,
+                    u类型: windData.u.array.constructor.name,
+                    v类型: windData.v.array.constructor.name,
+                    u是Float32Array: windData.u.array instanceof Float32Array,
+                    v是Float32Array: windData.v.array instanceof Float32Array,
+                    u前5个值: Array.from(windData.u.array.slice(0, 5)),
+                    v前5个值: Array.from(windData.v.array.slice(0, 5))
+                });
+                
+                // 创建风场图层（使用 cesium-wind-layer 插件）
+                console.log('⏳ 创建 WindLayer 实例...');
+                console.log('   - WindLayer 构造函数:', typeof WindLayer);
+                console.log('   - windData 完整对象:', windData);
+                console.log('   - windData.u:', windData.u);
+                console.log('   - windData.v:', windData.v);
+                console.log('   - windData.bounds:', windData.bounds);
+                
+                windLayer = new StreamlineWindLayer(viewer, windData, {
+                    streamlineCount: 5000,  // 流线数量（密集程度）
+                    segmentLength: 0.3,  // 每段长度（度）- 控制流线平滑度
+                    maxSegments: 150,  // 最大段数 - 控制最长流线
+                    minSegments: 30,   // 最小段数 - 控制最短流线（形成层次感）
+                    lineWidth: 1.2,  // 线宽
+                    updateInterval: 30,  // 更新间隔（毫秒）- 控制流动速度
+                    fadeSpeed: 0.015,  // 淡出速度 - 控制流线消失速度
+                    color: Cesium.Color.CYAN  // 青色流线
+                });
+                
+                console.log('✅ WindLayer 实例创建成功');
+                console.log('   - windLayer 对象:', windLayer);
+                console.log('   - windLayer.show 属性:', windLayer.show, '(类型:', typeof windLayer.show, ')');
+                console.log('   - windLayer.add 方法:', typeof windLayer.add);
+                console.log('   - windLayer.remove 方法:', typeof windLayer.remove);
+                console.log('✅ 风场图层初始化完成');
+                
+                // 飞到全球视角，展示全球风场
+                console.log('🎯 飞往全球视角...');
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(0, 20, 20000000), // 全球视角
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-60), // 倾斜60度俯视
+                        roll: 0
+                    },
+                    duration: 2
+                });
+            } catch (error) {
+                console.error('❌ 风场图层加载失败:');
+                console.error('   - 错误类型:', error.name);
+                console.error('   - 错误信息:', error.message);
+                console.error('   - 完整错误:', error);
+                console.error('   - 堆栈:', error.stack);
+            }
+        };
+
+        // 切换风场显示
+        const toggleWindLayer = async () => {
+            console.log('🔘 风场按钮被点击');
+            console.log('📍 Viewer 状态:', viewer ? '✅ 存在' : '❌ 不存在');
+            console.log('🌬️ WindLayer 状态:', windLayer ? '✅ 已初始化' : '⚠️ 未初始化');
+            console.log('👁️ 当前显示状态:', showWind.value ? '显示中' : '隐藏中');
+            
+            if (!viewer) {
+                console.error('❌ Viewer 不存在，无法初始化风场');
+                return;
+            }
+            
+            if (!windLayer) {
+                // 首次使用，初始化风场图层
+                console.log('⏳ 首次点击，开始初始化风场图层...');
+                await initWindLayer();
+                console.log('✅ 初始化完成，windLayer:', windLayer ? '成功' : '失败');
+            }
+            
+            if (windLayer) {
+                if (showWind.value) {
+                    // 隐藏风场
+                    console.log('⏳ 正在隐藏风场...');
+                    windLayer.show = false;  // ✅ 使用属性赋值
+                    showWind.value = false;
+                    console.log('✅ 风场已隐藏');
+                    console.log('   - windLayer.show 当前值:', windLayer.show);
+                } else {
+                    // 显示风场
+                    console.log('⏳ 正在显示风场...');
+                    windLayer.show = true;   // ✅ 使用属性赋值
+                    showWind.value = true;
+                    console.log('✅ 风场已显示');
+                    console.log('   - windLayer.show 当前值:', windLayer.show);
+                    console.log('   - windLayer._show 内部值:', windLayer._show);
+                    console.log('   - 粒子系统:', windLayer.particleSystem);
+                }
+                
+                // 强制渲染
+                viewer.scene.requestRender();
+                console.log('🎨 已请求场景渲染');
+            } else {
+                console.error('❌ WindLayer 初始化失败，无法显示风场');
+            }
+        };
+
         // 筛选逻辑（支持多选）
         const applyFilters = () => {
             if (!allEntities.length) return;
@@ -704,6 +840,10 @@ export default {
         });
 
         onUnmounted(() => {
+            if (windLayer) {
+                windLayer.remove();
+                windLayer = null;
+            }
             if (clickHandler) {
                 clickHandler.destroy();
             }
@@ -724,11 +864,13 @@ export default {
             infoPosition,
             closeInfo,
             is3D,
+            showWind,
             zoomIn,
             zoomOut,
             resetView,
             toggle2D3D,
-            toggleFullscreen
+            toggleFullscreen,
+            toggleWindLayer
         };
     }
 };
