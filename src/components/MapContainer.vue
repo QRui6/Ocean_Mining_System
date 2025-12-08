@@ -54,6 +54,14 @@
                     </svg>
                     <div v-if="showWind" class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 </button>
+                
+                <!-- 轨迹显示 -->
+                <button @click="toggleTrajectory" class="map-tool-btn group" :title="showTrajectory ? '隐藏轨迹' : '显示轨迹'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <div v-if="showTrajectory" class="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                </button>
             </div>
         </transition>
 
@@ -110,6 +118,7 @@ import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '.
 import { getContractorColor } from '../utils/contractorColors.js';
 import { StreamlineWindLayer } from '../utils/streamlineWindLayer.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
+import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 
 export default {
     props: {
@@ -144,6 +153,8 @@ export default {
         let previousEntity = null; // 存储上一个选中的实体
         let windLayer = null; // 风场图层实例
         const showWind = ref(false); // 风场显示状态
+        let trajectoryLayer = null; // 轨迹图层实例
+        const showTrajectory = ref(false); // 轨迹显示状态
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
@@ -704,6 +715,44 @@ export default {
             }
         };
 
+        // 切换轨迹显示
+        const toggleTrajectory = () => {
+            console.log('🚢 轨迹按钮被点击');
+            
+            if (!viewer) {
+                console.error('❌ Viewer 不存在');
+                return;
+            }
+            
+            if (!trajectoryLayer) {
+                // 首次使用，初始化轨迹图层
+                console.log('⏳ 初始化轨迹图层...');
+                trajectoryLayer = new ShipTrajectoryLayer(viewer);
+                
+                // 添加示例轨迹
+                sampleTrajectories.forEach(traj => {
+                    trajectoryLayer.addTrajectory(traj);
+                });
+                
+                console.log('✅ 轨迹图层初始化完成');
+            }
+            
+            if (showTrajectory.value) {
+                // 隐藏轨迹
+                console.log('⏳ 隐藏轨迹...');
+                trajectoryLayer.hide();
+                showTrajectory.value = false;
+                console.log('✅ 轨迹已隐藏');
+            } else {
+                // 显示轨迹
+                console.log('⏳ 显示轨迹...');
+                trajectoryLayer.show();
+                trajectoryLayer.flyTo();
+                showTrajectory.value = true;
+                console.log('✅ 轨迹已显示');
+            }
+        };
+
         // 筛选逻辑（支持多选）
         const applyFilters = () => {
             if (!allEntities.length) return;
@@ -861,12 +910,14 @@ export default {
             closeInfo,
             is3D,
             showWind,
+            showTrajectory,
             zoomIn,
             zoomOut,
             resetView,
             toggle2D3D,
             toggleFullscreen,
-            toggleWindLayer
+            toggleWindLayer,
+            toggleTrajectory
         };
     }
 };
