@@ -143,13 +143,13 @@ export function generatePacificWindData() {
 }
 
 /**
- * 从 global_wind_1deg.json 加载全球风场数据
+ * 从 wind_data_0701.json 加载全球风场数据（稀疏数据优化版本）
  * @returns {Promise<Object>} 风场数据对象
  */
 export async function loadGlobalWindData() {
     try {
         console.log('🌍 开始加载全球风场数据...');
-        const response = await fetch('/global_wind_1deg.json');
+        const response = await fetch('/data/wind_data_0701.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -161,76 +161,59 @@ export async function loadGlobalWindData() {
             firstPoint: data.wind?.[0]
         });
         
-        // 转换数据格式：从 {lat, lon, u, v} 数组转换为网格格式
+        // 转换数据格式：保留稀疏数据结构，使用空间索引
         const windPoints = data.wind;
         
-        // 提取唯一的经纬度值
-        const lats = [...new Set(windPoints.map(p => p.lat))].sort((a, b) => a - b);
-        const lons = [...new Set(windPoints.map(p => p.lon))].sort((a, b) => a - b);
+        // 计算边界
+        let minLat = Infinity, maxLat = -Infinity;
+        let minLon = Infinity, maxLon = -Infinity;
         
-        const rows = lats.length;
-        const cols = lons.length;
-        const totalSize = rows * cols;
-        
-        console.log('📊 网格信息:', {
-            纬度范围: `${lats[0]}° 到 ${lats[lats.length - 1]}°`,
-            经度范围: `${lons[0]}° 到 ${lons[lons.length - 1]}°`,
-            行数: rows,
-            列数: cols,
-            总点数: totalSize
+        windPoints.forEach(p => {
+            minLat = Math.min(minLat, p.lat);
+            maxLat = Math.max(maxLat, p.lat);
+            minLon = Math.min(minLon, p.lon);
+            maxLon = Math.max(maxLon, p.lon);
         });
         
-        // 创建 Float32Array 存储 u 和 v 分量
-        const uData = new Float32Array(totalSize);
-        const vData = new Float32Array(totalSize);
+        // 创建空间网格索引（用于快速查找最近的数据点）
+        const gridSize = 1.0; // 1度网格
+        const gridRows = Math.ceil((maxLat - minLat) / gridSize) + 1;
+        const gridCols = Math.ceil((maxLon - minLon) / gridSize) + 1;
+        const spatialGrid = new Array(gridRows * gridCols).fill(null).map(() => []);
         
-        // 创建快速查找映射
-        const dataMap = new Map();
+        // 将数据点分配到网格中
         windPoints.forEach(point => {
-            const key = `${point.lat},${point.lon}`;
-            dataMap.set(key, { u: point.u, v: point.v });
+            const gridRow = Math.floor((point.lat - minLat) / gridSize);
+            const gridCol = Math.floor((point.lon - minLon) / gridSize);
+            const gridIndex = gridRow * gridCols + gridCol;
+            if (gridIndex >= 0 && gridIndex < spatialGrid.length) {
+                spatialGrid[gridIndex].push(point);
+            }
         });
         
-        // 填充数据（按照从南到北、从西到东的顺序）
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                const lat = lats[i];
-                const lon = lons[j];
-                const key = `${lat},${lon}`;
-                const point = dataMap.get(key);
-                
-                const index = i * cols + j;
-                if (point) {
-                    uData[index] = point.u;
-                    vData[index] = point.v;
-                } else {
-                    uData[index] = 0;
-                    vData[index] = 0;
-                }
-            }
-        }
-        
-        console.log('✅ 数据转换完成:', {
-            u前5个值: Array.from(uData.slice(0, 5)),
-            v前5个值: Array.from(vData.slice(0, 5)),
-            u类型: uData.constructor.name,
-            v类型: vData.constructor.name
+        console.log('📊 稀疏数据信息:', {
+            纬度范围: `${minLat.toFixed(2)}° 到 ${maxLat.toFixed(2)}°`,
+            经度范围: `${minLon.toFixed(2)}° 到 ${maxLon.toFixed(2)}°`,
+            实际数据点: windPoints.length,
+            空间网格: `${gridRows} × ${gridCols}`,
+            平均每格点数: (windPoints.length / (gridRows * gridCols)).toFixed(2)
         });
         
         return {
-            u: {
-                array: uData
-            },
-            v: {
-                array: vData
-            },
-            width: cols,
-            height: rows,
+            // 稀疏数据结构
+            sparseData: windPoints,
+            spatialGrid: spatialGrid,
+            gridSize: gridSize,
+            gridRows: gridRows,
+            gridCols: gridCols,
+            // 兼容原有接口（用于不需要密集网格的场景）
+            width: gridCols,
+            height: gridRows,
             bounds: {
-                west: lons[0],
-                south: lats[0],
-                east: lons[lons.length - 1],
-                north: lats[lats.length - 1]
+                west: minLon,
+                south: minLat,
+                east: maxLon,
+                north: maxLat
             }
         };
     } catch (error) {

@@ -107,6 +107,53 @@
                 </div>
             </div>
         </transition>
+
+        <!-- Ship Info Window Modal -->
+        <transition enter-active-class="animate-fadeIn" leave-active-class="transition-opacity duration-200 opacity-0">
+            <div v-if="selectedShip" 
+                :style="{ 
+                    left: shipInfoPosition.x + 'px', 
+                    top: shipInfoPosition.y + 'px' 
+                }"
+                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-yellow-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
+                <!-- Scanning Line -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+
+                <!-- Header -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-yellow-900/60 to-transparent px-4 py-3 border-b border-yellow-500/30">
+                    <div class="flex items-center gap-3">
+                         <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
+                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">🚢 船舶信息</span>
+                    </div>
+                    <button @click="closeShipInfo" class="group p-1">
+                        <div class="w-6 h-6 border border-yellow-500/50 flex items-center justify-center rounded-sm group-hover:bg-yellow-500 group-hover:text-black transition-colors text-sm">✕</div>
+                    </button>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-4 space-y-3 relative">
+                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    
+                    <div v-for="(val, key) in {
+                        '船舶名称': selectedShip.name,
+                        '船舶类型': selectedShip.type,
+                        '船长': selectedShip.length,
+                        '船宽': selectedShip.width,
+                        '航速': selectedShip.speed,
+                        '载重': selectedShip.capacity,
+                        '船员': selectedShip.crew,
+                        '出发时间': selectedShip.departure,
+                        '预计到达': selectedShip.eta,
+                        '货物': selectedShip.cargo,
+                        '状态': selectedShip.status
+                    }" :key="key" class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">{{ key }}</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate" :title="val">{{ val }}</span>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
@@ -155,30 +202,12 @@ export default {
         const showWind = ref(false); // 风场显示状态
         let trajectoryLayer = null; // 轨迹图层实例
         const showTrajectory = ref(false); // 轨迹显示状态
+        const selectedShip = ref(null); // 选中的船舶信息
+        const shipInfoPosition = ref({ x: 0, y: 0 }); // 船舶信息窗口位置
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
         const initCesium = () => {
-
-            const imageryProvider = new Cesium.WebMapTileServiceImageryProvider({
-                url: `http://t0.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
-                layer: "img",
-                style: "default",
-                format: "tiles",
-                tileMatrixSetID: "w",
-                credit: new Cesium.Credit("天地图全球影像服务"),
-                maximumLevel: 18
-            });
-
-            const labelProvider = new Cesium.WebMapTileServiceImageryProvider({
-                url: `http://t0.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
-                layer: "cia",
-                style: "default",
-                format: "tiles",
-                tileMatrixSetID: "w",
-                credit: new Cesium.Credit("天地图全球注记服务"),
-                maximumLevel: 18
-            });
 
             viewer = new Cesium.Viewer(cesiumContainer.value, {
                 animation: false,
@@ -192,28 +221,78 @@ export default {
                 vrButton: false,
                 infoBox: false,
                 selectionIndicator: false,
-                imageryProvider: false,
+                imageryProvider: false,  // 先不加载任何底图
                 sceneMode: Cesium.SceneMode.SCENE3D,
                 contextOptions: {
                     webgl: {
-                        alpha: true,
-                        // 性能优化
-                        powerPreference: 'high-performance'
+                        alpha: false,  // 禁用透明度以提升性能
+                        depth: true,
+                        stencil: false,
+                        antialias: true,
+                        powerPreference: 'high-performance',
+                        premultipliedAlpha: true,
+                        preserveDrawingBuffer: false,
+                        failIfMajorPerformanceCaveat: false
                     }
                 },
                 // 性能优化设置
-                requestRenderMode: true, // 按需渲染，不是每帧都渲染
-                maximumRenderTimeChange: Infinity // 减少不必要的渲染
+                requestRenderMode: true, // 按需渲染
+                maximumRenderTimeChange: Infinity,
+                // 场景优化
+                useBrowserRecommendedResolution: true,
+                orderIndependentTranslucency: false,  // 禁用半透明排序以提升性能
+                scene3DOnly: true,  // 仅3D模式
+                shouldAnimate: true
             });
 
-            // 手动添加天地图图层
-            viewer.imageryLayers.addImageryProvider(imageryProvider);
-            viewer.imageryLayers.addImageryProvider(labelProvider);
+            // 移除默认图层
+            viewer.imageryLayers.removeAll();
+            
+            // 使用多个服务器节点进行负载均衡（t0-t7）
+            const serverIndex = Math.floor(Math.random() * 8);
+            
+            // 添加天地图影像图层
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    layer: "img",
+                    style: "default",
+                    format: "tiles",
+                    tileMatrixSetID: "w",
+                    credit: new Cesium.Credit("天地图"),
+                    maximumLevel: 18
+                })
+            );
+            
+            // 添加天地图注记图层
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    layer: "cia",
+                    style: "default",
+                    format: "tiles",
+                    tileMatrixSetID: "w",
+                    credit: new Cesium.Credit("天地图注记"),
+                    maximumLevel: 18
+                })
+            );
+            
+            // 场景优化设置
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#020617');
             viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000000');
             viewer.scene.skyAtmosphere.show = true;
             viewer.scene.skyAtmosphere.hueShift = -0.1;
-            viewer.scene.globe.enableLighting = true;
+            viewer.scene.globe.enableLighting = false;  // 禁用光照以提升性能
+            viewer.scene.globe.showGroundAtmosphere = false;  // 禁用地面大气层
+            viewer.scene.fog.enabled = false;  // 禁用雾效
+            viewer.scene.sun.show = false;  // 隐藏太阳
+            viewer.scene.moon.show = false;  // 隐藏月亮
+            viewer.scene.skyBox.show = true;  // 保留星空背景
+            
+            // 性能优化：减少瓦片加载数量
+            viewer.scene.globe.maximumScreenSpaceError = 2;  // 默认2，增大可减少瓦片数量
+            viewer.scene.globe.tileCacheSize = 100;  // 瓦片缓存大小
+            
             viewer._cesiumWidget._creditContainer.style.display = "none";
 
             // 设置初始视角：中国区域（从太空俯瞰）
@@ -229,8 +308,8 @@ export default {
             // 加载 GeoJSON 数据
             loadMiningData();
 
-            // 根据当前图层控制状态，决定是否加载风场
-            updateWindVisibility(props.layerState);
+            // 注释掉自动加载风场，改为手动点击按钮加载
+            // updateWindVisibility(props.layerState);
         };
 
         // 判断图层控制中“10日风场预报”是否开启
@@ -252,40 +331,15 @@ export default {
             const enabled = isWindLayerEnabled(layers);
 
             if (enabled && !windLayer) {
-                loadWindLayer();
+                initWindLayer();
             } else if (!enabled && windLayer) {
-                windLayer.destroy();
+                windLayer.remove();
                 windLayer = null;
                 viewer.scene.requestRender();
             }
         };
 
-        // 加载并渲染粒子风场（测试用）
-        const loadWindLayer = async () => {
-            if (!viewer) return;
-
-            try {
-                const grid = await loadWindGrid();
-
-                // 清理旧图层
-                if (windLayer) {
-                    windLayer.destroy();
-                    windLayer = null;
-                }
-
-                // 创建新的粒子风场图层
-                windLayer = createWindParticleLayer(viewer, grid, {
-                    particleCount: 400,
-                    maxAge: 200,
-                    speedFactor: 0.15,
-                    height: 80000
-                });
-
-                console.log('💨 已加载粒子风场图层');
-            } catch (err) {
-                console.error('❌ 粒子风场数据加载失败:', err);
-            }
-        };
+        // 注意：loadWindLayer 函数已被移除，现在使用 initWindLayer 函数
 
         // 加载海洋采矿数据（简化版）
         const loadMiningData = async () => {
@@ -396,6 +450,58 @@ export default {
                     
                     // 使用修正后的坐标拾取实体
                     const pickedObject = viewer.scene.pick(correctedPosition);
+                    
+                    console.log('🎯 拾取到的对象:', pickedObject);
+                    console.log('   - 是否定义:', Cesium.defined(pickedObject));
+                    console.log('   - 是否有 id:', pickedObject?.id);
+                    console.log('   - id 类型:', pickedObject?.id?.constructor?.name);
+                    
+                    // 检查是否点击了船舶
+                    if (Cesium.defined(pickedObject) && pickedObject.id) {
+                        const entity = pickedObject.id;
+                        
+                        console.log('📦 实体详情:');
+                        console.log('   - name:', entity.name);
+                        console.log('   - 有 billboard:', !!entity.billboard);
+                        console.log('   - 有 polygon:', !!entity.polygon);
+                        console.log('   - 有 properties:', !!entity.properties);
+                        
+                        // 如果点击的是船舶（有 billboard 属性）
+                        if (entity.billboard && entity.name && entity.name.startsWith('ship_')) {
+                            console.log('🚢 点击了船舶:', entity.name);
+                            console.log('   - trajectoryLayer 存在:', !!trajectoryLayer);
+                            console.log('   - trajectoryLayer.trajectories 长度:', trajectoryLayer?.trajectories?.length);
+                            
+                            // 查找对应的轨迹
+                            if (trajectoryLayer) {
+                                const trajectory = trajectoryLayer.trajectories.find(traj => {
+                                    console.log('   - 比较 ship:', traj.ship.name, '===', entity.name);
+                                    return traj.ship === entity;
+                                });
+                                
+                                console.log('   - 找到的轨迹:', trajectory);
+                                
+                                if (trajectory && trajectory.data.shipInfo) {
+                                    // 暂停动画
+                                    trajectoryLayer.isPaused = true;
+                                    
+                                    // 显示船舶信息
+                                    selectedShip.value = trajectory.data.shipInfo;
+                                    shipInfoPosition.value = {
+                                        x: correctedPosition.x + 20,
+                                        y: correctedPosition.y - 100
+                                    };
+                                    
+                                    console.log('✅ 显示船舶信息:', trajectory.data.shipInfo);
+                                } else {
+                                    console.warn('⚠️ 未找到对应的轨迹或船舶信息');
+                                }
+                            } else {
+                                console.warn('⚠️ trajectoryLayer 不存在');
+                            }
+                            return;  // 不继续处理矿区点击
+                        }
+                    }
                     
                     if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polygon) {
                         const entity = pickedObject.id;
@@ -613,53 +719,42 @@ export default {
                 
                 console.log('📊 风场数据详情:', {
                     范围: `经度 ${windData.bounds.west}° 到 ${windData.bounds.east}°, 纬度 ${windData.bounds.south}° 到 ${windData.bounds.north}°`,
-                    分辨率: `${windData.height} × ${windData.width}`,
-                    数据点: windData.u.array.length,
-                    u类型: windData.u.array.constructor.name,
-                    v类型: windData.v.array.constructor.name,
-                    u是Float32Array: windData.u.array instanceof Float32Array,
-                    v是Float32Array: windData.v.array instanceof Float32Array,
-                    u前5个值: Array.from(windData.u.array.slice(0, 5)),
-                    v前5个值: Array.from(windData.v.array.slice(0, 5))
+                    空间网格: `${windData.gridRows} × ${windData.gridCols}`,
+                    实际数据点: windData.sparseData.length,
+                    网格大小: windData.gridSize + '度',
+                    数据类型: '稀疏数据'
                 });
                 
                 // 创建风场图层（使用 cesium-wind-layer 插件）
                 console.log('⏳ 创建 WindLayer 实例...');
-                console.log('   - WindLayer 构造函数:', typeof WindLayer);
+                console.log('   - WindLayer 构造函数:', typeof StreamlineWindLayer);
                 console.log('   - windData 完整对象:', windData);
-                console.log('   - windData.u:', windData.u);
-                console.log('   - windData.v:', windData.v);
+                console.log('   - windData.sparseData 长度:', windData.sparseData?.length);
+                console.log('   - windData.spatialGrid 长度:', windData.spatialGrid?.length);
                 console.log('   - windData.bounds:', windData.bounds);
                 
                 windLayer = new StreamlineWindLayer(viewer, windData, {
-                    streamlineCount: 5000,  // 流线数量（密集程度）
-                    segmentLength: 0.3,  // 每段长度（度）- 控制流线平滑度
-                    maxSegments: 150,  // 最大段数 - 控制最长流线
-                    minSegments: 30,   // 最小段数 - 控制最短流线（形成层次感）
-                    lineWidth: 1.2,  // 线宽
-                    updateInterval: 30,  // 更新间隔（毫秒）- 控制流动速度
-                    fadeSpeed: 0.015,  // 淡出速度 - 控制流线消失速度
+                    streamlineCount: 1500,  // 减少流线数量（从5000降到1500）
+                    segmentLength: 0.5,  // 增加段长度（从0.3到0.5）减少顶点数
+                    maxSegments: 80,  // 减少最大段数（从150到80）
+                    minSegments: 20,   // 减少最小段数（从30到20）
+                    lineWidth: 1.5,  // 线宽
+                    updateInterval: 100,  // 增加更新间隔（从30到100ms）降低更新频率
+                    fadeSpeed: 0.03,  // 加快淡出速度（从0.015到0.03）
                     color: Cesium.Color.CYAN  // 青色流线
                 });
                 
                 console.log('✅ WindLayer 实例创建成功');
                 console.log('   - windLayer 对象:', windLayer);
                 console.log('   - windLayer.show 属性:', windLayer.show, '(类型:', typeof windLayer.show, ')');
-                console.log('   - windLayer.add 方法:', typeof windLayer.add);
+                console.log('   - windLayer.isVisible:', windLayer.isVisible);
+                console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
+                console.log('   - windLayer.polylineCollection:', windLayer.polylineCollection);
                 console.log('   - windLayer.remove 方法:', typeof windLayer.remove);
                 console.log('✅ 风场图层初始化完成');
                 
-                // 飞到全球视角，展示全球风场
-                console.log('🎯 飞往全球视角...');
-                viewer.camera.flyTo({
-                    destination: Cesium.Cartesian3.fromDegrees(0, 20, 20000000), // 全球视角
-                    orientation: {
-                        heading: 0,
-                        pitch: Cesium.Math.toRadians(-60), // 倾斜60度俯视
-                        roll: 0
-                    },
-                    duration: 2
-                });
+                // 不改变视角，保持当前视角
+                console.log('✅ 风场图层已加载，保持当前视角');
             } catch (error) {
                 console.error('❌ 风场图层加载失败:');
                 console.error('   - 错误类型:', error.name);
@@ -686,32 +781,52 @@ export default {
                 console.log('⏳ 首次点击，开始初始化风场图层...');
                 await initWindLayer();
                 console.log('✅ 初始化完成，windLayer:', windLayer ? '成功' : '失败');
-            }
-            
-            if (windLayer) {
+                
+                // 初始化后显示风场
+                if (windLayer) {
+                    console.log('⏳ 正在显示风场...');
+                    windLayer.show = true;  // 调用 setter 来显示
+                    showWind.value = true;
+                    console.log('✅ 风场已显示');
+                    console.log('   - windLayer.isVisible:', windLayer.isVisible);
+                    console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
+                    
+                    // 强制多次渲染确保显示
+                    viewer.scene.requestRender();
+                    setTimeout(() => viewer.scene.requestRender(), 100);
+                    setTimeout(() => viewer.scene.requestRender(), 300);
+                    setTimeout(() => viewer.scene.requestRender(), 500);
+                }
+            } else {
+                // 已初始化，切换显示状态
                 if (showWind.value) {
                     // 隐藏风场
                     console.log('⏳ 正在隐藏风场...');
-                    windLayer.show = false;  // ✅ 使用属性赋值
+                    windLayer.show = false;
                     showWind.value = false;
                     console.log('✅ 风场已隐藏');
-                    console.log('   - windLayer.show 当前值:', windLayer.show);
                 } else {
                     // 显示风场
                     console.log('⏳ 正在显示风场...');
-                    windLayer.show = true;   // ✅ 使用属性赋值
+                    windLayer.show = true;
                     showWind.value = true;
                     console.log('✅ 风场已显示');
-                    console.log('   - windLayer.show 当前值:', windLayer.show);
-                    console.log('   - windLayer._show 内部值:', windLayer._show);
-                    console.log('   - 粒子系统:', windLayer.particleSystem);
+                    console.log('   - windLayer.isVisible:', windLayer.isVisible);
+                    console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
+                    
+                    // 强制多次渲染确保显示
+                    viewer.scene.requestRender();
+                    setTimeout(() => viewer.scene.requestRender(), 100);
+                    setTimeout(() => viewer.scene.requestRender(), 300);
                 }
-                
-                // 强制渲染
-                viewer.scene.requestRender();
-                console.log('🎨 已请求场景渲染');
-            } else {
-                console.error('❌ WindLayer 初始化失败，无法显示风场');
+            }
+        };
+
+        // 关闭船舶信息窗口
+        const closeShipInfo = () => {
+            selectedShip.value = null;
+            if (trajectoryLayer) {
+                trajectoryLayer.resumeAnimation();  // 恢复动画
             }
         };
 
@@ -727,6 +842,8 @@ export default {
             if (!trajectoryLayer) {
                 // 首次使用，初始化轨迹图层
                 console.log('⏳ 初始化轨迹图层...');
+                
+                // 创建轨迹图层
                 trajectoryLayer = new ShipTrajectoryLayer(viewer);
                 
                 // 添加示例轨迹
@@ -744,10 +861,10 @@ export default {
                 showTrajectory.value = false;
                 console.log('✅ 轨迹已隐藏');
             } else {
-                // 显示轨迹
+                // 显示轨迹（不改变视角）
                 console.log('⏳ 显示轨迹...');
                 trajectoryLayer.show();
-                trajectoryLayer.flyTo();
+                // trajectoryLayer.flyTo();  // 注释掉自动飞行
                 showTrajectory.value = true;
                 console.log('✅ 轨迹已显示');
             }
@@ -911,6 +1028,9 @@ export default {
             is3D,
             showWind,
             showTrajectory,
+            selectedShip,
+            shipInfoPosition,
+            closeShipInfo,
             zoomIn,
             zoomOut,
             resetView,

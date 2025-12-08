@@ -41,7 +41,7 @@ export class StreamlineWindLayer {
             new Cesium.PolylineCollection()
         );
         
-        // 初始化流线
+        // 初始化流线（但不显示）
         this.initStreamlines();
         
         // 启动动画
@@ -49,14 +49,21 @@ export class StreamlineWindLayer {
         
         // 监听相机移动
         this.setupCameraListener();
+        
+        // 初始状态隐藏
+        this.hideLayer();
     }
     
     setupCameraListener() {
         const camera = this.viewer.camera;
         this.lastCameraPosition = camera.position.clone();
+        let checkCounter = 0;
         
-        // 每帧检查相机是否移动
+        // 降低检查频率：每5帧检查一次相机移动
         this.viewer.scene.preRender.addEventListener(() => {
+            checkCounter++;
+            if (checkCounter % 5 !== 0) return;
+            
             if (!this.lastCameraPosition) {
                 this.lastCameraPosition = camera.position.clone();
                 return;
@@ -68,7 +75,7 @@ export class StreamlineWindLayer {
             );
             
             // 如果相机移动距离超过阈值，标记为移动中
-            this.cameraMoving = distance > 100;
+            this.cameraMoving = distance > 1000;  // 增大阈值（从100到1000）
             
             if (!this.cameraMoving) {
                 this.lastCameraPosition = camera.position.clone();
@@ -77,17 +84,33 @@ export class StreamlineWindLayer {
     }
     
     initStreamlines() {
+        let successCount = 0;
+        let failCount = 0;
+        
         for (let i = 0; i < this.options.streamlineCount; i++) {
-            this.createStreamline();
+            const success = this.createStreamline();
+            if (success) {
+                successCount++;
+            } else {
+                failCount++;
+            }
         }
+        
+        console.log(`🌊 流线创建完成: 成功 ${successCount} 条, 失败 ${failCount} 条`);
     }
     
     createStreamline() {
-        const { west, east, south, north } = this.windData.bounds;
+        const { bounds, sparseData } = this.windData;
+        const { west, east, south, north } = bounds;
         
-        // 随机起点
-        const startLon = west + Math.random() * (east - west);
-        const startLat = south + Math.random() * (north - south);
+        // 从实际数据点中随机选择起点（确保起点有数据）
+        const randomDataPoint = sparseData[Math.floor(Math.random() * sparseData.length)];
+        let startLon = randomDataPoint.lon;
+        let startLat = randomDataPoint.lat;
+        
+        // 添加一些随机偏移（在数据点附近开始，但不完全相同）
+        startLon += (Math.random() - 0.5) * 0.5;
+        startLat += (Math.random() - 0.5) * 0.5;
         
         // 随机流线长度（段数）
         const segments = Math.floor(
@@ -101,16 +124,20 @@ export class StreamlineWindLayer {
         let lat = startLat;
         
         for (let i = 0; i < segments; i++) {
-            // 添加当前位置
-            positions.push(Cesium.Cartesian3.fromDegrees(lon, lat, 100000));
+            // 添加当前位置（高度设置为10000米，约10公里）
+            positions.push(Cesium.Cartesian3.fromDegrees(lon, lat, 10000));
             
             // 获取风速
             const wind = this.getWindAt(lon, lat);
-            if (!wind) break;
+            if (!wind) {
+                break;
+            }
             
             // 计算下一个位置
             const speed = Math.sqrt(wind.u * wind.u + wind.v * wind.v);
-            if (speed < 0.1) break;  // 风速太小，停止
+            if (speed < 0.1) {
+                break;
+            }  // 风速太小，停止
             
             // 归一化风向
             const dx = wind.u / speed;
@@ -128,6 +155,7 @@ export class StreamlineWindLayer {
         
         // 只有至少2个点才创建流线
         if (positions.length >= 2) {
+            // 初始透明度设置为 0（隐藏状态），点击按钮后再显示
             const polyline = this.polylineCollection.add({
                 positions: positions,
                 width: this.options.lineWidth,
@@ -139,7 +167,7 @@ export class StreamlineWindLayer {
                         }
                     }
                 }),
-                show: false
+                show: false  // 初始隐藏
             });
             
             this.streamlines.push({
@@ -149,25 +177,68 @@ export class StreamlineWindLayer {
                 age: 0,
                 maxAge: 100 + Math.random() * 100  // 随机生命周期
             });
+            
+            return true;  // 成功创建
         }
+        
+        return false;  // 创建失败
     }
     
     getWindAt(lon, lat) {
-        const { bounds, width, height, u, v } = this.windData;
+        const { bounds, sparseData, spatialGrid, gridSize, gridRows, gridCols } = this.windData;
         
-        // 计算网格索引
-        const x = Math.floor(((lon - bounds.west) / (bounds.east - bounds.west)) * (width - 1));
-        const y = Math.floor(((lat - bounds.south) / (bounds.north - bounds.south)) * (height - 1));
-        
-        if (x < 0 || x >= width || y < 0 || y >= height) {
+        // 边界检查
+        if (lon < bounds.west || lon > bounds.east || lat < bounds.south || lat > bounds.north) {
             return null;
         }
         
-        const index = y * width + x;
+        // 使用空间网格快速查找最近的数据点
+        const gridRow = Math.floor((lat - bounds.south) / gridSize);
+        const gridCol = Math.floor((lon - bounds.west) / gridSize);
         
+        if (gridRow < 0 || gridRow >= gridRows || gridCol < 0 || gridCol >= gridCols) {
+            return null;
+        }
+        
+        // 搜索当前网格及周围8个网格
+        let nearestPoint = null;
+        let minDistance = Infinity;
+        
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                const r = gridRow + dr;
+                const c = gridCol + dc;
+                
+                if (r < 0 || r >= gridRows || c < 0 || c >= gridCols) continue;
+                
+                const gridIndex = r * gridCols + c;
+                const points = spatialGrid[gridIndex];
+                
+                if (!points || points.length === 0) continue;
+                
+                // 在这个网格中找最近的点
+                for (const point of points) {
+                    const dx = point.lon - lon;
+                    const dy = point.lat - lat;
+                    const distance = dx * dx + dy * dy;
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearestPoint = point;
+                    }
+                }
+            }
+        }
+        
+        // 如果最近的点距离太远（超过2度），返回null
+        if (!nearestPoint || minDistance > 4.0) {
+            return null;
+        }
+        
+        // 使用最近邻插值（简单但有效）
         return {
-            u: u.array[index] || 0,
-            v: v.array[index] || 0
+            u: nearestPoint.u,
+            v: nearestPoint.v
         };
     }
     
@@ -183,10 +254,16 @@ export class StreamlineWindLayer {
         if (!this.isVisible) return;
         
         const currentTime = Date.now();
-        // 相机移动时降低更新频率（而不是完全停止）
-        const interval = this.cameraMoving ? this.options.updateInterval * 3 : this.options.updateInterval;
+        // 相机移动时暂停更新以提升性能
+        if (this.cameraMoving) {
+            // 即使暂停更新，也要请求渲染以保持显示
+            this.viewer.scene.requestRender();
+            return;
+        }
         
-        if (currentTime - this.lastUpdateTime < interval) {
+        if (currentTime - this.lastUpdateTime < this.options.updateInterval) {
+            // 即使不更新，也要请求渲染
+            this.viewer.scene.requestRender();
             return;
         }
         this.lastUpdateTime = currentTime;
@@ -220,33 +297,54 @@ export class StreamlineWindLayer {
             }
         }
         
-        // 批量移除和创建
-        for (let i = toRemove.length - 1; i >= 0; i--) {
+        // 批量移除和创建（限制每帧最多处理10条）
+        const maxPerFrame = Math.min(toRemove.length, 10);
+        for (let i = toRemove.length - 1; i >= toRemove.length - maxPerFrame; i--) {
             const index = toRemove[i];
             const streamline = this.streamlines[index];
             this.polylineCollection.remove(streamline.polyline);
             this.streamlines.splice(index, 1);
         }
         
-        // 创建新流线补充
-        for (let i = 0; i < toRemove.length; i++) {
+        // 创建新流线补充（限制每帧最多创建10条）
+        for (let i = 0; i < maxPerFrame; i++) {
             this.createStreamline();
         }
+        
+        // 请求渲染（确保每次更新都渲染）
+        this.viewer.scene.requestRender();
     }
     
-    show() {
+    showLayer() {
+        console.log('🎬 showLayer() 被调用');
         this.isVisible = true;
         if (this.polylineCollection) {
             this.polylineCollection.show = true;
             this.streamlines.forEach(streamline => {
                 if (streamline.polyline) {
                     streamline.polyline.show = true;
+                    // 如果透明度为0，重置为可见状态
+                    if (streamline.alpha === 0) {
+                        streamline.alpha = 0.5;
+                        streamline.fadeIn = true;
+                        streamline.age = 0;
+                        // 立即更新材质
+                        if (streamline.polyline.material) {
+                            streamline.polyline.material.uniforms.color = this.options.color.withAlpha(0.5);
+                        }
+                    }
                 }
             });
         }
+        console.log('✅ showLayer() 完成，isVisible:', this.isVisible);
+        // 强制多次渲染以确保显示
+        this.viewer.scene.requestRender();
+        setTimeout(() => this.viewer.scene.requestRender(), 100);
+        setTimeout(() => this.viewer.scene.requestRender(), 300);
     }
     
-    hide() {
+    hideLayer() {
+        console.log('🎬 hideLayer() 被调用');
         this.isVisible = false;
         if (this.polylineCollection) {
             this.polylineCollection.show = false;
@@ -256,6 +354,7 @@ export class StreamlineWindLayer {
                 }
             });
         }
+        console.log('✅ hideLayer() 完成，isVisible:', this.isVisible);
     }
     
     remove() {
@@ -269,26 +368,11 @@ export class StreamlineWindLayer {
     
     // 设置显示状态（兼容 cesium-wind-layer 接口）
     set show(value) {
+        console.log('🔧 set show() 被调用，value:', value);
         if (value) {
-            this.isVisible = true;
-            if (this.polylineCollection) {
-                this.polylineCollection.show = true;
-                this.streamlines.forEach(streamline => {
-                    if (streamline.polyline) {
-                        streamline.polyline.show = true;
-                    }
-                });
-            }
+            this.showLayer();
         } else {
-            this.isVisible = false;
-            if (this.polylineCollection) {
-                this.polylineCollection.show = false;
-                this.streamlines.forEach(streamline => {
-                    if (streamline.polyline) {
-                        streamline.polyline.show = false;
-                    }
-                });
-            }
+            this.hideLayer();
         }
     }
     
