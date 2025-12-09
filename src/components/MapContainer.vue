@@ -163,7 +163,7 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
-import { StreamlineWindLayer } from '../utils/streamlineWindLayer.js';
+import { CanvasWindLayer } from '../utils/CanvasWindLayer.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 
@@ -726,32 +726,32 @@ export default {
                 });
                 
                 // 创建风场图层（使用 cesium-wind-layer 插件）
-                console.log('⏳ 创建 WindLayer 实例...');
-                console.log('   - WindLayer 构造函数:', typeof StreamlineWindLayer);
+                console.log('⏳ 创建 Canvas WindLayer 实例...');
+                console.log('   - WindLayer 构造函数:', typeof CanvasWindLayer);
                 console.log('   - windData 完整对象:', windData);
                 console.log('   - windData.sparseData 长度:', windData.sparseData?.length);
                 console.log('   - windData.spatialGrid 长度:', windData.spatialGrid?.length);
                 console.log('   - windData.bounds:', windData.bounds);
                 
-                windLayer = new StreamlineWindLayer(viewer, windData, {
-                    streamlineCount: 1500,  // 减少流线数量（从5000降到1500）
-                    segmentLength: 0.5,  // 增加段长度（从0.3到0.5）减少顶点数
-                    maxSegments: 80,  // 减少最大段数（从150到80）
-                    minSegments: 20,   // 减少最小段数（从30到20）
-                    lineWidth: 1.5,  // 线宽
-                    updateInterval: 100,  // 增加更新间隔（从30到100ms）降低更新频率
-                    fadeSpeed: 0.03,  // 加快淡出速度（从0.015到0.03）
-                    color: Cesium.Color.CYAN  // 青色流线
+                windLayer = new CanvasWindLayer(viewer, windData, {
+                    particleCount: 4000,  // 粒子数量（减少以提升性能和视觉效果）
+                    particleAge: 100,  // 粒子生命周期
+                    lineWidth: 2.5,  // 线宽（增加以更清晰）
+                    speedFactor: 0.05,  // 速度因子（大幅降低以匹配数据单位）
+                    fadeOpacity: 0.97,  // 拖尾淡化速度（调整为更合适的值）
+                    colorScale: 'white',  // 'white' 或 'speed'
+                    maxAge: 100,  // 最大年龄
+                    minAge: 50   // 最小年龄
                 });
                 
-                console.log('✅ WindLayer 实例创建成功');
+                console.log('✅ Canvas WindLayer 实例创建成功');
                 console.log('   - windLayer 对象:', windLayer);
                 console.log('   - windLayer.show 属性:', windLayer.show, '(类型:', typeof windLayer.show, ')');
                 console.log('   - windLayer.isVisible:', windLayer.isVisible);
-                console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
-                console.log('   - windLayer.polylineCollection:', windLayer.polylineCollection);
+                console.log('   - windLayer.particles 数量:', windLayer.particles?.length);
+                console.log('   - windLayer.canvas:', windLayer.canvas);
                 console.log('   - windLayer.remove 方法:', typeof windLayer.remove);
-                console.log('✅ 风场图层初始化完成');
+                console.log('✅ Canvas 风场图层初始化完成');
                 
                 // 不改变视角，保持当前视角
                 console.log('✅ 风场图层已加载，保持当前视角');
