@@ -174,7 +174,7 @@ export class CanvasWindLayer {
     }
     
     // 获取指定地理位置的风速
-    getWindAt(lon, lat) {
+    getWindAt(lon, lat, extendedSearch = false) {
         const { bounds, spatialGrid, gridSize, gridRows, gridCols } = this.windData;
         
         // 边界检查
@@ -190,12 +190,14 @@ export class CanvasWindLayer {
             return null;
         }
         
-        // 搜索当前网格及周围8个网格
+        // 搜索范围：普通搜索 1 层，扩展搜索 3 层
+        const searchRadius = extendedSearch ? 3 : 1;
+        
         let nearestPoint = null;
         let minDistance = Infinity;
         
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
+        for (let dr = -searchRadius; dr <= searchRadius; dr++) {
+            for (let dc = -searchRadius; dc <= searchRadius; dc++) {
                 const r = gridRow + dr;
                 const c = gridCol + dc;
                 
@@ -220,8 +222,10 @@ export class CanvasWindLayer {
             }
         }
         
-        // 如果最近的点距离太远（超过2度），返回null
-        if (!nearestPoint || minDistance > 4.0) {
+        // 扩展搜索时允许更远的距离（10度），普通搜索 2 度
+        const maxDistance = extendedSearch ? 100.0 : 4.0;
+        
+        if (!nearestPoint || minDistance > maxDistance) {
             return null;
         }
         
@@ -253,18 +257,50 @@ export class CanvasWindLayer {
             return;
         }
         
-        // 获取风速
-        const wind = this.getWindAt(geo.lon, geo.lat);
+        // 获取风速（先尝试普通搜索）
+        let wind = this.getWindAt(geo.lon, geo.lat, false);
         
         if (!wind) {
-            // 没有风速数据，重生
-            this.resetParticle(particle);
-            return;
+            // 普通搜索失败，尝试扩展搜索（借用附近的风速数据）
+            wind = this.getWindAt(geo.lon, geo.lat, true);
+            
+            if (!wind) {
+                // 扩展搜索也失败，重生
+                this.resetParticle(particle);
+                return;
+            }
         }
         
+        // 添加轻微随机扰动（增加自然感）
+        const turbulence = 0.03;
+        const turbulentU = wind.u + (Math.random() - 0.5) * turbulence;
+        const turbulentV = wind.v + (Math.random() - 0.5) * turbulence;
+        
         // 速度平滑：80% 旧速度 + 20% 新速度
-        particle.vx = particle.vx * 0.8 + wind.u * this.options.speedFactor * 0.2;
-        particle.vy = particle.vy * 0.8 + wind.v * this.options.speedFactor * 0.2;
+        particle.vx = particle.vx * 0.8 + turbulentU * this.options.speedFactor * 0.2;
+        particle.vy = particle.vy * 0.8 + turbulentV * this.options.speedFactor * 0.2;
+        
+        // 粒子老化时添加漩涡效果
+        if (particle.age > particle.maxAge * 0.7) {
+            const fadeRatio = (particle.age - particle.maxAge * 0.7) / (particle.maxAge * 0.3);
+            
+            // 逐渐减速
+            const slowdown = 1 - fadeRatio * 0.4;
+            particle.vx *= slowdown;
+            particle.vy *= slowdown;
+            
+            // 添加旋转（形成漩涡）
+            const rotationStrength = fadeRatio * 0.3;
+            const angle = rotationStrength * Math.PI;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            
+            const rotatedVx = particle.vx * cos - particle.vy * sin;
+            const rotatedVy = particle.vx * sin + particle.vy * cos;
+            
+            particle.vx = rotatedVx;
+            particle.vy = rotatedVy;
+        }
         
         // 计算新的地理位置（使用平滑后的速度）
         const speed = Math.sqrt(wind.u * wind.u + wind.v * wind.v);
@@ -310,21 +346,37 @@ export class CanvasWindLayer {
         particle.history = [];  // 清空历史
     }
     
-    // 根据速度获取颜色
-    getColorBySpeed(speed) {
+    // 根据速度和粒子年龄获取颜色（带渐变透明度）
+    getColorBySpeed(speed, particle) {
+        // 计算粒子年龄比例
+        const ageRatio = particle.age / particle.maxAge;
+        
+        // 根据年龄计算透明度（淡入 → 稳定 → 淡出）
+        let alpha;
+        if (ageRatio < 0.2) {
+            // 淡入阶段：0 → 0.15
+            alpha = (ageRatio / 0.2) * 0.15;
+        } else if (ageRatio < 0.8) {
+            // 稳定阶段：0.15
+            alpha = 0.15;
+        } else {
+            // 淡出阶段：0.15 → 0
+            alpha = ((1 - ageRatio) / 0.2) * 0.15;
+        }
+        
         if (this.options.colorScale === 'white') {
-            return 'rgba(255, 255, 255, 0.4)';  // 降低透明度避免过度累积
+            return `rgba(255, 255, 255, ${alpha})`;
         }
         
         // 根据风速映射颜色（蓝色 -> 绿色 -> 黄色 -> 红色）
         if (speed < 5) {
-            return `rgba(0, 255, 255, 0.4)`;  // 青色
+            return `rgba(0, 255, 255, ${alpha})`;  // 青色
         } else if (speed < 10) {
-            return `rgba(0, 255, 0, 0.4)`;  // 绿色
+            return `rgba(0, 255, 0, ${alpha})`;  // 绿色
         } else if (speed < 15) {
-            return `rgba(255, 255, 0, 0.4)`;  // 黄色
+            return `rgba(255, 255, 0, ${alpha})`;  // 黄色
         } else {
-            return `rgba(255, 0, 0, 0.4)`;  // 红色
+            return `rgba(255, 0, 0, ${alpha})`;  // 红色
         }
     }
     
@@ -362,7 +414,8 @@ export class CanvasWindLayer {
             
             // 绘制粒子轨迹
             if (particle.age > 0) {
-                const color = this.getColorBySpeed(particle.speed || 0);
+                // 传入粒子对象，计算渐变透明度
+                const color = this.getColorBySpeed(particle.speed || 0, particle);
                 this.ctx.strokeStyle = color;
                 
                 // 如果有足够的历史位置，使用贝塞尔曲线绘制平滑轨迹

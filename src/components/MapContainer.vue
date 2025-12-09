@@ -738,7 +738,7 @@ export default {
                     particleAge: 100,  // 粒子生命周期
                     lineWidth: 2.5,  // 线宽（增加以更清晰）
                     speedFactor: 0.05,  // 速度因子（大幅降低以匹配数据单位）
-                    fadeOpacity: 0.97,  // 拖尾淡化速度（调整为更合适的值）
+                    fadeOpacity: 0.95,  // 拖尾淡化速度（加快淡化，减少累积）
                     colorScale: 'white',  // 'white' 或 'speed'
                     maxAge: 100,  // 最大年龄
                     minAge: 50   // 最小年龄
