@@ -3,7 +3,23 @@
  * 使用官方 cesium-wind-layer 插件实现风场可视化
  */
 
-import { WindLayer } from 'cesium-wind-layer';
+// 动态导入 cesium-wind-layer 插件
+let WindLayer = null;
+
+// 异步加载插件
+async function loadWindLayerPlugin() {
+    if (!WindLayer) {
+        try {
+            const module = await import('cesium-wind-layer');
+            WindLayer = module.WindLayer;
+            console.log('✅ cesium-wind-layer 插件加载成功');
+        } catch (error) {
+            console.error('❌ cesium-wind-layer 插件加载失败:', error);
+            throw error;
+        }
+    }
+    return WindLayer;
+}
 
 /**
  * 将稀疏数据转换为 cesium-wind-layer 所需的网格格式
@@ -86,10 +102,13 @@ export function convertToWindLayerFormat(windData) {
  * @param {Cesium.Viewer} viewer - Cesium Viewer 实例
  * @param {Object} windData - 风场数据
  * @param {Object} options - 配置选项
- * @returns {WindLayer} WindLayer 实例
+ * @returns {Promise<WindLayer>} WindLayer 实例
  */
-export function createWindLayer(viewer, windData, options = {}) {
+export async function createWindLayer(viewer, windData, options = {}) {
     console.log('🌬️ 创建 WindLayer 实例...');
+    
+    // 确保插件已加载
+    const WindLayerClass = await loadWindLayerPlugin();
     
     // 转换数据格式
     const formattedData = convertToWindLayerFormat(windData);
@@ -129,7 +148,7 @@ export function createWindLayer(viewer, windData, options = {}) {
     
     try {
         // 创建 WindLayer 实例
-        const windLayer = new WindLayer(viewer, formattedData, finalOptions);
+        const windLayer = new WindLayerClass(viewer, formattedData, finalOptions);
         
         console.log('✅ WindLayer 创建成功');
         console.log('   - 类型:', windLayer.constructor.name);
@@ -150,17 +169,31 @@ export class CesiumWindLayerWrapper {
         this.viewer = viewer;
         this.windLayer = null;
         this.isVisible = false;
+        this._initPromise = null;
         
-        // 创建 WindLayer
-        this.windLayer = createWindLayer(viewer, windData, options);
-        
-        console.log('✅ CesiumWindLayerWrapper 初始化完成');
+        // 异步创建 WindLayer
+        this._initPromise = this._init(viewer, windData, options);
+    }
+    
+    async _init(viewer, windData, options) {
+        try {
+            this.windLayer = await createWindLayer(viewer, windData, options);
+            console.log('✅ CesiumWindLayerWrapper 初始化完成');
+        } catch (error) {
+            console.error('❌ CesiumWindLayerWrapper 初始化失败:', error);
+            throw error;
+        }
+    }
+    
+    async waitForInit() {
+        await this._initPromise;
     }
     
     /**
      * 显示风场
      */
-    showLayer() {
+    async showLayer() {
+        await this.waitForInit();
         if (this.windLayer) {
             this.windLayer.show = true;
             this.isVisible = true;
@@ -171,7 +204,8 @@ export class CesiumWindLayerWrapper {
     /**
      * 隐藏风场
      */
-    hideLayer() {
+    async hideLayer() {
+        await this.waitForInit();
         if (this.windLayer) {
             this.windLayer.show = false;
             this.isVisible = false;
@@ -182,7 +216,8 @@ export class CesiumWindLayerWrapper {
     /**
      * 移除风场
      */
-    remove() {
+    async remove() {
+        await this.waitForInit();
         if (this.windLayer) {
             this.windLayer.remove();
             this.windLayer = null;

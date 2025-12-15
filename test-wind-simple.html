@@ -3,76 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测试 cesium-wind-layer 插件</title>
+    <title>简单风场测试</title>
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; overflow: hidden; }
         #cesiumContainer { width: 100vw; height: 100vh; }
-        #info {
+        #controls {
             position: absolute;
             top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 15px;
             border-radius: 5px;
-            font-family: monospace;
             z-index: 1000;
         }
-        .status { margin: 5px 0; }
-        .success { color: #4ade80; }
-        .error { color: #f87171; }
-        .warning { color: #fbbf24; }
+        button {
+            background: #06b6d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0891b2;
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <div id="cesiumContainer"></div>
-    <div id="info">
-        <h3>cesium-wind-layer 插件测试</h3>
-        <div class="status" id="cesiumStatus">Cesium: 检查中...</div>
-        <div class="status" id="pluginStatus">插件: 检查中...</div>
-        <div class="status" id="dataStatus">数据: 检查中...</div>
-        <div class="status" id="windStatus">风场: 检查中...</div>
+    <div id="controls">
+        <h3>风场控制</h3>
+        <button id="toggleWind">显示风场</button>
+        <div id="status">状态: 未初始化</div>
     </div>
 
     <script type="module">
-        // 检查 Cesium
-        const cesiumStatus = document.getElementById('cesiumStatus');
-        if (typeof Cesium !== 'undefined') {
-            cesiumStatus.innerHTML = `Cesium: <span class="success">✓ 已加载 (${Cesium.VERSION})</span>`;
-        } else {
-            cesiumStatus.innerHTML = `Cesium: <span class="error">✗ 未加载</span>`;
+        const statusEl = document.getElementById('status');
+        const toggleBtn = document.getElementById('toggleWind');
+        
+        function updateStatus(msg) {
+            statusEl.textContent = '状态: ' + msg;
+            console.log('📊', msg);
         }
 
-        // 检查插件
-        const pluginStatus = document.getElementById('pluginStatus');
-        try {
-            const { WindLayer } = await import('cesium-wind-layer');
-            pluginStatus.innerHTML = `插件: <span class="success">✓ cesium-wind-layer 已加载</span>`;
-            
-            // 初始化 Cesium Viewer
-            const viewer = new Cesium.Viewer('cesiumContainer', {
-                animation: false,
-                timeline: false,
-                geocoder: false,
-                homeButton: false,
-                sceneModePicker: false,
-                baseLayerPicker: false,
-                navigationHelpButton: false,
-                fullscreenButton: false
-            });
+        updateStatus('初始化 Cesium...');
+        
+        // 初始化 Cesium
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            animation: false,
+            timeline: false,
+            geocoder: false,
+            homeButton: false,
+            sceneModePicker: false,
+            baseLayerPicker: false,
+            navigationHelpButton: false,
+            fullscreenButton: false
+        });
 
-            // 加载测试数据
-            const dataStatus = document.getElementById('dataStatus');
-            const windStatus = document.getElementById('windStatus');
-            
+        updateStatus('加载插件...');
+        
+        let windLayer = null;
+        let isWindVisible = false;
+
+        // 加载风场
+        async function initWind() {
             try {
+                updateStatus('加载 cesium-wind-layer 插件...');
+                const { WindLayer } = await import('cesium-wind-layer');
+                
+                updateStatus('加载风场数据...');
                 const response = await fetch('/data/wind_data_0701.json');
                 const rawData = await response.json();
-                dataStatus.innerHTML = `数据: <span class="success">✓ 已加载 (${rawData.wind.length} 个点)</span>`;
-
-                // 转换数据格式
+                
+                updateStatus('转换数据格式...');
                 const sparseData = rawData.wind;
                 const bounds = {
                     west: Math.min(...sparseData.map(p => p.lon)),
@@ -108,8 +119,8 @@
                     bounds: bounds
                 };
 
-                // 创建风场图层
-                const windLayer = new WindLayer(viewer, windData, {
+                updateStatus('创建 WindLayer...');
+                windLayer = new WindLayer(viewer, windData, {
                     particleSystemOptions: {
                         maxParticles: 64 * 64,
                         particleHeight: 100.0,
@@ -122,7 +133,10 @@
                 });
 
                 windLayer.show = true;
-                windStatus.innerHTML = `风场: <span class="success">✓ 已显示</span>`;
+                isWindVisible = true;
+                toggleBtn.textContent = '隐藏风场';
+                
+                updateStatus('✅ 风场已显示');
 
                 // 飞到太平洋
                 viewer.camera.flyTo({
@@ -131,14 +145,24 @@
                 });
 
             } catch (error) {
-                dataStatus.innerHTML = `数据: <span class="error">✗ 加载失败 (${error.message})</span>`;
-                windStatus.innerHTML = `风场: <span class="error">✗ 创建失败</span>`;
+                updateStatus('❌ 错误: ' + error.message);
+                console.error('详细错误:', error);
             }
-
-        } catch (error) {
-            pluginStatus.innerHTML = `插件: <span class="error">✗ 加载失败 (${error.message})</span>`;
-            console.error('插件加载失败:', error);
         }
+
+        // 切换风场显示
+        toggleBtn.addEventListener('click', async () => {
+            if (!windLayer) {
+                await initWind();
+            } else {
+                isWindVisible = !isWindVisible;
+                windLayer.show = isWindVisible;
+                toggleBtn.textContent = isWindVisible ? '隐藏风场' : '显示风场';
+                updateStatus(isWindVisible ? '风场已显示' : '风场已隐藏');
+            }
+        });
+
+        updateStatus('准备就绪，点击按钮显示风场');
     </script>
 </body>
 </html>
