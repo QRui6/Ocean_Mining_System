@@ -184,7 +184,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { MINERAL_TYPES, OCEANS, getLayersByOcean } from '../constants.js';
 
 export default {
@@ -202,7 +202,7 @@ export default {
             default: true
         }
     },
-    emits: ['filterChange'], // 向父组件发送筛选条件变化事件
+    emits: ['filterChange', 'layersChange'], // 向父组件发送筛选条件变化事件 & 图层变化
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -220,12 +220,24 @@ export default {
         
         // 图层数据（用于图层控制面板）
         const layers = ref(getLayersByOcean(OCEANS[0]));
+
+        // 当前激活的大洋（用于标题显示）
+        const activeOcean = computed(() => {
+            return activeOceans.value[0] || OCEANS[0];
+        });
         
         // 国家面板的展开/收起状态
         const showCountryPanel = ref(false);
 
         // ==================== 监听器 ====================
         
+        /**
+         * 向父组件发送当前图层状态
+         */
+        const emitLayers = () => {
+            emit('layersChange', layers.value);
+        };
+
         /**
          * 监听传入的国家列表变化
          * 当 GeoJSON 数据加载完成后，更新可用的国家列表
@@ -364,13 +376,14 @@ export default {
          * 功能：
          * 当用户选择不同的大洋时，图层控制面板会显示对应大洋的图层
          * 如果没有选择大洋，则显示第一个大洋的图层
-         */
+        */
         watch(activeOceans, (newOceans) => {
             if (newOceans.length > 0) {
                 layers.value = getLayersByOcean(newOceans[0]);
             } else {
                 layers.value = getLayersByOcean(OCEANS[0]);
             }
+            emitLayers();
         });
 
         /**
@@ -388,13 +401,38 @@ export default {
             const parent = layers.value.find(l => l.id === parentId);
             if (parent) {
                 if (layerId && parent.subLayers) {
+                    // 切换子图层
                     const sub = parent.subLayers.find(l => l.id === layerId);
                     if (sub) sub.active = !sub.active;
                 } else {
-                    parent.active = !parent.active;
+                    // 切换父图层：控制该父图层下所有子图层
+                    const newActive = !parent.active;
+                    parent.active = newActive;
+
+                    if (parent.subLayers && parent.subLayers.length) {
+                        if (!newActive) {
+                            // 关闭父图层：记录当前哪些子图层是开的，然后全部关掉
+                            parent._prevSubActive = parent.subLayers
+                                .filter(s => s.active)
+                                .map(s => s.id);
+                            parent.subLayers.forEach(s => { s.active = false; });
+                        } else {
+                            // 打开父图层：恢复之前开着的子图层；如果没有记录，则默认全部打开
+                            const prev = parent._prevSubActive && parent._prevSubActive.length
+                                ? parent._prevSubActive
+                                : parent.subLayers.map(s => s.id);
+                            parent.subLayers.forEach(s => {
+                                s.active = prev.includes(s.id);
+                            });
+                        }
+                    }
                 }
+                emitLayers();
             }
         };
+
+        // 初始时发送一次图层状态
+        emitLayers();
 
         return {
             activeMinerals,
@@ -402,6 +440,7 @@ export default {
             activeCountries,
             currentCountries,
             layers,
+            activeOcean,
             showCountryPanel,
             toggleMineral,
             toggleOcean,
