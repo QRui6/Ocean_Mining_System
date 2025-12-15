@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 cesium-wind-layer 插件</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        #cesiumContainer { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+        .status { margin: 5px 0; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    <div id="info">
+        <h3>cesium-wind-layer 插件测试</h3>
+        <div class="status" id="cesiumStatus">Cesium: 检查中...</div>
+        <div class="status" id="pluginStatus">插件: 检查中...</div>
+        <div class="status" id="dataStatus">数据: 检查中...</div>
+        <div class="status" id="windStatus">风场: 检查中...</div>
+    </div>
+
+    <script type="module">
+        // 检查 Cesium
+        const cesiumStatus = document.getElementById('cesiumStatus');
+        if (typeof Cesium !== 'undefined') {
+            cesiumStatus.innerHTML = `Cesium: <span class="success">✓ 已加载 (${Cesium.VERSION})</span>`;
+        } else {
+            cesiumStatus.innerHTML = `Cesium: <span class="error">✗ 未加载</span>`;
+        }
+
+        // 检查插件
+        const pluginStatus = document.getElementById('pluginStatus');
+        try {
+            const { WindLayer } = await import('cesium-wind-layer');
+            pluginStatus.innerHTML = `插件: <span class="success">✓ cesium-wind-layer 已加载</span>`;
+            
+            // 初始化 Cesium Viewer
+            const viewer = new Cesium.Viewer('cesiumContainer', {
+                animation: false,
+                timeline: false,
+                geocoder: false,
+                homeButton: false,
+                sceneModePicker: false,
+                baseLayerPicker: false,
+                navigationHelpButton: false,
+                fullscreenButton: false
+            });
+
+            // 加载测试数据
+            const dataStatus = document.getElementById('dataStatus');
+            const windStatus = document.getElementById('windStatus');
+            
+            try {
+                const response = await fetch('/data/wind_data_0701.json');
+                const rawData = await response.json();
+                dataStatus.innerHTML = `数据: <span class="success">✓ 已加载 (${rawData.wind.length} 个点)</span>`;
+
+                // 转换数据格式
+                const sparseData = rawData.wind;
+                const bounds = {
+                    west: Math.min(...sparseData.map(p => p.lon)),
+                    east: Math.max(...sparseData.map(p => p.lon)),
+                    south: Math.min(...sparseData.map(p => p.lat)),
+                    north: Math.max(...sparseData.map(p => p.lat))
+                };
+
+                const resolution = 1.0;
+                const nx = Math.ceil((bounds.east - bounds.west) / resolution) + 1;
+                const ny = Math.ceil((bounds.north - bounds.south) / resolution) + 1;
+
+                const uData = new Float32Array(nx * ny);
+                const vData = new Float32Array(nx * ny);
+                uData.fill(NaN);
+                vData.fill(NaN);
+
+                for (const point of sparseData) {
+                    const i = Math.round((point.lon - bounds.west) / resolution);
+                    const j = Math.round((point.lat - bounds.south) / resolution);
+                    if (i >= 0 && i < nx && j >= 0 && j < ny) {
+                        const index = j * nx + i;
+                        uData[index] = point.u;
+                        vData[index] = point.v;
+                    }
+                }
+
+                const windData = {
+                    u: { array: uData },
+                    v: { array: vData },
+                    width: nx,
+                    height: ny,
+                    bounds: bounds
+                };
+
+                // 创建风场图层
+                const windLayer = new WindLayer(viewer, windData, {
+                    particleSystemOptions: {
+                        maxParticles: 64 * 64,
+                        particleHeight: 100.0,
+                        fadeOpacity: 0.996,
+                        dropRate: 0.003,
+                        dropRateBump: 0.01,
+                        speedFactor: 1.0,
+                        lineWidth: 4.0
+                    }
+                });
+
+                windLayer.show = true;
+                windStatus.innerHTML = `风场: <span class="success">✓ 已显示</span>`;
+
+                // 飞到太平洋
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
+                    duration: 2
+                });
+
+            } catch (error) {
+                dataStatus.innerHTML = `数据: <span class="error">✗ 加载失败 (${error.message})</span>`;
+                windStatus.innerHTML = `风场: <span class="error">✗ 创建失败</span>`;
+            }
+
+        } catch (error) {
+            pluginStatus.innerHTML = `插件: <span class="error">✗ 加载失败 (${error.message})</span>`;
+            console.error('插件加载失败:', error);
+        }
+    </script>
+</body>
+</html>

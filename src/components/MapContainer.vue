@@ -163,7 +163,8 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
-import { CanvasWindLayer } from '../utils/CanvasWindLayer.js';
+// 使用官方 cesium-wind-layer 插件
+import { CesiumWindLayerWrapper } from '../utils/cesiumWindLayerAdapter.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 
@@ -725,33 +726,29 @@ export default {
                     数据类型: '稀疏数据'
                 });
                 
-                // 创建风场图层（使用 cesium-wind-layer 插件）
-                console.log('⏳ 创建 Canvas WindLayer 实例...');
-                console.log('   - WindLayer 构造函数:', typeof CanvasWindLayer);
+                // 创建风场图层（使用官方 cesium-wind-layer 插件）
+                console.log('⏳ 创建 Cesium WindLayer 实例...');
                 console.log('   - windData 完整对象:', windData);
                 console.log('   - windData.sparseData 长度:', windData.sparseData?.length);
-                console.log('   - windData.spatialGrid 长度:', windData.spatialGrid?.length);
                 console.log('   - windData.bounds:', windData.bounds);
                 
-                windLayer = new CanvasWindLayer(viewer, windData, {
-                    particleCount: 4000,  // 粒子数量（减少以提升性能和视觉效果）
-                    particleAge: 100,  // 粒子生命周期
-                    lineWidth: 2.5,  // 线宽（增加以更清晰）
-                    speedFactor: 0.05,  // 速度因子（大幅降低以匹配数据单位）
-                    fadeOpacity: 0.95,  // 拖尾淡化速度（加快淡化，减少累积）
-                    colorScale: 'white',  // 'white' 或 'speed'
-                    maxAge: 100,  // 最大年龄
-                    minAge: 50   // 最小年龄
+                windLayer = new CesiumWindLayerWrapper(viewer, windData, {
+                    particleSystemOptions: {
+                        maxParticles: 64 * 64,        // 粒子数量（4096）
+                        particleHeight: 100.0,         // 粒子高度（米）
+                        fadeOpacity: 0.996,            // 淡出速度
+                        dropRate: 0.003,               // 粒子重生率
+                        dropRateBump: 0.01,            // 粒子重生率增量
+                        speedFactor: 1.0,              // 速度因子
+                        lineWidth: 4.0                 // 线宽
+                    }
                 });
                 
-                console.log('✅ Canvas WindLayer 实例创建成功');
+                console.log('✅ Cesium WindLayer 实例创建成功');
                 console.log('   - windLayer 对象:', windLayer);
-                console.log('   - windLayer.show 属性:', windLayer.show, '(类型:', typeof windLayer.show, ')');
+                console.log('   - windLayer.show 属性:', windLayer.show);
                 console.log('   - windLayer.isVisible:', windLayer.isVisible);
-                console.log('   - windLayer.particles 数量:', windLayer.particles?.length);
-                console.log('   - windLayer.canvas:', windLayer.canvas);
-                console.log('   - windLayer.remove 方法:', typeof windLayer.remove);
-                console.log('✅ Canvas 风场图层初始化完成');
+                console.log('✅ 官方 cesium-wind-layer 插件初始化完成');
                 
                 // 不改变视角，保持当前视角
                 console.log('✅ 风场图层已加载，保持当前视角');
@@ -789,13 +786,6 @@ export default {
                     showWind.value = true;
                     console.log('✅ 风场已显示');
                     console.log('   - windLayer.isVisible:', windLayer.isVisible);
-                    console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
-                    
-                    // 强制多次渲染确保显示
-                    viewer.scene.requestRender();
-                    setTimeout(() => viewer.scene.requestRender(), 100);
-                    setTimeout(() => viewer.scene.requestRender(), 300);
-                    setTimeout(() => viewer.scene.requestRender(), 500);
                 }
             } else {
                 // 已初始化，切换显示状态
