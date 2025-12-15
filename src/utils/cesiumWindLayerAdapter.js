@@ -68,17 +68,27 @@ export function convertToWindLayerFormat(windData) {
     console.log('   - 填充数据点:', filledCount);
     console.log('   - 覆盖率:', (filledCount / (nx * ny) * 100).toFixed(2) + '%');
     
+    // 计算 min/max（避免栈溢出）
+    let uMin = Infinity, uMax = -Infinity;
+    let vMin = Infinity, vMax = -Infinity;
+    for (const point of sparseData) {
+        if (point.u < uMin) uMin = point.u;
+        if (point.u > uMax) uMax = point.u;
+        if (point.v < vMin) vMin = point.v;
+        if (point.v > vMax) vMax = point.v;
+    }
+    
     // 返回 cesium-wind-layer 格式
     const result = {
         u: {
             array: uData,
-            min: Math.min(...sparseData.map(p => p.u)),
-            max: Math.max(...sparseData.map(p => p.u))
+            min: uMin,
+            max: uMax
         },
         v: {
             array: vData,
-            min: Math.min(...sparseData.map(p => p.v)),
-            max: Math.max(...sparseData.map(p => p.v))
+            min: vMin,
+            max: vMax
         },
         width: nx,
         height: ny,
@@ -113,29 +123,18 @@ export async function createWindLayer(viewer, windData, options = {}) {
     // 转换数据格式
     const formattedData = convertToWindLayerFormat(windData);
     
-    // 默认配置
+    // 默认配置（根据插件文档）
     const defaultOptions = {
-        particleSystemOptions: {
-            maxParticles: 64 * 64,        // 粒子数量（4096）
-            particleHeight: 100.0,         // 粒子高度（米）
-            fadeOpacity: 0.996,            // 淡出速度
-            dropRate: 0.003,               // 粒子重生率
-            dropRateBump: 0.01,            // 粒子重生率增量
-            speedFactor: 1.0,              // 速度因子
-            lineWidth: 4.0                 // 线宽
-        },
-        // 粒子颜色（白色）
-        particleColor: {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-            a: 1.0
-        },
-        // 显示选项
-        displayRange: {
-            min: 0,
-            max: 100
-        }
+        particlesTextureSize: 64,      // 粒子纹理大小（64x64 = 4096个粒子）
+        particleHeight: 100.0,         // 粒子高度（米）
+        lineWidth: { min: 1, max: 2 }, // 线宽范围
+        lineLength: { min: 20, max: 100 }, // 线长范围
+        speedFactor: 1.0,              // 速度因子
+        dropRate: 0.003,               // 粒子重生率
+        dropRateBump: 0.001,           // 粒子重生率增量
+        colors: ['white'],             // 粒子颜色
+        flipY: false,                  // 是否翻转Y坐标
+        dynamic: true                  // 启用动态动画
     };
     
     // 合并用户配置

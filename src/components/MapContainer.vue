@@ -712,51 +712,116 @@ export default {
             
             try {
                 console.log('🌬️ 开始加载全球风场数据...');
-                
-                // 加载全球 1 度分辨率风场数据
-                console.log('⏳ 调用 loadGlobalWindData()...');
                 const windData = await loadGlobalWindData();
-                console.log('✅ 全球风场数据加载成功');
+                console.log('✅ 数据加载成功，数据点:', windData.sparseData.length);
                 
-                console.log('📊 风场数据详情:', {
-                    范围: `经度 ${windData.bounds.west}° 到 ${windData.bounds.east}°, 纬度 ${windData.bounds.south}° 到 ${windData.bounds.north}°`,
-                    空间网格: `${windData.gridRows} × ${windData.gridCols}`,
-                    实际数据点: windData.sparseData.length,
-                    网格大小: windData.gridSize + '度',
-                    数据类型: '稀疏数据'
-                });
+                // 直接使用插件，不经过适配器
+                console.log('⏳ 动态导入 cesium-wind-layer...');
+                const { WindLayer } = await import('cesium-wind-layer');
+                console.log('✅ 插件导入成功');
                 
-                // 创建风场图层（使用官方 cesium-wind-layer 插件）
-                console.log('⏳ 创建 Cesium WindLayer 实例...');
-                console.log('   - windData 完整对象:', windData);
-                console.log('   - windData.sparseData 长度:', windData.sparseData?.length);
-                console.log('   - windData.bounds:', windData.bounds);
+                // 转换数据格式 - 使用固定的全球网格
+                console.log('⏳ 转换数据格式...');
+                const { sparseData } = windData;
                 
-                windLayer = new CesiumWindLayerWrapper(viewer, windData, {
-                    particleSystemOptions: {
-                        maxParticles: 64 * 64,        // 粒子数量（4096）
-                        particleHeight: 100.0,         // 粒子高度（米）
-                        fadeOpacity: 0.996,            // 淡出速度
-                        dropRate: 0.003,               // 粒子重生率
-                        dropRateBump: 0.01,            // 粒子重生率增量
-                        speedFactor: 1.0,              // 速度因子
-                        lineWidth: 4.0                 // 线宽
+                // 固定使用全球范围 1度分辨率
+                const bounds = {
+                    west: -180,
+                    south: -90,
+                    east: 180,
+                    north: 90
+                };
+                const resolution = 1.0;
+                const nx = 361;  // -180 到 180，每度一个点
+                const ny = 181;  // -90 到 90，每度一个点
+                
+                console.log('   - 网格尺寸:', nx, 'x', ny, '=', nx * ny);
+                
+                const uData = new Float32Array(nx * ny);
+                const vData = new Float32Array(nx * ny);
+                uData.fill(0);
+                vData.fill(0);
+                
+                let uMin = Infinity, uMax = -Infinity;
+                let vMin = Infinity, vMax = -Infinity;
+                let filledCount = 0;
+                
+                for (const point of sparseData) {
+                    const i = Math.round(point.lon + 180);  // -180~180 -> 0~360
+                    const j = Math.round(point.lat + 90);   // -90~90 -> 0~180
+                    
+                    if (i >= 0 && i < nx && j >= 0 && j < ny) {
+                        const index = j * nx + i;
+                        uData[index] = point.u;
+                        vData[index] = point.v;
+                        filledCount++;
+                        
+                        if (point.u < uMin) uMin = point.u;
+                        if (point.u > uMax) uMax = point.u;
+                        if (point.v < vMin) vMin = point.v;
+                        if (point.v > vMax) vMax = point.v;
                     }
+                }
+                
+                console.log('   - 填充数据点:', filledCount);
+                console.log('   - 覆盖率:', (filledCount / (nx * ny) * 100).toFixed(2) + '%');
+                
+                const formattedData = {
+                    u: { array: uData, min: uMin, max: uMax },
+                    v: { array: vData, min: vMin, max: vMax },
+                    width: nx,
+                    height: ny,
+                    bounds: bounds
+                };
+                
+                console.log('✅ 数据转换完成');
+                console.log('   - 网格:', nx, 'x', ny);
+                console.log('   - U范围:', uMin.toFixed(2), '~', uMax.toFixed(2));
+                console.log('   - V范围:', vMin.toFixed(2), '~', vMax.toFixed(2));
+                
+                // 确保场景已经渲染，WebGL 上下文已初始化
+                viewer.scene.requestRenderMode = false;
+                viewer.scene.render();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // 创建 WindLayer
+                console.log('⏳ 创建 WindLayer...');
+                console.log('   - Viewer scene:', viewer.scene);
+                console.log('   - WebGL context:', viewer.scene.context);
+                
+                // 检查 WebGL 上下文
+                const gl = viewer.scene.context._gl;
+                const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+                console.log('   - Max texture size:', maxTextureSize);
+                console.log('   - Data width:', formattedData.width);
+                console.log('   - Data height:', formattedData.height);
+                
+                if (formattedData.width > maxTextureSize || formattedData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${formattedData.width}x${formattedData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                }
+                
+                windLayer = new WindLayer(viewer, formattedData, {
+                    particlesTextureSize: 100,      // 增加粒子数量
+                    particleHeight: 0,              // 改为0，贴地显示
+                    lineWidth: { min: 2, max: 4 },  // 增加线宽
+                    lineLength: { min: 50, max: 150 }, // 增加线长
+                    speedFactor: 2.0,               // 增加速度
+                    dropRate: 0.003,
+                    dropRateBump: 0.001,
+                    colors: ['#ffffff'],            // 使用十六进制颜色
+                    flipY: false,
+                    dynamic: true
                 });
                 
-                console.log('✅ Cesium WindLayer 实例创建成功');
-                console.log('   - windLayer 对象:', windLayer);
-                console.log('   - windLayer.show 属性:', windLayer.show);
-                console.log('   - windLayer.isVisible:', windLayer.isVisible);
-                console.log('✅ 官方 cesium-wind-layer 插件初始化完成');
+                console.log('✅ WindLayer 创建成功');
+                console.log('   - windLayer:', windLayer);
+                console.log('   - windLayer.show:', windLayer.show);
+                console.log('   - windLayer 属性:', Object.keys(windLayer));
+                console.log('   - windLayer._show:', windLayer._show);
+                console.log('   - windLayer.viewerParameters:', windLayer.viewerParameters);
                 
-                // 不改变视角，保持当前视角
-                console.log('✅ 风场图层已加载，保持当前视角');
             } catch (error) {
-                console.error('❌ 风场图层加载失败:');
-                console.error('   - 错误类型:', error.name);
-                console.error('   - 错误信息:', error.message);
-                console.error('   - 完整错误:', error);
+                console.error('❌ 风场图层加载失败:', error);
                 console.error('   - 堆栈:', error.stack);
             }
         };
@@ -782,10 +847,14 @@ export default {
                 // 初始化后显示风场
                 if (windLayer) {
                     console.log('⏳ 正在显示风场...');
-                    windLayer.show = true;  // 调用 setter 来显示
+                    windLayer.show = true;
                     showWind.value = true;
                     console.log('✅ 风场已显示');
-                    console.log('   - windLayer.isVisible:', windLayer.isVisible);
+                    console.log('   - windLayer.show:', windLayer.show);
+                    
+                    // 关键：禁用按需渲染，启用持续渲染
+                    viewer.scene.requestRenderMode = false;
+                    console.log('✅ 已切换到持续渲染模式');
                 }
             } else {
                 // 已初始化，切换显示状态
@@ -795,19 +864,16 @@ export default {
                     windLayer.show = false;
                     showWind.value = false;
                     console.log('✅ 风场已隐藏');
+                    // 可以恢复按需渲染
+                    viewer.scene.requestRenderMode = true;
                 } else {
                     // 显示风场
                     console.log('⏳ 正在显示风场...');
                     windLayer.show = true;
                     showWind.value = true;
                     console.log('✅ 风场已显示');
-                    console.log('   - windLayer.isVisible:', windLayer.isVisible);
-                    console.log('   - windLayer.streamlines 数量:', windLayer.streamlines?.length);
-                    
-                    // 强制多次渲染确保显示
-                    viewer.scene.requestRender();
-                    setTimeout(() => viewer.scene.requestRender(), 100);
-                    setTimeout(() => viewer.scene.requestRender(), 300);
+                    // 启用持续渲染
+                    viewer.scene.requestRenderMode = false;
                 }
             }
         };
