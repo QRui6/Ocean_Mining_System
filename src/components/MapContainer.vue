@@ -47,14 +47,6 @@
                     </svg>
                 </button>
                 
-                <!-- 风场图层 -->
-                <button @click="toggleWindLayer" class="map-tool-btn group" :title="showWind ? '隐藏风场' : '显示风场'">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                    </svg>
-                    <div v-if="showWind" class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                </button>
-                
                 <!-- 轨迹显示 -->
                 <button @click="toggleTrajectory" class="map-tool-btn group" :title="showTrajectory ? '隐藏轨迹' : '显示轨迹'">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,34 +305,6 @@ export default {
             // updateWindVisibility(props.layerState);
         };
 
-        // 判断图层控制中“10日风场预报”是否开启
-        const isWindLayerEnabled = (layers) => {
-            if (!layers || !layers.length) return false;
-            
-            // 父图层需要是激活状态，且其子图层 wind 也为激活状态
-            for (const layer of layers) {
-                if (!layer.active || !layer.subLayers) continue;
-                const windSub = layer.subLayers.find(s => s.id === 'wind' && s.active);
-                if (windSub) return true;
-            }
-            return false;
-        };
-
-        // 根据当前图层控制状态，更新风场图层的显隐
-        const updateWindVisibility = (layers) => {
-            if (!viewer) return;
-            const enabled = isWindLayerEnabled(layers);
-
-            if (enabled && !windLayer) {
-                initWindLayer();
-            } else if (!enabled && windLayer) {
-                windLayer.remove();
-                windLayer = null;
-                viewer.scene.requestRender();
-            }
-        };
-
-        // 注意：loadWindLayer 函数已被移除，现在使用 initWindLayer 函数
 
         // 加载海洋采矿数据（简化版）
         const loadMiningData = async () => {
@@ -875,36 +839,7 @@ export default {
             }
         };
 
-        // 切换风场显示
-        const toggleWindLayer = async () => {
-            console.log('🔘 风场按钮被点击');
-            console.log('📍 Viewer 状态:', viewer ? '✅ 存在' : '❌ 不存在');
-            console.log('🌬️ WindLayer 状态:', windLayer ? '✅ 已初始化' : '⚠️ 未初始化');
-            console.log('👁️ 当前显示状态:', showWind.value ? '显示中' : '隐藏中');
-            
-            if (!viewer) {
-                console.error('❌ Viewer 不存在，无法初始化风场');
-                return;
-            }
-            
-            if (!windLayer) {
-                // 首次使用，初始化风场图层
-                await initWindLayer();
-                
-                if (windLayer) {
-                    windLayer.show = true;
-                    showWind.value = true;
-                    viewer.scene.requestRenderMode = false;
-                    console.log('✅ 风场已显示');
-                }
-            } else {
-                // 切换显示状态
-                windLayer.show = !windLayer.show;
-                showWind.value = windLayer.show;
-                viewer.scene.requestRenderMode = !windLayer.show;
-                console.log(windLayer.show ? '✅ 风场已显示' : '⚪ 风场已隐藏');
-            }
-        };
+
 
         // 关闭船舶信息窗口
         const closeShipInfo = () => {
@@ -1080,6 +1015,45 @@ export default {
         watch(() => props.layerState, (newLayers) => {
             updateWindVisibility(newLayers);
         }, { deep: true });
+        
+        // 根据图层状态更新风场显示
+        const updateWindVisibility = async (layers) => {
+            if (!viewer) return;
+            
+            // 查找风场图层的状态
+            let windEnabled = false;
+            for (const layer of layers) {
+                if (layer.id === 'env_monitor' && layer.active && layer.subLayers) {
+                    const windSub = layer.subLayers.find(s => s.id === 'wind');
+                    if (windSub && windSub.active) {
+                        windEnabled = true;
+                        break;
+                    }
+                }
+            }
+            
+            console.log('🌬️ 风场图层状态:', windEnabled);
+            
+            if (windEnabled && !windLayer) {
+                // 需要显示但未初始化，初始化风场
+                await initWindLayer();
+                if (windLayer) {
+                    windLayer.show = true;
+                    showWind.value = true;
+                    viewer.scene.requestRenderMode = false;
+                }
+            } else if (windEnabled && windLayer) {
+                // 需要显示且已初始化，显示风场
+                windLayer.show = true;
+                showWind.value = true;
+                viewer.scene.requestRenderMode = false;
+            } else if (!windEnabled && windLayer) {
+                // 不需要显示，隐藏风场
+                windLayer.show = false;
+                showWind.value = false;
+                viewer.scene.requestRenderMode = true;
+            }
+        };
 
         onMounted(() => {
             setTimeout(initCesium, 100);
@@ -1120,7 +1094,6 @@ export default {
             resetView,
             toggle2D3D,
             toggleFullscreen,
-            toggleWindLayer,
             toggleTrajectory
         };
     }

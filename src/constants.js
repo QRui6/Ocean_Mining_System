@@ -19,12 +19,12 @@ export const getLayersByOcean = (oceanName) => {
     return [
         {
             id: 'env_monitor',
-            label: `${oceanName}环境监测`,
+            label: '气象监测',
             active: true,
             subLayers: [
-                { id: 'wind', label: '10日风场预报', active: true },
-                { id: 'wave', label: '10日海浪预报', active: true },
-                { id: 'current', label: '10日洋流预报', active: false },
+                { id: 'wind', label: '近日风场预报', active: false },
+                { id: 'wave', label: '近日海浪预报', active: false },
+                { id: 'current', label: '近日洋流预报', active: false },
             ]
         },
         {
