@@ -23,59 +23,85 @@ async function loadWindLayerPlugin() {
 
 /**
  * 将稀疏数据转换为 cesium-wind-layer 所需的网格格式
+ * 使用 IDW (Inverse Distance Weighting) 插值算法
  * @param {Object} windData - 从 windDataLoader 加载的稀疏数据
  * @returns {Object} cesium-wind-layer 兼容的数据格式
  */
 export function convertToWindLayerFormat(windData) {
-    console.log('🔄 开始转换数据格式...');
+    console.log('🔄 开始转换数据格式（IDW插值）...');
     console.log('   - 输入数据点数:', windData.sparseData?.length);
     
     const { sparseData, bounds } = windData;
     
-    // 确定网格分辨率（1度）
-    const resolution = 1.0;
+    // 使用更粗的分辨率以提高性能（2度）
+    const resolution = 2.0;
     
     // 计算网格尺寸
     const nx = Math.ceil((bounds.east - bounds.west) / resolution) + 1;
     const ny = Math.ceil((bounds.north - bounds.south) / resolution) + 1;
     
     console.log('   - 网格尺寸:', nx, 'x', ny, '=', nx * ny, '个点');
+    console.log('   - 开始IDW插值...');
     
     // 创建网格数组
     const uData = new Float32Array(nx * ny);
     const vData = new Float32Array(nx * ny);
     
-    // 初始化为 NaN（表示无数据）
-    uData.fill(NaN);
-    vData.fill(NaN);
+    // IDW插值参数
+    const maxDistance = 8.0;  // 最大影响距离（度）
+    const power = 2;          // 距离权重指数
     
-    // 填充数据到网格
-    let filledCount = 0;
-    for (const point of sparseData) {
-        // 计算网格索引
-        const i = Math.round((point.lon - bounds.west) / resolution);
-        const j = Math.round((point.lat - bounds.south) / resolution);
-        
-        // 边界检查
-        if (i >= 0 && i < nx && j >= 0 && j < ny) {
+    // 对每个网格点进行插值
+    let interpolatedCount = 0;
+    for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+            const lon = bounds.west + i * resolution;
+            const lat = bounds.south + j * resolution;
+            
+            let sumU = 0, sumV = 0, sumWeight = 0;
+            
+            // 遍历所有稀疏数据点
+            for (const point of sparseData) {
+                const dx = point.lon - lon;
+                const dy = point.lat - lat;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 只考虑影响范围内的点
+                if (distance < maxDistance) {
+                    // 如果距离很近，直接使用该点的值
+                    const weight = distance < 0.01 ? 1e6 : 1.0 / Math.pow(distance, power);
+                    sumU += point.u * weight;
+                    sumV += point.v * weight;
+                    sumWeight += weight;
+                }
+            }
+            
             const index = j * nx + i;
-            uData[index] = point.u;
-            vData[index] = point.v;
-            filledCount++;
+            if (sumWeight > 0) {
+                uData[index] = sumU / sumWeight;
+                vData[index] = sumV / sumWeight;
+                interpolatedCount++;
+            } else {
+                // 没有附近的点，设为0
+                uData[index] = 0;
+                vData[index] = 0;
+            }
         }
     }
     
-    console.log('   - 填充数据点:', filledCount);
-    console.log('   - 覆盖率:', (filledCount / (nx * ny) * 100).toFixed(2) + '%');
+    console.log('   - 插值完成，有效点数:', interpolatedCount);
+    console.log('   - 覆盖率:', (interpolatedCount / (nx * ny) * 100).toFixed(2) + '%');
     
-    // 计算 min/max（避免栈溢出）
+    // 计算插值后数据的 min/max
     let uMin = Infinity, uMax = -Infinity;
     let vMin = Infinity, vMax = -Infinity;
-    for (const point of sparseData) {
-        if (point.u < uMin) uMin = point.u;
-        if (point.u > uMax) uMax = point.u;
-        if (point.v < vMin) vMin = point.v;
-        if (point.v > vMax) vMax = point.v;
+    for (let i = 0; i < uData.length; i++) {
+        const u = uData[i];
+        const v = vData[i];
+        if (u < uMin) uMin = u;
+        if (u > uMax) uMax = u;
+        if (v < vMin) vMin = v;
+        if (v > vMax) vMax = v;
     }
     
     // 返回 cesium-wind-layer 格式
@@ -123,18 +149,34 @@ export async function createWindLayer(viewer, windData, options = {}) {
     // 转换数据格式
     const formattedData = convertToWindLayerFormat(windData);
     
-    // 默认配置（根据插件文档）
+    // 优化后的默认配置
     const defaultOptions = {
-        particlesTextureSize: 64,      // 粒子纹理大小（64x64 = 4096个粒子）
-        particleHeight: 100.0,         // 粒子高度（米）
-        lineWidth: { min: 1, max: 2 }, // 线宽范围
-        lineLength: { min: 20, max: 100 }, // 线长范围
-        speedFactor: 1.0,              // 速度因子
-        dropRate: 0.003,               // 粒子重生率
-        dropRateBump: 0.001,           // 粒子重生率增量
-        colors: ['white'],             // 粒子颜色
-        flipY: false,                  // 是否翻转Y坐标
-        dynamic: true                  // 启用动态动画
+        particleSystemOptions: {
+            maxParticles: 128 * 128,    // 增加粒子数量（16384个）
+            particleHeight: 1000.0,     // 提高粒子高度
+            fadeOpacity: 0.98,          // 降低淡出速度，轨迹更长
+            dropRate: 0.002,            // 降低掉落率，粒子存活更久
+            dropRateBump: 0.005,        // 掉落率增量
+            speedFactor: 0.5,           // 降低速度因子，运动更平滑
+            lineWidth: 2.0              // 线宽
+        },
+        // 颜色映射：从蓝色（低速）到红色（高速）
+        colorScale: [
+            "rgb(36,104,180)",   // 0 m/s - 深蓝
+            "rgb(60,157,194)",   // 蓝
+            "rgb(128,205,193)",  // 青
+            "rgb(151,218,168)",  // 绿
+            "rgb(198,231,181)",  // 浅绿
+            "rgb(238,247,217)",  // 黄绿
+            "rgb(255,238,159)",  // 黄
+            "rgb(252,217,125)",  // 橙黄
+            "rgb(255,182,100)",  // 橙
+            "rgb(252,150,75)",   // 深橙
+            "rgb(250,112,52)",   // 红橙
+            "rgb(245,64,32)",    // 红
+            "rgb(237,45,28)",    // 深红
+            "rgb(220,24,32)"     // 暗红
+        ]
     };
     
     // 合并用户配置

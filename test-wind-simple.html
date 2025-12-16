@@ -3,166 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简单风场测试</title>
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <title>风场效果测试（简化版）</title>
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css">
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; overflow: hidden; background: #000; }
         #cesiumContainer { width: 100vw; height: 100vh; }
-        #controls {
+        
+        #info {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.8;
             z-index: 1000;
+            max-width: 400px;
         }
+        
+        #info h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        #info .status {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        #info .error {
+            color: #ff0000;
+        }
+        
         button {
-            background: #06b6d4;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0891b2;
-        }
-        #status {
             margin-top: 10px;
-            font-size: 12px;
+            padding: 8px 16px;
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #00ffff;
         }
     </style>
 </head>
 <body>
     <div id="cesiumContainer"></div>
-    <div id="controls">
-        <h3>风场控制</h3>
-        <button id="toggleWind">显示风场</button>
-        <div id="status">状态: 未初始化</div>
+    
+    <div id="info">
+        <h3>🌬️ 风场效果测试</h3>
+        <div id="status">正在初始化...</div>
+        <button onclick="toggleWind()">切换风场显示</button>
     </div>
 
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
     <script type="module">
-        const statusEl = document.getElementById('status');
-        const toggleBtn = document.getElementById('toggleWind');
+        import { WindLayer } from './node_modules/cesium-wind-layer/dist/index.mjs';
         
-        function updateStatus(msg) {
-            statusEl.textContent = '状态: ' + msg;
-            console.log('📊', msg);
+        let viewer, windLayer;
+        let windData;
+        let windVisible = false;
+        
+        function updateStatus(text, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = text;
+            statusEl.className = isError ? 'error' : 'status';
         }
-
-        updateStatus('初始化 Cesium...');
         
-        // 初始化 Cesium
-        const viewer = new Cesium.Viewer('cesiumContainer', {
-            animation: false,
-            timeline: false,
-            geocoder: false,
-            homeButton: false,
-            sceneModePicker: false,
-            baseLayerPicker: false,
-            navigationHelpButton: false,
-            fullscreenButton: false
-        });
-
-        updateStatus('加载插件...');
-        
-        let windLayer = null;
-        let isWindVisible = false;
-
-        // 加载风场
-        async function initWind() {
+        // 初始化 Cesium（使用 OpenStreetMap 底图，无需 Token）
+        async function initCesium() {
             try {
-                updateStatus('加载 cesium-wind-layer 插件...');
-                const { WindLayer } = await import('cesium-wind-layer');
+                updateStatus('正在初始化 Cesium...');
                 
-                updateStatus('加载风场数据...');
+                viewer = new Cesium.Viewer('cesiumContainer', {
+                    animation: false,
+                    timeline: false,
+                    geocoder: false,
+                    homeButton: false,
+                    sceneModePicker: false,
+                    baseLayerPicker: false,
+                    navigationHelpButton: false,
+                    fullscreenButton: false,
+                    vrButton: false,
+                    infoBox: false,
+                    selectionIndicator: false,
+                    requestRenderMode: false,
+                    imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+                        url: 'https://a.tile.openstreetmap.org/'
+                    })
+                });
+                
+                // 场景优化
+                viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1a1a2e');
+                viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f0f1e');
+                viewer.scene.skyAtmosphere.show = true;
+                viewer.scene.globe.enableLighting = false;
+                viewer.scene.fog.enabled = false;
+                viewer.scene.sun.show = false;
+                viewer.scene.moon.show = false;
+                
+                // 隐藏版权信息
+                viewer._cesiumWidget._creditContainer.style.display = "none";
+                
+                // 飞到太平洋
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 18000000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    },
+                    duration: 2
+                });
+                
+                updateStatus('✅ Cesium 初始化成功<br>正在加载风场数据...');
+                
+                // 加载风场数据
+                await loadWindData();
+                
+            } catch (error) {
+                console.error('初始化失败:', error);
+                updateStatus(`❌ 初始化失败: ${error.message}`, true);
+            }
+        }
+        
+        // 加载风场数据
+        async function loadWindData() {
+            try {
                 const response = await fetch('/data/wind_data_0701.json');
-                const rawData = await response.json();
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
                 
-                updateStatus('转换数据格式...');
-                const sparseData = rawData.wind;
-                const bounds = {
-                    west: Math.min(...sparseData.map(p => p.lon)),
-                    east: Math.max(...sparseData.map(p => p.lon)),
-                    south: Math.min(...sparseData.map(p => p.lat)),
-                    north: Math.max(...sparseData.map(p => p.lat))
-                };
-
-                const resolution = 1.0;
-                const nx = Math.ceil((bounds.east - bounds.west) / resolution) + 1;
-                const ny = Math.ceil((bounds.north - bounds.south) / resolution) + 1;
-
+                const data = await response.json();
+                updateStatus('✅ 数据加载成功<br>正在转换数据格式...');
+                
+                // 转换数据格式
+                const sparseData = data.wind;
+                const nx = 361, ny = 181;
                 const uData = new Float32Array(nx * ny);
                 const vData = new Float32Array(nx * ny);
-                uData.fill(NaN);
-                vData.fill(NaN);
-
+                uData.fill(0);
+                vData.fill(0);
+                
+                let uMin = Infinity, uMax = -Infinity;
+                let vMin = Infinity, vMax = -Infinity;
+                let count = 0;
+                
                 for (const point of sparseData) {
-                    const i = Math.round((point.lon - bounds.west) / resolution);
-                    const j = Math.round((point.lat - bounds.south) / resolution);
+                    const i = Math.round(point.lon + 180);
+                    const j = Math.round(point.lat + 90);
+                    
                     if (i >= 0 && i < nx && j >= 0 && j < ny) {
                         const index = j * nx + i;
                         uData[index] = point.u;
                         vData[index] = point.v;
+                        count++;
+                        
+                        if (point.u < uMin) uMin = point.u;
+                        if (point.u > uMax) uMax = point.u;
+                        if (point.v < vMin) vMin = point.v;
+                        if (point.v > vMax) vMax = point.v;
                     }
                 }
-
-                const windData = {
-                    u: { array: uData },
-                    v: { array: vData },
+                
+                windData = {
+                    u: { array: uData, min: uMin, max: uMax },
+                    v: { array: vData, min: vMin, max: vMax },
                     width: nx,
                     height: ny,
-                    bounds: bounds
+                    bounds: { west: -180, south: -90, east: 180, north: 90 }
                 };
-
-                updateStatus('创建 WindLayer...');
-                windLayer = new WindLayer(viewer, windData, {
-                    particleSystemOptions: {
-                        maxParticles: 64 * 64,
-                        particleHeight: 100.0,
-                        fadeOpacity: 0.996,
-                        dropRate: 0.003,
-                        dropRateBump: 0.01,
-                        speedFactor: 1.0,
-                        lineWidth: 4.0
-                    }
-                });
-
-                windLayer.show = true;
-                isWindVisible = true;
-                toggleBtn.textContent = '隐藏风场';
                 
-                updateStatus('✅ 风场已显示');
-
-                // 飞到太平洋
-                viewer.camera.flyTo({
-                    destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
-                    duration: 2
-                });
-
+                updateStatus(`✅ 数据转换完成<br>数据点: ${count}<br>U范围: ${uMin.toFixed(2)} ~ ${uMax.toFixed(2)}<br>V范围: ${vMin.toFixed(2)} ~ ${vMax.toFixed(2)}<br><br>点击按钮显示风场`);
+                
             } catch (error) {
-                updateStatus('❌ 错误: ' + error.message);
-                console.error('详细错误:', error);
+                console.error('加载数据失败:', error);
+                updateStatus(`❌ 加载数据失败: ${error.message}`, true);
             }
         }
-
+        
         // 切换风场显示
-        toggleBtn.addEventListener('click', async () => {
-            if (!windLayer) {
-                await initWind();
-            } else {
-                isWindVisible = !isWindVisible;
-                windLayer.show = isWindVisible;
-                toggleBtn.textContent = isWindVisible ? '隐藏风场' : '显示风场';
-                updateStatus(isWindVisible ? '风场已显示' : '风场已隐藏');
+        window.toggleWind = function() {
+            if (!windData) {
+                updateStatus('❌ 数据未加载', true);
+                return;
             }
-        });
-
-        updateStatus('准备就绪，点击按钮显示风场');
+            
+            if (!windLayer) {
+                // 创建风场
+                try {
+                    updateStatus('正在创建风场图层...');
+                    
+                    windLayer = new WindLayer(viewer, windData, {
+                        // Windy.com 专业配置
+                        particlesTextureSize: 128,
+                        particleHeight: 10000,
+                        lineWidth: { min: 0.5, max: 3.0 },
+                        lineLength: { min: 50, max: 200 },
+                        speedFactor: 5.0,
+                        dropRate: 0.003,
+                        dropRateBump: 0.001,
+                        colors: [
+                            'rgba(98, 113, 183, 0.5)',
+                            'rgba(57, 97, 159, 0.6)',
+                            'rgba(74, 148, 169, 0.65)',
+                            'rgba(77, 141, 123, 0.7)',
+                            'rgba(83, 165, 83, 0.75)',
+                            'rgba(53, 159, 53, 0.8)',
+                            'rgba(167, 157, 81, 0.85)',
+                            'rgba(159, 127, 58, 0.9)',
+                            'rgba(161, 108, 92, 0.95)',
+                            'rgba(129, 58, 78, 1.0)',
+                            'rgba(175, 80, 136, 1.0)'
+                        ],
+                        flipY: false,
+                        dynamic: true,
+                        domain: { min: 0, max: 35 },
+                        displayRange: { min: 0, max: 35 }
+                    });
+                    
+                    windVisible = true;
+                    updateStatus('✅ 风场已显示<br>粒子数: 16,384<br>配置: Windy 专业风格');
+                    
+                } catch (error) {
+                    console.error('创建风场失败:', error);
+                    updateStatus(`❌ 创建风场失败: ${error.message}`, true);
+                }
+            } else {
+                // 切换显示状态
+                windVisible = !windVisible;
+                windLayer.show = windVisible;
+                updateStatus(windVisible ? '✅ 风场已显示' : '⚪ 风场已隐藏');
+            }
+        };
+        
+        // 初始化
+        initCesium();
     </script>
 </body>
 </html>

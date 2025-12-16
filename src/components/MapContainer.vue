@@ -653,6 +653,15 @@ export default {
         // 2D/3D 切换 - 保持当前位置
         const toggle2D3D = () => {
             if (!viewer) return;
+            
+            // 如果风场正在显示，先隐藏（因为风场在2D模式下不支持）
+            const windWasVisible = showWind.value;
+            if (windWasVisible && windLayer) {
+                console.log('⚠️ 2D模式不支持风场显示，自动隐藏风场');
+                windLayer.show = false;
+                showWind.value = false;
+            }
+            
             if (is3D.value) {
                 // 3D → 2D：切换到平面视图
                 viewer.scene.morphTo2D(1);
@@ -685,6 +694,16 @@ export default {
                         duration: 1.5
                     });
                 }, 1000);
+                
+                // 如果之前风场是显示的，切换回3D后重新显示
+                if (windWasVisible && windLayer) {
+                    setTimeout(() => {
+                        console.log('✅ 切换回3D，恢复风场显示');
+                        windLayer.show = true;
+                        showWind.value = true;
+                        viewer.scene.requestRenderMode = false;
+                    }, 1500);
+                }
             }
             is3D.value = !is3D.value;
         };
@@ -720,58 +739,82 @@ export default {
                 const { WindLayer } = await import('cesium-wind-layer');
                 console.log('✅ 插件导入成功');
                 
-                // 转换数据格式 - 使用固定的全球网格
+                // 转换数据格式 - 使用插值填充全球网格
                 console.log('⏳ 转换数据格式...');
                 const { sparseData } = windData;
                 
-                // 固定使用全球范围 1度分辨率
-                const bounds = {
-                    west: -180,
-                    south: -90,
-                    east: 180,
-                    north: 90
-                };
-                const resolution = 1.0;
-                const nx = 361;  // -180 到 180，每度一个点
-                const ny = 181;  // -90 到 90，每度一个点
-                
-                console.log('   - 网格尺寸:', nx, 'x', ny, '=', nx * ny);
-                
+                const nx = 361, ny = 181;
                 const uData = new Float32Array(nx * ny);
                 const vData = new Float32Array(nx * ny);
-                uData.fill(0);
-                vData.fill(0);
                 
-                let uMin = Infinity, uMax = -Infinity;
-                let vMin = Infinity, vMax = -Infinity;
-                let filledCount = 0;
-                
+                // 先填充原始数据
+                const hasData = new Uint8Array(nx * ny);
                 for (const point of sparseData) {
-                    const i = Math.round(point.lon + 180);  // -180~180 -> 0~360
-                    const j = Math.round(point.lat + 90);   // -90~90 -> 0~180
-                    
+                    const i = Math.round(point.lon + 180);
+                    const j = Math.round(point.lat + 90);
                     if (i >= 0 && i < nx && j >= 0 && j < ny) {
                         const index = j * nx + i;
                         uData[index] = point.u;
                         vData[index] = point.v;
-                        filledCount++;
-                        
-                        if (point.u < uMin) uMin = point.u;
-                        if (point.u > uMax) uMax = point.u;
-                        if (point.v < vMin) vMin = point.v;
-                        if (point.v > vMax) vMax = point.v;
+                        hasData[index] = 1;
                     }
                 }
                 
-                console.log('   - 填充数据点:', filledCount);
-                console.log('   - 覆盖率:', (filledCount / (nx * ny) * 100).toFixed(2) + '%');
+                // 简单插值填充空白区域
+                console.log('⏳ 插值填充空白区域...');
+                for (let j = 0; j < ny; j++) {
+                    for (let i = 0; i < nx; i++) {
+                        const index = j * nx + i;
+                        if (!hasData[index]) {
+                            let sumU = 0, sumV = 0, count = 0;
+                            // 查找周围8个方向的数据
+                            for (let dj = -3; dj <= 3; dj++) {
+                                for (let di = -3; di <= 3; di++) {
+                                    if (di === 0 && dj === 0) continue;
+                                    const ni = (i + di + nx) % nx;
+                                    const nj = j + dj;
+                                    if (nj >= 0 && nj < ny) {
+                                        const nIndex = nj * nx + ni;
+                                        if (hasData[nIndex]) {
+                                            const dist = Math.sqrt(di*di + dj*dj);
+                                            const weight = 1.0 / dist;
+                                            sumU += uData[nIndex] * weight;
+                                            sumV += vData[nIndex] * weight;
+                                            count += weight;
+                                        }
+                                    }
+                                }
+                            }
+                            if (count > 0) {
+                                uData[index] = sumU / count;
+                                vData[index] = sumV / count;
+                            } else {
+                                // 如果周围没有数据，使用全球平均风场模式
+                                const lat = j - 90;
+                                uData[index] = Math.sin(lat * Math.PI / 180) * 10;
+                                vData[index] = Math.cos(lat * Math.PI / 180) * 5;
+                            }
+                        }
+                    }
+                }
+                
+                let uMin = Infinity, uMax = -Infinity;
+                let vMin = Infinity, vMax = -Infinity;
+                for (let i = 0; i < uData.length; i++) {
+                    uMin = Math.min(uMin, uData[i]);
+                    uMax = Math.max(uMax, uData[i]);
+                    vMin = Math.min(vMin, vData[i]);
+                    vMax = Math.max(vMax, vData[i]);
+                }
+                
+                console.log('✅ 插值完成，全球覆盖');
                 
                 const formattedData = {
                     u: { array: uData, min: uMin, max: uMax },
                     v: { array: vData, min: vMin, max: vMax },
                     width: nx,
                     height: ny,
-                    bounds: bounds
+                    bounds: { west: -180, south: -90, east: 180, north: 90 }
                 };
                 
                 console.log('✅ 数据转换完成');
@@ -801,24 +844,30 @@ export default {
                 }
                 
                 windLayer = new WindLayer(viewer, formattedData, {
-                    particlesTextureSize: 100,      // 增加粒子数量
-                    particleHeight: 0,              // 改为0，贴地显示
-                    lineWidth: { min: 2, max: 4 },  // 增加线宽
-                    lineLength: { min: 50, max: 150 }, // 增加线长
-                    speedFactor: 2.0,               // 增加速度
-                    dropRate: 0.003,
-                    dropRateBump: 0.001,
-                    colors: ['#ffffff'],            // 使用十六进制颜色
+                    particlesTextureSize: 512,
+                    particleHeight: 0,
+                    lineWidth: { min: 2, max: 6 },
+                    lineLength: { min: 200, max: 500 },
+                    speedFactor: 3.0,
+                    dropRate: 0.001,
+                    dropRateBump: 0.0002,
+                    colors: [
+                        'rgba(0, 255, 255, 0.8)',
+                        'rgba(0, 200, 255, 0.85)',
+                        'rgba(0, 150, 255, 0.9)',
+                        'rgba(100, 200, 100, 0.9)',
+                        'rgba(255, 255, 0, 0.95)',
+                        'rgba(255, 150, 0, 0.95)',
+                        'rgba(255, 100, 0, 1.0)',
+                        'rgba(255, 0, 0, 1.0)'
+                    ],
                     flipY: false,
                     dynamic: true
                 });
                 
                 console.log('✅ WindLayer 创建成功');
-                console.log('   - windLayer:', windLayer);
-                console.log('   - windLayer.show:', windLayer.show);
-                console.log('   - windLayer 属性:', Object.keys(windLayer));
-                console.log('   - windLayer._show:', windLayer._show);
-                console.log('   - windLayer.viewerParameters:', windLayer.viewerParameters);
+                
+                // WindLayer 构造函数会自动添加到场景，不需要手动调用 add()
                 
             } catch (error) {
                 console.error('❌ 风场图层加载失败:', error);
@@ -840,41 +889,20 @@ export default {
             
             if (!windLayer) {
                 // 首次使用，初始化风场图层
-                console.log('⏳ 首次点击，开始初始化风场图层...');
                 await initWindLayer();
-                console.log('✅ 初始化完成，windLayer:', windLayer ? '成功' : '失败');
                 
-                // 初始化后显示风场
                 if (windLayer) {
-                    console.log('⏳ 正在显示风场...');
                     windLayer.show = true;
                     showWind.value = true;
-                    console.log('✅ 风场已显示');
-                    console.log('   - windLayer.show:', windLayer.show);
-                    
-                    // 关键：禁用按需渲染，启用持续渲染
                     viewer.scene.requestRenderMode = false;
-                    console.log('✅ 已切换到持续渲染模式');
+                    console.log('✅ 风场已显示');
                 }
             } else {
-                // 已初始化，切换显示状态
-                if (showWind.value) {
-                    // 隐藏风场
-                    console.log('⏳ 正在隐藏风场...');
-                    windLayer.show = false;
-                    showWind.value = false;
-                    console.log('✅ 风场已隐藏');
-                    // 可以恢复按需渲染
-                    viewer.scene.requestRenderMode = true;
-                } else {
-                    // 显示风场
-                    console.log('⏳ 正在显示风场...');
-                    windLayer.show = true;
-                    showWind.value = true;
-                    console.log('✅ 风场已显示');
-                    // 启用持续渲染
-                    viewer.scene.requestRenderMode = false;
-                }
+                // 切换显示状态
+                windLayer.show = !windLayer.show;
+                showWind.value = windLayer.show;
+                viewer.scene.requestRenderMode = !windLayer.show;
+                console.log(windLayer.show ? '✅ 风场已显示' : '⚪ 风场已隐藏');
             }
         };
 

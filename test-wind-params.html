@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风场参数调试工具</title>
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Widgets/widgets.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; overflow: hidden; }
+        #cesiumContainer { width: 100vw; height: 100vh; }
+        
+        /* 控制面板 */
+        #controlPanel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        h2 { 
+            margin-bottom: 15px; 
+            color: #00d4ff;
+            font-size: 18px;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 8px;
+        }
+        
+        .param-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+        
+        .param-item {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            outline: none;
+            border-radius: 3px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            width: 16px;
+            height: 16px;
+            background: #00d4ff;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        
+        .value-display {
+            display: inline-block;
+            float: right;
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #00d4ff, #0088cc);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #00ffff, #00aaff);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .preset-buttons button {
+            margin-top: 0;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid #00d4ff;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    
+    <div id="controlPanel">
+        <h2>🌬️ 风场参数调试</h2>
+        
+        <div class="param-group">
+            <h3 style="color: #fff; font-size: 14px; margin-bottom: 10px;">粒子系统</h3>
+            
+            <div class="param-item">
+                <label>
+                    粒子密度 (particlesTextureSize)
+                    <span class="value-display" id="particlesSizeValue">128</span>
+                </label>
+                <input type="range" id="particlesSize" min="32" max="256" step="32" value="128">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    粒子高度 (particleHeight, km)
+                    <span class="value-display" id="particleHeightValue">10</span>
+                </label>
+                <input type="range" id="particleHeight" min="0" max="100" step="5" value="10">
+            </div>
+        </div>
+        
+        <div class="param-group">
+            <h3 style="color: #fff; font-size: 14px; margin-bottom: 10px;">流线样式</h3>
+            
+            <div class="param-item">
+                <label>
+                    最小线宽 (lineWidth.min)
+                    <span class="value-display" id="lineWidthMinValue">0.5</span>
+                </label>
+                <input type="range" id="lineWidthMin" min="0.1" max="3" step="0.1" value="0.5">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    最大线宽 (lineWidth.max)
+                    <span class="value-display" id="lineWidthMaxValue">3.0</span>
+                </label>
+                <input type="range" id="lineWidthMax" min="1" max="10" step="0.5" value="3.0">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    最小线长 (lineLength.min)
+                    <span class="value-display" id="lineLengthMinValue">50</span>
+                </label>
+                <input type="range" id="lineLengthMin" min="10" max="200" step="10" value="50">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    最大线长 (lineLength.max)
+                    <span class="value-display" id="lineLengthMaxValue">200</span>
+                </label>
+                <input type="range" id="lineLengthMax" min="50" max="500" step="10" value="200">
+            </div>
+        </div>
+        
+        <div class="param-group">
+            <h3 style="color: #fff; font-size: 14px; margin-bottom: 10px;">动画效果</h3>
+            
+            <div class="param-item">
+                <label>
+                    速度因子 (speedFactor)
+                    <span class="value-display" id="speedFactorValue">5.0</span>
+                </label>
+                <input type="range" id="speedFactor" min="0.5" max="10" step="0.5" value="5.0">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    消失率 (dropRate)
+                    <span class="value-display" id="dropRateValue">0.003</span>
+                </label>
+                <input type="range" id="dropRate" min="0.001" max="0.01" step="0.001" value="0.003">
+            </div>
+            
+            <div class="param-item">
+                <label>
+                    消失率增量 (dropRateBump)
+                    <span class="value-display" id="dropRateBumpValue">0.001</span>
+                </label>
+                <input type="range" id="dropRateBump" min="0.0001" max="0.005" step="0.0001" value="0.001">
+            </div>
+        </div>
+        
+        <button id="applyBtn">✨ 应用参数</button>
+        
+        <div class="preset-buttons">
+            <button onclick="applyPreset('windy')">Windy 风格</button>
+            <button onclick="applyPreset('earth')">Earth 风格</button>
+            <button onclick="applyPreset('dense')">高密度</button>
+            <button onclick="applyPreset('fast')">高速流动</button>
+        </div>
+        
+        <div id="status">
+            <strong>状态：</strong>等待加载...
+        </div>
+    </div>
+
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.108/Build/Cesium/Cesium.js"></script>
+    <script type="module">
+        import { WindLayer } from './node_modules/cesium-wind-layer/dist/index.mjs';
+        
+        let viewer, windLayer;
+        let windData;
+        
+        // 天地图 Token
+        const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
+        
+        // 初始化 Cesium
+        async function initCesium() {
+            viewer = new Cesium.Viewer('cesiumContainer', {
+                animation: false,
+                timeline: false,
+                geocoder: false,
+                homeButton: false,
+                sceneModePicker: false,
+                baseLayerPicker: false,
+                navigationHelpButton: false,
+                fullscreenButton: false,
+                vrButton: false,
+                infoBox: false,
+                selectionIndicator: false,
+                imageryProvider: false,  // 先不加载底图
+                requestRenderMode: false
+            });
+            
+            // 移除默认图层
+            viewer.imageryLayers.removeAll();
+            
+            // 添加天地图影像底图
+            const serverIndex = Math.floor(Math.random() * 8);
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    layer: "img",
+                    style: "default",
+                    format: "tiles",
+                    tileMatrixSetID: "w",
+                    maximumLevel: 18
+                })
+            );
+            
+            // 添加天地图注记图层
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    layer: "cia",
+                    style: "default",
+                    format: "tiles",
+                    tileMatrixSetID: "w",
+                    maximumLevel: 18
+                })
+            );
+            
+            // 场景优化
+            viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#020617');
+            viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000000');
+            viewer.scene.skyAtmosphere.show = true;
+            viewer.scene.globe.enableLighting = false;
+            viewer.scene.globe.showGroundAtmosphere = false;
+            viewer.scene.fog.enabled = false;
+            viewer.scene.sun.show = false;
+            viewer.scene.moon.show = false;
+            viewer.scene.skyBox.show = true;
+            
+            // 隐藏版权信息
+            viewer._cesiumWidget._creditContainer.style.display = "none";
+            
+            viewer.camera.setView({
+                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 18000000),
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                }
+            });
+            
+            updateStatus('正在加载风场数据...');
+            
+            // 加载风场数据
+            const response = await fetch('/data/wind_data_0701.json');
+            const data = await response.json();
+            
+            // 转换数据格式
+            const sparseData = data.wind;
+            const nx = 361, ny = 181;
+            const uData = new Float32Array(nx * ny);
+            const vData = new Float32Array(nx * ny);
+            uData.fill(0);
+            vData.fill(0);
+            
+            let uMin = Infinity, uMax = -Infinity;
+            let vMin = Infinity, vMax = -Infinity;
+            
+            for (const point of sparseData) {
+                const i = Math.round(point.lon + 180);
+                const j = Math.round(point.lat + 90);
+                
+                if (i >= 0 && i < nx && j >= 0 && j < ny) {
+                    const index = j * nx + i;
+                    uData[index] = point.u;
+                    vData[index] = point.v;
+                    
+                    if (point.u < uMin) uMin = point.u;
+                    if (point.u > uMax) uMax = point.u;
+                    if (point.v < vMin) vMin = point.v;
+                    if (point.v > vMax) vMax = point.v;
+                }
+            }
+            
+            windData = {
+                u: { array: uData, min: uMin, max: uMax },
+                v: { array: vData, min: vMin, max: vMax },
+                width: nx,
+                height: ny,
+                bounds: { west: -180, south: -90, east: 180, north: 90 }
+            };
+            
+            updateStatus('数据加载完成，点击"应用参数"创建风场');
+        }
+        
+        // 获取当前参数
+        function getCurrentParams() {
+            return {
+                particlesTextureSize: parseInt(document.getElementById('particlesSize').value),
+                particleHeight: parseFloat(document.getElementById('particleHeight').value) * 1000,
+                lineWidth: {
+                    min: parseFloat(document.getElementById('lineWidthMin').value),
+                    max: parseFloat(document.getElementById('lineWidthMax').value)
+                },
+                lineLength: {
+                    min: parseInt(document.getElementById('lineLengthMin').value),
+                    max: parseInt(document.getElementById('lineLengthMax').value)
+                },
+                speedFactor: parseFloat(document.getElementById('speedFactor').value),
+                dropRate: parseFloat(document.getElementById('dropRate').value),
+                dropRateBump: parseFloat(document.getElementById('dropRateBump').value),
+                colors: [
+                    'rgba(98, 113, 183, 0.5)',
+                    'rgba(57, 97, 159, 0.6)',
+                    'rgba(74, 148, 169, 0.65)',
+                    'rgba(77, 141, 123, 0.7)',
+                    'rgba(83, 165, 83, 0.75)',
+                    'rgba(53, 159, 53, 0.8)',
+                    'rgba(167, 157, 81, 0.85)',
+                    'rgba(159, 127, 58, 0.9)',
+                    'rgba(161, 108, 92, 0.95)',
+                    'rgba(129, 58, 78, 1.0)',
+                    'rgba(175, 80, 136, 1.0)'
+                ],
+                flipY: false,
+                dynamic: true,
+                domain: { min: 0, max: 35 },
+                displayRange: { min: 0, max: 35 }
+            };
+        }
+        
+        // 应用参数
+        function applyParams() {
+            if (!windData) {
+                updateStatus('❌ 数据未加载');
+                return;
+            }
+            
+            updateStatus('正在创建风场...');
+            
+            // 移除旧的风场
+            if (windLayer) {
+                windLayer.remove();
+                windLayer.destroy();
+            }
+            
+            // 创建新的风场
+            const params = getCurrentParams();
+            windLayer = new WindLayer(viewer, windData, params);
+            
+            updateStatus(`✅ 风场已创建<br>粒子数: ${params.particlesTextureSize}² = ${params.particlesTextureSize * params.particlesTextureSize}`);
+        }
+        
+        // 更新状态显示
+        function updateStatus(text) {
+            document.getElementById('status').innerHTML = `<strong>状态：</strong>${text}`;
+        }
+        
+        // 预设配置
+        window.applyPreset = function(preset) {
+            const presets = {
+                windy: {
+                    particlesSize: 128,
+                    particleHeight: 10,
+                    lineWidthMin: 0.5,
+                    lineWidthMax: 3.0,
+                    lineLengthMin: 50,
+                    lineLengthMax: 200,
+                    speedFactor: 5.0,
+                    dropRate: 0.003,
+                    dropRateBump: 0.001
+                },
+                earth: {
+                    particlesSize: 96,
+                    particleHeight: 0,
+                    lineWidthMin: 1.0,
+                    lineWidthMax: 2.0,
+                    lineLengthMin: 80,
+                    lineLengthMax: 150,
+                    speedFactor: 3.0,
+                    dropRate: 0.005,
+                    dropRateBump: 0.002
+                },
+                dense: {
+                    particlesSize: 256,
+                    particleHeight: 5,
+                    lineWidthMin: 0.3,
+                    lineWidthMax: 2.0,
+                    lineLengthMin: 30,
+                    lineLengthMax: 120,
+                    speedFactor: 4.0,
+                    dropRate: 0.002,
+                    dropRateBump: 0.0005
+                },
+                fast: {
+                    particlesSize: 128,
+                    particleHeight: 15,
+                    lineWidthMin: 0.8,
+                    lineWidthMax: 4.0,
+                    lineLengthMin: 100,
+                    lineLengthMax: 300,
+                    speedFactor: 8.0,
+                    dropRate: 0.001,
+                    dropRateBump: 0.0002
+                }
+            };
+            
+            const config = presets[preset];
+            if (!config) return;
+            
+            Object.keys(config).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) {
+                    input.value = config[key];
+                    input.dispatchEvent(new Event('input'));
+                }
+            });
+            
+            updateStatus(`已应用 ${preset} 预设，点击"应用参数"生效`);
+        };
+        
+        // 绑定滑块事件
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const valueDisplay = document.getElementById(e.target.id + 'Value');
+                if (valueDisplay) {
+                    valueDisplay.textContent = e.target.value;
+                }
+            });
+        });
+        
+        // 绑定应用按钮
+        document.getElementById('applyBtn').addEventListener('click', applyParams);
+        
+        // 初始化
+        initCesium();
+    </script>
+</body>
+</html>

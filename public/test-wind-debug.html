@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>风场调试诊断</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .log {
+            margin: 5px 0;
+            padding: 5px;
+            background: #000;
+            border-left: 3px solid #00ff00;
+        }
+        .error {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+        .success {
+            border-left-color: #00ff00;
+            color: #00ff00;
+        }
+        .info {
+            border-left-color: #00d4ff;
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 风场调试诊断</h1>
+    <div id="logs"></div>
+    
+    <script type="module">
+        const logsEl = document.getElementById('logs');
+        
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logsEl.appendChild(div);
+            console.log(msg);
+        }
+        
+        async function diagnose() {
+            log('开始诊断...', 'info');
+            
+            // 1. 检查数据文件
+            try {
+                log('1️⃣ 检查风场数据文件...', 'info');
+                const response = await fetch('/data/wind_data_0701.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                log(`✅ 数据文件加载成功: ${data.wind?.length || 0} 个数据点`, 'success');
+            } catch (error) {
+                log(`❌ 数据文件加载失败: ${error.message}`, 'error');
+                return;
+            }
+            
+            // 2. 检查 cesium-wind-layer 插件
+            try {
+                log('2️⃣ 检查 cesium-wind-layer 插件...', 'info');
+                const module = await import('/node_modules/cesium-wind-layer/dist/index.mjs');
+                log(`✅ 插件加载成功`, 'success');
+                log(`   - WindLayer: ${typeof module.WindLayer}`, 'info');
+                log(`   - 默认选项: ${JSON.stringify(module.DefaultOptions || {}, null, 2)}`, 'info');
+            } catch (error) {
+                log(`❌ 插件加载失败: ${error.message}`, 'error');
+                return;
+            }
+            
+            // 3. 检查 Cesium
+            try {
+                log('3️⃣ 检查 Cesium 库...', 'info');
+                if (typeof Cesium === 'undefined') {
+                    throw new Error('Cesium 未定义');
+                }
+                log(`✅ Cesium 版本: ${Cesium.VERSION}`, 'success');
+            } catch (error) {
+                log(`❌ Cesium 检查失败: ${error.message}`, 'error');
+                return;
+            }
+            
+            // 4. 测试数据转换
+            try {
+                log('4️⃣ 测试数据转换...', 'info');
+                const response = await fetch('/data/wind_data_0701.json');
+                const data = await response.json();
+                const sparseData = data.wind;
+                
+                const nx = 361, ny = 181;
+                const uData = new Float32Array(nx * ny);
+                const vData = new Float32Array(nx * ny);
+                uData.fill(0);
+                vData.fill(0);
+                
+                let count = 0;
+                for (const point of sparseData) {
+                    const i = Math.round(point.lon + 180);
+                    const j = Math.round(point.lat + 90);
+                    if (i >= 0 && i < nx && j >= 0 && j < ny) {
+                        const index = j * nx + i;
+                        uData[index] = point.u;
+                        vData[index] = point.v;
+                        count++;
+                    }
+                }
+                
+                log(`✅ 数据转换成功: ${count} 个有效点`, 'success');
+                log(`   - 网格尺寸: ${nx} x ${ny}`, 'info');
+                log(`   - 覆盖率: ${(count / (nx * ny) * 100).toFixed(2)}%`, 'info');
+            } catch (error) {
+                log(`❌ 数据转换失败: ${error.message}`, 'error');
+                return;
+            }
+            
+            log('', 'info');
+            log('✅ 所有检查通过！风场应该可以正常工作。', 'success');
+            log('', 'info');
+            log('💡 如果主应用仍然无法显示风场，请：', 'info');
+            log('   1. 打开浏览器控制台（F12）', 'info');
+            log('   2. 点击风场按钮', 'info');
+            log('   3. 查看控制台的详细日志', 'info');
+            log('   4. 截图发送给我', 'info');
+        }
+        
+        diagnose();
+    </script>
+</body>
+</html>
