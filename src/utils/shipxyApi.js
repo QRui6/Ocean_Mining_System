@@ -15,16 +15,21 @@ const API_KEY = import.meta.env.VITE_SHIPXY_API_KEY || '12687430e166478dba18ab32
  */
 async function request(url) {
     try {
+        console.log('🔄 发起请求:', url);
         const response = await fetch(url);
+        console.log('📡 响应状态:', response.status, response.statusText);
+        
         const data = await response.json();
+        console.log('📦 响应数据:', data);
         
         if (data.status === 0) {
             return { success: true, data: data.data };
         } else {
+            console.error('❌ API 返回错误:', data.msg);
             return { success: false, error: data.msg || '请求失败' };
         }
     } catch (error) {
-        console.error('API请求错误:', error);
+        console.error('❌ API请求错误:', error);
         return { success: false, error: error.message };
     }
 }
@@ -140,7 +145,10 @@ export async function planRouteByPort(startPortCode, endPortCode, avoid = '', th
     let url = `${API_BASE}/PlanRouteByPort?key=${API_KEY}&start_port_code=${startPortCode}&end_port_code=${endPortCode}`;
     if (avoid) url += `&avoid=${avoid}`;
     if (through) url += `&through=${through}`;
-    return await request(url);
+    console.log('🌐 API 请求 URL:', url);
+    const result = await request(url);
+    console.log('📦 API 响应:', result);
+    return result;
 }
 
 /**
