@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => {
         port: 5173,
         host: 'localhost',
         strictPort: false,
+        proxy: {
+          '/api/shipxy': {
+            target: 'https://api.shipxy.com',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api\/shipxy/, ''),
+            secure: false,
+            timeout: 30000  // 增加超时时间到30秒
+          }
+        }
       },
       plugins: [
         vue(),

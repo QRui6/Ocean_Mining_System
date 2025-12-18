@@ -46,14 +46,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                     </svg>
                 </button>
-                
-                <!-- 轨迹显示 -->
-                <button @click="toggleTrajectory" class="map-tool-btn group" :title="showTrajectory ? '隐藏轨迹' : '显示轨迹'">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    <div v-if="showTrajectory" class="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                </button>
             </div>
         </transition>
 
@@ -127,25 +119,101 @@
                 <div class="p-4 space-y-3 relative">
                     <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
                     
-                    <div v-for="(val, key) in {
-                        '船舶名称': selectedShip.name,
-                        '船舶类型': selectedShip.type,
-                        '船长': selectedShip.length,
-                        '船宽': selectedShip.width,
-                        '航速': selectedShip.speed,
-                        '载重': selectedShip.capacity,
-                        '船员': selectedShip.crew,
-                        '出发时间': selectedShip.departure,
-                        '预计到达': selectedShip.eta,
-                        '货物': selectedShip.cargo,
-                        '状态': selectedShip.status
-                    }" :key="key" class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">{{ key }}</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate" :title="val">{{ val }}</span>
+                    <!-- 船舶名称 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船舶名称</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                            {{ selectedShip.ship_cnname || selectedShip.ship_name }}
+                        </span>
+                    </div>
+                    
+                    <!-- 船舶类型 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船舶类型</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ getShipTypeName(selectedShip.ship_type) }}
+                        </span>
+                    </div>
+                    
+                    <!-- 船长 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船长</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedShip.length ? selectedShip.length + 'm' : 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 船宽 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船宽</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedShip.width ? selectedShip.width + 'm' : 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 航速 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">航速</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedShip.sog ? selectedShip.sog + ' kn' : 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 载重 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">载重</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedShip.draught ? selectedShip.draught + 'm' : 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 目的港 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">目的港</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                            {{ selectedShip.dest || 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 预计到达 - 带过期提示 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">预计到达</span>
+                        <div class="text-right">
+                            <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                                {{ selectedShip.eta || 'N/A' }}
+                            </span>
+                            <div v-if="isEtaExpired(selectedShip.eta, selectedShip.last_time)" class="text-xs text-orange-400 mt-0.5">
+                                ⚠️ 已过期
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 最后更新 -->
+                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">最后更新</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedShip.last_time || 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <!-- 状态 -->
+                    <div class="flex justify-between items-center py-2 relative z-10">
+                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">状态</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ getNavigationStatus(selectedShip.navistat) }}
+                        </span>
                     </div>
                 </div>
             </div>
         </transition>
+        
+        <!-- 路径规划面板 -->
+        <RoutePlanPanel 
+            v-if="showRoutePlan"
+            @close="showRoutePlan = false"
+            @routePlanned="handleRoutePlanned"
+            @routeCleared="handleRouteCleared"
+        />
     </div>
 </template>
 
@@ -156,11 +224,16 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
 // 使用官方 cesium-wind-layer 插件
-import { CesiumWindLayerWrapper } from '../utils/cesiumWindLayerAdapter.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
+import { ShipLayer } from '../utils/shipLayer.js';
+import { RouteLayer } from '../utils/routeLayer.js';
+import RoutePlanPanel from './RoutePlanPanel.vue';
 
 export default {
+    components: {
+        RoutePlanPanel
+    },
     props: {
         showToolbar: {
             type: Boolean,
@@ -178,6 +251,21 @@ export default {
         layerState: {
             type: Array,
             default: () => []
+        },
+        // 气象图层控制的当前状态
+        weatherLayerState: {
+            type: Array,
+            default: () => []
+        },
+        // 船舶定位请求
+        shipToLocate: {
+            type: Object,
+            default: null
+        },
+        // 路径绘制请求
+        routeToDraw: {
+            type: Object,
+            default: null
         }
     },
     emits: ['dataLoaded'],
@@ -197,6 +285,9 @@ export default {
         const showTrajectory = ref(false); // 轨迹显示状态
         const selectedShip = ref(null); // 选中的船舶信息
         const shipInfoPosition = ref({ x: 0, y: 0 }); // 船舶信息窗口位置
+        let shipLayer = null; // 船舶图层实例
+        const showRoutePlan = ref(false); // 路径规划面板显示状态
+        let routeLayer = null; // 航线图层实例
         // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
 
@@ -300,6 +391,14 @@ export default {
 
             // 加载 GeoJSON 数据
             loadMiningData();
+            
+            // 初始化船舶图层
+            shipLayer = new ShipLayer(viewer);
+            console.log('🚢 船舶图层初始化完成');
+            
+            // 初始化航线图层
+            routeLayer = new RouteLayer(viewer);
+            console.log('🗺️ 航线图层初始化完成');
 
             // 注释掉自动加载风场，改为手动点击按钮加载
             // updateWindVisibility(props.layerState);
@@ -426,25 +525,63 @@ export default {
                         const entity = pickedObject.id;
                         
                         console.log('📦 实体详情:');
+                        console.log('   - id:', entity.id);
                         console.log('   - name:', entity.name);
                         console.log('   - 有 billboard:', !!entity.billboard);
                         console.log('   - 有 polygon:', !!entity.polygon);
                         console.log('   - 有 properties:', !!entity.properties);
                         
-                        // 如果点击的是船舶（有 billboard 属性）
+                        // 如果点击的是船舶（检查 id 是否以 ship_ 开头）
+                        if (entity.id && entity.id.startsWith('ship_') && entity.billboard) {
+                            console.log('🚢 点击了船舶:', entity.id);
+                            
+                            // 从 shipLayer 获取船舶信息（根据API实际返回字段）
+                            if (shipLayer && entity.properties) {
+                                const props = entity.properties;
+                                // 直接传递所有原始字段，让模板处理显示
+                                const shipInfo = {
+                                    mmsi: props.mmsi,
+                                    imo: props.imo,
+                                    call_sign: props.call_sign,
+                                    ship_name: props.ship_name,
+                                    ship_cnname: props.ship_cnname,
+                                    ship_type: props.ship_type,
+                                    length: props.length,
+                                    width: props.width,
+                                    draught: props.draught,
+                                    sog: props.sog,
+                                    cog: props.cog,
+                                    hdg: props.hdg,
+                                    navistat: props.navistat,
+                                    dest: props.dest,
+                                    destcode: props.destcode,
+                                    eta: props.eta,
+                                    last_time: props.last_time,
+                                    lat: props.lat,
+                                    lng: props.lng
+                                };
+                                
+                                // 显示船舶信息
+                                selectedShip.value = shipInfo;
+                                shipInfoPosition.value = {
+                                    x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
+                                    y: Math.max(correctedPosition.y - 100, 10)
+                                };
+                                
+                                console.log('✅ 显示船舶信息:', shipInfo);
+                            }
+                            return;  // 不继续处理矿区点击
+                        }
+                        
+                        // 如果点击的是轨迹船舶（有 billboard 且 name 以 ship_ 开头）
                         if (entity.billboard && entity.name && entity.name.startsWith('ship_')) {
-                            console.log('🚢 点击了船舶:', entity.name);
-                            console.log('   - trajectoryLayer 存在:', !!trajectoryLayer);
-                            console.log('   - trajectoryLayer.trajectories 长度:', trajectoryLayer?.trajectories?.length);
+                            console.log('🚢 点击了轨迹船舶:', entity.name);
                             
                             // 查找对应的轨迹
                             if (trajectoryLayer) {
                                 const trajectory = trajectoryLayer.trajectories.find(traj => {
-                                    console.log('   - 比较 ship:', traj.ship.name, '===', entity.name);
                                     return traj.ship === entity;
                                 });
-                                
-                                console.log('   - 找到的轨迹:', trajectory);
                                 
                                 if (trajectory && trajectory.data.shipInfo) {
                                     // 暂停动画
@@ -453,16 +590,12 @@ export default {
                                     // 显示船舶信息
                                     selectedShip.value = trajectory.data.shipInfo;
                                     shipInfoPosition.value = {
-                                        x: correctedPosition.x + 20,
-                                        y: correctedPosition.y - 100
+                                        x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
+                                        y: Math.max(correctedPosition.y - 100, 10)
                                     };
                                     
-                                    console.log('✅ 显示船舶信息:', trajectory.data.shipInfo);
-                                } else {
-                                    console.warn('⚠️ 未找到对应的轨迹或船舶信息');
+                                    console.log('✅ 显示轨迹船舶信息:', trajectory.data.shipInfo);
                                 }
-                            } else {
-                                console.warn('⚠️ trajectoryLayer 不存在');
                             }
                             return;  // 不继续处理矿区点击
                         }
@@ -808,23 +941,42 @@ export default {
                 }
                 
                 windLayer = new WindLayer(viewer, formattedData, {
-                    particlesTextureSize: 512,
+                    // 粒子数量：降到 640 保证流畅（约41万粒子）
+                    particlesTextureSize: 640,
+                    
                     particleHeight: 0,
-                    lineWidth: { min: 2, max: 6 },
-                    lineLength: { min: 200, max: 500 },
-                    speedFactor: 3.0,
-                    dropRate: 0.001,
-                    dropRateBump: 0.0002,
+                    
+                    // 线条粗细：保持适中
+                    lineWidth: { min: 2.5, max: 6 },
+                    
+                    // 线条长度：保持流线效果
+                    lineLength: { min: 300, max: 800 },
+                    
+                    // 速度因子：加快到 2.0，让粒子移动更明显
+                    speedFactor: 2.0,
+                    
+                    // 粒子消失率：提高到 0.003，让粒子更频繁地重新生成在随机位置
+                    // 这样可以打散条纹，形成更均匀的分布
+                    dropRate: 0.003,
+                    
+                    // 粒子消失率增量：提高，增加随机性
+                    dropRateBump: 0.001,
+                    
+                    // 彩虹色谱：紫→蓝→青→绿→黄→橙→红
                     colors: [
-                        'rgba(0, 255, 255, 0.8)',
-                        'rgba(0, 200, 255, 0.85)',
-                        'rgba(0, 150, 255, 0.9)',
-                        'rgba(100, 200, 100, 0.9)',
-                        'rgba(255, 255, 0, 0.95)',
-                        'rgba(255, 150, 0, 0.95)',
-                        'rgba(255, 100, 0, 1.0)',
-                        'rgba(255, 0, 0, 1.0)'
+                        'rgba(138, 43, 226, 0.7)',   // 紫色（弱风）
+                        'rgba(75, 0, 130, 0.75)',    // 靛蓝
+                        'rgba(0, 0, 255, 0.8)',      // 蓝色
+                        'rgba(0, 191, 255, 0.85)',   // 深天蓝
+                        'rgba(0, 255, 255, 0.9)',    // 青色
+                        'rgba(0, 255, 127, 0.9)',    // 春绿
+                        'rgba(173, 255, 47, 0.95)',  // 黄绿
+                        'rgba(255, 255, 0, 0.95)',   // 黄色
+                        'rgba(255, 165, 0, 0.98)',   // 橙色
+                        'rgba(255, 69, 0, 1.0)',     // 橙红
+                        'rgba(255, 0, 0, 1.0)'       // 红色（强风）
                     ],
+                    
                     flipY: false,
                     dynamic: true
                 });
@@ -841,6 +993,65 @@ export default {
 
 
 
+        // 获取船舶类型名称
+        const getShipTypeName = (shipType) => {
+            if (!shipType) return '未知';
+            
+            const typeMap = {
+                20: '地效翼船', 21: '地效翼船（危险品）', 22: '地效翼船（污染品）', 23: '地效翼船（危险品+污染品）',
+                30: '渔船', 31: '拖拽船', 32: '拖拽船（长度>200m）', 33: '疏浚船', 34: '潜水作业船',
+                35: '军用船', 36: '帆船', 37: '游艇',
+                40: '高速船', 41: '高速船（危险品）', 42: '高速船（污染品）', 43: '高速船（危险品+污染品）',
+                50: '引航船', 51: '搜救船', 52: '拖船', 53: '港口工作船', 54: '防污船', 55: '执法船', 58: '医疗船', 59: '其他船舶',
+                60: '客船', 61: '客船（危险品）', 62: '客船（污染品）', 63: '客船（危险品+污染品）',
+                70: '货船', 71: '货船（危险品）', 72: '货船（污染品）', 73: '货船（危险品+污染品）', 74: '货船', 79: '货船',
+                80: '油轮', 81: '油轮（危险品）', 82: '油轮（污染品）', 83: '油轮（危险品+污染品）', 84: '油轮', 89: '油轮'
+            };
+            
+            return typeMap[shipType] || `未知类型(${shipType})`;
+        };
+        
+        // 获取航行状态
+        const getNavigationStatus = (status) => {
+            if (status === undefined || status === null || status === 255) return '未知';
+            
+            const statusMap = {
+                0: '在航（引擎推进）', 
+                1: '锚泊', 
+                2: '失控', 
+                3: '操纵受限', 
+                4: '受吃水限制',
+                5: '停泊', 
+                6: '搁浅', 
+                7: '从事捕鱼', 
+                8: '在航（帆推进）',
+                9: '保留',
+                10: '保留',
+                11: '拖带',
+                12: '推送',
+                13: '保留',
+                14: '高速船（HSC）',
+                15: '默认'
+            };
+            
+            return statusMap[status] || `未知状态(${status})`;
+        };
+        
+        // 判断ETA是否已过期
+        const isEtaExpired = (eta, lastTime) => {
+            if (!eta || !lastTime) return false;
+            
+            try {
+                const etaDate = new Date(eta);
+                const lastTimeDate = new Date(lastTime);
+                
+                // 如果最后更新时间晚于预计到达时间，说明ETA已过期
+                return lastTimeDate > etaDate;
+            } catch (error) {
+                return false;
+            }
+        };
+
         // 关闭船舶信息窗口
         const closeShipInfo = () => {
             selectedShip.value = null;
@@ -849,6 +1060,38 @@ export default {
             }
         };
 
+        // 切换路径规划面板
+        const toggleRoutePlan = () => {
+            showRoutePlan.value = !showRoutePlan.value;
+        };
+        
+        // 处理路径规划结果
+        const handleRoutePlanned = (routeData) => {
+            if (routeLayer && routeData.route) {
+                routeLayer.drawRoute(routeData.route, {
+                    startPort: routeData.startPort,
+                    endPort: routeData.endPort,
+                    lineColor: Cesium.Color.PURPLE.withAlpha(0.8),
+                    lineWidth: 4,
+                    showArrows: true
+                });
+                
+                // 飞到航线视角
+                setTimeout(() => {
+                    routeLayer.flyToRoute();
+                }, 500);
+                
+                console.log('✅ 航线已绘制到地图');
+            }
+        };
+        
+        // 清除路径
+        const handleRouteCleared = () => {
+            if (routeLayer) {
+                routeLayer.clearRoute();
+            }
+        };
+        
         // 切换轨迹显示
         const toggleTrajectory = () => {
             console.log('🚢 轨迹按钮被点击');
@@ -1016,6 +1259,50 @@ export default {
             updateWindVisibility(newLayers);
         }, { deep: true });
         
+        // 监听气象图层控制变化
+        watch(() => props.weatherLayerState, (newWeatherLayers) => {
+            updateWeatherLayersVisibility(newWeatherLayers);
+        }, { deep: true });
+        
+        // 监听船舶定位请求
+        watch(() => props.shipToLocate, (ship) => {
+            if (ship && shipLayer) {
+                // 添加船舶到地图
+                shipLayer.addShip(ship);
+                // 飞到船舶位置
+                shipLayer.flyToShip(ship.mmsi);
+            }
+        }, { deep: true });
+        
+        // 监听路径绘制请求
+        watch(() => props.routeToDraw, (routeData) => {
+            if (!routeData || !routeLayer) return;
+            
+            console.log('🗺️ 收到路径绘制请求:', routeData);
+            
+            if (routeData.action === 'draw' && routeData.route) {
+                // 绘制路径
+                routeLayer.drawRoute(routeData.route, {
+                    startPort: routeData.startPort,
+                    endPort: routeData.endPort,
+                    lineColor: Cesium.Color.PURPLE.withAlpha(0.8),
+                    lineWidth: 4,
+                    showArrows: true
+                });
+                
+                // 飞到航线视角
+                setTimeout(() => {
+                    routeLayer.flyToRoute();
+                }, 500);
+                
+                console.log('✅ 航线已绘制到地图');
+            } else if (routeData.action === 'clear') {
+                // 清除路径
+                routeLayer.clearRoute();
+                console.log('🗑️ 航线已清除');
+            }
+        }, { deep: true });
+        
         // 根据图层状态更新风场显示
         const updateWindVisibility = async (layers) => {
             if (!viewer) return;
@@ -1032,7 +1319,7 @@ export default {
                 }
             }
             
-            console.log('🌬️ 风场图层状态:', windEnabled);
+            console.log('🌬️ 风场图层状态（矿区图层控制）:', windEnabled);
             
             if (windEnabled && !windLayer) {
                 // 需要显示但未初始化，初始化风场
@@ -1054,6 +1341,47 @@ export default {
                 viewer.scene.requestRenderMode = true;
             }
         };
+        
+        // 根据气象图层状态更新显示
+        const updateWeatherLayersVisibility = async (weatherLayers) => {
+            if (!viewer) return;
+            
+            // 查找风场图层的状态
+            let windEnabled = false;
+            for (const group of weatherLayers) {
+                if (group.id === 'basic_weather' && group.active && group.subLayers) {
+                    const windSub = group.subLayers.find(s => s.id === 'wind');
+                    if (windSub && windSub.active) {
+                        windEnabled = true;
+                        break;
+                    }
+                }
+            }
+            
+            console.log('🌬️ 风场图层状态（气象图层控制）:', windEnabled);
+            
+            if (windEnabled && !windLayer) {
+                // 需要显示但未初始化，初始化风场
+                await initWindLayer();
+                if (windLayer) {
+                    windLayer.show = true;
+                    showWind.value = true;
+                    viewer.scene.requestRenderMode = false;
+                }
+            } else if (windEnabled && windLayer) {
+                // 需要显示且已初始化，显示风场
+                windLayer.show = true;
+                showWind.value = true;
+                viewer.scene.requestRenderMode = false;
+            } else if (!windEnabled && windLayer) {
+                // 不需要显示，隐藏风场
+                windLayer.show = false;
+                showWind.value = false;
+                viewer.scene.requestRenderMode = true;
+            }
+            
+            // TODO: 处理其他气象图层（波浪、洋流、台风等）
+        };
 
         onMounted(() => {
             setTimeout(initCesium, 100);
@@ -1067,12 +1395,18 @@ export default {
             if (clickHandler) {
                 clickHandler.destroy();
             }
-
+            if (shipLayer) {
+                shipLayer.clearAll();
+                shipLayer = null;
+            }
+            if (routeLayer) {
+                routeLayer.clearRoute();
+                routeLayer = null;
+            }
             if (windLayer) {
                 windLayer.destroy();
                 windLayer = null;
             }
-
             if (viewer) {
                 viewer.destroy();
             }
@@ -1089,6 +1423,13 @@ export default {
             selectedShip,
             shipInfoPosition,
             closeShipInfo,
+            getShipTypeName,
+            getNavigationStatus,
+            isEtaExpired,
+            showRoutePlan,
+            toggleRoutePlan,
+            handleRoutePlanned,
+            handleRouteCleared,
             zoomIn,
             zoomOut,
             resetView,

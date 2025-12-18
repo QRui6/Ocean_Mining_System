@@ -15,7 +15,7 @@ export const COUNTRY_MAPPING = {
 };
 
 // 图层数据模板 (根据大洋动态生成)
-export const getLayersByOcean = (oceanName) => {
+export const getLayersByOcean = () => {
     return [
         {
             id: 'env_monitor',
@@ -64,21 +64,101 @@ export const MOCK_MINING_INFO = {
     area: 72740
 };
 
-export const RIGHT_TOOLS = [
-    '地图工具',
-    '矿区查询',
-    '图层控制',
-    '矿区列表',
-    '预报中心',
-    '图件导出'
+// ==================== 顶部选项卡配置 ====================
+
+// 顶部选项卡（6个，左3右3）
+export const TOP_TABS = [
+    '态势总览',
+    '矿区管理',
+    '气象监测',
+    '船舶追踪',
+    '预警保障',
+    '数据中心'
 ];
+
+// 选项卡图标
+export const TAB_ICONS = {
+    '态势总览': '🌐',
+    '矿区管理': '⛏️',
+    '气象监测': '🌦️',
+    '船舶追踪': '🚢',
+    '预警保障': '⚠️',
+    '数据中心': '📊'
+};
 
 // 选项卡与右侧功能的映射关系
 export const TAB_TOOLS_MAPPING = {
-    '一图一表': ['地图工具', '矿区查询', '图层控制', '矿区列表','预报中心','图件导出'],
-    '预报预警': ['地图工具','预报中心', '灾害预警', '气象分析', '预警推送'],
-    '协同工作': ['地图工具','任务管理', '团队协作', '文档共享', '消息通知'],
-    '调度会商': ['地图工具','会议室', '视频会议', '调度指挥', '决策支持'],
-    '数据中心': ['地图工具','数据管理', '统计分析', '数据导出', '数据备份'],
-    '系统配置': ['地图工具','用户管理', '权限设置', '系统日志', '参数配置']
+    '态势总览': [
+        '地图工具',
+        '全局概览',
+        '快速定位',
+        '图件导出'
+    ],
+    '矿区管理': [
+        '地图工具',
+        '矿区查询',
+        '图层控制',
+        '矿区列表'
+    ],
+    '气象监测': [
+        '地图工具',
+        '气象图层',
+        '气象分析'
+    ],
+    '船舶追踪': [
+        '地图工具',
+        '船舶搜索',
+        '船舶列表',
+        '历史轨迹',
+        '航线规划',
+        '航线气象',
+        '区域监控'
+    ],
+    '预警保障': [
+        '地图工具',
+        '预警列表',
+        '风险评估',
+        '台风预警',
+        '预警设置'
+    ],
+    '数据中心': [
+        '地图工具',
+        '统计报表',
+        '数据导出',
+        '历史查询'
+    ]
 };
+
+// 气象图层配置（分组结构，参考图层控制）
+export const WEATHER_LAYER_GROUPS = [
+    {
+        id: 'basic_weather',
+        label: '基础气象',
+        active: true,
+        subLayers: [
+            { id: 'wind', label: '近日风场预报', active: false, hasTimeline: true, dataSource: 'NOAA GFS' },
+            { id: 'wave', label: '近日海浪预报', active: false, hasTimeline: true, dataSource: 'WaveWatch III' },
+            { id: 'current', label: '近日洋流预报', active: false, hasTimeline: true, dataSource: 'HYCOM' }
+        ]
+    },
+    {
+        id: 'disaster_warning',
+        label: '灾害预警',
+        active: true,
+        subLayers: [
+            { id: 'typhoon', label: '台风路径预警', active: false, hasTimeline: false, dataSource: '船讯网API' },
+            { id: 'tsunami', label: '海啸传播预警', active: false, hasTimeline: true, dataSource: 'NOAA PTWC' },
+            { id: 'storm_surge', label: '风暴潮预警', active: false, hasTimeline: true, dataSource: 'NOAA' }
+        ]
+    },
+    {
+        id: 'extreme_environment',
+        label: '极端环境',
+        active: true,
+        subLayers: [
+            { id: 'extreme_ocean', label: '极端海洋环境', active: false, hasTimeline: true, dataSource: 'NOAA' },
+            { id: 'extreme_atmosphere', label: '极端大气环境', active: false, hasTimeline: true, dataSource: 'ECMWF' },
+            { id: 'internal_wave', label: '内波', active: false, hasTimeline: true, dataSource: 'HYCOM' }
+        ]
+    }
+];

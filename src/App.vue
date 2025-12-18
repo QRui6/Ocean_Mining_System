@@ -9,6 +9,9 @@
                 :showToolbar="activePanels.mapTools" 
                 :filters="filters"
                 :layerState="layerState"
+                :weatherLayerState="weatherLayerState"
+                :shipToLocate="shipToLocate"
+                :routeToDraw="routeToDraw"
                 @dataLoaded="handleDataLoaded"
             />
             
@@ -19,14 +22,29 @@
                     :availableCountries="availableCountries"
                     :showQueryPanel="activePanels.query"
                     :showLayersPanel="activePanels.layers"
+                    :showWeatherLayersPanel="activePanels.weatherLayers"
                     @filterChange="handleFilterChange"
                     @layersChange="handleLayersChange"
+                    @weatherLayersChange="handleWeatherLayersChange"
                 />
+                
+                <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
+                <ShipTrackingPanel 
+                    :showShipSearch="activePanels.shipSearch"
+                    :showRoutePlan="activePanels.routePlan"
+                    @locate="handleShipLocate"
+                    @routePlanned="handleRoutePlanned"
+                    @routeCleared="handleRouteCleared"
+                />
+                
                 <RightPanel 
                     @toggleList="toggleList"
                     @toggleMapTools="toggleMapTools"
                     @toggleQuery="toggleQuery"
                     @toggleLayers="toggleLayers"
+                    @toggleWeatherLayers="toggleWeatherLayers"
+                    @toggleShipSearch="toggleShipSearch"
+                    @toggleRoutePlan="toggleRoutePlan"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -34,6 +52,13 @@
                 <div v-if="activePanels.list" class="pointer-events-auto">
                      <BottomTable :miningData="filteredMiningData" />
                 </div>
+                
+                <!-- 时间轴控制（当有气象图层激活时显示） -->
+                <TimelineControl 
+                    :show="showTimeline"
+                    @close="showTimeline = false"
+                    @timeChange="handleTimeChange"
+                />
             </div>
 
             <!-- Decorative Overlay Effects -->
@@ -54,8 +79,8 @@ import LeftPanel from './components/LeftPanel.vue';
 import RightPanel from './components/RightPanel.vue';
 import MapContainer from './components/MapContainer.vue';
 import BottomTable from './components/BottomTable.vue';
-
-// 不再需要 PanelState 枚举
+import TimelineControl from './components/TimelineControl.vue';
+import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
 
 export default {
     components: {
@@ -63,21 +88,29 @@ export default {
         LeftPanel,
         RightPanel,
         MapContainer,
-        BottomTable
+        BottomTable,
+        TimelineControl,
+        ShipTrackingPanel
     },
     setup() {
         // ==================== 状态管理 ====================
         
-        // 当前选中的顶部选项卡（默认：一图一表）
-        const currentTab = ref('一图一表');
+        // 当前选中的顶部选项卡（默认：矿区管理）
+        const currentTab = ref('矿区管理');
         
         // 各个功能面板的显示状态
         const activePanels = ref({
-            list: false,      // 矿区列表（底部表格）
-            mapTools: false,  // 地图工具栏
-            query: true,      // 矿区查询面板（左侧）
-            layers: true      // 图层控制面板（左侧）
+            list: false,          // 矿区列表（底部表格）
+            mapTools: false,      // 地图工具栏
+            query: true,          // 矿区查询面板（左侧）
+            layers: true,         // 图层控制面板（左侧）
+            weatherLayers: false, // 气象图层面板（左侧）
+            shipSearch: false,    // 船舶搜索面板（左侧）
+            routePlan: false      // 航线规划面板（左侧）
         });
+        
+        // 时间轴显示状态（当切换到气象监测选项卡时自动显示）
+        const showTimeline = ref(false);
         
         // 屏幕缩放比例（用于响应式适配）
         const scale = ref({ x: 1, y: 1 });
@@ -97,6 +130,15 @@ export default {
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
+        
+        // 气象图层状态（从 LeftPanel 同步，用于控制地图上的气象图层）
+        const weatherLayerState = ref([]);
+        
+        // 船舶定位请求（传递给地图组件）
+        const shipToLocate = ref(null);
+        
+        // 路径规划请求（传递给地图组件）
+        const routeToDraw = ref(null);
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -202,6 +244,74 @@ export default {
             activePanels.value.layers = !activePanels.value.layers;
         };
 
+        /**
+         * 切换气象图层面板的显示状态
+         */
+        const toggleWeatherLayers = () => {
+            activePanels.value.weatherLayers = !activePanels.value.weatherLayers;
+        };
+        
+        /**
+         * 处理时间轴变化事件
+         * @param {Date} time - 选中的时间
+         */
+        const handleTimeChange = (time) => {
+            console.log('⏰ 时间轴变化:', time);
+            // TODO: 通知地图更新气象数据
+        };
+        
+        /**
+         * 切换船舶搜索面板的显示状态
+         */
+        const toggleShipSearch = () => {
+            activePanels.value.shipSearch = !activePanels.value.shipSearch;
+        };
+        
+        /**
+         * 切换航线规划面板的显示状态
+         */
+        const toggleRoutePlan = () => {
+            activePanels.value.routePlan = !activePanels.value.routePlan;
+        };
+        
+        /**
+         * 处理船舶定位事件
+         * @param {Object} ship - 船舶信息
+         */
+        const handleShipLocate = (ship) => {
+            console.log('📍 定位到船舶:', ship);
+            // 通知地图飞到船舶位置
+            shipToLocate.value = { ...ship, timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理查看船舶详情事件
+         * @param {Object} ship - 船舶信息
+         */
+        const handleShipDetails = (ship) => {
+            console.log('📋 查看船舶详情:', ship);
+            // TODO: 显示船舶详情弹窗
+        };
+        
+        /**
+         * 处理路径规划完成事件
+         * @param {Object} routeData - 路径数据
+         */
+        const handleRoutePlanned = (routeData) => {
+            console.log('🗺️ 路径规划完成:', routeData);
+            // 通知地图组件绘制路径
+            routeToDraw.value = { ...routeData, timestamp: Date.now(), action: 'draw' };
+        };
+        
+        /**
+         * 处理清除路径事件
+         */
+        const handleRouteCleared = () => {
+            console.log('🗑️ 清除路径');
+            // 通知地图组件清除路径
+            routeToDraw.value = { action: 'clear', timestamp: Date.now() };
+        };
+
         // ==================== 数据处理函数 ====================
         
         /**
@@ -243,6 +353,15 @@ export default {
         };
         
         /**
+         * 处理气象图层变化事件
+         * @param {Array} weatherLayers - 气象图层面板当前状态
+         */
+        const handleWeatherLayersChange = (weatherLayers) => {
+            weatherLayerState.value = weatherLayers;
+            console.log('🌦️ App.vue 气象图层状态变化:', weatherLayers);
+        };
+        
+        /**
          * 处理顶部选项卡切换事件
          * @param {String} tab - 选中的选项卡名称
          * 
@@ -256,16 +375,51 @@ export default {
             currentTab.value = tab;
             
             // 根据选项卡切换右侧功能面板
-            // 只有"一图一表"显示当前的矿区查询功能
-            if (tab === '一图一表') {
-                // 保持当前状态
-            } else {
-                // 其他选项卡：关闭所有面板
+            if (tab === '矿区管理') {
+                // 矿区管理：自动打开矿区查询和图层控制，关闭气象图层
+                showTimeline.value = false;
+                activePanels.value = {
+                    list: false,
+                    mapTools: false,
+                    query: true,          // 自动打开矿区查询
+                    layers: true,         // 自动打开图层控制
+                    weatherLayers: false  // 关闭气象图层
+                };
+            } else if (tab === '态势总览') {
+                // 态势总览：保持当前状态
+                showTimeline.value = false;
+            } else if (tab === '气象监测') {
+                // 气象监测：显示时间轴 + 自动打开气象图层面板，关闭矿区相关面板
+                showTimeline.value = true;
+                activePanels.value = {
+                    list: false,
+                    mapTools: false,
+                    query: false,         // 关闭矿区查询
+                    layers: false,        // 关闭图层控制
+                    weatherLayers: true,  // 自动打开气象图层
+                    shipSearch: false     // 关闭船舶搜索
+                };
+            } else if (tab === '船舶追踪') {
+                // 船舶追踪：自动打开船舶搜索面板
+                showTimeline.value = false;
                 activePanels.value = {
                     list: false,
                     mapTools: false,
                     query: false,
-                    layers: false
+                    layers: false,
+                    weatherLayers: false,
+                    shipSearch: true      // 自动打开船舶搜索
+                };
+            } else {
+                // 其他选项卡：关闭所有面板
+                showTimeline.value = false;
+                activePanels.value = {
+                    list: false,
+                    mapTools: false,
+                    query: false,
+                    layers: false,
+                    weatherLayers: false,
+                    shipSearch: false
                 };
             }
         };
@@ -297,16 +451,29 @@ export default {
             toggleMapTools,
             toggleQuery,
             toggleLayers,
+            toggleWeatherLayers,
+            toggleShipSearch,
+            toggleRoutePlan,
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
+            handleWeatherLayersChange,
             handleTabChange,
             filters,
             availableCountries,
             allMiningData,
             filteredMiningData,
             layerState,
-            containerStyle
+            weatherLayerState,
+            shipToLocate,
+            containerStyle,
+            showTimeline,
+            handleTimeChange,
+            handleShipLocate,
+            handleShipDetails,
+            routeToDraw,
+            handleRoutePlanned,
+            handleRouteCleared
         };
     }
 };

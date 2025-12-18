@@ -89,8 +89,8 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { APP_TITLE } from '../constants.js';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { APP_TITLE, TOP_TABS } from '../constants.js';
 
 export default {
     emits: ['tabChange'], // 向父组件发送选项卡切换事件
@@ -100,14 +100,14 @@ export default {
         // 当前时间（用于右上角时间显示）
         const time = ref(new Date());
         
-        // 当前激活的选项卡（默认：一图一表）
-        const activeTab = ref('一图一表');
+        // 当前激活的选项卡（默认：矿区管理）
+        const activeTab = ref(TOP_TABS[1]);
         
-        // 左侧选项卡列表
-        const leftTabs = ['一图一表', '预报预警', '协同工作'];
+        // 左侧选项卡列表（前3个）
+        const leftTabs = computed(() => TOP_TABS.slice(0, 3));
         
-        // 右侧选项卡列表
-        const rightTabs = ['调度会商', '数据中心', '系统配置'];
+        // 右侧选项卡列表（后3个）
+        const rightTabs = computed(() => TOP_TABS.slice(3));
         
         // 定时器（用于更新时间）
         let timer = null;

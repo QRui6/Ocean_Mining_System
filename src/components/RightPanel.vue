@@ -42,10 +42,10 @@ export default {
         },
         currentTab: {
             type: String,
-            default: '一图一表'
+            default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers'], // 向父组件发送面板切换事件
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan'], // 向父组件发送面板切换事件
     setup(props, { emit }) {
         // ==================== 计算属性 ====================
         
@@ -62,11 +62,6 @@ export default {
         /**
          * 处理功能按钮点击事件
          * @param {String} tool - 功能名称
-         * 
-         * 功能分类：
-         * 1. 通用功能（所有选项卡可用）：地图工具
-         * 2. 专属功能（仅"一图一表"可用）：矿区列表、矿区查询、图层控制
-         * 3. 未实现功能：显示"功能开发中"提示
          */
         const handleToggle = (tool) => {
             // 通用功能：在所有选项卡中都可用
@@ -75,8 +70,8 @@ export default {
                 return;
             }
             
-            // "一图一表"选项卡的专属功能
-            if (props.currentTab === '一图一表') {
+            // 矿区管理选项卡的功能
+            if (props.currentTab === '矿区管理') {
                 if (tool === '矿区列表') {
                     emit('toggleList');
                 } else if (tool === '矿区查询') {
@@ -84,7 +79,26 @@ export default {
                 } else if (tool === '图层控制') {
                     emit('toggleLayers');
                 }
-            } else {
+            } 
+            // 气象监测选项卡的功能
+            else if (props.currentTab === '气象监测') {
+                if (tool === '气象图层') {
+                    emit('toggleWeatherLayers');
+                } else {
+                    console.log(`🚧 "${tool}" 功能开发中...`);
+                }
+            }
+            // 船舶追踪选项卡的功能
+            else if (props.currentTab === '船舶追踪') {
+                if (tool === '船舶搜索') {
+                    emit('toggleShipSearch');
+                } else if (tool === '航线规划') {
+                    emit('toggleRoutePlan');
+                } else {
+                    console.log(`🚧 "${tool}" 功能开发中...`);
+                }
+            }
+            else {
                 // 其他选项卡的功能暂未实现
                 console.log(`🚧 "${tool}" 功能开发中...`);
             }
@@ -94,20 +108,27 @@ export default {
          * 判断功能按钮是否处于激活状态
          * @param {String} tool - 功能名称
          * @returns {Boolean} 是否激活
-         * 
-         * 激活状态用于：
-         * 1. 高亮显示当前打开的功能
-         * 2. 应用不同的样式（黄色边框、发光效果）
          */
         const isActive = (tool) => {
             // 通用功能：在所有选项卡中都显示激活状态
             if (tool === '地图工具') return props.activePanels.mapTools;
             
-            // "一图一表"选项卡的专属功能
-            if (props.currentTab === '一图一表') {
+            // 矿区管理选项卡的功能
+            if (props.currentTab === '矿区管理') {
                 if (tool === '矿区列表') return props.activePanels.list;
                 if (tool === '矿区查询') return props.activePanels.query;
                 if (tool === '图层控制') return props.activePanels.layers;
+            }
+            
+            // 气象监测选项卡的功能
+            if (props.currentTab === '气象监测') {
+                if (tool === '气象图层') return props.activePanels.weatherLayers;
+            }
+            
+            // 船舶追踪选项卡的功能
+            if (props.currentTab === '船舶追踪') {
+                if (tool === '船舶搜索') return props.activePanels.shipSearch;
+                if (tool === '航线规划') return props.activePanels.routePlan;
             }
             
             return false;

@@ -180,12 +180,70 @@
              </div>
             </div>
         </transition>
+
+        <!-- 3. 气象图层面板 - 参考图层控制样式 -->
+        <transition name="slide-down">
+            <div v-if="showWeatherLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
+                <!-- 动态扫描线 -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
+             
+             <div class="flex items-center mb-4 border-b-2 border-cyan-500/30 pb-3">
+                <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
+                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">气象图层</h3>
+                <span class="text-sm text-cyan-400 font-mono border border-cyan-500/30 px-2 py-0.5 rounded bg-cyan-900/30">WEATHER</span>
+            </div>
+             
+             <div class="space-y-2 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div v-for="group in weatherLayerGroups" :key="group.id" class="mb-2">
+                    <!-- Parent Layer -->
+                    <div class="flex items-center justify-between py-2 px-4 bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all cursor-pointer" @click="toggleWeatherGroup(group.id)">
+                        <div class="flex items-center gap-3">
+                            <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', group.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
+                            <span :class="['text-lg font-bold transition-colors', group.active ? 'text-white' : 'text-slate-400']">{{ group.label }}</span>
+                        </div>
+                        <!-- Switch -->
+                        <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', group.active ? 'bg-cyan-600' : 'bg-slate-700']">
+                            <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', group.active ? 'left-[22px]' : 'left-0.5']"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Layers -->
+                    <div v-if="group.subLayers && group.active" class="ml-6 pl-4 border-l border-slate-600/30 mt-1 space-y-1">
+                        <div v-for="sub in group.subLayers" :key="sub.id" 
+                            class="flex items-center justify-between py-2 px-3 hover:bg-cyan-500/10 rounded cursor-pointer transition-all"
+                            @click.stop="toggleWeatherSubLayer(group.id, sub.id)"
+                        >
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span :class="['text-base transition-colors', sub.active ? 'text-cyan-100 font-medium' : 'text-slate-500']">{{ sub.label }}</span>
+                                    <!-- 时序标签 -->
+                                    <span 
+                                        v-if="sub.hasTimeline"
+                                        class="text-xs px-1.5 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono"
+                                    >
+                                        TIME
+                                    </span>
+                                </div>
+                                <!-- 数据源 -->
+                                <div v-if="sub.dataSource" class="text-xs text-slate-600 mt-0.5 ml-0.5">
+                                    {{ sub.dataSource }}
+                                </div>
+                            </div>
+                            <div :class="['w-2 h-2 rounded-full transition-all', sub.active ? 'bg-yellow-400 shadow-[0_0_5px_yellow]' : 'bg-slate-600']"></div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+            </div>
+        </transition>
     </div>
 </template>
 
 <script>
 import { ref, watch, computed } from 'vue';
-import { MINERAL_TYPES, OCEANS, getLayersByOcean } from '../constants.js';
+import { MINERAL_TYPES, OCEANS, getLayersByOcean, WEATHER_LAYER_GROUPS } from '../constants.js';
 
 export default {
     props: {
@@ -200,9 +258,13 @@ export default {
         showLayersPanel: {
             type: Boolean,
             default: true
+        },
+        showWeatherLayersPanel: {
+            type: Boolean,
+            default: false
         }
     },
-    emits: ['filterChange', 'layersChange'], // 向父组件发送筛选条件变化事件 & 图层变化
+    emits: ['filterChange', 'layersChange', 'weatherLayersChange'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -228,6 +290,9 @@ export default {
         
         // 国家面板的展开/收起状态
         const showCountryPanel = ref(false);
+        
+        // 气象图层分组数据（用于气象图层面板）
+        const weatherLayerGroups = ref(WEATHER_LAYER_GROUPS);
 
         // ==================== 监听器 ====================
         
@@ -431,6 +496,62 @@ export default {
             }
         };
 
+        /**
+         * 切换气象图层组的显示状态
+         * @param {String} groupId - 气象图层组ID
+         */
+        const toggleWeatherGroup = (groupId) => {
+            const group = weatherLayerGroups.value.find(g => g.id === groupId);
+            if (group) {
+                const newActive = !group.active;
+                group.active = newActive;
+
+                if (group.subLayers && group.subLayers.length) {
+                    if (!newActive) {
+                        // 关闭父图层：记录当前哪些子图层是开的，然后全部关掉
+                        group._prevSubActive = group.subLayers
+                            .filter(s => s.active)
+                            .map(s => s.id);
+                        group.subLayers.forEach(s => { s.active = false; });
+                    } else {
+                        // 打开父图层：恢复之前开着的子图层
+                        const prev = group._prevSubActive && group._prevSubActive.length
+                            ? group._prevSubActive
+                            : [];
+                        group.subLayers.forEach(s => {
+                            s.active = prev.includes(s.id);
+                        });
+                    }
+                }
+                console.log(`🌦️ 气象图层组 "${group.label}" ${group.active ? '已开启' : '已关闭'}`);
+            }
+        };
+        
+        /**
+         * 切换气象子图层的显示状态
+         * @param {String} groupId - 气象图层组ID
+         * @param {String} subId - 子图层ID
+         */
+        const toggleWeatherSubLayer = (groupId, subId) => {
+            const group = weatherLayerGroups.value.find(g => g.id === groupId);
+            if (group && group.subLayers) {
+                const sub = group.subLayers.find(s => s.id === subId);
+                if (sub) {
+                    sub.active = !sub.active;
+                    console.log(`🌦️ 气象图层 "${sub.label}" ${sub.active ? '已开启' : '已关闭'}`);
+                    // 通知父组件气象图层变化
+                    emitWeatherLayers();
+                }
+            }
+        };
+        
+        /**
+         * 向父组件发送当前气象图层状态
+         */
+        const emitWeatherLayers = () => {
+            emit('weatherLayersChange', weatherLayerGroups.value);
+        };
+
         // 初始时发送一次图层状态
         emitLayers();
 
@@ -442,6 +563,7 @@ export default {
             layers,
             activeOcean,
             showCountryPanel,
+            weatherLayerGroups,
             toggleMineral,
             toggleOcean,
             toggleCountryPanel,
@@ -450,6 +572,8 @@ export default {
             clearCountries,
             emitFilter,
             toggleLayer,
+            toggleWeatherGroup,
+            toggleWeatherSubLayer,
             MINERAL_TYPES,
             OCEANS
         };
