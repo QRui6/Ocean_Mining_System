@@ -3,21 +3,21 @@
         
         <!-- 1. 船舶搜索面板 -->
         <transition name="slide-down">
-            <div v-if="showShipSearch" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh]" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+            <div v-if="showShipSearch" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-4 border-b-2 border-cyan-500/30 pb-3 px-6 pt-6 flex-shrink-0">
-                    <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
-                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">船舶搜索</h3>
+                <div class="flex items-center mb-3 border-b-2 border-cyan-500/30 pb-2 px-4 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-5 bg-yellow-400 mr-2 shadow-[0_0_10px_#facc15]"></div>
+                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">船舶搜索</h3>
                     <div class="text-xs font-['Orbitron'] text-cyan-500 opacity-80 font-bold tracking-widest">SHIP SEARCH</div>
                 </div>
                 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-6 pb-6 flex-1">
+                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
                     <!-- 搜索类型选项卡 -->
                     <div class="flex gap-2 mb-6">
                         <button 
@@ -45,7 +45,7 @@
                     </div>
 
                     <!-- 单船搜索内容 -->
-                <div v-if="searchMode === 'single'" class="space-y-4">
+                    <div v-if="searchMode === 'single'" class="space-y-4">
                     <!-- MMSI输入 -->
                     <div class="space-y-2">
                         <div class="text-cyan-400 text-base font-bold flex items-center">
@@ -114,10 +114,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
                 
-                <!-- 多船搜索内容 -->
-                <div v-if="searchMode === 'multiple'" class="space-y-4">
+                    <!-- 多船搜索内容 -->
+                    <div v-if="searchMode === 'multiple'" class="space-y-4">
                     <!-- MMSI列表输入 -->
                     <div class="space-y-2">
                         <div class="text-cyan-400 text-base font-bold flex items-center">
@@ -179,110 +179,212 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
                 </div>
             </div>
         </transition>
         
         <!-- 2. 航线规划面板 -->
         <transition name="slide-down">
-            <div v-if="showRoutePlan" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh]" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+            <div v-if="showRoutePlan" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-6 border-b-2 border-purple-500/30 pb-3 px-6 pt-6 flex-shrink-0">
-                    <div class="w-1.5 h-6 bg-purple-400 mr-3 shadow-[0_0_10px_#a855f7]"></div>
-                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">航线规划</h3>
+                <div class="flex items-center mb-3 border-b-2 border-purple-500/30 pb-2 px-4 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-5 bg-purple-400 mr-2 shadow-[0_0_10px_#a855f7]"></div>
+                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">航线规划</h3>
                     <div class="text-xs font-['Orbitron'] text-purple-500 opacity-80 font-bold tracking-widest">ROUTE PLANNING</div>
                 </div>
 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-6 pb-6 flex-1">
-                    <!-- 内容 -->
-                <div class="space-y-4">
-                    <!-- 出发港 -->
-                    <div class="space-y-2">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
-                            <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>出发港
-                        </div>
-                        <input 
-                            v-model="startPort" 
-                            type="text" 
-                            placeholder="输入港口代码，如: CNSHA (上海)"
-                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors font-['Rajdhani']"
-                        />
-                        <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
+                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                    <!-- 规划模式选项卡 -->
+                    <div class="flex gap-2 mb-3">
+                        <button 
+                            @click="planMode = 'port'"
+                            :class="[
+                                'flex-1 px-3 py-1.5 font-bold rounded-sm transition-all text-sm',
+                                planMode === 'port' 
+                                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            ]"
+                        >
+                            港到港
+                        </button>
+                        <button 
+                            @click="planMode = 'point'"
+                            :class="[
+                                'flex-1 px-3 py-1.5 font-bold rounded-sm transition-all text-sm',
+                                planMode === 'point' 
+                                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            ]"
+                        >
+                            点到点
+                        </button>
                     </div>
                     
-                    <!-- 到达港 -->
-                    <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
-                            <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>到达港
+                    <!-- 港到港模式 -->
+                    <div v-if="planMode === 'port'" class="space-y-3">
+                        <!-- 出发港 -->
+                        <div class="space-y-1.5">
+                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></div>出发港
+                            </div>
+                            <input 
+                                v-model="startPort" 
+                                type="text" 
+                                placeholder="输入港口代码，如: CNSHA"
+                                class="w-full px-3 py-1.5 bg-slate-800/50 border border-slate-700 text-white text-sm rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                            />
+                            <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
                         </div>
-                        <input 
-                            v-model="endPort" 
-                            type="text" 
-                            placeholder="输入港口代码，如: JPYOK (横滨)"
-                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors font-['Rajdhani']"
-                        />
-                        <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
+                        
+                        <!-- 到达港 -->
+                        <div class="space-y-1.5">
+                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2"></div>到达港
+                            </div>
+                            <input 
+                                v-model="endPort" 
+                                type="text" 
+                                placeholder="输入港口代码，如: JPYOK"
+                                class="w-full px-3 py-1.5 bg-slate-800/50 border border-slate-700 text-white text-sm rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                            />
+                            <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 点到点模式 -->
+                    <div v-else-if="planMode === 'point'" class="space-y-3">
+                        <!-- 起始点 -->
+                        <div class="space-y-1.5">
+                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></div>起始点
+                            </div>
+                            <div class="flex gap-1.5">
+                                <input 
+                                    v-model="startLng" 
+                                    type="number" 
+                                    step="0.000001"
+                                    placeholder="经度"
+                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                />
+                                <input 
+                                    v-model="startLat" 
+                                    type="number" 
+                                    step="0.000001"
+                                    placeholder="纬度"
+                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                />
+                            </div>
+                            <button 
+                                @click="pickStartPoint"
+                                :class="[
+                                    'w-full px-2 py-1 text-xs font-bold rounded-sm transition-all',
+                                    pickingStart 
+                                        ? 'bg-green-600 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse' 
+                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                ]"
+                            >
+                                {{ pickingStart ? '点击地图选择起点...' : '地图选点' }}
+                            </button>
+                        </div>
+                        
+                        <!-- 结束点 -->
+                        <div class="space-y-1.5">
+                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2"></div>结束点
+                            </div>
+                            <div class="flex gap-1.5">
+                                <input 
+                                    v-model="endLng" 
+                                    type="number" 
+                                    step="0.000001"
+                                    placeholder="经度"
+                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                />
+                                <input 
+                                    v-model="endLat" 
+                                    type="number" 
+                                    step="0.000001"
+                                    placeholder="纬度"
+                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                />
+                            </div>
+                            <button 
+                                @click="pickEndPoint"
+                                :class="[
+                                    'w-full px-2 py-1 text-xs font-bold rounded-sm transition-all',
+                                    pickingEnd 
+                                        ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse' 
+                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                ]"
+                            >
+                                {{ pickingEnd ? '点击地图选择终点...' : '地图选点' }}
+                            </button>
+                        </div>
+                        
+                        <div class="text-xs text-slate-500 bg-slate-800/30 p-1.5 rounded">
+                            提示: 点击"地图选点"后，在地图上点击选择位置
+                        </div>
                     </div>
                     
                     <!-- 规划按钮 -->
-                    <div class="flex gap-2 pt-4 border-t border-dashed border-slate-700/50">
+                    <div class="flex gap-2 pt-3 border-t border-dashed border-slate-700/50">
                         <button 
                             @click="handleRoutePlan"
-                            :disabled="routeLoading || !startPort || !endPort"
-                            class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
+                            :disabled="routeLoading || (planMode === 'port' ? (!startPort || !endPort) : (!startLng || !startLat || !endLng || !endLat))"
+                            class="flex-1 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-sm font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
                         >
-                            {{ routeLoading ? '规划中...' : '🗺️ 规划路径' }}
+                            {{ routeLoading ? '规划中...' : '规划路径' }}
                         </button>
                         <button 
                             v-if="routeResult"
                             @click="handleClearRoute"
-                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-sm transition-all"
                         >
                             清除
                         </button>
                     </div>
                     
                     <!-- 路径规划结果 -->
-                    <div v-if="routeResult || routeError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
-                            <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2.5"></div>规划结果
+                    <div v-if="routeResult || routeError" class="space-y-2 pt-3 border-t border-dashed border-slate-700/50">
+                        <div class="text-purple-400 text-sm font-bold flex items-center">
+                            <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></div>规划结果
                         </div>
                         
                         <!-- 错误提示 -->
-                        <div v-if="routeError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                            <div class="text-red-400 text-sm">{{ routeError }}</div>
+                        <div v-if="routeError" class="p-2 bg-red-900/30 border border-red-500/50 rounded-sm">
+                            <div class="text-red-400 text-xs">{{ routeError }}</div>
                         </div>
                         
                         <!-- 路径信息 -->
-                        <div v-else-if="routeResult" class="bg-slate-800/40 border border-purple-500/50 rounded-sm p-4 space-y-3">
+                        <div v-else-if="routeResult" class="bg-slate-800/40 border border-purple-500/50 rounded-sm p-3 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-slate-400 text-sm">航线距离</span>
-                                <span class="text-purple-400 font-bold text-lg font-['Rajdhani']">{{ routeResult.distance }} 海里</span>
+                                <span class="text-slate-400 text-xs">航线距离</span>
+                                <span class="text-purple-400 font-bold text-sm font-['Rajdhani']">{{ routeResult.distance }} 海里</span>
                             </div>
-                            <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-sm">航点数量</span>
-                                <span class="text-white font-['Rajdhani']">{{ routeResult.pointCount }} 个</span>
+                            <div class="flex items-center justify-between border-t border-slate-700/50 pt-1.5">
+                                <span class="text-slate-400 text-xs">航点数量</span>
+                                <span class="text-white text-sm font-['Rajdhani']">{{ routeResult.pointCount }} 个</span>
                             </div>
                             
                             <!-- 操作按钮 -->
-                            <div class="flex gap-2 pt-3 border-t border-slate-700/50">
+                            <div class="flex gap-2 pt-2 border-t border-slate-700/50">
                                 <button 
                                     @click="handleRouteWeather"
                                     :disabled="weatherLoading"
-                                    class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
+                                    class="flex-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-xs font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                                 >
                                     {{ weatherLoading ? '分析中...' : '🌦️ 航线气象' }}
                                 </button>
                                 <button 
                                     @click="handleCancelRoute"
-                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                                    class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
                                 >
                                     取消
                                 </button>
@@ -290,27 +392,26 @@
                         </div>
                     </div>
                 </div>
-                </div>
             </div>
         </transition>
         
         <!-- 3. 历史轨迹面板 -->
         <transition name="slide-down">
-            <div v-if="showHistoryTrack" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh]" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+            <div v-if="showHistoryTrack" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-6 border-b-2 border-amber-500/30 pb-3 px-6 pt-6 flex-shrink-0">
-                    <div class="w-1.5 h-6 bg-amber-400 mr-3 shadow-[0_0_10px_#fbbf24]"></div>
-                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">历史轨迹</h3>
+                <div class="flex items-center mb-3 border-b-2 border-amber-500/30 pb-2 px-4 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-5 bg-amber-400 mr-2 shadow-[0_0_10px_#fbbf24]"></div>
+                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">历史轨迹</h3>
                     <div class="text-xs font-['Orbitron'] text-amber-500 opacity-80 font-bold tracking-widest">HISTORY TRACK</div>
                 </div>
 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-6 pb-6 flex-1">
+                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
                     <div class="space-y-4">
                         <!-- MMSI输入 -->
                         <div class="space-y-2">
@@ -475,8 +576,15 @@ export default {
         const multipleError = ref('');
         
         // 航线规划相关
+        const planMode = ref('port'); // 'port' 或 'point'
         const startPort = ref('');
         const endPort = ref('');
+        const startLng = ref('');
+        const startLat = ref('');
+        const endLng = ref('');
+        const endLat = ref('');
+        const pickingStart = ref(false);
+        const pickingEnd = ref(false);
         const routeLoading = ref(false);
         const routeResult = ref(null);
         const routeError = ref('');
@@ -592,13 +700,21 @@ export default {
         // 航线规划
         const handleRoutePlan = async () => {
             console.log('🗺️ 开始航线规划...');
-            console.log('   - 出发港:', startPort.value);
-            console.log('   - 到达港:', endPort.value);
+            console.log('   - 规划模式:', planMode.value);
             
-            if (!startPort.value || !endPort.value) {
-                routeError.value = '请输入出发港和到达港代码';
-                console.error('❌ 港口代码为空');
-                return;
+            // 根据模式验证输入
+            if (planMode.value === 'port') {
+                if (!startPort.value || !endPort.value) {
+                    routeError.value = '请输入出发港和到达港代码';
+                    console.error('❌ 港口代码为空');
+                    return;
+                }
+            } else if (planMode.value === 'point') {
+                if (!startLng.value || !startLat.value || !endLng.value || !endLat.value) {
+                    routeError.value = '请输入起点和终点坐标，或使用地图选点';
+                    console.error('❌ 坐标为空');
+                    return;
+                }
             }
             
             routeLoading.value = true;
@@ -607,10 +723,24 @@ export default {
             
             try {
                 console.log('⏳ 调用 API...');
-                const result = await planRouteByPort(
-                    startPort.value.toUpperCase(),
-                    endPort.value.toUpperCase()
-                );
+                let result;
+                
+                if (planMode.value === 'port') {
+                    // 港到港模式
+                    const { planRouteByPort } = await import('../utils/shipxyApi.js');
+                    result = await planRouteByPort(
+                        startPort.value.toUpperCase(),
+                        endPort.value.toUpperCase()
+                    );
+                } else {
+                    // 点到点模式
+                    const { planRouteByPoint } = await import('../utils/shipxyApi.js');
+                    const startPoint = `${startLng.value},${startLat.value}`;
+                    const endPoint = `${endLng.value},${endLat.value}`;
+                    console.log('   - 起点:', startPoint);
+                    console.log('   - 终点:', endPoint);
+                    result = await planRouteByPoint(startPoint, endPoint);
+                }
                 
                 console.log('📦 API 返回结果:', result);
                 
@@ -625,21 +755,32 @@ export default {
                     };
                     
                     // 保存路径数据供气象分析使用
-                    currentRouteData = {
-                        route: result.data.route,
-                        distance: result.data.distance,
-                        startPort: startPort.value,
-                        endPort: endPort.value
-                    };
+                    if (planMode.value === 'port') {
+                        currentRouteData = {
+                            route: result.data.route,
+                            distance: result.data.distance,
+                            startPort: startPort.value,
+                            endPort: endPort.value,
+                            mode: 'port'
+                        };
+                    } else {
+                        currentRouteData = {
+                            route: result.data.route,
+                            distance: result.data.distance,
+                            startPoint: { lng: parseFloat(startLng.value), lat: parseFloat(startLat.value) },
+                            endPoint: { lng: parseFloat(endLng.value), lat: parseFloat(endLat.value) },
+                            mode: 'point'
+                        };
+                    }
                     
                     console.log('📤 发送 routePlanned 事件');
                     emit('routePlanned', currentRouteData);
                 } else {
                     console.error('❌ 路径规划失败:', result.error);
-                    if (result.error && result.error.includes('未找到')) {
+                    if (planMode.value === 'port' && result.error && result.error.includes('未找到')) {
                         routeError.value = `${result.error}。提示：请联系船讯网获取正确的港口代码列表，或查看 docs/港口代码参考.md`;
                     } else {
-                        routeError.value = result.error || '路径规划失败，请检查港口代码是否正确';
+                        routeError.value = result.error || '路径规划失败，请检查输入是否正确';
                     }
                 }
             } catch (err) {
@@ -751,6 +892,46 @@ export default {
             emit('trackCleared');
         };
         
+        // 地图选点功能
+        const pickStartPoint = () => {
+            if (pickingStart.value) {
+                // 取消选点
+                pickingStart.value = false;
+                emit('pickPoint', { type: 'cancel' });
+            } else {
+                // 开始选点
+                pickingStart.value = true;
+                pickingEnd.value = false; // 取消终点选择
+                emit('pickPoint', { type: 'start' });
+            }
+        };
+        
+        const pickEndPoint = () => {
+            if (pickingEnd.value) {
+                // 取消选点
+                pickingEnd.value = false;
+                emit('pickPoint', { type: 'cancel' });
+            } else {
+                // 开始选点
+                pickingEnd.value = true;
+                pickingStart.value = false; // 取消起点选择
+                emit('pickPoint', { type: 'end' });
+            }
+        };
+        
+        // 接收地图选点结果（由父组件调用）
+        const setPickedPoint = (lng, lat, type) => {
+            if (type === 'start') {
+                startLng.value = lng.toFixed(6);
+                startLat.value = lat.toFixed(6);
+                pickingStart.value = false;
+            } else if (type === 'end') {
+                endLng.value = lng.toFixed(6);
+                endLat.value = lat.toFixed(6);
+                pickingEnd.value = false;
+            }
+        };
+        
         return {
             searchMode,
             singleMmsi,
@@ -767,8 +948,18 @@ export default {
             handleMultipleLocate,
             handleClearMultiple,
             formatPosition,
+            planMode,
             startPort,
             endPort,
+            startLng,
+            startLat,
+            endLng,
+            endLat,
+            pickingStart,
+            pickingEnd,
+            pickStartPoint,
+            pickEndPoint,
+            setPickedPoint,
             routeLoading,
             routeResult,
             routeError,
@@ -792,6 +983,11 @@ export default {
 </script>
 
 <style scoped>
+/* 面板裁剪路径 */
+.panel-clip-path {
+    clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);
+}
+
 /* 滑入动画 */
 .slide-down-enter-active,
 .slide-down-leave-active {

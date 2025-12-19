@@ -152,6 +152,20 @@ export async function planRouteByPort(startPortCode, endPortCode, avoid = '', th
 }
 
 /**
+ * 点到点航线规划
+ * @param {string} startPoint - 起始点坐标 "lng,lat"
+ * @param {string} endPoint - 结束点坐标 "lng,lat"
+ * @returns {Promise<Object>} 航线信息 { distance, route: [{lng, lat}] }
+ */
+export async function planRouteByPoint(startPoint, endPoint) {
+    const url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${startPoint}&end_point=${endPoint}`;
+    console.log('🌐 点到点航线规划 URL:', url);
+    const result = await request(url);
+    console.log('📦 点到点航线响应:', result);
+    return result;
+}
+
+/**
  * 点位气象查询
  * @param {number} lng - 经度
  * @param {number} lat - 纬度

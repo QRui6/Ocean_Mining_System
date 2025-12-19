@@ -244,10 +244,11 @@
         
         <!-- 路径规划面板 -->
         <RoutePlanPanel 
-            v-if="showRoutePlan"
+            :show="showRoutePlan"
             @close="showRoutePlan = false"
             @routePlanned="handleRoutePlanned"
             @routeCleared="handleRouteCleared"
+            @pickPoint="handlePickPoint"
         />
     </div>
 </template>
@@ -317,9 +318,14 @@ export default {
         weatherFilter: {
             type: Object,
             default: null
+        },
+        // 地图选点类型
+        pickingPointType: {
+            type: String,
+            default: null
         }
     },
-    emits: ['dataLoaded', 'weatherDataLoaded'],
+    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked'],
     setup(props, { emit }) {
         const cesiumContainer = ref(null);
         const selectedArea = ref(null);
@@ -342,6 +348,7 @@ export default {
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
+        let pickPointMarkers = { start: null, end: null }; // 选点标记
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
@@ -358,22 +365,39 @@ export default {
                 vrButton: false,
                 infoBox: false,
                 selectionIndicator: false,
-                imageryProvider: new Cesium.WebMapTileServiceImageryProvider({
-                    url: `https://t0.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                imageryProvider: false,  // 先不加载任何底图
+                sceneMode: Cesium.SceneMode.SCENE3D,
+                contextOptions: {
+                    webgl: {
+                        alpha: false,  // 禁用透明度以提升性能
+                        depth: true,
+                        stencil: true,
+                        antialias: true,
+                        powerPreference: "high-performance"
+                    }
+                }
+            });
+            
+            // 动态选择天地图服务器（0-7）
+            const serverIndex = Math.floor(Math.random() * 8);
+            
+            // 添加天地图影像图层
+            viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "img",
                     style: "default",
                     format: "tiles",
                     tileMatrixSetID: "w",
                     credit: new Cesium.Credit("天地图"),
                     maximumLevel: 18
-                }),
-                sceneMode: Cesium.SceneMode.SCENE3D
-            });
+                })
+            );
 
             // 添加天地图注记图层
             viewer.imageryLayers.addImageryProvider(
                 new Cesium.WebMapTileServiceImageryProvider({
-                    url: `https://t0.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    url: `https://t${serverIndex}.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "cia",
                     style: "default",
                     format: "tiles",
@@ -1156,6 +1180,64 @@ export default {
             }
         };
         
+        // 地图选点状态
+        let pickPointCallback = null;
+        let pickPointHandler = null;
+        
+        // 处理地图选点请求
+        const handlePickPoint = (data) => {
+            if (data.type === 'cancel') {
+                // 取消选点
+                if (pickPointHandler) {
+                    pickPointHandler.destroy();
+                    pickPointHandler = null;
+                }
+                pickPointCallback = null;
+                console.log('❌ 取消地图选点');
+                return;
+            }
+            
+            // 保存回调函数
+            pickPointCallback = data.callback;
+            
+            // 移除旧的处理器
+            if (pickPointHandler) {
+                pickPointHandler.destroy();
+            }
+            
+            // 创建新的点击处理器
+            const viewer = viewerRef.value;
+            if (!viewer) return;
+            
+            pickPointHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            
+            pickPointHandler.setInputAction((click) => {
+                // 获取点击位置的笛卡尔坐标
+                const cartesian = viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid);
+                
+                if (cartesian) {
+                    // 转换为经纬度
+                    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                    const lng = Cesium.Math.toDegrees(cartographic.longitude);
+                    const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                    
+                    console.log(`📍 选择了位置: ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
+                    
+                    // 调用回调函数
+                    if (pickPointCallback) {
+                        pickPointCallback(lng, lat);
+                    }
+                    
+                    // 清理处理器
+                    pickPointHandler.destroy();
+                    pickPointHandler = null;
+                    pickPointCallback = null;
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            
+            console.log(`🖱️ 开始地图选点模式: ${data.type === 'start' ? '起点' : '终点'}`);
+        };
+        
         // 切换轨迹显示
         const toggleTrajectory = () => {
             console.log('🚢 轨迹按钮被点击');
@@ -1363,7 +1445,18 @@ export default {
             } else if (routeData.action === 'clear') {
                 // 清除路径
                 routeLayer.clearRoute();
-                console.log('🗑️ 航线已清除');
+                
+                // 清除选点标记
+                if (pickPointMarkers.start) {
+                    viewer.entities.remove(pickPointMarkers.start);
+                    pickPointMarkers.start = null;
+                }
+                if (pickPointMarkers.end) {
+                    viewer.entities.remove(pickPointMarkers.end);
+                    pickPointMarkers.end = null;
+                }
+                
+                console.log('🗑️ 航线和标记已清除');
             }
         }, { deep: true });
         
@@ -1524,6 +1617,113 @@ export default {
                 routeWeatherLayer.filterMarkers(filters);
             }
         }, { deep: true });
+        
+        // 监听地图选点状态变化
+        watch(() => props.pickingPointType, (newType) => {
+            console.log('📍 选点状态变化:', newType);
+            
+            if (!newType) {
+                // 取消选点模式
+                if (pickPointHandler) {
+                    pickPointHandler.destroy();
+                    pickPointHandler = null;
+                }
+                console.log('❌ 取消地图选点');
+                return;
+            }
+            
+            // 移除旧的处理器
+            if (pickPointHandler) {
+                pickPointHandler.destroy();
+            }
+            
+            // 创建新的点击处理器
+            if (!viewer) return;
+            
+            pickPointHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            
+            pickPointHandler.setInputAction((click) => {
+                // 计算 CSS scale 缩放比例
+                const baseWidth = 1920;
+                const baseHeight = 1080;
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                
+                // 修正点击坐标
+                const correctedPosition = new Cesium.Cartesian2(
+                    click.position.x / scaleX,
+                    click.position.y / scaleY
+                );
+                
+                // 获取点击位置的笛卡尔坐标
+                const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+                
+                if (cartesian) {
+                    // 转换为经纬度
+                    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                    const lng = Cesium.Math.toDegrees(cartographic.longitude);
+                    const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                    
+                    console.log(`📍 选择了位置: ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
+                    
+                    // 添加标记
+                    const markerType = newType; // 'start' 或 'end'
+                    
+                    // 移除旧标记
+                    if (pickPointMarkers[markerType]) {
+                        viewer.entities.remove(pickPointMarkers[markerType]);
+                    }
+                    
+                    // 创建新标记
+                    const marker = viewer.entities.add({
+                        position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                        billboard: {
+                            image: markerType === 'start' 
+                                ? 'data:image/svg+xml;base64,' + btoa(`
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
+                                        <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="#22c55e" stroke="#fff" stroke-width="2"/>
+                                        <circle cx="16" cy="16" r="6" fill="#fff"/>
+                                        <text x="16" y="20" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="bold">A</text>
+                                    </svg>
+                                `)
+                                : 'data:image/svg+xml;base64,' + btoa(`
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
+                                        <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+                                        <circle cx="16" cy="16" r="6" fill="#fff"/>
+                                        <text x="16" y="20" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">B</text>
+                                    </svg>
+                                `),
+                            width: 32,
+                            height: 48,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                        },
+                        label: {
+                            text: markerType === 'start' ? '起点' : '终点',
+                            font: '14px sans-serif',
+                            fillColor: Cesium.Color.WHITE,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 2,
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            verticalOrigin: Cesium.VerticalOrigin.TOP,
+                            pixelOffset: new Cesium.Cartesian2(0, 5),
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                        }
+                    });
+                    
+                    pickPointMarkers[markerType] = marker;
+                    
+                    // 发送选点结果
+                    emit('pointPicked', lng, lat);
+                    
+                    // 清理处理器
+                    pickPointHandler.destroy();
+                    pickPointHandler = null;
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            
+            console.log(`🖱️ 开始地图选点模式: ${newType === 'start' ? '起点' : '终点'}`);
+        });
         
         // 根据图层状态更新风场显示
         const updateWindVisibility = async (layers) => {

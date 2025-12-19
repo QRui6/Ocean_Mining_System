@@ -16,8 +16,10 @@
                 :trackToDraw="trackToDraw"
                 :routeWeatherRequest="routeWeatherRequest"
                 :weatherFilter="weatherFilter"
+                :pickingPointType="pickingPointType"
                 @dataLoaded="handleDataLoaded"
                 @weatherDataLoaded="handleWeatherDataLoaded"
+                @pointPicked="handlePointPicked"
             />
             
             <!-- UI Layer (Z-10+) -->
@@ -35,6 +37,7 @@
                 
                 <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
                 <ShipTrackingPanel 
+                    ref="shipTrackingRef"
                     :showShipSearch="activePanels.shipSearch"
                     :showRoutePlan="activePanels.routePlan"
                     :showHistoryTrack="activePanels.historyTrack"
@@ -44,6 +47,7 @@
                     @trackLoaded="handleTrackLoaded"
                     @trackCleared="handleTrackCleared"
                     @routeWeatherAnalysis="handleRouteWeatherAnalysis"
+                    @pickPoint="handlePickPoint"
                 />
                 
                 <!-- 区域监控面板 -->
@@ -150,7 +154,7 @@ export default {
         TimelineControl,
         ShipTrackingPanel,
         AreaMonitorPanel,
-        AreaDetailDialog
+        AreaDetailDialog,
         ShipListTable,
         WeatherListTable
     },
@@ -172,7 +176,7 @@ export default {
             weatherLayers: false, // 气象图层面板（左侧）
             shipSearch: false,    // 船舶搜索面板（左侧）
             routePlan: false,     // 航线规划面板（左侧）
-            areaMonitor: false    // 区域监控面板（左侧）
+            areaMonitor: false,    // 区域监控面板（左侧）
             historyTrack: false,  // 历史轨迹面板（左侧）
             shipList: false,      // 船舶列表（底部表格）
             routeWeather: false   // 航线气象（右侧按钮高亮）
@@ -396,8 +400,12 @@ export default {
         // 区域监控相关
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
+        const shipTrackingRef = ref(null);
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
+        
+        // 地图选点状态
+        const pickingPointType = ref(null); // 'start', 'end', 或 null
         
         const handleStartDrawing = (data) => {
             console.log('🖊️ 启动地图绘制工具', data);
@@ -700,6 +708,32 @@ export default {
         const handleTrackCleared = () => {
             console.log('🗑️ 清除轨迹');
             trackToDraw.value = { action: 'clear', timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理地图选点事件
+         * @param {Object} data - 选点数据 { type: 'start'|'end'|'cancel' }
+         */
+        const handlePickPoint = (data) => {
+            console.log('📍 地图选点事件:', data);
+            if (data.type === 'cancel') {
+                pickingPointType.value = null;
+            } else {
+                pickingPointType.value = data.type;
+            }
+        };
+        
+        /**
+         * 接收地图选点结果（由MapContainer调用）
+         * @param {Number} lng - 经度
+         * @param {Number} lat - 纬度
+         */
+        const handlePointPicked = (lng, lat) => {
+            console.log('✅ 地图选点完成:', { lng, lat, type: pickingPointType.value });
+            if (pickingPointType.value && shipTrackingRef.value) {
+                shipTrackingRef.value.setPickedPoint(lng, lat, pickingPointType.value);
+                pickingPointType.value = null;
+            }
         };
         
         /**
@@ -1205,6 +1239,10 @@ export default {
             trackToDraw,
             handleRoutePlanned,
             handleRouteCleared,
+            handlePickPoint,
+            handlePointPicked,
+            pickingPointType,
+            shipTrackingRef,
             areaMonitorRef,
             mapContainerRef,
             handleStartDrawing,
@@ -1218,7 +1256,7 @@ export default {
             showAreaDetail,
             selectedAreaForDetail,
             closeAreaDetailDialog,
-            showAreaDetailDialog
+            showAreaDetailDialog,
             handleTrackLoaded,
             handleTrackCleared,
             shipListData,
