@@ -174,29 +174,34 @@ export class RouteWeatherLayer {
             const data = this.weatherData[i];
             const { point, weather, risk } = data;
             
-            // 创建标记点（带序号）- 高度设为0确保在底层
+            // 创建标记点（带序号）- 提高高度确保可见和可点击
             const entity = this.viewer.entities.add({
                 id: `weather_marker_${i}`,
-                position: Cesium.Cartesian3.fromDegrees(point.lng, point.lat, 0),
+                position: Cesium.Cartesian3.fromDegrees(point.lng, point.lat, 100),
                 point: {
-                    pixelSize: 10,
-                    color: Cesium.Color.fromCssColorString(risk.color).withAlpha(0.8),
+                    pixelSize: 18,
+                    color: Cesium.Color.fromCssColorString(risk.color).withAlpha(0.95),
                     outlineColor: Cesium.Color.WHITE,
-                    outlineWidth: 2,
-                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                    outlineWidth: 3,
+                    heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                    scaleByDistance: new Cesium.NearFarScalar(1000, 1.5, 5000000, 0.5)
                 },
                 label: {
                     text: String(i + 1),
-                    font: '16px bold sans-serif',
+                    font: '20px bold sans-serif',
                     fillColor: Cesium.Color.WHITE,
                     outlineColor: Cesium.Color.BLACK,
-                    outlineWidth: 3,
+                    outlineWidth: 4,
                     style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                    pixelOffset: new Cesium.Cartesian2(0, 18),
+                    pixelOffset: new Cesium.Cartesian2(0, 25),
                     verticalOrigin: Cesium.VerticalOrigin.TOP,
-                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                    heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                    scaleByDistance: new Cesium.NearFarScalar(1000, 1.2, 5000000, 0.5),
+                    backgroundColor: Cesium.Color.fromCssColorString(risk.color).withAlpha(0.4),
+                    backgroundPadding: new Cesium.Cartesian2(8, 6),
+                    showBackground: true
                 }
             });
             
@@ -276,6 +281,8 @@ export class RouteWeatherLayer {
         const riskOrder = { 'safe': 0, 'caution': 1, 'warning': 2, 'danger': 3, 'unknown': -1 };
         return riskOrder[risk1.level] >= riskOrder[risk2.level] ? risk1 : risk2;
     }
+    
+
     
     /**
      * 清理气象数据（过滤无效值）
