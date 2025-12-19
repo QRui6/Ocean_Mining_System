@@ -564,15 +564,18 @@ async function handleWebhookData(req, res) {
 
         const webhookData = req.body;
         
-        // 解析推送数据（根据船讯网实际格式调整）
+        // 解析推送数据（船讯网实际格式）
         const {
             area_id,
-            event_type, // 'enter' 或 'leave'
+            event_type,  // 1=进入, 2=离开
             mmsi,
             ship_name,
             lat,
             lng,
-            timestamp
+            event_time,
+            event_time_utc,
+            imo,
+            call_sign
         } = webhookData;
 
         // 查询数据库中的区域ID
@@ -582,22 +585,39 @@ async function handleWebhookData(req, res) {
         );
 
         if (result.rows.length === 0) {
-            console.warn('未找到对应区域:', area_id);
+            console.warn('⚠️  未找到对应区域:', area_id);
             return res.json({ success: true, message: '区域不存在' });
         }
 
         const area = result.rows[0];
+        console.log(`✅ 找到区域: ${area.name} (ID: ${area.id})`);
 
-        if (event_type === 'enter') {
-            await handleShipEnter(area, { mmsi, ship_name, lat, lng, timestamp });
-        } else if (event_type === 'leave') {
-            await handleShipLeave(area, { mmsi, timestamp });
+        // 船讯网 event_type: 1=进入, 2=离开
+        if (event_type === 1 || event_type === '1' || event_type === 'enter') {
+            console.log(`🚢 处理船舶进入事件: MMSI=${mmsi}, 船名=${ship_name}`);
+            await handleShipEnter(area, { 
+                mmsi, 
+                ship_name, 
+                lat: lat || 0, 
+                lng: lng || 0, 
+                timestamp: event_time_utc || Date.now() / 1000,
+                imo,
+                call_sign
+            });
+        } else if (event_type === 2 || event_type === '2' || event_type === 'leave') {
+            console.log(`🚢 处理船舶离开事件: MMSI=${mmsi}, 船名=${ship_name}`);
+            await handleShipLeave(area, { 
+                mmsi, 
+                timestamp: event_time_utc || Date.now() / 1000 
+            });
+        } else {
+            console.warn('⚠️  未知的事件类型:', event_type);
         }
 
         res.json({ success: true, message: '事件已处理' });
 
     } catch (err) {
-        console.error('Webhook处理失败:', err);
+        console.error('❌ Webhook处理失败:', err);
         res.status(500).json({
             success: false,
             error: err.message

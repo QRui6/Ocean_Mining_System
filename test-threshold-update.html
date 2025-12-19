@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阈值更新测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: #334155;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        h2 {
+            color: #22d3ee;
+            margin-top: 0;
+        }
+        .log {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #22d3ee;
+            padding-left: 10px;
+        }
+        .log-entry.success {
+            border-left-color: #22c55e;
+        }
+        .log-entry.error {
+            border-left-color: #ef4444;
+        }
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+        }
+        button {
+            background: #22d3ee;
+            color: #0f172a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #06b6d4;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.pass {
+            background: #22c55e;
+            color: white;
+        }
+        .status.fail {
+            background: #ef4444;
+            color: white;
+        }
+        .status.pending {
+            background: #f59e0b;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #475569;
+        }
+        th {
+            background: #1e293b;
+            color: #22d3ee;
+        }
+        .risk-safe { background: #22c55e; color: white; }
+        .risk-caution { background: #f59e0b; color: white; }
+        .risk-warning { background: #f97316; color: white; }
+        .risk-danger { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 阈值更新功能测试</h1>
+        
+        <div class="section">
+            <h2>测试说明</h2>
+            <p>这个页面用于测试阈值更新功能是否正常工作。请按照以下步骤操作：</p>
+            <ol>
+                <li>打开主应用（http://localhost:5173）</li>
+                <li>规划一条航线</li>
+                <li>点击"航线气象"查看气象数据</li>
+                <li>打开浏览器开发者工具（F12）</li>
+                <li>调整阈值并点击"应用"</li>
+                <li>观察控制台日志</li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h2>预期日志检查清单</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>步骤</th>
+                        <th>预期日志</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. 用户调整阈值</td>
+                        <td>⚙️ App.vue 收到阈值变化</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>2. 传递给MapContainer</td>
+                        <td>✅ MapContainer 收到阈值变化</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>3. 检查气象数据存在</td>
+                        <td>routeWeatherLayer 存在: true</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>4. 开始重新评估</td>
+                        <td>🔄 重新评估航线气象风险...</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>5. 显示评估前风险</td>
+                        <td>重新评估前第一个点的风险: {...}</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>6. routeWeatherLayer重新评估</td>
+                        <td>🔄 routeWeatherLayer.reEvaluateRisk 开始</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>7. 显示评估后风险</td>
+                        <td>第一个点重新评估后: {...}</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>8. 完成重新评估</td>
+                        <td>✅ 已使用新阈值重新评估风险等级</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>9. 发送更新事件</td>
+                        <td>✅ 气象数据已更新并发送给父组件</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>10. App接收更新</td>
+                        <td>📊 气象数据加载完成</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>11. 表格接收数据更新</td>
+                        <td>📊 WeatherListTable: weatherData 变化</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                    <tr>
+                        <td>12. 表格接收阈值更新</td>
+                        <td>⚙️ WeatherListTable: thresholds 变化</td>
+                        <td><span class="status pending">待检查</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>控制台日志监听器</h2>
+            <p>将以下代码粘贴到浏览器控制台，它会自动监听并高亮显示相关日志：</p>
+            <div class="log">
+// 保存原始的 console.log
+const originalLog = console.log;
+
+// 重写 console.log
+console.log = function(...args) {
+    // 调用原始的 log
+    originalLog.apply(console, args);
+    
+    // 检查是否是我们关心的日志
+    const message = args.join(' ');
+    
+    if (message.includes('App.vue 收到阈值变化')) {
+        console.log('%c✅ 步骤1通过：App.vue 收到阈值变化', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('MapContainer 收到阈值变化')) {
+        console.log('%c✅ 步骤2通过：MapContainer 收到阈值变化', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('routeWeatherLayer 存在: true')) {
+        console.log('%c✅ 步骤3通过：气象数据存在', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('重新评估航线气象风险')) {
+        console.log('%c✅ 步骤4通过：开始重新评估', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('routeWeatherLayer.reEvaluateRisk 开始')) {
+        console.log('%c✅ 步骤6通过：routeWeatherLayer 开始重新评估', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('已使用新阈值重新评估风险等级')) {
+        console.log('%c✅ 步骤8通过：完成重新评估', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('气象数据已更新并发送给父组件')) {
+        console.log('%c✅ 步骤9通过：发送更新事件', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('气象数据加载完成')) {
+        console.log('%c✅ 步骤10通过：App 接收更新', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('WeatherListTable: weatherData 变化')) {
+        console.log('%c✅ 步骤11通过：表格接收数据更新', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+    
+    if (message.includes('WeatherListTable: thresholds 变化')) {
+        console.log('%c✅ 步骤12通过：表格接收阈值更新', 'color: #22c55e; font-weight: bold; font-size: 14px;');
+    }
+};
+
+console.log('%c🎯 日志监听器已启动！', 'color: #22d3ee; font-weight: bold; font-size: 16px;');
+console.log('%c现在可以调整阈值了，我会自动高亮显示关键步骤。', 'color: #22d3ee;');
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>常见问题诊断</h2>
+            <div style="margin-top: 15px;">
+                <h3 style="color: #f59e0b;">❌ 如果步骤1没有通过</h3>
+                <p>说明：ShipTrackingPanel 没有正确发送 thresholdsChanged 事件</p>
+                <p>检查：确保点击了"应用"按钮而不是直接关闭对话框</p>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <h3 style="color: #f59e0b;">❌ 如果步骤2没有通过</h3>
+                <p>说明：mapContainerRef.value 为 null 或 handleThresholdsChanged 未暴露</p>
+                <p>检查：在控制台执行 <code>console.log(window.debugApp?.mapContainerRef)</code></p>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <h3 style="color: #f59e0b;">❌ 如果步骤3显示 false</h3>
+                <p>说明：还没有进行航线气象分析</p>
+                <p>解决：先点击"航线气象"按钮，等待数据加载完成</p>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <h3 style="color: #f59e0b;">❌ 如果步骤11或12没有通过</h3>
+                <p>说明：Vue 响应式更新没有触发</p>
+                <p>检查：确保使用了扩展运算符创建新数组</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>快速测试命令</h2>
+            <p>在主应用的控制台中执行以下命令进行快速测试：</p>
+            <div class="log">
+// 1. 检查当前状态
+console.log('当前阈值:', window.debugApp?.currentThresholds);
+console.log('气象数据:', window.debugApp?.weatherListData);
+console.log('MapContainer ref:', window.debugApp?.mapContainerRef);
+
+// 2. 手动触发阈值更新（模拟用户操作）
+if (window.debugApp?.handleThresholdsChanged) {
+    window.debugApp.handleThresholdsChanged({
+        safe: { windBeaufort: 8, waveHeight: 3, visibility: 2000, swellHeight: 3, oceanSpeed: 2 },
+        caution: { windBeaufort: 9, waveHeight: 4, visibility: 1000, swellHeight: 4, oceanSpeed: 3 },
+        warning: { windBeaufort: 10, waveHeight: 6, visibility: 500, swellHeight: 6, oceanSpeed: 4 },
+        danger: { windBeaufort: 11, waveHeight: 8, visibility: 200, swellHeight: 8, oceanSpeed: 5 }
+    });
+    console.log('✅ 已手动触发阈值更新');
+} else {
+    console.error('❌ window.debugApp 不可用，请先在 App.vue 中添加调试代码');
+}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

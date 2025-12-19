@@ -1,5 +1,5 @@
 <template>
-    <div class="absolute top-36 left-8 w-[28rem] z-40 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft">
+    <div class="absolute top-36 left-8 w-[28rem] max-h-[calc(100vh-10rem)] z-40 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft overflow-y-auto custom-scrollbar">
         <transition name="slide-down">
             <div v-if="show" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
                 <!-- 动态扫描线 -->
@@ -186,6 +186,111 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- 高级设置 -->
+                <div class="space-y-2 pt-4 border-t border-dashed border-slate-700/50 mt-4">
+                    <button 
+                        @click="showAdvanced = !showAdvanced"
+                        class="w-full flex items-center justify-between text-purple-400 text-base font-bold hover:text-purple-300 transition-colors"
+                    >
+                        <div class="flex items-center">
+                            <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2.5"></div>
+                            高级设置
+                        </div>
+                        <svg 
+                            class="w-4 h-4 transition-transform" 
+                            :class="{ 'rotate-180': showAdvanced }"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <transition name="slide-down">
+                        <div v-if="showAdvanced" class="bg-slate-800/40 border border-purple-500/30 rounded-sm p-4 space-y-4">
+                            <div class="text-xs text-slate-400 mb-3">气象风险阈值设置（采矿船标准）</div>
+                            
+                            <!-- 风速阈值 -->
+                            <div class="space-y-2">
+                                <div class="text-sm text-slate-300 font-bold">风速（蒲福风级）</div>
+                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                    <div>
+                                        <label class="text-slate-400">安全</label>
+                                        <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <label class="text-slate-400">注意</label>
+                                        <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <label class="text-slate-400">警告</label>
+                                        <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <label class="text-slate-400">危险</label>
+                                        <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 浪高阈值 -->
+                            <div class="space-y-2">
+                                <div class="text-sm text-slate-300 font-bold">浪高（米）</div>
+                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                    <div>
+                                        <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 能见度阈值 -->
+                            <div class="space-y-2">
+                                <div class="text-sm text-slate-300 font-bold">能见度（米）</div>
+                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                    <div>
+                                        <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                    <div>
+                                        <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 操作按钮 -->
+                            <div class="flex gap-2 pt-2">
+                                <button 
+                                    @click="resetThresholds"
+                                    class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-sm transition-all"
+                                >
+                                    恢复默认
+                                </button>
+                                <button 
+                                    @click="applyThresholds"
+                                    class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-sm transition-all"
+                                >
+                                    应用设置
+                                </button>
+                            </div>
+                        </div>
+                    </transition>
+                </div>
             </div>
         </transition>
     </div>
@@ -194,6 +299,7 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { planRouteByPort, planRouteByPoint } from '../utils/shipxyApi.js';
+import { DEFAULT_THRESHOLDS } from '../utils/weatherRiskAssessment.js';
 
 export default {
     name: 'RoutePlanPanel',
@@ -203,7 +309,7 @@ export default {
             default: false
         }
     },
-    emits: ['close', 'routePlanned', 'routeCleared', 'pickPoint'],
+    emits: ['close', 'routePlanned', 'routeCleared', 'pickPoint', 'thresholdsChanged'],
     
     setup(props, { emit }) {
         // 规划模式：port(港到港) 或 point(点到点)
@@ -334,6 +440,21 @@ export default {
             pickingEnd.value = false;
         });
         
+        // 高级设置
+        const showAdvanced = ref(false);
+        const thresholds = ref(JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)));
+        
+        // 恢复默认阈值
+        const resetThresholds = () => {
+            thresholds.value = JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
+        };
+        
+        // 应用阈值设置
+        const applyThresholds = () => {
+            emit('thresholdsChanged', thresholds.value);
+            console.log('✅ 已应用自定义阈值:', thresholds.value);
+        };
+        
         return {
             planMode,
             startPort,
@@ -351,7 +472,11 @@ export default {
             pickStartPoint,
             pickEndPoint,
             handleRoutePlan,
-            handleClearRoute
+            handleClearRoute,
+            showAdvanced,
+            thresholds,
+            resetThresholds,
+            applyThresholds
         };
     }
 };
@@ -368,5 +493,24 @@ export default {
 .slide-down-leave-to {
     opacity: 0;
     transform: translateY(-20px);
+}
+
+/* 自定义滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.6), rgba(168, 85, 247, 0.3));
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.9), rgba(168, 85, 247, 0.6));
 }
 </style>

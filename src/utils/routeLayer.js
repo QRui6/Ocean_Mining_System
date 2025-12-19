@@ -59,26 +59,19 @@ export class RouteLayer {
             this.addDirectionArrows(routePoints, lineColor);
         }
         
-        // 添加起点标记
+        // 添加起点标记（仅文字标签）
         const startPoint = routePoints[0];
         this.startMarker = this.viewer.entities.add({
             name: `start_${startPort}`,
             position: Cesium.Cartesian3.fromDegrees(startPoint.lng, startPoint.lat),
-            billboard: {
-                image: this.createMarkerCanvas('🟢', '#10b981'),
-                width: 40,
-                height: 40,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-            },
             label: {
                 text: startPort,
-                font: '14px sans-serif',
+                font: '14px bold sans-serif',
                 fillColor: Cesium.Color.WHITE,
                 outlineColor: Cesium.Color.BLACK,
                 outlineWidth: 2,
                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -50),
+                pixelOffset: new Cesium.Cartesian2(0, -10),
                 showBackground: true,
                 backgroundColor: Cesium.Color.fromCssColorString('rgba(16, 185, 129, 0.8)'),
                 backgroundPadding: new Cesium.Cartesian2(8, 4),
@@ -86,26 +79,19 @@ export class RouteLayer {
             }
         });
         
-        // 添加终点标记
+        // 添加终点标记（仅文字标签）
         const endPoint = routePoints[routePoints.length - 1];
         this.endMarker = this.viewer.entities.add({
             name: `end_${endPort}`,
             position: Cesium.Cartesian3.fromDegrees(endPoint.lng, endPoint.lat),
-            billboard: {
-                image: this.createMarkerCanvas('🔴', '#ef4444'),
-                width: 40,
-                height: 40,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-            },
             label: {
                 text: endPort,
-                font: '14px sans-serif',
+                font: '14px bold sans-serif',
                 fillColor: Cesium.Color.WHITE,
                 outlineColor: Cesium.Color.BLACK,
                 outlineWidth: 2,
                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -50),
+                pixelOffset: new Cesium.Cartesian2(0, -10),
                 showBackground: true,
                 backgroundColor: Cesium.Color.fromCssColorString('rgba(239, 68, 68, 0.8)'),
                 backgroundPadding: new Cesium.Cartesian2(8, 4),
@@ -125,40 +111,32 @@ export class RouteLayer {
         // 每隔一定距离添加一个箭头
         const arrowInterval = Math.max(1, Math.floor(routePoints.length / 10));
         
-        for (let i = arrowInterval; i < routePoints.length; i += arrowInterval) {
-            const point = routePoints[i];
-            const prevPoint = routePoints[i - 1];
+        // 在每个节点上放置箭头，指向下一个节点（最后一个节点除外）
+        for (let i = 0; i < routePoints.length - 1; i++) {
+            // 只在指定间隔处添加箭头
+            if (i % arrowInterval !== 0 && i !== 0) {
+                continue;
+            }
             
-            // 计算方向
-            const heading = this.calculateHeading(prevPoint, point);
+            const currentPoint = routePoints[i];
+            const nextPoint = routePoints[i + 1];
+            
+            // 计算从当前点指向下一个点的角度
+            const dLng = nextPoint.lng - currentPoint.lng;
+            const dLat = nextPoint.lat - currentPoint.lat;
+            const angle = Math.atan2(dLng, dLat);
             
             this.viewer.entities.add({
-                position: Cesium.Cartesian3.fromDegrees(point.lng, point.lat),
+                position: Cesium.Cartesian3.fromDegrees(currentPoint.lng, currentPoint.lat),
                 billboard: {
                     image: this.createArrowCanvas(color),
                     width: 20,
                     height: 20,
-                    rotation: Cesium.Math.toRadians(heading),
+                    rotation: angle,
                     heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
                 }
             });
         }
-    }
-    
-    /**
-     * 计算两点之间的方位角
-     */
-    calculateHeading(point1, point2) {
-        const lat1 = Cesium.Math.toRadians(point1.lat);
-        const lat2 = Cesium.Math.toRadians(point2.lat);
-        const dLng = Cesium.Math.toRadians(point2.lng - point1.lng);
-        
-        const y = Math.sin(dLng) * Math.cos(lat2);
-        const x = Math.cos(lat1) * Math.sin(lat2) - 
-                  Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-        
-        const heading = Math.atan2(y, x);
-        return Cesium.Math.toDegrees(heading);
     }
     
     /**
@@ -191,7 +169,7 @@ export class RouteLayer {
     }
     
     /**
-     * 创建箭头Canvas
+     * 创建箭头Canvas（简单三角形，指向上方）
      */
     createArrowCanvas(color) {
         const canvas = document.createElement('canvas');
@@ -201,10 +179,10 @@ export class RouteLayer {
         
         ctx.fillStyle = color.toCssColorString();
         ctx.beginPath();
-        ctx.moveTo(10, 0);
-        ctx.lineTo(20, 20);
-        ctx.lineTo(10, 15);
-        ctx.lineTo(0, 20);
+        ctx.moveTo(10, 0);      // 顶部尖端
+        ctx.lineTo(20, 20);     // 右下
+        ctx.lineTo(10, 15);     // 中下
+        ctx.lineTo(0, 20);      // 左下
         ctx.closePath();
         ctx.fill();
         

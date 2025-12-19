@@ -47,6 +47,7 @@
                     @trackLoaded="handleTrackLoaded"
                     @trackCleared="handleTrackCleared"
                     @routeWeatherAnalysis="handleRouteWeatherAnalysis"
+                    @thresholdsChanged="handleThresholdsChanged"
                     @pickPoint="handlePickPoint"
                 />
                 
@@ -97,6 +98,7 @@
                 <WeatherListTable 
                     v-if="showWeatherList && weatherListData.length > 0"
                     :weatherData="weatherListData"
+                    :thresholds="currentThresholds"
                     @clear="handleClearWeatherList"
                     @filter="handleWeatherFilter"
                     @rowClick="handleWeatherRowClick"
@@ -233,6 +235,7 @@ export default {
         const weatherListData = ref([]);
         const showWeatherList = ref(false);
         const weatherFilter = ref(null);
+        const currentThresholds = ref(null); // 当前使用的阈值
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -678,19 +681,28 @@ export default {
         
         /**
          * 处理清除路径事件
+         * @param {Object} options - 清除选项 { clearAll: boolean }
          */
-        const handleRouteCleared = () => {
-            console.log('🗑️ 清除路径');
-            // 清除当前航线数据
-            currentRouteData.value = null;
-            // 清除航线气象高亮状态
-            activePanels.value.routeWeather = false;
-            // 清除气象列表
-            showWeatherList.value = false;
-            weatherListData.value = [];
-            weatherFilter.value = null;
-            // 通知地图组件清除路径
-            routeToDraw.value = { action: 'clear', timestamp: Date.now() };
+        const handleRouteCleared = (options = {}) => {
+            console.log('🗑️ 清除路径', options);
+            
+            if (options.clearAll) {
+                // 清除所有：航线 + 气象线段 + 数据面板 + 取消选中状态
+                console.log('🗑️ 清除所有内容（航线+气象）');
+                currentRouteData.value = null;
+                activePanels.value.routeWeather = false;
+                showWeatherList.value = false;
+                weatherListData.value = [];
+                weatherFilter.value = null;
+                // 通知地图组件清除航线和气象线段
+                routeToDraw.value = { action: 'clear', timestamp: Date.now() };
+                routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
+            } else {
+                // 只清除航线（保留气象数据）
+                console.log('🗑️ 只清除航线');
+                currentRouteData.value = null;
+                routeToDraw.value = { action: 'clear', timestamp: Date.now() };
+            }
         };
         
         /**
@@ -755,17 +767,19 @@ export default {
         };
         
         /**
-         * 处理航线气象分析事件
+         * 处理航线气象分析事件（支持切换开关）
          * @param {Object} routeData - 航线数据（可选，如果没有则使用当前航线）
          */
         const handleRouteWeatherAnalysis = (routeData) => {
             // 如果已经显示气象列表，则关闭它（切换功能）
             if (showWeatherList.value && activePanels.value.routeWeather) {
-                console.log('🗑️ 关闭航线气象列表');
+                console.log('🗑️ 关闭航线气象（只清除气象线段，保留原始航线）');
                 showWeatherList.value = false;
                 weatherListData.value = [];
                 weatherFilter.value = null;
                 activePanels.value.routeWeather = false;
+                // 通知地图组件清除气象线段（保留原始航线）
+                routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
                 return;
             }
             
@@ -789,7 +803,12 @@ export default {
          */
         const handleWeatherDataLoaded = (data) => {
             console.log('📊 气象数据加载完成:', data);
-            weatherListData.value = data.data || [];
+            console.log('   - 数据点数量:', data.data?.length);
+            console.log('   - 第一个点的风险:', data.data?.[0]?.risk);
+            console.log('   - 当前阈值:', currentThresholds.value);
+            
+            // 强制创建新数组以触发响应式更新
+            weatherListData.value = [...(data.data || [])];
             showWeatherList.value = true;
         };
         
@@ -824,14 +843,17 @@ export default {
         };
         
         /**
-         * 清除气象列表
+         * 清除气象列表和气象线段
          */
         const handleClearWeatherList = () => {
+            console.log('🗑️ 清除气象列表和气象线段');
             showWeatherList.value = false;
             weatherListData.value = [];
             weatherFilter.value = null;
             // 同时取消右侧按钮的高亮状态
             activePanels.value.routeWeather = false;
+            // 通知地图组件清除气象数据
+            routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
         };
 
         // ==================== 数据处理函数 ====================
@@ -881,6 +903,24 @@ export default {
         const handleWeatherLayersChange = (weatherLayers) => {
             weatherLayerState.value = weatherLayers;
             console.log('🌦️ App.vue 气象图层状态变化:', weatherLayers);
+        };
+        
+        /**
+         * 处理气象风险阈值变化
+         * @param {Object} thresholds - 新的阈值设置
+         */
+        const handleThresholdsChanged = (thresholds) => {
+            console.log('⚙️ App.vue 收到阈值变化:', thresholds);
+            
+            // 保存当前阈值
+            currentThresholds.value = thresholds;
+            
+            // 直接传递给MapContainer处理
+            if (mapContainerRef.value && mapContainerRef.value.handleThresholdsChanged) {
+                mapContainerRef.value.handleThresholdsChanged(thresholds);
+            } else {
+                console.warn('⚠️ MapContainer ref 不可用');
+            }
         };
         
         /**
@@ -1203,7 +1243,25 @@ export default {
                 ws.close();
                 console.log('🔌 WebSocket 已关闭');
             }
+            
+            // 清理调试对象
+            if (typeof window !== 'undefined' && window.debugApp) {
+                delete window.debugApp;
+            }
         });
+
+        // 挂载调试对象到 window（仅开发环境）
+        if (typeof window !== 'undefined' && import.meta.env.DEV) {
+            window.debugApp = {
+                currentThresholds,
+                weatherListData,
+                mapContainerRef,
+                handleThresholdsChanged,
+                showWeatherList
+            };
+            console.log('🐛 调试对象已挂载到 window.debugApp');
+            console.log('   可以在控制台使用: window.debugApp.currentThresholds');
+        }
 
         return {
             currentTab,
@@ -1271,7 +1329,9 @@ export default {
             handleWeatherFilter,
             handleWeatherRowClick,
             handleWeatherRefresh,
-            handleClearWeatherList
+            handleClearWeatherList,
+            handleThresholdsChanged,
+            currentThresholds
         };
     }
 };

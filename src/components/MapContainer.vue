@@ -249,6 +249,7 @@
             @routePlanned="handleRoutePlanned"
             @routeCleared="handleRouteCleared"
             @pickPoint="handlePickPoint"
+            @thresholdsChanged="handleThresholdsChanged"
         />
     </div>
 </template>
@@ -348,7 +349,12 @@ export default {
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
-        let pickPointMarkers = { start: null, end: null }; // 选点标记
+        let pickPointMarkers = { 
+            start: null, 
+            end: null,
+            avoid: [],      // 避让点标记数组
+            through: []     // 途经点标记数组
+        }; // 选点标记
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
@@ -1176,13 +1182,47 @@ export default {
             }
             if (routeWeatherLayer) {
                 routeWeatherLayer.clear();
-                console.log('🗑️ 气象数据已清除');
+            }
+        };
+        
+        // 存储自定义阈值
+        let customThresholds = null;
+        
+        // 处理阈值变化
+        const handleThresholdsChanged = (thresholds) => {
+            customThresholds = thresholds;
+            console.log('✅ MapContainer 收到阈值变化:', thresholds);
+            console.log('   - routeWeatherLayer 存在:', !!routeWeatherLayer);
+            console.log('   - 气象数据数量:', routeWeatherLayer ? routeWeatherLayer.weatherData.length : 0);
+            
+            // 如果已有气象数据，重新评估风险
+            if (routeWeatherLayer && routeWeatherLayer.weatherData.length > 0) {
+                console.log('🔄 重新评估航线气象风险...');
+                console.log('   - 重新评估前第一个点的风险:', routeWeatherLayer.weatherData[0]?.risk);
+                
+                routeWeatherLayer.reEvaluateRisk(thresholds);
+                
+                console.log('   - 重新评估后第一个点的风险:', routeWeatherLayer.weatherData[0]?.risk);
+                console.log('   - 准备发送 weatherDataLoaded 事件');
+                
+                // 更新气象数据
+                emit('weatherDataLoaded', {
+                    data: routeWeatherLayer.weatherData,
+                    stats: routeWeatherLayer.getStatistics()
+                });
+                
+                console.log('✅ 气象数据已更新并发送给父组件');
+                console.log('   - 发送的数据点数量:', routeWeatherLayer.weatherData.length);
+            } else {
+                console.log('ℹ️ 当前没有气象数据，阈值将在下次分析时使用');
             }
         };
         
         // 地图选点状态
         let pickPointCallback = null;
         let pickPointHandler = null;
+        let pickPointType = null; // 当前选点类型
+        let pickPointMarkerEntity = null; // 当前选点标记
         
         // 处理地图选点请求
         const handlePickPoint = (data) => {
@@ -1193,12 +1233,21 @@ export default {
                     pickPointHandler = null;
                 }
                 pickPointCallback = null;
+                pickPointType = null;
+                
+                // 移除临时标记
+                if (pickPointMarkerEntity && viewer) {
+                    viewer.entities.remove(pickPointMarkerEntity);
+                    pickPointMarkerEntity = null;
+                }
+                
                 console.log('❌ 取消地图选点');
                 return;
             }
             
-            // 保存回调函数
+            // 保存回调函数和类型
             pickPointCallback = data.callback;
+            pickPointType = data.type;
             
             // 移除旧的处理器
             if (pickPointHandler) {
@@ -1212,8 +1261,20 @@ export default {
             pickPointHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
             
             pickPointHandler.setInputAction((click) => {
+                // 计算 CSS scale 缩放比例
+                const baseWidth = 1920;
+                const baseHeight = 1080;
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                
+                // 修正点击坐标
+                const correctedPosition = new Cesium.Cartesian2(
+                    click.position.x / scaleX,
+                    click.position.y / scaleY
+                );
+                
                 // 获取点击位置的笛卡尔坐标
-                const cartesian = viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid);
+                const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
                 
                 if (cartesian) {
                     // 转换为经纬度
@@ -1221,7 +1282,71 @@ export default {
                     const lng = Cesium.Math.toDegrees(cartographic.longitude);
                     const lat = Cesium.Math.toDegrees(cartographic.latitude);
                     
-                    console.log(`📍 选择了位置: ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
+                    console.log(`📍 选择了位置 (${pickPointType}): ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
+                    
+                    // 移除旧标记
+                    if (pickPointMarkerEntity) {
+                        viewer.entities.remove(pickPointMarkerEntity);
+                    }
+                    
+                    // 根据类型创建不同的标记
+                    let markerColor, markerLabel, markerText;
+                    
+                    switch (pickPointType) {
+                        case 'start':
+                            markerColor = '#22c55e'; // 绿色
+                            markerLabel = '起点';
+                            markerText = 'A';
+                            break;
+                        case 'end':
+                            markerColor = '#ef4444'; // 红色
+                            markerLabel = '终点';
+                            markerText = 'B';
+                            break;
+                        case 'avoid':
+                            markerColor = '#f97316'; // 橙色
+                            markerLabel = '避让点';
+                            markerText = '×';
+                            break;
+                        case 'through':
+                            markerColor = '#3b82f6'; // 蓝色
+                            markerLabel = '途经点';
+                            markerText = '●';
+                            break;
+                        default:
+                            markerColor = '#6b7280'; // 灰色
+                            markerLabel = '选点';
+                            markerText = '?';
+                    }
+                    
+                    // 创建标记
+                    pickPointMarkerEntity = viewer.entities.add({
+                        position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                        billboard: {
+                            image: 'data:image/svg+xml;base64,' + btoa(`
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
+                                    <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
+                                    <circle cx="16" cy="16" r="6" fill="#fff"/>
+                                    <text x="16" y="20" text-anchor="middle" font-size="10" fill="${markerColor}" font-weight="bold">${markerText}</text>
+                                </svg>
+                            `),
+                            width: 32,
+                            height: 48,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                        },
+                        label: {
+                            text: markerLabel,
+                            font: '14px sans-serif',
+                            fillColor: Cesium.Color.WHITE,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 2,
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            verticalOrigin: Cesium.VerticalOrigin.TOP,
+                            pixelOffset: new Cesium.Cartesian2(0, 5),
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                        }
+                    });
                     
                     // 调用回调函数
                     if (pickPointCallback) {
@@ -1232,10 +1357,25 @@ export default {
                     pickPointHandler.destroy();
                     pickPointHandler = null;
                     pickPointCallback = null;
+                    pickPointType = null;
+                    
+                    // 延迟移除标记（让用户看到标记）
+                    setTimeout(() => {
+                        if (pickPointMarkerEntity && viewer) {
+                            viewer.entities.remove(pickPointMarkerEntity);
+                            pickPointMarkerEntity = null;
+                        }
+                    }, 2000);
                 }
             }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
             
-            console.log(`🖱️ 开始地图选点模式: ${data.type === 'start' ? '起点' : '终点'}`);
+            const typeNames = {
+                'start': '起点',
+                'end': '终点',
+                'avoid': '避让点',
+                'through': '途经点'
+            };
+            console.log(`🖱️ 开始地图选点模式: ${typeNames[data.type] || data.type}`);
         };
         
         // 切换轨迹显示
@@ -1455,6 +1595,16 @@ export default {
                     viewer.entities.remove(pickPointMarkers.end);
                     pickPointMarkers.end = null;
                 }
+                // 清除避让点标记
+                pickPointMarkers.avoid.forEach(marker => {
+                    viewer.entities.remove(marker);
+                });
+                pickPointMarkers.avoid = [];
+                // 清除途经点标记
+                pickPointMarkers.through.forEach(marker => {
+                    viewer.entities.remove(marker);
+                });
+                pickPointMarkers.through = [];
                 
                 console.log('🗑️ 航线和标记已清除');
             }
@@ -1576,6 +1726,13 @@ export default {
         watch(() => props.routeWeatherRequest, async (request) => {
             if (!request || !routeWeatherLayer) return;
             
+            // 处理清除气象数据的请求
+            if (request.action === 'clear') {
+                console.log('🗑️ 清除航线气象数据');
+                routeWeatherLayer.clear();
+                return;
+            }
+            
             console.log('🌦️ 收到航线气象分析请求:', request);
             
             try {
@@ -1588,10 +1745,20 @@ export default {
                         console.log(`🔄 刷新气象数据进度: ${current}/${total}`);
                     });
                 } else {
-                    // 执行新的气象分析
-                    stats = await routeWeatherLayer.analyzeRoute(request.route, (current, total) => {
-                        console.log(`⏳ 气象数据获取进度: ${current}/${total}`);
-                    });
+                    // 执行新的气象分析（支持船速、起始时间和自定义阈值）
+                    const options = {
+                        shipSpeed: request.shipSpeed || 15, // 默认15节
+                        startTime: request.startTime || new Date(),
+                        thresholds: customThresholds // 使用自定义阈值
+                    };
+                    
+                    stats = await routeWeatherLayer.analyzeRoute(
+                        request.route, 
+                        options,
+                        (current, total) => {
+                            console.log(`⏳ 气象数据获取进度: ${current}/${total}`);
+                        }
+                    );
                 }
                 
                 console.log('✅ 航线气象分析完成:', stats);
@@ -1621,6 +1788,8 @@ export default {
         // 监听地图选点状态变化
         watch(() => props.pickingPointType, (newType) => {
             console.log('📍 选点状态变化:', newType);
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - pickPointHandler 存在:', !!pickPointHandler);
             
             if (!newType) {
                 // 取消选点模式
@@ -1634,15 +1803,23 @@ export default {
             
             // 移除旧的处理器
             if (pickPointHandler) {
+                console.log('🗑️ 移除旧的点击处理器');
                 pickPointHandler.destroy();
             }
             
             // 创建新的点击处理器
-            if (!viewer) return;
+            if (!viewer) {
+                console.error('❌ viewer 不存在，无法创建点击处理器');
+                return;
+            }
+            
+            console.log('✅ 创建新的点击处理器');
             
             pickPointHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
             
             pickPointHandler.setInputAction((click) => {
+                console.log('🖱️ 地图被点击了！类型:', newType);
+                
                 // 计算 CSS scale 缩放比例
                 const baseWidth = 1920;
                 const baseHeight = 1080;
@@ -1664,42 +1841,56 @@ export default {
                     const lng = Cesium.Math.toDegrees(cartographic.longitude);
                     const lat = Cesium.Math.toDegrees(cartographic.latitude);
                     
-                    console.log(`📍 选择了位置: ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
+                    console.log(`📍 选择了位置 (${newType}): ${lng.toFixed(6)}, ${lat.toFixed(6)}`);
                     
-                    // 添加标记
-                    const markerType = newType; // 'start' 或 'end'
+                    // 根据类型确定标记样式
+                    let markerColor, markerLabel, markerText;
                     
-                    // 移除旧标记
-                    if (pickPointMarkers[markerType]) {
-                        viewer.entities.remove(pickPointMarkers[markerType]);
+                    switch (newType) {
+                        case 'start':
+                            markerColor = '#22c55e'; // 绿色
+                            markerLabel = '起点';
+                            markerText = 'A';
+                            break;
+                        case 'end':
+                            markerColor = '#ef4444'; // 红色
+                            markerLabel = '终点';
+                            markerText = 'B';
+                            break;
+                        case 'avoid':
+                            markerColor = '#f97316'; // 橙色
+                            markerLabel = '避让点';
+                            markerText = 'X'; // 使用 ASCII 字符
+                            break;
+                        case 'through':
+                            markerColor = '#3b82f6'; // 蓝色
+                            markerLabel = '途经点';
+                            markerText = 'T'; // 使用 ASCII 字符
+                            break;
+                        default:
+                            markerColor = '#6b7280'; // 灰色
+                            markerLabel = '选点';
+                            markerText = '?';
                     }
                     
-                    // 创建新标记
+                    // 创建标记
                     const marker = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(lng, lat),
                         billboard: {
-                            image: markerType === 'start' 
-                                ? 'data:image/svg+xml;base64,' + btoa(`
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
-                                        <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="#22c55e" stroke="#fff" stroke-width="2"/>
-                                        <circle cx="16" cy="16" r="6" fill="#fff"/>
-                                        <text x="16" y="20" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="bold">A</text>
-                                    </svg>
-                                `)
-                                : 'data:image/svg+xml;base64,' + btoa(`
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
-                                        <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="#ef4444" stroke="#fff" stroke-width="2"/>
-                                        <circle cx="16" cy="16" r="6" fill="#fff"/>
-                                        <text x="16" y="20" text-anchor="middle" font-size="10" fill="#ef4444" font-weight="bold">B</text>
-                                    </svg>
-                                `),
+                            image: 'data:image/svg+xml;base64,' + btoa(`
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
+                                    <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
+                                    <circle cx="16" cy="16" r="6" fill="#fff"/>
+                                    <text x="16" y="20" text-anchor="middle" font-size="10" fill="${markerColor}" font-weight="bold">${markerText}</text>
+                                </svg>
+                            `),
                             width: 32,
                             height: 48,
                             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
                             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
                         },
                         label: {
-                            text: markerType === 'start' ? '起点' : '终点',
+                            text: markerLabel,
                             font: '14px sans-serif',
                             fillColor: Cesium.Color.WHITE,
                             outlineColor: Cesium.Color.BLACK,
@@ -1711,7 +1902,20 @@ export default {
                         }
                     });
                     
-                    pickPointMarkers[markerType] = marker;
+                    // 保存标记
+                    if (newType === 'start' || newType === 'end') {
+                        // 起点/终点：替换旧标记
+                        if (pickPointMarkers[newType]) {
+                            viewer.entities.remove(pickPointMarkers[newType]);
+                        }
+                        pickPointMarkers[newType] = marker;
+                    } else if (newType === 'avoid') {
+                        // 避让点：添加到数组
+                        pickPointMarkers.avoid.push(marker);
+                    } else if (newType === 'through') {
+                        // 途经点：添加到数组
+                        pickPointMarkers.through.push(marker);
+                    }
                     
                     // 发送选点结果
                     emit('pointPicked', lng, lat);
@@ -1722,7 +1926,13 @@ export default {
                 }
             }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
             
-            console.log(`🖱️ 开始地图选点模式: ${newType === 'start' ? '起点' : '终点'}`);
+            const typeNames = {
+                'start': '起点',
+                'end': '终点',
+                'avoid': '避让点',
+                'through': '途经点'
+            };
+            console.log(`🖱️ 开始地图选点模式: ${typeNames[newType] || newType}`);
         });
         
         // 根据图层状态更新风场显示
@@ -1862,6 +2072,7 @@ export default {
             toggleRoutePlan,
             handleRoutePlanned,
             handleRouteCleared,
+            handleThresholdsChanged,  // 暴露阈值变化处理函数
             zoomIn,
             zoomOut,
             resetView,

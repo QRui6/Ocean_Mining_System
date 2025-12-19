@@ -109,7 +109,7 @@
                                     @click="handleSingleLocate"
                                     class="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-sm transition-all"
                                 >
-                                    📍 定位
+                                    定位
                                 </button>
                             </div>
                         </div>
@@ -333,6 +333,134 @@
                         </div>
                     </div>
                     
+                    <!-- 航线高级配置 -->
+                    <div class="space-y-2 pt-3 border-t border-dashed border-slate-700/50">
+                        <button 
+                            @click="showRouteAdvanced = !showRouteAdvanced"
+                            class="w-full flex items-center justify-between text-purple-400 text-xs font-bold hover:text-purple-300 transition-colors"
+                        >
+                            <div class="flex items-center">
+                                <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></div>
+                                航线高级配置
+                            </div>
+                            <svg 
+                                class="w-3 h-3 transition-transform" 
+                                :class="{ 'rotate-180': showRouteAdvanced }"
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        
+                        <transition name="slide-down">
+                            <div v-if="showRouteAdvanced" class="bg-slate-800/40 border border-purple-500/30 rounded-sm p-2 space-y-3">
+                                <!-- 避让点 -->
+                                <div class="space-y-1.5">
+                                    <div class="text-xs text-slate-300 font-bold flex items-center justify-between">
+                                        <span>避让点 (Avoid)</span>
+                                        <span class="text-[10px] text-slate-500">最多10个</span>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <div v-for="(avoid, index) in avoidPoints" :key="'avoid-' + index" class="flex gap-1">
+                                            <input 
+                                                v-model="avoid.lng" 
+                                                type="number" 
+                                                step="0.000001"
+                                                placeholder="经度"
+                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                            />
+                                            <input 
+                                                v-model="avoid.lat" 
+                                                type="number" 
+                                                step="0.000001"
+                                                placeholder="纬度"
+                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                            />
+                                            <button 
+                                                @click="pickAvoidPoint(index)"
+                                                :class="[
+                                                    'px-1.5 py-1 text-[10px] font-bold rounded-sm transition-all whitespace-nowrap',
+                                                    pickingAvoidIndex === index
+                                                        ? 'bg-orange-600 text-white shadow-[0_0_10px_rgba(249,115,22,0.5)] animate-pulse' 
+                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                                ]"
+                                            >
+                                                {{ pickingAvoidIndex === index ? '选择中' : '选点' }}
+                                            </button>
+                                            <button 
+                                                @click="removeAvoidPoint(index)"
+                                                class="px-1.5 py-1 bg-red-900/50 hover:bg-red-800/50 text-red-400 text-[10px] font-bold rounded-sm transition-all"
+                                            >
+                                                删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        v-if="avoidPoints.length < 10"
+                                        @click="addAvoidPoint"
+                                        class="w-full px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] font-bold rounded-sm transition-all"
+                                    >
+                                        + 添加避让点
+                                    </button>
+                                    <div class="text-[10px] text-slate-500">提示: 航线将绕开这些点</div>
+                                </div>
+                                
+                                <!-- 途经点 -->
+                                <div class="space-y-1.5">
+                                    <div class="text-xs text-slate-300 font-bold flex items-center justify-between">
+                                        <span>途经点 (Through)</span>
+                                        <span class="text-[10px] text-slate-500">最多30个</span>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <div v-for="(through, index) in throughPoints" :key="'through-' + index" class="flex gap-1">
+                                            <input 
+                                                v-model="through.lng" 
+                                                type="number" 
+                                                step="0.000001"
+                                                placeholder="经度"
+                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                            />
+                                            <input 
+                                                v-model="through.lat" 
+                                                type="number" 
+                                                step="0.000001"
+                                                placeholder="纬度"
+                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                            />
+                                            <button 
+                                                @click="pickThroughPoint(index)"
+                                                :class="[
+                                                    'px-1.5 py-1 text-[10px] font-bold rounded-sm transition-all whitespace-nowrap',
+                                                    pickingThroughIndex === index
+                                                        ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)] animate-pulse' 
+                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                                ]"
+                                            >
+                                                {{ pickingThroughIndex === index ? '选择中' : '选点' }}
+                                            </button>
+                                            <button 
+                                                @click="removeThroughPoint(index)"
+                                                class="px-1.5 py-1 bg-red-900/50 hover:bg-red-800/50 text-red-400 text-[10px] font-bold rounded-sm transition-all"
+                                            >
+                                                删除
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        v-if="throughPoints.length < 30"
+                                        @click="addThroughPoint"
+                                        class="w-full px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] font-bold rounded-sm transition-all"
+                                    >
+                                        + 添加途经点
+                                    </button>
+                                    <div class="text-[10px] text-slate-500">提示: 航线将依次经过这些点</div>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
+                    
                     <!-- 规划按钮 -->
                     <div class="flex gap-2 pt-3 border-t border-dashed border-slate-700/50">
                         <button 
@@ -373,6 +501,22 @@
                                 <span class="text-white text-sm font-['Rajdhani']">{{ routeResult.pointCount }} 个</span>
                             </div>
                             
+                            <!-- 船速设置 -->
+                            <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                <span class="text-slate-400 text-xs">船速设置</span>
+                                <div class="flex items-center gap-2">
+                                    <input 
+                                        v-model.number="shipSpeed"
+                                        type="number"
+                                        min="5"
+                                        max="30"
+                                        step="0.5"
+                                        class="w-16 px-2 py-1 bg-slate-800 border border-slate-600 text-white text-xs rounded-sm focus:outline-none focus:border-cyan-500 font-['Rajdhani']"
+                                    />
+                                    <span class="text-slate-400 text-xs">节</span>
+                                </div>
+                            </div>
+                            
                             <!-- 操作按钮 -->
                             <div class="flex gap-2 pt-2 border-t border-slate-700/50">
                                 <button 
@@ -380,7 +524,7 @@
                                     :disabled="weatherLoading"
                                     class="flex-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-xs font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                                 >
-                                    {{ weatherLoading ? '分析中...' : '🌦️ 航线气象' }}
+                                    {{ weatherLoading ? '分析中...' : '航线气象' }}
                                 </button>
                                 <button 
                                     @click="handleCancelRoute"
@@ -388,6 +532,111 @@
                                 >
                                     取消
                                 </button>
+                            </div>
+                            
+                            <!-- 高级设置 - 气象风险阈值 -->
+                            <div class="mt-4 pt-4 border-t border-dashed border-slate-700/50">
+                                <button 
+                                    @click="showAdvanced = !showAdvanced"
+                                    class="w-full flex items-center justify-between text-cyan-400 text-sm font-bold hover:text-cyan-300 transition-colors"
+                                >
+                                    <div class="flex items-center">
+                                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2"></div>
+                                        高级设置
+                                    </div>
+                                    <svg 
+                                        class="w-4 h-4 transition-transform" 
+                                        :class="{ 'rotate-180': showAdvanced }"
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                
+                                <transition name="slide-down">
+                                    <div v-if="showAdvanced" class="bg-slate-800/40 border border-cyan-500/30 rounded-sm p-3 space-y-3 mt-2">
+                                        <div class="text-xs text-slate-400 mb-2">气象风险阈值设置（采矿船标准）</div>
+                                        
+                                        <!-- 风速阈值 -->
+                                        <div class="space-y-1.5">
+                                            <div class="text-xs text-slate-300 font-bold">风速（蒲福风级）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                                <div>
+                                                    <label class="text-slate-400 text-[10px]">安全</label>
+                                                    <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <label class="text-slate-400 text-[10px]">注意</label>
+                                                    <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <label class="text-slate-400 text-[10px]">警告</label>
+                                                    <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <label class="text-slate-400 text-[10px]">危险</label>
+                                                    <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 浪高阈值 -->
+                                        <div class="space-y-1.5">
+                                            <div class="text-xs text-slate-300 font-bold">浪高（米）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                                <div>
+                                                    <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 能见度阈值 -->
+                                        <div class="space-y-1.5">
+                                            <div class="text-xs text-slate-300 font-bold">能见度（米）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                                <div>
+                                                    <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                                <div>
+                                                    <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 操作按钮 -->
+                                        <div class="flex gap-2 pt-2">
+                                            <button 
+                                                @click="resetThresholds"
+                                                class="flex-1 px-2 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
+                                            >
+                                                恢复默认
+                                            </button>
+                                            <button 
+                                                @click="applyThresholds"
+                                                class="flex-1 px-2 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-sm transition-all"
+                                            >
+                                                应用设置
+                                            </button>
+                                        </div>
+                                    </div>
+                                </transition>
                             </div>
                         </div>
                     </div>
@@ -542,6 +791,7 @@
 <script>
 import { ref } from 'vue';
 import { getSingleShip, getManyShip, planRouteByPort, getShipTrack } from '../utils/shipxyApi.js';
+import { DEFAULT_THRESHOLDS } from '../utils/weatherRiskAssessment.js';
 
 export default {
     props: {
@@ -558,8 +808,12 @@ export default {
             default: false
         }
     },
-    emits: ['locate', 'routePlanned', 'routeCleared', 'trackLoaded', 'trackCleared', 'routeWeatherAnalysis'],
+    emits: ['locate', 'routePlanned', 'routeCleared', 'trackLoaded', 'trackCleared', 'routeWeatherAnalysis', 'thresholdsChanged'],
     setup(props, { emit }) {
+        // 高级设置
+        const showAdvanced = ref(false);
+        const thresholds = ref(JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)));
+        
         // 搜索模式
         const searchMode = ref('single'); // 'single' 或 'multiple'
         
@@ -585,10 +839,16 @@ export default {
         const endLat = ref('');
         const pickingStart = ref(false);
         const pickingEnd = ref(false);
+        const pickingAvoidIndex = ref(null);
+        const pickingThroughIndex = ref(null);
+        const showRouteAdvanced = ref(false);
+        const avoidPoints = ref([]);
+        const throughPoints = ref([]);
         const routeLoading = ref(false);
         const routeResult = ref(null);
         const routeError = ref('');
         const weatherLoading = ref(false);
+        const shipSpeed = ref(15); // 船速（节）
         let currentRouteData = null; // 保存当前路径数据
         
         // 历史轨迹相关
@@ -723,14 +983,34 @@ export default {
             
             try {
                 console.log('⏳ 调用 API...');
+                console.log('   - 避让点数组:', avoidPoints.value);
+                console.log('   - 途经点数组:', throughPoints.value);
                 let result;
+                
+                // 构建避让点参数（过滤掉空的点）
+                const validAvoidPoints = avoidPoints.value.filter(p => p.lng && p.lat);
+                console.log('   - 有效避让点:', validAvoidPoints);
+                const avoidParam = validAvoidPoints.length > 0 
+                    ? validAvoidPoints.map(p => `${p.lng},${p.lat}`).join(',')
+                    : '';
+                
+                // 构建途经点参数（过滤掉空的点）
+                const validThroughPoints = throughPoints.value.filter(p => p.lng && p.lat);
+                console.log('   - 有效途经点:', validThroughPoints);
+                const throughParam = validThroughPoints.length > 0
+                    ? validThroughPoints.map(p => `${p.lng},${p.lat}`).join(' - ')
+                    : '';
                 
                 if (planMode.value === 'port') {
                     // 港到港模式
                     const { planRouteByPort } = await import('../utils/shipxyApi.js');
+                    if (avoidParam) console.log('   - 避让点:', avoidParam);
+                    if (throughParam) console.log('   - 途经点:', throughParam);
                     result = await planRouteByPort(
                         startPort.value.toUpperCase(),
-                        endPort.value.toUpperCase()
+                        endPort.value.toUpperCase(),
+                        avoidParam,
+                        throughParam
                     );
                 } else {
                     // 点到点模式
@@ -739,7 +1019,9 @@ export default {
                     const endPoint = `${endLng.value},${endLat.value}`;
                     console.log('   - 起点:', startPoint);
                     console.log('   - 终点:', endPoint);
-                    result = await planRouteByPoint(startPoint, endPoint);
+                    if (avoidParam) console.log('   - 避让点:', avoidParam);
+                    if (throughParam) console.log('   - 途经点:', throughParam);
+                    result = await planRouteByPoint(startPoint, endPoint, avoidParam, throughParam);
                 }
                 
                 console.log('📦 API 返回结果:', result);
@@ -796,7 +1078,8 @@ export default {
             routeResult.value = null;
             routeError.value = '';
             currentRouteData = null;
-            emit('routeCleared');
+            // 清除航线、气象线段、数据面板，取消选中状态
+            emit('routeCleared', { clearAll: true });
         };
         
         // 航线气象分析
@@ -807,7 +1090,13 @@ export default {
             }
             
             weatherLoading.value = true;
-            emit('routeWeatherAnalysis', currentRouteData);
+            
+            // 传递船速和起始时间
+            emit('routeWeatherAnalysis', {
+                ...currentRouteData,
+                shipSpeed: shipSpeed.value,
+                startTime: new Date()
+            });
             
             // 模拟加载完成（实际由地图组件完成后通知）
             setTimeout(() => {
@@ -929,7 +1218,94 @@ export default {
                 endLng.value = lng.toFixed(6);
                 endLat.value = lat.toFixed(6);
                 pickingEnd.value = false;
+            } else if (type === 'avoid' && pickingAvoidIndex.value !== null) {
+                const index = pickingAvoidIndex.value;
+                if (avoidPoints.value[index]) {
+                    avoidPoints.value[index].lng = lng.toFixed(6);
+                    avoidPoints.value[index].lat = lat.toFixed(6);
+                }
+                pickingAvoidIndex.value = null;
+            } else if (type === 'through' && pickingThroughIndex.value !== null) {
+                const index = pickingThroughIndex.value;
+                if (throughPoints.value[index]) {
+                    throughPoints.value[index].lng = lng.toFixed(6);
+                    throughPoints.value[index].lat = lat.toFixed(6);
+                }
+                pickingThroughIndex.value = null;
             }
+        };
+        
+        // 避让点管理
+        const addAvoidPoint = () => {
+            if (avoidPoints.value.length < 10) {
+                avoidPoints.value.push({ lng: '', lat: '' });
+            }
+        };
+        
+        const removeAvoidPoint = (index) => {
+            avoidPoints.value.splice(index, 1);
+            if (pickingAvoidIndex.value === index) {
+                pickingAvoidIndex.value = null;
+                emit('pickPoint', { type: 'cancel' });
+            }
+        };
+        
+        const pickAvoidPoint = (index) => {
+            if (pickingAvoidIndex.value === index) {
+                // 取消选择
+                pickingAvoidIndex.value = null;
+                emit('pickPoint', { type: 'cancel' });
+            } else {
+                // 开始选择
+                pickingAvoidIndex.value = index;
+                pickingStart.value = false;
+                pickingEnd.value = false;
+                pickingThroughIndex.value = null;
+                emit('pickPoint', { type: 'avoid' });
+            }
+        };
+        
+        // 途经点管理
+        const addThroughPoint = () => {
+            if (throughPoints.value.length < 30) {
+                throughPoints.value.push({ lng: '', lat: '' });
+            }
+        };
+        
+        const removeThroughPoint = (index) => {
+            throughPoints.value.splice(index, 1);
+            if (pickingThroughIndex.value === index) {
+                pickingThroughIndex.value = null;
+                emit('pickPoint', { type: 'cancel' });
+            }
+        };
+        
+        const pickThroughPoint = (index) => {
+            if (pickingThroughIndex.value === index) {
+                // 取消选择
+                pickingThroughIndex.value = null;
+                emit('pickPoint', { type: 'cancel' });
+            } else {
+                // 开始选择
+                pickingThroughIndex.value = index;
+                pickingStart.value = false;
+                pickingEnd.value = false;
+                pickingAvoidIndex.value = null;
+                emit('pickPoint', { type: 'through' });
+            }
+        };
+        
+        // 恢复默认阈值
+        const resetThresholds = () => {
+            thresholds.value = JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS));
+        };
+        
+        // 应用阈值设置
+        const applyThresholds = () => {
+            console.log('🔧 ShipTrackingPanel 发出阈值变化事件:', thresholds.value);
+            emit('thresholdsChanged', thresholds.value);
+            // 应用成功后折叠高级设置
+            showAdvanced.value = false;
         };
         
         return {
@@ -957,13 +1333,25 @@ export default {
             endLat,
             pickingStart,
             pickingEnd,
+            pickingAvoidIndex,
+            pickingThroughIndex,
+            showRouteAdvanced,
+            avoidPoints,
+            throughPoints,
             pickStartPoint,
             pickEndPoint,
             setPickedPoint,
+            addAvoidPoint,
+            removeAvoidPoint,
+            pickAvoidPoint,
+            addThroughPoint,
+            removeThroughPoint,
+            pickThroughPoint,
             routeLoading,
             routeResult,
             routeError,
             weatherLoading,
+            shipSpeed,
             handleRoutePlan,
             handleClearRoute,
             handleRouteWeather,
@@ -976,7 +1364,11 @@ export default {
             trackError,
             setQuickTime,
             handleTrackQuery,
-            handleClearTrack
+            handleClearTrack,
+            showAdvanced,
+            thresholds,
+            resetThresholds,
+            applyThresholds
         };
     }
 };

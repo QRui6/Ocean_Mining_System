@@ -121,7 +121,7 @@
                                     @click="handleLocate"
                                     class="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-sm transition-all"
                                 >
-                                    📍 定位
+                                    定位
                                 </button>
                                 <button 
                                     @click="handleViewDetails"

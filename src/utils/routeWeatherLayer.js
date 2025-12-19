@@ -5,6 +5,7 @@
 
 import * as Cesium from 'cesium';
 import { getWeatherByPoint } from './shipxyApi.js';
+import { calculateRiskLevel } from './weatherRiskAssessment.js';
 
 /**
  * 计算两点间的距离（海里）
@@ -64,95 +65,84 @@ function sampleRoutePoints(route, intervalNM = 50) {
     return samples;
 }
 
-/**
- * 计算风险等级
- * @param {Object} weather - 气象数据
- * @returns {Object} {level: 'safe'|'caution'|'warning'|'danger', color, description}
- */
-function calculateRiskLevel(weather) {
-    if (!weather) {
-        return { level: 'unknown', color: '#808080', description: '无数据' };
-    }
-    
-    const windSpeed = weather.windspeed || 0; // m/s (API返回字段名)
-    const waveHeight = weather.waveheight || 0; // m (API返回字段名)
-    
-    // 风速转换为蒲福风级（简化公式）
-    const beaufort = Math.round(Math.pow(windSpeed / 0.836, 2/3));
-    
-    // 风险评估
-    if (beaufort > 8 || waveHeight > 4) {
-        return { 
-            level: 'danger', 
-            color: '#FF0000', 
-            emoji: '🔴',
-            description: `危险 (${beaufort}级风, ${waveHeight.toFixed(1)}m浪)` 
-        };
-    } else if (beaufort === 8 || waveHeight > 3) {
-        return { 
-            level: 'warning', 
-            color: '#FF8C00', 
-            emoji: '🟠',
-            description: `警告 (${beaufort}级风, ${waveHeight.toFixed(1)}m浪)` 
-        };
-    } else if (beaufort >= 6 || waveHeight > 2) {
-        return { 
-            level: 'caution', 
-            color: '#FFD700', 
-            emoji: '🟡',
-            description: `注意 (${beaufort}级风, ${waveHeight.toFixed(1)}m浪)` 
-        };
-    } else {
-        return { 
-            level: 'safe', 
-            color: '#00FF00', 
-            emoji: '🟢',
-            description: `安全 (${beaufort}级风, ${waveHeight.toFixed(1)}m浪)` 
-        };
-    }
-}
+// 风险评估函数已移至 weatherRiskAssessment.js 统一管理
 
 /**
- * 航线气象图层类
+ * 航线气象图层类（重构版：支持时间维度和彩色线段）
  */
 export class RouteWeatherLayer {
     constructor(viewer) {
         this.viewer = viewer;
         this.weatherEntities = [];
         this.weatherData = [];
-        this.lineEntities = []; // 存储线段实体
-        this.animationTime = 0; // 流动动画时间
-        this.animationInterval = null; // 动画定时器
+        this.segmentEntities = []; // 存储彩色线段实体
+        this.shipSpeed = 15; // 默认船速（节，knots）
+        this.customThresholds = null; // 自定义阈值
     }
     
     /**
-     * 分析航线气象
+     * 分析航线气象（直接使用航线上的所有点）
      * @param {Array} route - 航线点数组
+     * @param {Object} options - 配置选项 { shipSpeed: 15, startTime: Date, thresholds: {} }
      * @param {Function} onProgress - 进度回调 (current, total)
      */
-    async analyzeRoute(route, onProgress) {
+    async analyzeRoute(route, options = {}, onProgress) {
         // 清除旧数据
         this.clear();
         
-        // 采样点
-        const samples = sampleRoutePoints(route, 50);
-        console.log(`📍 采样点数量: ${samples.length}`);
+        // 设置船速和自定义阈值
+        this.shipSpeed = options.shipSpeed || 15; // 节（knots）
+        this.customThresholds = options.thresholds || null; // 自定义阈值
+        const startTime = options.startTime || new Date();
         
-        // 获取气象数据
-        const weatherPromises = samples.map(async (point, index) => {
+        console.log(`📍 航线点数: ${route.length}, 船速: ${this.shipSpeed} 节`);
+        
+        // 计算每个点的到达时间和距离
+        let cumulativeDistance = 0;
+        const routeWithTime = route.map((point, index) => {
+            if (index > 0) {
+                const distance = calculateDistance(route[index - 1], point);
+                cumulativeDistance += distance;
+            }
+            
+            // 计算到达时间（距离/速度 = 小时）
+            const hoursFromStart = cumulativeDistance / this.shipSpeed;
+            const arrivalTime = new Date(startTime.getTime() + hoursFromStart * 3600000);
+            
+            return {
+                ...point,
+                segmentIndex: index,
+                distanceFromStart: cumulativeDistance,
+                arrivalTime: arrivalTime,
+                hoursFromStart: hoursFromStart
+            };
+        });
+        
+        // 获取每个点的气象数据（暂时都使用当前时间，API不支持未来预报）
+        const weatherPromises = routeWithTime.map(async (point, index) => {
             try {
+                // 暂时都使用当前时间的气象数据
+                // 注意：API的weather_time参数虽然存在，但返回的未来预报数据无效
                 const result = await getWeatherByPoint(point.lng, point.lat);
-                if (onProgress) onProgress(index + 1, samples.length);
+                
+                if (onProgress) onProgress(index + 1, routeWithTime.length);
                 
                 if (result.success && result.data) {
+                    // 清理无效数据（-32767表示无数据）
+                    const cleanedData = this.cleanWeatherData(result.data);
+                    
                     return {
                         point,
                         weather: {
-                            ...result.data,
-                            timestamp: new Date().toISOString(), // 添加获取时间
-                            fetchTime: Date.now() // 添加Unix时间戳（用于刷新判断）
+                            ...cleanedData,
+                            timestamp: point.arrivalTime.toISOString(),
+                            fetchTime: Date.now()
                         },
-                        risk: calculateRiskLevel(result.data)
+                        risk: calculateRiskLevel(cleanedData, this.customThresholds),
+                        segmentIndex: point.segmentIndex,
+                        distanceFromStart: point.distanceFromStart,
+                        arrivalTime: point.arrivalTime,
+                        hoursFromStart: point.hoursFromStart
                     };
                 }
                 return null;
@@ -165,166 +155,149 @@ export class RouteWeatherLayer {
         const results = await Promise.all(weatherPromises);
         this.weatherData = results.filter(r => r !== null);
         
-        // 渲染气象标记
-        this.renderWeatherMarkers();
+        // 渲染气象可视化
+        this.renderWeatherVisualization();
         
         // 返回统计信息
         return this.getStatistics();
     }
     
     /**
-     * 渲染气象标记和连接线段
+     * 渲染气象可视化（彩色线段 + 带序号的标记点）
      */
-    renderWeatherMarkers() {
-        // 先渲染连接线段（在标记点下方）
-        this.renderConnectionLines();
+    renderWeatherVisualization() {
+        // 渲染彩色线段
+        this.renderColoredSegments();
         
-        // 再渲染标记点（在线段上方）
-        this.weatherData.forEach((data, index) => {
+        // 渲染所有航线点的序号标记
+        for (let i = 0; i < this.weatherData.length; i++) {
+            const data = this.weatherData[i];
             const { point, weather, risk } = data;
             
-            // 创建标记点
+            // 创建标记点（带序号）- 高度设为0确保在底层
             const entity = this.viewer.entities.add({
-                id: `weather_marker_${index}`,
-                position: Cesium.Cartesian3.fromDegrees(point.lng, point.lat, 1000),
-                billboard: {
-                    image: this.createWeatherIcon(risk),
-                    width: 32,
-                    height: 32,
+                id: `weather_marker_${i}`,
+                position: Cesium.Cartesian3.fromDegrees(point.lng, point.lat, 0),
+                point: {
+                    pixelSize: 10,
+                    color: Cesium.Color.fromCssColorString(risk.color).withAlpha(0.8),
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2,
+                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                },
+                label: {
+                    text: String(i + 1),
+                    font: '16px bold sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 3,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    pixelOffset: new Cesium.Cartesian2(0, 18),
+                    verticalOrigin: Cesium.VerticalOrigin.TOP,
                     heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                     disableDepthTestDistance: Number.POSITIVE_INFINITY
                 }
             });
             
-            // 直接在 entity 上存储数据（不使用 properties，避免 Cesium 包装）
+            // 存储数据（用于点击时显示）
             entity._weatherData = weather;
             entity._riskData = risk;
+            entity._segmentData = data;
             
             this.weatherEntities.push(entity);
-        });
+        }
         
-        console.log(`✅ 已渲染 ${this.weatherEntities.length} 个气象标记和 ${this.lineEntities.length} 条连接线`);
+        console.log(`✅ 已渲染 ${this.segmentEntities.length} 条彩色线段和 ${this.weatherEntities.length} 个序号标记`);
         
-        // 启动流动动画
-        this.startFlowAnimation();
-        
-        // 强制渲染场景，确保标记立即显示
         this.viewer.scene.requestRender();
     }
     
     /**
-     * 渲染连接线段（带渐变色和流动效果）
+     * 渲染彩色线段（使用较高风险等级）
      */
-    renderConnectionLines() {
+    renderColoredSegments() {
+        if (!this.weatherData || this.weatherData.length < 2) {
+            console.warn('⚠️ 气象数据不足');
+            return;
+        }
+        
+        // 为每两个相邻点之间创建一个线段，使用较高的风险等级
         for (let i = 0; i < this.weatherData.length - 1; i++) {
             const currentData = this.weatherData[i];
             const nextData = this.weatherData[i + 1];
             
-            const startPoint = currentData.point;
-            const endPoint = nextData.point;
-            const startRisk = currentData.risk;
-            const endRisk = nextData.risk;
+            // 使用两个点中较高的风险等级
+            const segmentRisk = this.getMaxRisk(currentData.risk, nextData.risk);
             
-            // 创建渐变色线段（使用 PolylineGraphics）
-            const lineEntity = this.viewer.entities.add({
-                id: `weather_line_${i}`,
+            // 创建线段
+            const positions = [
+                currentData.point.lng, currentData.point.lat,
+                nextData.point.lng, nextData.point.lat
+            ];
+            
+            const segmentEntity = this.viewer.entities.add({
+                id: `weather_segment_${i}`,
                 polyline: {
-                    positions: Cesium.Cartesian3.fromDegreesArray([
-                        startPoint.lng, startPoint.lat,
-                        endPoint.lng, endPoint.lat
-                    ]),
-                    width: 12, // 适中的线段宽度
-                    material: this.createStaticGradientMaterial(startRisk, endRisk),
-                    clampToGround: true,
-                    zIndex: 1
+                    positions: Cesium.Cartesian3.fromDegreesArray(positions),
+                    width: 16,
+                    material: this.getRiskCesiumColor(segmentRisk),
+                    clampToGround: true
                 }
             });
             
-            // 存储线段数据
-            lineEntity._startRisk = startRisk;
-            lineEntity._endRisk = endRisk;
-            lineEntity._segmentIndex = i;
-            
-            this.lineEntities.push(lineEntity);
+            segmentEntity._segmentRisk = segmentRisk;
+            segmentEntity._startData = currentData;
+            segmentEntity._endData = nextData;
+            this.segmentEntities.push(segmentEntity);
         }
-    }
-    
-    /**
-     * 创建静态渐变色材质（简单的颜色渐变，不做流动动画）
-     * @param {Object} startRisk - 起点风险等级
-     * @param {Object} endRisk - 终点风险等级
-     * @returns {Cesium.Material} 材质对象
-     */
-    createStaticGradientMaterial(startRisk, endRisk) {
-        // 获取颜色（使用 Cesium.Color）
-        const startColor = this.getRiskCesiumColor(startRisk);
-        const endColor = this.getRiskCesiumColor(endRisk);
         
-        // 使用 PolylineGlowMaterialProperty 创建发光渐变效果
-        return new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.25, // 发光强度
-            taperPower: 0.5, // 渐变强度
-            color: Cesium.Color.lerp(startColor, endColor, 0.5, new Cesium.Color()) // 使用中间色
-        });
+        console.log(`✅ 已创建 ${this.segmentEntities.length} 条彩色线段`);
     }
     
     /**
-     * 获取风险等级对应的 Cesium 颜色
-     * @param {Object} risk - 风险等级对象
-     * @returns {Cesium.Color} Cesium 颜色对象
+     * 获取风险等级对应的Cesium颜色（柔和配色）
      */
     getRiskCesiumColor(risk) {
         const colorMap = {
-            'safe': Cesium.Color.fromCssColorString('#00FF00').withAlpha(0.8),      // 绿色
-            'caution': Cesium.Color.fromCssColorString('#FFD700').withAlpha(0.8),   // 黄色
-            'warning': Cesium.Color.fromCssColorString('#FF8C00').withAlpha(0.8),   // 橙色
-            'danger': Cesium.Color.fromCssColorString('#FF0000').withAlpha(0.8),    // 红色
-            'unknown': Cesium.Color.fromCssColorString('#808080').withAlpha(0.8)    // 灰色
+            'safe': Cesium.Color.fromCssColorString('#2ECC71'),      // 柔和绿色（安全）
+            'caution': Cesium.Color.fromCssColorString('#F1C40F'),   // 柔和黄色（注意）
+            'warning': Cesium.Color.fromCssColorString('#F39C12'),   // 柔和橙色（警告）
+            'danger': Cesium.Color.fromCssColorString('#E74C3C'),    // 柔和红色（危险）
+            'unknown': Cesium.Color.fromCssColorString('#95A5A6')    // 柔和灰色
         };
         return colorMap[risk.level] || colorMap['unknown'];
     }
     
     /**
-     * 启动流动动画（已禁用，使用静态渐变）
+     * 获取两个风险等级中较高的一个
      */
-    startFlowAnimation() {
-        // 不再需要动画，保留方法以兼容现有代码
+    getMaxRisk(risk1, risk2) {
+        const riskOrder = { 'safe': 0, 'caution': 1, 'warning': 2, 'danger': 3, 'unknown': -1 };
+        return riskOrder[risk1.level] >= riskOrder[risk2.level] ? risk1 : risk2;
     }
     
     /**
-     * 停止流动动画（已禁用，使用静态渐变）
+     * 清理气象数据（过滤无效值）
+     * @param {Object} data - 原始气象数据
+     * @returns {Object} 清理后的数据
      */
-    stopFlowAnimation() {
-        // 不再需要动画，保留方法以兼容现有代码
+    cleanWeatherData(data) {
+        const cleaned = { ...data };
+        
+        // -32767 是API返回的"无数据"标记，将其替换为0或null
+        Object.keys(cleaned).forEach(key => {
+            if (typeof cleaned[key] === 'number' && (cleaned[key] === -32767 || cleaned[key] < -30000)) {
+                cleaned[key] = 0;
+            }
+        });
+        
+        return cleaned;
     }
     
-    /**
-     * 创建气象图标（Canvas）
-     */
-    createWeatherIcon(risk) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-        
-        // 绘制圆形背景
-        ctx.beginPath();
-        ctx.arc(32, 32, 28, 0, 2 * Math.PI);
-        ctx.fillStyle = risk.color;
-        ctx.fill();
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        // 绘制emoji（简化为文字）
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 24px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(risk.emoji, 32, 32);
-        
-        return canvas;
-    }
+
+    
+
     
     /**
      * 获取统计信息
@@ -374,23 +347,66 @@ export class RouteWeatherLayer {
      * 清除所有气象标记和线段
      */
     clear() {
-        // 停止动画
-        this.stopFlowAnimation();
-        
         // 清除标记点
         this.weatherEntities.forEach(entity => {
             this.viewer.entities.remove(entity);
         });
         this.weatherEntities = [];
         
-        // 清除连接线段
-        this.lineEntities.forEach(entity => {
+        // 清除彩色线段
+        this.segmentEntities.forEach(entity => {
             this.viewer.entities.remove(entity);
         });
-        this.lineEntities = [];
+        this.segmentEntities = [];
         
         this.weatherData = [];
-        this.animationTime = 0;
+        
+        console.log('🗑️ 航线气象数据已清除');
+    }
+    
+    /**
+     * 重新评估风险等级（使用新的阈值）
+     * @param {Object} thresholds - 新的阈值
+     */
+    reEvaluateRisk(thresholds) {
+        if (!this.weatherData || this.weatherData.length === 0) {
+            console.warn('⚠️ 没有气象数据需要重新评估');
+            return;
+        }
+        
+        console.log('🔄 routeWeatherLayer.reEvaluateRisk 开始');
+        console.log('   - 数据点数量:', this.weatherData.length);
+        console.log('   - 新阈值:', thresholds);
+        console.log('   - 第一个点重新评估前:', JSON.stringify(this.weatherData[0].risk));
+        
+        // 更新自定义阈值
+        this.customThresholds = thresholds;
+        
+        // 重新计算每个点的风险等级
+        this.weatherData.forEach((data, index) => {
+            const oldRisk = data.risk;
+            data.risk = calculateRiskLevel(data.weather, thresholds);
+            if (index === 0) {
+                console.log('   - 第一个点重新评估后:', JSON.stringify(data.risk));
+                console.log('   - 风险等级是否变化:', oldRisk.level !== data.risk.level);
+            }
+        });
+        
+        // 清除旧的可视化
+        this.weatherEntities.forEach(entity => {
+            this.viewer.entities.remove(entity);
+        });
+        this.weatherEntities = [];
+        
+        this.segmentEntities.forEach(entity => {
+            this.viewer.entities.remove(entity);
+        });
+        this.segmentEntities = [];
+        
+        // 重新渲染
+        this.renderWeatherVisualization();
+        
+        console.log('✅ 已使用新阈值重新评估风险等级');
     }
     
     /**
@@ -400,7 +416,7 @@ export class RouteWeatherLayer {
         const { weather, risk } = weatherData;
         
         return {
-            title: `${risk.emoji} ${risk.description}`,
+            title: risk.description,
             items: [
                 { label: '数据时间', value: weather.timestamp ? new Date(weather.timestamp).toLocaleString('zh-CN', { 
                     year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -411,7 +427,7 @@ export class RouteWeatherLayer {
                 { label: '浪高', value: `${weather.waveheight || 'N/A'} m` },
                 { label: '涌浪高', value: `${weather.swellheight || 'N/A'} m` },
                 { label: '涌浪方向', value: `${weather.swelldir || 'N/A'}°` },
-                { label: '能见度', value: `${weather.visibility || 'N/A'} km` },
+                { label: '能见度', value: `${weather.visibility ? weather.visibility.toFixed(0) : 'N/A'} m` },
                 { label: '气温', value: `${weather.temperature || 'N/A'} °C` },
                 { label: '气压', value: `${weather.pressure || 'N/A'} hPa` }
             ]
@@ -439,7 +455,7 @@ export class RouteWeatherLayer {
                             timestamp: new Date().toISOString(),
                             fetchTime: Date.now()
                         },
-                        risk: calculateRiskLevel(result.data)
+                        risk: calculateRiskLevel(result.data, this.customThresholds)
                     };
                 }
                 return oldData; // 失败时保留旧数据
@@ -469,26 +485,27 @@ export class RouteWeatherLayer {
             if (data) {
                 entity._weatherData = data.weather;
                 entity._riskData = data.risk;
+                entity._segmentData = data;
                 
-                // 更新图标颜色
-                entity.billboard.image = this.createWeatherIcon(data.risk);
+                // 更新点的颜色
+                entity.point.color = Cesium.Color.fromCssColorString(data.risk.color);
             }
         });
         
-        // 更新连接线段的颜色
-        this.lineEntities.forEach((lineEntity, index) => {
+        // 更新彩色线段
+        this.segmentEntities.forEach((segmentEntity, index) => {
             const currentData = this.weatherData[index];
             const nextData = this.weatherData[index + 1];
             
             if (currentData && nextData) {
-                lineEntity._startRisk = currentData.risk;
-                lineEntity._endRisk = nextData.risk;
+                const segmentRisk = this.getMaxRisk(currentData.risk, nextData.risk);
                 
-                // 更新线段材质
-                lineEntity.polyline.material = this.createStaticGradientMaterial(
-                    currentData.risk,
-                    nextData.risk
-                );
+                segmentEntity._startData = currentData;
+                segmentEntity._endData = nextData;
+                segmentEntity._segmentRisk = segmentRisk;
+                
+                // 更新线段颜色
+                segmentEntity.polyline.material = Cesium.Color.fromCssColorString(segmentRisk.color).withAlpha(0.9);
             }
         });
         
@@ -507,13 +524,13 @@ export class RouteWeatherLayer {
             }
         });
         
-        // 筛选连接线段（只有当两端的点都显示时，线段才显示）
-        this.lineEntities.forEach((lineEntity, index) => {
+        // 筛选彩色线段
+        this.segmentEntities.forEach((segmentEntity, index) => {
             const startMarker = this.weatherEntities[index];
             const endMarker = this.weatherEntities[index + 1];
             
             if (startMarker && endMarker) {
-                lineEntity.show = startMarker.show && endMarker.show;
+                segmentEntity.show = startMarker.show && endMarker.show;
             }
         });
         

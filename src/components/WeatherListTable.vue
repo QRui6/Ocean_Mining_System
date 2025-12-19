@@ -5,116 +5,161 @@
         <div class="h-3 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none"></div>
         
         <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 flex flex-col relative overflow-hidden pointer-events-auto">
-            <!-- Header -->
-            <div class="h-14 flex items-center justify-between px-8 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
-                <div class="flex items-center gap-4">
-                    <div class="w-1.5 h-6 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-                    <h3 class="text-2xl font-bold text-cyan-50 tracking-wider font-['Noto_Sans_SC']">🌦️ 航线气象数据</h3>
-                    <span class="text-sm text-cyan-500/60 font-['Orbitron'] mt-1 ml-3 tracking-widest">{{ filteredData.length }} / {{ weatherData.length }} 个采样点</span>
+            <!-- 简化的Header -->
+            <div class="h-12 flex items-center justify-between px-6 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
+                <div class="flex items-center gap-3">
+                    <div class="w-1 h-5 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
+                    <h3 class="text-lg font-bold text-cyan-50 tracking-wider">航线气象数据</h3>
+                    <span class="text-xs text-cyan-500/60 font-['Orbitron'] tracking-wider">{{ weatherData.length }} 个采样点</span>
                 </div>
-                <!-- Tools -->
-                <div class="flex gap-6 text-cyan-400 text-base font-bold items-center">
-                    <!-- 刷新倒计时 -->
-                    <div class="flex items-center gap-2 text-xs">
-                        <svg class="w-4 h-4 animate-spin" v-if="refreshCountdown <= 10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- 简化的工具栏 -->
+                <div class="flex gap-4 text-cyan-400 text-sm font-bold items-center">
+                    <div class="flex items-center gap-2 text-xs opacity-70">
+                        <svg class="w-3 h-3" v-if="refreshCountdown <= 10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span class="font-['Rajdhani'] font-bold">{{ formatCountdown(refreshCountdown) }}</span>
+                        <span class="font-['Rajdhani']">{{ formatCountdown(refreshCountdown) }}</span>
                     </div>
-                    <button @click="handleManualRefresh" class="hover:text-white hover:underline decoration-2 underline-offset-4">
-                        🔄 刷新数据
+                    <button @click="handleManualRefresh" class="hover:text-white transition-colors">
+                        刷新
                     </button>
-                    <button @click="$emit('clear')" class="hover:text-white hover:underline decoration-2 underline-offset-4">
-                        清空列表
-                    </button>
-                </div>
-            </div>
-
-            <!-- 筛选器 -->
-            <div class="px-8 py-3 bg-slate-900/50 border-b border-cyan-500/20 space-y-3">
-            <!-- 风险等级筛选 -->
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-cyan-400 font-bold w-20">风险等级:</span>
-                <div class="flex gap-2 flex-1">
-                    <button v-for="level in riskLevels" 
-                            :key="level.value"
-                            @click="toggleRiskFilter(level.value)"
-                            :class="[
-                                'px-3 py-1 rounded-sm text-xs font-bold transition-all border',
-                                selectedRiskLevels.includes(level.value)
-                                    ? 'bg-cyan-600 text-white border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
-                                    : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700/50'
-                            ]">
-                        {{ level.emoji }} {{ level.label }}
-                    </button>
-                    <button v-if="selectedRiskLevels.length > 0"
-                            @click="clearRiskFilter"
-                            class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-sm transition-all">
-                        清除
+                    <button @click="$emit('clear')" class="hover:text-white transition-colors">
+                        清空
                     </button>
                 </div>
             </div>
-            
-            <!-- 风速/浪高筛选 -->
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-cyan-400 font-bold w-20">数据范围:</span>
-                <div class="flex gap-2 flex-1">
-                    <select v-model="selectedWindSpeed" 
-                            @change="applyFilters"
-                            class="flex-1 px-3 py-1 bg-slate-800/50 border border-slate-700 text-white text-xs rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani']">
-                        <option value="">风速：全部</option>
-                        <option value="0,5">0-5 m/s (微风)</option>
-                        <option value="5,10">5-10 m/s (和风)</option>
-                        <option value="10,15">10-15 m/s (强风)</option>
-                        <option value="15,999">15+ m/s (大风)</option>
-                    </select>
-                    
-                    <select v-model="selectedWaveHeight"
-                            @change="applyFilters"
-                            class="flex-1 px-3 py-1 bg-slate-800/50 border border-slate-700 text-white text-xs rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani']">
-                        <option value="">浪高：全部</option>
-                        <option value="0,1">0-1 m (平静)</option>
-                        <option value="1,2.5">1-2.5 m (中浪)</option>
-                        <option value="2.5,4">2.5-4 m (大浪)</option>
-                        <option value="4,999">4+ m (巨浪)</option>
-                    </select>
-                </div>
-            </div>
-        </div>
         
-            <!-- Table -->
-            <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar px-4 py-2 min-h-0">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-cyan-900/20 text-cyan-200 text-sm sticky top-0 backdrop-blur-md z-10">
+            <!-- 横向时间轴表格 -->
+            <div class="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar px-4 py-2 min-h-0">
+                <div v-if="weatherData.length === 0" class="flex items-center justify-center h-full">
+                    <div class="text-center text-slate-500">
+                        <div>暂无气象数据</div>
+                    </div>
+                </div>
+                
+                <table v-else class="w-full border-collapse text-xs">
+                    <thead class="bg-cyan-900/20 text-cyan-200 sticky top-0 backdrop-blur-md z-10">
                         <tr>
-                            <th v-for="h in ['序号', '风险', '风速(m/s)', '风向(°)', '浪高(m)', '涌浪(m)', '能见度(km)', '气温(°C)', '数据时间']" :key="h" 
-                                class="px-3 py-2 font-bold tracking-wider border-b-2 border-cyan-500/30 whitespace-nowrap"
+                            <th class="px-3 py-2 font-bold border-b-2 border-cyan-500/30 text-left sticky left-0 bg-cyan-900/40 backdrop-blur-md z-20 w-28">时间</th>
+                            <th v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 font-bold border-b-2 border-cyan-500/30 text-center min-w-[85px] cursor-pointer hover:bg-cyan-500/20 transition-colors"
+                                @click="handleRowClick(item, index)"
+                                :class="selectedRow === index ? 'bg-cyan-500/30' : ''"
                             >
-                                {{ h }}
+                                <div class="text-xs whitespace-nowrap">{{ formatArrivalTime(item.arrivalTime) }}</div>
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="text-slate-300 text-sm font-['Rajdhani']">
-                        <tr v-if="filteredData.length === 0">
-                            <td colspan="9" class="px-3 py-6 text-center text-slate-500">
-                                <div class="text-4xl mb-2">🔍</div>
-                                <div>没有符合筛选条件的数据</div>
+                    <tbody class="text-slate-300 font-['Rajdhani']">
+                        <!-- 节点 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">节点</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-cyan-500 font-bold text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ index + 1 }}
                             </td>
                         </tr>
-                        <tr v-for="(item, index) in filteredData" :key="index" 
-                            class="border-b border-slate-800 hover:bg-cyan-500/10 transition-colors group cursor-pointer"
-                            @click="handleRowClick(item, index)"
-                            :class="selectedRow === index ? 'bg-cyan-500/20 border-cyan-500/50' : ''"
-                        >
-                            <td class="px-3 py-2 text-cyan-500 font-bold">{{ index + 1 }}</td>
-                            <td class="px-3 py-2 text-center text-lg">{{ item.risk.emoji }}</td>
-                            <td class="px-3 py-2 text-right text-white font-bold">{{ (item.weather.windspeed || 0).toFixed(1) }}</td>
-                            <td class="px-3 py-2 text-right">{{ item.weather.winddir || 'N/A' }}</td>
-                            <td class="px-3 py-2 text-right text-white font-bold">{{ (item.weather.waveheight || 0).toFixed(1) }}</td>
-                            <td class="px-3 py-2 text-right">{{ (item.weather.swellheight || 0).toFixed(1) }}</td>
-                            <td class="px-3 py-2 text-right">{{ (item.weather.visibility || 0).toFixed(1) }}</td>
-                            <td class="px-3 py-2 text-right">{{ (item.weather.temperature || 0).toFixed(1) }}</td>
-                            <td class="px-3 py-2 opacity-80 text-xs">{{ formatTime(item.weather.timestamp) }}</td>
+                        
+                        <!-- 综合风险 -->
+                        <tr class="border-b-2 border-slate-700 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">综合风险</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center font-bold text-xs"
+                                :class="[
+                                    getRiskTextClass(item.risk),
+                                    getRiskBgClass(item.risk),
+                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
+                                ]"
+                            >
+                                {{ getRiskLabel(item.risk) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 距离 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">距离(nm)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-white font-bold text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ formatDistance(item.distanceFromStart) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 风速 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">风速(m/s)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center font-bold text-xs"
+                                :class="[
+                                    getWindSpeedClass(item.weather.windspeed),
+                                    getWindSpeedBgClass(item.weather.windspeed),
+                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
+                                ]"
+                            >
+                                {{ (item.weather.windspeed || 0).toFixed(1) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 风向 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">风向(°)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ item.weather.winddir || 'N/A' }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 浪高 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">浪高(m)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center font-bold text-xs"
+                                :class="[
+                                    getWaveHeightClass(item.weather.waveheight),
+                                    getWaveHeightBgClass(item.weather.waveheight),
+                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
+                                ]"
+                            >
+                                {{ (item.weather.waveheight || 0).toFixed(1) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 涌浪 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">涌浪(m)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ (item.weather.swellheight || 0).toFixed(1) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 能见度 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">能见度(m)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ (item.weather.visibility || 0).toFixed(0) }}
+                            </td>
+                        </tr>
+                        
+                        <!-- 气温 -->
+                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
+                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">气温(°C)</td>
+                            <td v-for="(item, index) in weatherData" :key="index" 
+                                class="px-2 py-2 text-center text-xs"
+                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
+                            >
+                                {{ (item.weather.temperature || 0).toFixed(1) }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -125,90 +170,26 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { calculateRiskLevel, getRiskClasses, getWindSpeedRiskLevel, getWaveHeightRiskLevel } from '../utils/weatherRiskAssessment.js';
 
 export default {
     props: {
         weatherData: {
             type: Array,
             default: () => []
+        },
+        thresholds: {
+            type: Object,
+            default: null
         }
     },
     emits: ['clear', 'filter', 'rowClick', 'refresh'],
     setup(props, { emit }) {
-        // 筛选状态
-        const selectedRiskLevels = ref([]);
-        const selectedWindSpeed = ref('');
-        const selectedWaveHeight = ref('');
         const selectedRow = ref(null);
         
         // 刷新倒计时（5分钟 = 300秒）
         const refreshCountdown = ref(300);
         let refreshTimer = null;
-        
-        // 风险等级定义
-        const riskLevels = [
-            { value: 'safe', label: '安全', emoji: '🟢' },
-            { value: 'caution', label: '注意', emoji: '🟡' },
-            { value: 'warning', label: '警告', emoji: '🟠' },
-            { value: 'danger', label: '危险', emoji: '🔴' }
-        ];
-        
-        // 切换风险等级筛选
-        const toggleRiskFilter = (level) => {
-            const index = selectedRiskLevels.value.indexOf(level);
-            if (index > -1) {
-                selectedRiskLevels.value.splice(index, 1);
-            } else {
-                selectedRiskLevels.value.push(level);
-            }
-            applyFilters();
-        };
-        
-        // 清除风险筛选
-        const clearRiskFilter = () => {
-            selectedRiskLevels.value = [];
-            applyFilters();
-        };
-        
-        // 计算过滤后的数据
-        const filteredData = computed(() => {
-            let data = props.weatherData;
-            
-            // 风险等级筛选
-            if (selectedRiskLevels.value.length > 0) {
-                data = data.filter(item => selectedRiskLevels.value.includes(item.risk.level));
-            }
-            
-            // 风速筛选
-            if (selectedWindSpeed.value) {
-                const [min, max] = selectedWindSpeed.value.split(',').map(Number);
-                data = data.filter(item => {
-                    const windSpeed = item.weather.windspeed || 0;
-                    return windSpeed >= min && windSpeed < max;
-                });
-            }
-            
-            // 浪高筛选
-            if (selectedWaveHeight.value) {
-                const [min, max] = selectedWaveHeight.value.split(',').map(Number);
-                data = data.filter(item => {
-                    const waveHeight = item.weather.waveheight || 0;
-                    return waveHeight >= min && waveHeight < max;
-                });
-            }
-            
-            return data;
-        });
-        
-        // 应用筛选
-        const applyFilters = () => {
-            const filters = {
-                riskLevels: selectedRiskLevels.value,
-                windSpeed: selectedWindSpeed.value ? selectedWindSpeed.value.split(',').map(Number) : null,
-                waveHeight: selectedWaveHeight.value ? selectedWaveHeight.value.split(',').map(Number) : null
-            };
-            emit('filter', filters);
-        };
         
         // 处理行点击
         const handleRowClick = (item, index) => {
@@ -216,8 +197,14 @@ export default {
             emit('rowClick', item, index);
         };
         
-        // 格式化时间
-        const formatTime = (timestamp) => {
+        // 格式化距离
+        const formatDistance = (distance) => {
+            if (distance === undefined || distance === null) return '0';
+            return distance.toFixed(1);
+        };
+        
+        // 格式化到达时间
+        const formatArrivalTime = (timestamp) => {
             if (!timestamp) return 'N/A';
             const date = new Date(timestamp);
             return date.toLocaleString('zh-CN', { 
@@ -226,6 +213,62 @@ export default {
                 hour: '2-digit', 
                 minute: '2-digit'
             });
+        };
+        
+        // 获取风速对应的样式类（使用自定义阈值）
+        const getWindSpeedClass = (windSpeed) => {
+            if (!windSpeed) return 'text-slate-400';
+            const riskLevel = getWindSpeedRiskLevel(windSpeed, props.thresholds);
+            const classes = getRiskClasses(riskLevel);
+            return classes.textClass;
+        };
+        
+        const getWindSpeedBgClass = (windSpeed) => {
+            if (!windSpeed) return 'bg-slate-800/30';
+            const riskLevel = getWindSpeedRiskLevel(windSpeed, props.thresholds);
+            const classes = getRiskClasses(riskLevel);
+            return classes.bgClass;
+        };
+        
+        // 获取浪高对应的样式类（使用自定义阈值）
+        const getWaveHeightClass = (waveHeight) => {
+            if (!waveHeight) return 'text-slate-400';
+            const riskLevel = getWaveHeightRiskLevel(waveHeight, props.thresholds);
+            const classes = getRiskClasses(riskLevel);
+            return classes.textClass;
+        };
+        
+        const getWaveHeightBgClass = (waveHeight) => {
+            if (!waveHeight) return 'bg-slate-800/30';
+            const riskLevel = getWaveHeightRiskLevel(waveHeight, props.thresholds);
+            const classes = getRiskClasses(riskLevel);
+            return classes.bgClass;
+        };
+        
+        // 获取综合风险的样式类
+        const getRiskTextClass = (risk) => {
+            if (!risk) return 'text-slate-400';
+            const classes = getRiskClasses(risk.level);
+            return classes.textClass;
+        };
+        
+        const getRiskBgClass = (risk) => {
+            if (!risk) return 'bg-slate-800/30';
+            const classes = getRiskClasses(risk.level);
+            return classes.bgClass;
+        };
+        
+        // 获取风险等级标签
+        const getRiskLabel = (risk) => {
+            if (!risk) return 'N/A';
+            const labels = {
+                'safe': '安全',
+                'caution': '注意',
+                'warning': '警告',
+                'danger': '危险',
+                'unknown': '未知'
+            };
+            return labels[risk.level] || 'N/A';
         };
         
         // 格式化倒计时
@@ -253,8 +296,18 @@ export default {
         };
         
         // 监听数据变化，重置倒计时
-        watch(() => props.weatherData, () => {
+        watch(() => props.weatherData, (newData, oldData) => {
+            console.log('📊 WeatherListTable: weatherData 变化');
+            console.log('   - 新数据点数量:', newData?.length);
+            console.log('   - 第一个点的风险:', newData?.[0]?.risk);
             refreshCountdown.value = 300;
+        }, { deep: true });
+        
+        // 监听阈值变化
+        watch(() => props.thresholds, (newThresholds, oldThresholds) => {
+            console.log('⚙️ WeatherListTable: thresholds 变化');
+            console.log('   - 新阈值:', newThresholds);
+            console.log('   - 旧阈值:', oldThresholds);
         }, { deep: true });
         
         onMounted(() => {
@@ -268,18 +321,19 @@ export default {
         });
         
         return {
-            selectedRiskLevels,
-            selectedWindSpeed,
-            selectedWaveHeight,
             selectedRow,
             refreshCountdown,
-            riskLevels,
-            filteredData,
-            toggleRiskFilter,
-            clearRiskFilter,
-            applyFilters,
+            weatherData: computed(() => props.weatherData),
             handleRowClick,
-            formatTime,
+            formatDistance,
+            formatArrivalTime,
+            getWindSpeedClass,
+            getWindSpeedBgClass,
+            getWaveHeightClass,
+            getWaveHeightBgClass,
+            getRiskTextClass,
+            getRiskBgClass,
+            getRiskLabel,
             formatCountdown,
             handleManualRefresh
         };

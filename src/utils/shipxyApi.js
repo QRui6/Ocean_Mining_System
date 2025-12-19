@@ -155,10 +155,14 @@ export async function planRouteByPort(startPortCode, endPortCode, avoid = '', th
  * 点到点航线规划
  * @param {string} startPoint - 起始点坐标 "lng,lat"
  * @param {string} endPoint - 结束点坐标 "lng,lat"
+ * @param {string} avoid - 绕航节点（可选）
+ * @param {string} through - 途经点（可选）
  * @returns {Promise<Object>} 航线信息 { distance, route: [{lng, lat}] }
  */
-export async function planRouteByPoint(startPoint, endPoint) {
-    const url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${startPoint}&end_point=${endPoint}`;
+export async function planRouteByPoint(startPoint, endPoint, avoid = '', through = '') {
+    let url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${startPoint}&end_point=${endPoint}`;
+    if (avoid) url += `&avoid=${avoid}`;
+    if (through) url += `&through=${through}`;
     console.log('🌐 点到点航线规划 URL:', url);
     const result = await request(url);
     console.log('📦 点到点航线响应:', result);
