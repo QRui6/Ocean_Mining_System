@@ -6,6 +6,7 @@
             
             <!-- Map Layer (Z-0) -->
             <MapContainer 
+                ref="mapContainerRef"
                 :showToolbar="activePanels.mapTools" 
                 :filters="filters"
                 :layerState="layerState"
@@ -37,6 +38,21 @@
                     @routeCleared="handleRouteCleared"
                 />
                 
+                <!-- 区域监控面板 -->
+                <AreaMonitorPanel 
+                    ref="areaMonitorRef"
+                    :show="activePanels.areaMonitor"
+                    @start-drawing="handleStartDrawing"
+                    @cancel-drawing="handleCancelDrawing"
+                    @area-created="handleAreaCreated"
+                    @area-deleted="handleAreaDeleted"
+                    @area-selected="handleAreaSelected"
+                    @show-area="handleShowArea"
+                    @hide-area="handleHideArea"
+                    @fly-to-area="handleFlyToArea"
+                    @show-detail="showAreaDetailDialog"
+                />
+                
                 <RightPanel 
                     @toggleList="toggleList"
                     @toggleMapTools="toggleMapTools"
@@ -45,6 +61,7 @@
                     @toggleWeatherLayers="toggleWeatherLayers"
                     @toggleShipSearch="toggleShipSearch"
                     @toggleRoutePlan="toggleRoutePlan"
+                    @toggleAreaMonitor="toggleAreaMonitor"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -69,11 +86,19 @@
             <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500/10 to-transparent pointer-events-none" style="clip-path: polygon(0 0, 100% 0, 100% 100%)"></div>
             <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none"></div>
         </div>
+        
+        <!-- 区域详情对话框 -->
+        <AreaDetailDialog 
+            v-if="showAreaDetail && selectedAreaForDetail"
+            :area="selectedAreaForDetail"
+            @close="closeAreaDetailDialog"
+        />
     </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
+import * as Cesium from 'cesium';
 import Header from './components/Header.vue';
 import LeftPanel from './components/LeftPanel.vue';
 import RightPanel from './components/RightPanel.vue';
@@ -81,6 +106,8 @@ import MapContainer from './components/MapContainer.vue';
 import BottomTable from './components/BottomTable.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
+import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
+import AreaDetailDialog from './components/AreaDetailDialog.vue';
 
 export default {
     components: {
@@ -90,10 +117,15 @@ export default {
         MapContainer,
         BottomTable,
         TimelineControl,
-        ShipTrackingPanel
+        ShipTrackingPanel,
+        AreaMonitorPanel,
+        AreaDetailDialog
     },
     setup() {
         // ==================== 状态管理 ====================
+        
+        // WebSocket 连接
+        let ws = null;
         
         // 当前选中的顶部选项卡（默认：矿区管理）
         const currentTab = ref('矿区管理');
@@ -106,8 +138,13 @@ export default {
             layers: true,         // 图层控制面板（左侧）
             weatherLayers: false, // 气象图层面板（左侧）
             shipSearch: false,    // 船舶搜索面板（左侧）
-            routePlan: false      // 航线规划面板（左侧）
+            routePlan: false,     // 航线规划面板（左侧）
+            areaMonitor: false    // 区域监控面板（左侧）
         });
+        
+        // 区域详情对话框状态
+        const showAreaDetail = ref(false);
+        const selectedAreaForDetail = ref(null);
         
         // 时间轴显示状态（当切换到气象监测选项卡时自动显示）
         const showTimeline = ref(false);
@@ -235,6 +272,9 @@ export default {
          */
         const toggleQuery = () => {
             activePanels.value.query = !activePanels.value.query;
+            if (activePanels.value.query) {
+                activePanels.value.areaMonitor = false;
+            }
         };
 
         /**
@@ -265,6 +305,9 @@ export default {
          */
         const toggleShipSearch = () => {
             activePanels.value.shipSearch = !activePanels.value.shipSearch;
+            if (activePanels.value.shipSearch) {
+                activePanels.value.areaMonitor = false;
+            }
         };
         
         /**
@@ -272,6 +315,253 @@ export default {
          */
         const toggleRoutePlan = () => {
             activePanels.value.routePlan = !activePanels.value.routePlan;
+            if (activePanels.value.routePlan) {
+                activePanels.value.areaMonitor = false;
+            }
+        };
+        
+        /**
+         * 切换区域监控面板的显示状态
+         */
+        const toggleAreaMonitor = () => {
+            activePanels.value.areaMonitor = !activePanels.value.areaMonitor;
+            
+            // 当打开区域监控面板时，关闭其他左侧面板
+            if (activePanels.value.areaMonitor) {
+                activePanels.value.query = false;
+                activePanels.value.layers = false;
+                activePanels.value.weatherLayers = false;
+                activePanels.value.shipSearch = false;
+                activePanels.value.routePlan = false;
+                
+                nextTick(() => {
+                    // 面板会自动调用loadAreas，然后通过area-loaded事件显示区域
+                });
+            }
+        };
+        
+        // 区域监控相关
+        const areaMonitorRef = ref(null);
+        const mapContainerRef = ref(null);
+        let currentDrawingTool = null;
+        const areaEntities = ref(new Map()); // 存储区域实体
+        
+        const handleStartDrawing = (data) => {
+            console.log('🖊️ 启动地图绘制工具', data);
+            
+            // 获取地图viewer
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (!viewer) {
+                console.error('地图viewer未就绪');
+                return;
+            }
+            
+            // 动态导入绘制工具
+            import('./utils/areaDrawingTool.js').then(({ AreaDrawingTool }) => {
+                currentDrawingTool = new AreaDrawingTool(viewer);
+                
+                currentDrawingTool.start((polygon) => {
+                    // 绘制完成后的回调
+                    areaMonitorRef.value.createArea(polygon);
+                    currentDrawingTool = null;
+                });
+            }).catch(err => {
+                console.error('加载绘制工具失败:', err);
+            });
+        };
+        
+        const handleCancelDrawing = () => {
+            if (currentDrawingTool) {
+                currentDrawingTool.cancel();
+                currentDrawingTool = null;
+            }
+        };
+        
+        const handleAreaCreated = (area) => {
+            console.log('✅ 区域创建成功:', area);
+            // 绘制完成后自动显示区域
+            handleShowArea(area);
+        };
+        
+        // 设置区域点击事件处理
+        const setupAreaClickHandler = (viewer) => {
+            if (viewer._areaClickHandlerSetup) {
+                console.log('点击处理器已设置，跳过');
+                return;
+            }
+            viewer._areaClickHandlerSetup = true;
+            console.log('✅ 设置区域点击处理器');
+            
+            const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            handler.setInputAction((click) => {
+                console.log('🖱️ 地图被点击，原始坐标:', click.position);
+                
+                // 修正坐标（因为界面使用了CSS缩放）
+                const baseWidth = 1920;
+                const baseHeight = 1080;
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                
+                const correctedPosition = new Cesium.Cartesian2(
+                    click.position.x / scaleX,
+                    click.position.y / scaleY
+                );
+                
+                console.log('修正后坐标:', correctedPosition);
+                console.log('缩放比例:', { scaleX, scaleY });
+                
+                const pickedObject = viewer.scene.pick(correctedPosition);
+                console.log('拾取的对象:', pickedObject);
+                
+                if (Cesium.defined(pickedObject) && pickedObject.id) {
+                    const entity = pickedObject.id;
+                    console.log('实体:', entity);
+                    console.log('实体名称:', entity.name);
+                    
+                    const properties = entity.properties;
+                    console.log('实体属性:', properties);
+                    
+                    if (properties && properties.type) {
+                        const type = properties.type.getValue();
+                        console.log('实体类型:', type);
+                        
+                        if (type === 'monitoring_area') {
+                            console.log('✅ 点击了监控区域');
+                            const areaData = properties.areaData?.getValue();
+                            console.log('区域数据:', areaData);
+                            
+                            if (areaData) {
+                                showAreaDetailDialog(areaData);
+                            } else {
+                                console.error('❌ 区域数据为空');
+                            }
+                        }
+                    }
+                } else {
+                    console.log('未拾取到实体');
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+        };
+        
+        // 显示区域详情对话框
+        const showAreaDetailDialog = (area) => {
+            console.log('📋 显示区域详情对话框:', area);
+            selectedAreaForDetail.value = area;
+            showAreaDetail.value = true;
+        };
+        
+        // 关闭区域详情对话框
+        const closeAreaDetailDialog = () => {
+            showAreaDetail.value = false;
+            selectedAreaForDetail.value = null;
+        };
+        
+        const handleAreaDeleted = (areaId) => {
+            console.log('🗑️ 区域已删除:', areaId);
+            
+            // 从地图上移除区域
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (viewer) {
+                import('./utils/areaDrawingTool.js').then(({ AreaDrawingTool }) => {
+                    AreaDrawingTool.removeArea(viewer, areaId);
+                    areaEntities.value.delete(areaId);
+                });
+            }
+        };
+        
+        const handleAreaSelected = (area) => {
+            console.log('📍 选中区域:', area);
+        };
+        
+        // 显示区域
+        const handleShowArea = (area) => {
+            console.log('👁️ 显示区域:', area);
+            console.log('区域坐标:', area.polygon);
+            
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (!viewer) {
+                console.error('❌ 地图viewer未就绪');
+                return;
+            }
+            
+            console.log('✅ viewer已就绪');
+            
+            // 检查是否已经创建实体
+            if (areaEntities.value.has(area.id)) {
+                console.log('区域实体已存在，设置为可见');
+                // 已存在，只需要设置为可见
+                const entities = viewer.entities.values.filter(
+                    entity => entity.properties?.areaId?.getValue() === area.id
+                );
+                console.log('找到实体数量:', entities.length);
+                entities.forEach(entity => {
+                    entity.show = true;
+                    console.log('实体已设置为可见:', entity.name);
+                });
+                // 强制刷新场景
+                viewer.scene.requestRender();
+                console.log('✅ 场景已刷新');
+                return;
+            }
+            
+            console.log('首次显示，创建实体...');
+            // 首次显示，创建实体
+            import('./utils/areaDrawingTool.js').then(({ AreaDrawingTool }) => {
+                console.log('AreaDrawingTool已加载');
+                
+                const entity = AreaDrawingTool.showArea(viewer, area, {
+                    color: Cesium.Color.PURPLE,
+                    alpha: 0.3,
+                    outlineColor: Cesium.Color.PURPLE,
+                    outlineWidth: 3
+                });
+                
+                console.log('实体已创建:', entity);
+                console.log('viewer.entities总数:', viewer.entities.values.length);
+                
+                areaEntities.value.set(area.id, entity);
+                
+                // 设置点击事件处理（只需要设置一次）
+                setupAreaClickHandler(viewer);
+                
+                // 强制刷新场景
+                viewer.scene.requestRender();
+                console.log('✅ 场景已刷新');
+                
+                console.log('✅ 区域已显示到地图');
+            }).catch(err => {
+                console.error('❌ 加载AreaDrawingTool失败:', err);
+            });
+        };
+        
+        // 隐藏区域
+        const handleHideArea = (areaId) => {
+            console.log('👁️‍🗨️ 隐藏区域:', areaId);
+            
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (!viewer) return;
+            
+            const entities = viewer.entities.values.filter(
+                entity => entity.properties?.areaId?.getValue() === areaId
+            );
+            entities.forEach(entity => {
+                entity.show = false;
+            });
+            
+            // 强制刷新场景
+            viewer.scene.requestRender();
+            console.log('✅ 场景已刷新');
+            
+            console.log('✅ 区域已隐藏');
+        };
+        
+        const handleFlyToArea = (area) => {
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (viewer) {
+                import('./utils/areaDrawingTool.js').then(({ AreaDrawingTool }) => {
+                    AreaDrawingTool.flyToArea(viewer, area);
+                });
+            }
         };
         
         /**
@@ -434,14 +724,251 @@ export default {
         onMounted(() => {
             updateScale();
             window.addEventListener('resize', updateScale);
+            
+            // 连接 WebSocket
+            connectWebSocket();
         });
+        
+        // WebSocket 连接函数
+        const connectWebSocket = () => {
+            const WS_URL = 'ws://localhost:8081';
+            
+            console.log('🔌 连接 WebSocket:', WS_URL);
+            
+            try {
+                ws = new WebSocket(WS_URL);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket 连接成功');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('📨 收到 WebSocket 消息:', message);
+                        handleWebSocketMessage(message);
+                    } catch (err) {
+                        console.error('❌ 解析 WebSocket 消息失败:', err);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket 错误:', error);
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 WebSocket 连接关闭，5秒后重连...');
+                    setTimeout(connectWebSocket, 5000);
+                };
+            } catch (err) {
+                console.error('❌ WebSocket 连接失败:', err);
+                setTimeout(connectWebSocket, 5000);
+            }
+        };
+        
+        // 处理 WebSocket 消息
+        const handleWebSocketMessage = (message) => {
+            const { type, payload } = message;
+            
+            switch (type) {
+                case 'ship_enter':
+                    console.log('🚢 船舶进入区域:', payload);
+                    
+                    // 显示通知
+                    Promise.all([
+                        import('element-plus'),
+                        import('vue')
+                    ]).then(([{ ElNotification }, { h }]) => {
+                        const shipName = payload.ship.ship_cnname || payload.ship.ship_name || `MMSI: ${payload.ship.mmsi}`;
+                        const areaName = payload.areaName || '监控区域';
+                        const currentTime = new Date().toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        
+                        // 构建详细消息
+                        const messageContent = h('div', { style: { lineHeight: '1.6' } }, [
+                            h('div', { style: { marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' } }, 
+                                `${shipName}`
+                            ),
+                            h('div', { style: { fontSize: '13px', color: '#606266' } }, 
+                                `于 ${currentTime}`
+                            ),
+                            h('div', { style: { fontSize: '13px', color: '#606266', marginTop: '4px' } }, 
+                                `进入监控区域「${areaName}」`
+                            ),
+                            payload.ship.lat && payload.ship.lng && h('div', { 
+                                style: { 
+                                    fontSize: '12px', 
+                                    color: '#909399', 
+                                    marginTop: '8px',
+                                    fontFamily: 'monospace'
+                                } 
+                            }, `位置: ${payload.ship.lat.toFixed(4)}°, ${payload.ship.lng.toFixed(4)}°`)
+                        ]);
+                        
+                        ElNotification({
+                            title: '🚢 船舶进入区域',
+                            message: messageContent,
+                            type: 'info',
+                            duration: 300000, // 5分钟 = 300000毫秒
+                            position: 'top-right',
+                            showClose: true // 显示关闭按钮
+                        });
+                    }).catch(err => {
+                        console.error('显示通知失败:', err);
+                    });
+                    
+                    // 触发区域监控面板刷新数据
+                    if (areaMonitorRef.value && activePanels.value.areaMonitor) {
+                        console.log('🔄 刷新区域监控面板数据');
+                        nextTick(() => {
+                            if (areaMonitorRef.value.loadAreas) {
+                                areaMonitorRef.value.loadAreas();
+                            }
+                        });
+                    }
+                    break;
+                    
+                case 'ship_leave':
+                    console.log('🚢 船舶离开区域:', payload);
+                    
+                    Promise.all([
+                        import('element-plus'),
+                        import('vue')
+                    ]).then(([{ ElNotification }, { h }]) => {
+                        const shipName = payload.shipName || `MMSI: ${payload.mmsi}`;
+                        const areaName = payload.areaName || '监控区域';
+                        const currentTime = new Date().toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        
+                        const messageContent = h('div', { style: { lineHeight: '1.6' } }, [
+                            h('div', { style: { marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' } }, 
+                                `${shipName}`
+                            ),
+                            h('div', { style: { fontSize: '13px', color: '#606266' } }, 
+                                `于 ${currentTime}`
+                            ),
+                            h('div', { style: { fontSize: '13px', color: '#606266', marginTop: '4px' } }, 
+                                `离开监控区域「${areaName}」`
+                            )
+                        ]);
+                        
+                        ElNotification({
+                            title: '🚢 船舶离开区域',
+                            message: messageContent,
+                            type: 'success',
+                            duration: 300000, // 5分钟
+                            position: 'top-right',
+                            showClose: true
+                        });
+                    }).catch(err => {
+                        console.error('显示通知失败:', err);
+                    });
+                    
+                    // 触发区域监控面板刷新数据
+                    if (areaMonitorRef.value && activePanels.value.areaMonitor) {
+                        nextTick(() => {
+                            if (areaMonitorRef.value.loadAreas) {
+                                areaMonitorRef.value.loadAreas();
+                            }
+                        });
+                    }
+                    break;
+                    
+                case 'warning':
+                    console.log('⚠️ 收到预警:', payload);
+                    
+                    Promise.all([
+                        import('element-plus'),
+                        import('vue')
+                    ]).then(([{ ElNotification }, { h }]) => {
+                        const areaName = payload.areaName || '监控区域';
+                        const currentTime = new Date().toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        
+                        const messageContent = h('div', { style: { lineHeight: '1.6' } }, [
+                            h('div', { style: { marginBottom: '8px', fontSize: '14px', fontWeight: 'bold', color: '#E6A23C' } }, 
+                                `区域「${areaName}」`
+                            ),
+                            h('div', { style: { fontSize: '13px', color: '#606266', marginTop: '4px' } }, 
+                                payload.message
+                            ),
+                            h('div', { style: { fontSize: '12px', color: '#909399', marginTop: '8px' } }, 
+                                `时间: ${currentTime}`
+                            )
+                        ]);
+                        
+                        ElNotification({
+                            title: '⚠️ 区域预警',
+                            message: messageContent,
+                            type: 'warning',
+                            duration: 300000, // 5分钟
+                            position: 'top-right',
+                            showClose: true
+                        });
+                    }).catch(err => {
+                        console.error('显示通知失败:', err);
+                    });
+                    break;
+                    
+                case 'area_created':
+                    console.log('📍 区域已创建:', payload);
+                    
+                    // 刷新区域列表
+                    if (areaMonitorRef.value && activePanels.value.areaMonitor) {
+                        nextTick(() => {
+                            if (areaMonitorRef.value.loadAreas) {
+                                areaMonitorRef.value.loadAreas();
+                            }
+                        });
+                    }
+                    break;
+                    
+                case 'area_deleted':
+                    console.log('🗑️ 区域已删除:', payload);
+                    
+                    // 刷新区域列表
+                    if (areaMonitorRef.value && activePanels.value.areaMonitor) {
+                        nextTick(() => {
+                            if (areaMonitorRef.value.loadAreas) {
+                                areaMonitorRef.value.loadAreas();
+                            }
+                        });
+                    }
+                    break;
+                    
+                default:
+                    console.log('📨 未知消息类型:', type, payload);
+            }
+        };
 
         /**
          * 组件卸载时：
          * 移除窗口大小变化监听器
+         * 关闭 WebSocket 连接
          */
         onUnmounted(() => {
             window.removeEventListener('resize', updateScale);
+            
+            // 关闭 WebSocket
+            if (ws) {
+                ws.close();
+                console.log('🔌 WebSocket 已关闭');
+            }
         });
 
         return {
@@ -454,6 +981,7 @@ export default {
             toggleWeatherLayers,
             toggleShipSearch,
             toggleRoutePlan,
+            toggleAreaMonitor,
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
@@ -473,7 +1001,21 @@ export default {
             handleShipDetails,
             routeToDraw,
             handleRoutePlanned,
-            handleRouteCleared
+            handleRouteCleared,
+            areaMonitorRef,
+            mapContainerRef,
+            handleStartDrawing,
+            handleCancelDrawing,
+            handleAreaCreated,
+            handleAreaDeleted,
+            handleAreaSelected,
+            handleShowArea,
+            handleHideArea,
+            handleFlyToArea,
+            showAreaDetail,
+            selectedAreaForDetail,
+            closeAreaDetailDialog,
+            showAreaDetailDialog
         };
     }
 };

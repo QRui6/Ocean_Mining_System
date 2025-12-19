@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区域详情测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .ship-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .ship-card.high-risk {
+            border-color: #f56c6c;
+            background: #fef0f0;
+        }
+        .ship-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .ship-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .info-item {
+            font-size: 14px;
+        }
+        .info-label {
+            color: #666;
+            margin-right: 5px;
+        }
+        .weather-box {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .event-item {
+            border-left: 4px solid #409eff;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f0f9ff;
+        }
+        .event-item.warning {
+            border-left-color: #f56c6c;
+            background: #fef0f0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #409eff;
+            color: white;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>区域详情测试页面</h1>
+        
+        <div>
+            <button onclick="loadShips()">加载船舶信息</button>
+            <button onclick="loadEvents()">加载事件日志</button>
+        </div>
+        
+        <div id="ships-container"></div>
+        <div id="events-container"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5678';
+        const AREA_ID = 9;
+
+        async function loadShips() {
+            const container = document.getElementById('ships-container');
+            container.innerHTML = '<p>正在加载船舶信息...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/areas/${AREA_ID}/ships`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const ships = data.data;
+                    container.innerHTML = `<h2>🚢 区域内船舶 (${ships.length})</h2>`;
+                    
+                    ships.forEach(ship => {
+                        const card = document.createElement('div');
+                        card.className = `ship-card ${ship.riskLevel === 'high' ? 'high-risk' : ''}`;
+                        
+                        card.innerHTML = `
+                            <div class="ship-title">
+                                ${ship.shipCnName || ship.shipName || '未知船舶'}
+                                <span style="color: ${ship.riskLevel === 'high' ? '#f56c6c' : '#67c23a'}">
+                                    [${ship.riskLevel === 'high' ? '高风险' : ship.riskLevel === 'medium' ? '中风险' : '安全'}]
+                                </span>
+                            </div>
+                            <div class="ship-info">
+                                <div class="info-item">
+                                    <span class="info-label">MMSI:</span>${ship.mmsi}
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">IMO:</span>${ship.imo || '-'}
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">呼号:</span>${ship.callSign || '-'}
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">船型:</span>${getShipTypeName(ship.shipType)}
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">船长:</span>${ship.length || '-'} m
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">船宽:</span>${ship.width || '-'} m
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">吃水:</span>${ship.draught || '-'} m
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">航速:</span>${ship.sog || 0} kn
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">航向:</span>${ship.cog || '-'}°
+                                </div>
+                                <div class="info-item" style="grid-column: span 3;">
+                                    <span class="info-label">位置:</span>${ship.lat?.toFixed(6)}°N, ${ship.lng?.toFixed(6)}°E
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <span class="info-label">目的港:</span>${ship.destination || '-'}
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">ETA:</span>${ship.eta || '-'}
+                                </div>
+                            </div>
+                            ${ship.lastWeather ? `
+                                <div class="weather-box">
+                                    <strong>⛅ 气象条件</strong><br>
+                                    ${ship.lastWeather.windSpeed > 0 ? `风速: ${ship.lastWeather.windSpeed} m/s` : ''}
+                                    ${ship.lastWeather.waveHeight > 0 ? ` | 浪高: ${ship.lastWeather.waveHeight} m` : ''}
+                                    ${ship.lastWeather.temperature ? ` | 温度: ${ship.lastWeather.temperature}°C` : ''}
+                                    ${ship.lastWeather.humidity ? ` | 湿度: ${ship.lastWeather.humidity}%` : ''}
+                                </div>
+                            ` : ''}
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                进入时间: ${new Date(ship.enterTime).toLocaleString('zh-CN')}
+                                ${ship.lastTime ? ` | 最后更新: ${ship.lastTime}` : ''}
+                            </div>
+                        `;
+                        
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = '<p style="color: red;">加载失败: ' + data.error + '</p>';
+                }
+            } catch (err) {
+                container.innerHTML = '<p style="color: red;">加载失败: ' + err.message + '</p>';
+            }
+        }
+
+        async function loadEvents() {
+            const container = document.getElementById('events-container');
+            container.innerHTML = '<p>正在加载事件日志...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/areas/${AREA_ID}/events`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const events = data.data;
+                    const warnings = events.filter(e => e.category === 'warning' && !e.isResolved);
+                    const enters = events.filter(e => e.type === 'enter');
+                    const leaves = events.filter(e => e.type === 'leave');
+                    
+                    container.innerHTML = `
+                        <h2>📋 事件日志 (${events.length})</h2>
+                        <div style="margin-bottom: 15px;">
+                            <span style="color: #f56c6c; margin-right: 15px;">⚠️ ${warnings.length} 预警</span>
+                            <span style="color: #409eff; margin-right: 15px;">🚢 ${enters.length} 进入</span>
+                            <span style="color: #67c23a;">✓ ${leaves.length} 离开</span>
+                        </div>
+                    `;
+                    
+                    events.forEach(event => {
+                        const item = document.createElement('div');
+                        item.className = `event-item ${event.category === 'warning' ? 'warning' : ''}`;
+                        
+                        let content = `
+                            <div style="display: flex; justify-between; margin-bottom: 5px;">
+                                <strong>${getEventTitle(event)}</strong>
+                                <span style="font-size: 12px; color: #666;">
+                                    ${new Date(event.time).toLocaleString('zh-CN')}
+                                </span>
+                            </div>
+                            <div style="font-size: 13px;">
+                                MMSI: ${event.mmsi}
+                        `;
+                        
+                        if (event.category === 'warning') {
+                            content += `<br><span style="color: #f56c6c;">${event.message}</span>`;
+                            if (event.weatherData) {
+                                content += `<br><span style="font-size: 12px;">`;
+                                if (event.weatherData.windSpeed) content += `风速: ${event.weatherData.windSpeed} m/s `;
+                                if (event.weatherData.waveHeight) content += `浪高: ${event.weatherData.waveHeight} m`;
+                                content += `</span>`;
+                            }
+                        } else if (event.type === 'enter' && event.data?.shipInfo) {
+                            const info = event.data.shipInfo;
+                            content += `<br>位置: ${info.lat?.toFixed(4)}°, ${info.lng?.toFixed(4)}° | 航速: ${info.sog} kn`;
+                        }
+                        
+                        content += `</div>`;
+                        item.innerHTML = content;
+                        container.appendChild(item);
+                    });
+                } else {
+                    container.innerHTML = '<p style="color: red;">加载失败: ' + data.error + '</p>';
+                }
+            } catch (err) {
+                container.innerHTML = '<p style="color: red;">加载失败: ' + err.message + '</p>';
+            }
+        }
+
+        function getShipTypeName(type) {
+            const types = {
+                30: '渔船', 31: '拖网渔船', 32: '围网渔船',
+                70: '货船', 71: '散货船', 72: '集装箱船', 73: '杂货船',
+                80: '油轮', 81: '化学品船', 82: '液化气船',
+                90: '其他船舶', 60: '客船', 61: '客滚船'
+            };
+            return types[type] || (type ? `船舶类型 ${type}` : '未知');
+        }
+
+        function getEventTitle(event) {
+            if (event.category === 'warning') return '⚠️ 气象预警';
+            if (event.type === 'enter') {
+                const name = event.data?.shipInfo?.ship_cnname || event.data?.shipInfo?.ship_name || `船舶 ${event.mmsi}`;
+                return `🚢 ${name}`;
+            }
+            if (event.type === 'leave') return `🚢 船舶 ${event.mmsi}`;
+            return '未知事件';
+        }
+
+        // 页面加载时自动加载数据
+        window.onload = () => {
+            loadShips();
+            loadEvents();
+        };
+    </script>
+</body>
+</html>

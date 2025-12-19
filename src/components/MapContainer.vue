@@ -1412,6 +1412,9 @@ export default {
             }
         });
 
+        // 暴露viewer给父组件使用
+        const getViewer = () => viewer;
+        
         return {
             cesiumContainer,
             selectedArea,
@@ -1435,7 +1438,8 @@ export default {
             resetView,
             toggle2D3D,
             toggleFullscreen,
-            toggleTrajectory
+            toggleTrajectory,
+            viewer: getViewer  // 暴露viewer
         };
     }
 };

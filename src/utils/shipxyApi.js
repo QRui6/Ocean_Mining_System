@@ -184,3 +184,108 @@ export async function getSingleTyphoon(typhoonId) {
     const url = `${API_BASE}/GetSingleTyphoon?key=${API_KEY}&typhoon_id=${typhoonId}`;
     return await request(url);
 }
+
+// ==================== 区域监控API ====================
+
+// 后端API地址
+const BACKEND_API_BASE = import.meta.env.DEV 
+    ? 'http://localhost:5678'  // 开发环境（后端运行在5678端口）
+    : '';  // 生产环境使用相对路径
+
+/**
+ * 创建监控区域
+ */
+export async function createArea(name, polygon, thresholds) {
+    try {
+        const response = await fetch(`${BACKEND_API_BASE}/api/areas`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                polygon,
+                thresholds
+            })
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('创建区域失败:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * 获取区域列表
+ */
+export async function getAreas() {
+    try {
+        const response = await fetch(`${BACKEND_API_BASE}/api/areas`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('获取区域列表失败:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * 获取区域内船舶
+ */
+export async function getAreaShips(areaId) {
+    try {
+        const response = await fetch(`${BACKEND_API_BASE}/api/areas/${areaId}/ships`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('获取区域船舶失败:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * 获取区域事件日志
+ */
+export async function getAreaEvents(areaId, limit = 50) {
+    try {
+        const response = await fetch(`${BACKEND_API_BASE}/api/areas/${areaId}/events?limit=${limit}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('获取事件日志失败:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * 删除监控区域
+ */
+export async function deleteArea(areaId) {
+    try {
+        const response = await fetch(`${BACKEND_API_BASE}/api/areas/${areaId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('删除区域失败:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
