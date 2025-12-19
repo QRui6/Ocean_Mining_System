@@ -214,7 +214,7 @@
                             placeholder="输入港口代码，如: CNSHA (上海)"
                             class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors font-['Rajdhani']"
                         />
-                        <div class="text-xs text-slate-500">常用: CNSHA(上海) CNTAO(青岛) CNNGB(宁波)</div>
+                        <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
                     </div>
                     
                     <!-- 到达港 -->
@@ -228,7 +228,7 @@
                             placeholder="输入港口代码，如: JPYOK (横滨)"
                             class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors font-['Rajdhani']"
                         />
-                        <div class="text-xs text-slate-500">常用: JPYOK(横滨) SGSIN(新加坡) USNYC(纽约)</div>
+                        <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
                     </div>
                     
                     <!-- 规划按钮 -->
@@ -270,9 +270,167 @@
                                 <span class="text-slate-400 text-sm">航点数量</span>
                                 <span class="text-white font-['Rajdhani']">{{ routeResult.pointCount }} 个</span>
                             </div>
+                            
+                            <!-- 操作按钮 -->
+                            <div class="flex gap-2 pt-3 border-t border-slate-700/50">
+                                <button 
+                                    @click="handleRouteWeather"
+                                    :disabled="weatherLoading"
+                                    class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
+                                >
+                                    {{ weatherLoading ? '分析中...' : '🌦️ 航线气象' }}
+                                </button>
+                                <button 
+                                    @click="handleCancelRoute"
+                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                                >
+                                    取消
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                </div>
+            </div>
+        </transition>
+        
+        <!-- 3. 历史轨迹面板 -->
+        <transition name="slide-down">
+            <div v-if="showHistoryTrack" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh]" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+                <!-- 动态扫描线 -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-tl scale-125"></div>
+                <div class="corner-decoration corner-tr scale-125"></div>
+            
+                <!-- 标题 - 固定不滚动 -->
+                <div class="flex items-center mb-6 border-b-2 border-amber-500/30 pb-3 px-6 pt-6 flex-shrink-0">
+                    <div class="w-1.5 h-6 bg-amber-400 mr-3 shadow-[0_0_10px_#fbbf24]"></div>
+                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">历史轨迹</h3>
+                    <div class="text-xs font-['Orbitron'] text-amber-500 opacity-80 font-bold tracking-widest">HISTORY TRACK</div>
+                </div>
+
+                <!-- 可滚动内容区域 -->
+                <div class="overflow-y-auto custom-scrollbar px-6 pb-6 flex-1">
+                    <div class="space-y-4">
+                        <!-- MMSI输入 -->
+                        <div class="space-y-2">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>船舶MMSI
+                            </div>
+                            <input 
+                                v-model="trackMmsi"
+                                type="text"
+                                placeholder="输入9位MMSI，如：413961925"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+                        
+                        <!-- 快捷时间选择 -->
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>快捷选择
+                            </div>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button 
+                                    @click="setQuickTime(1)"
+                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
+                                >
+                                    1小时
+                                </button>
+                                <button 
+                                    @click="setQuickTime(6)"
+                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
+                                >
+                                    6小时
+                                </button>
+                                <button 
+                                    @click="setQuickTime(24)"
+                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
+                                >
+                                    24小时
+                                </button>
+                                <button 
+                                    @click="setQuickTime(168)"
+                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
+                                >
+                                    7天
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 开始时间 -->
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>开始时间
+                            </div>
+                            <input 
+                                v-model="trackStartTime"
+                                type="datetime-local"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+                        
+                        <!-- 结束时间 -->
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>结束时间
+                            </div>
+                            <input 
+                                v-model="trackEndTime"
+                                type="datetime-local"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+                        
+                        <!-- 查询按钮 -->
+                        <div class="flex gap-2 pt-4 border-t border-dashed border-slate-700/50">
+                            <button 
+                                @click="handleTrackQuery"
+                                :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
+                                class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
+                            >
+                                {{ trackLoading ? '查询中...' : '🔍 查询轨迹' }}
+                            </button>
+                            <button 
+                                v-if="trackResult"
+                                @click="handleClearTrack"
+                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                            >
+                                清除
+                            </button>
+                        </div>
+                        
+                        <!-- 轨迹查询结果 -->
+                        <div v-if="trackResult || trackError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>查询结果
+                            </div>
+                            
+                            <!-- 错误提示 -->
+                            <div v-if="trackError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
+                                <div class="text-red-400 text-sm">{{ trackError }}</div>
+                            </div>
+                            
+                            <!-- 轨迹信息 -->
+                            <div v-else-if="trackResult" class="bg-slate-800/40 border border-amber-500/50 rounded-sm p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400 text-sm">轨迹点数</span>
+                                    <span class="text-amber-400 font-bold text-lg font-['Rajdhani']">{{ trackResult.pointCount }} 个</span>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                    <span class="text-slate-400 text-sm">MMSI</span>
+                                    <span class="text-white font-['Rajdhani']">{{ trackResult.mmsi }}</span>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                    <span class="text-slate-400 text-sm">时间跨度</span>
+                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
+                                </div>
+                                <div class="flex items-center justify-end">
+                                    <span class="text-slate-400 text-xs">至 {{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </transition>
@@ -282,7 +440,7 @@
 
 <script>
 import { ref } from 'vue';
-import { getSingleShip, getManyShip, planRouteByPort } from '../utils/shipxyApi.js';
+import { getSingleShip, getManyShip, planRouteByPort, getShipTrack } from '../utils/shipxyApi.js';
 
 export default {
     props: {
@@ -293,9 +451,13 @@ export default {
         showRoutePlan: {
             type: Boolean,
             default: false
+        },
+        showHistoryTrack: {
+            type: Boolean,
+            default: false
         }
     },
-    emits: ['locate', 'routePlanned', 'routeCleared'],
+    emits: ['locate', 'routePlanned', 'routeCleared', 'trackLoaded', 'trackCleared', 'routeWeatherAnalysis'],
     setup(props, { emit }) {
         // 搜索模式
         const searchMode = ref('single'); // 'single' 或 'multiple'
@@ -318,6 +480,16 @@ export default {
         const routeLoading = ref(false);
         const routeResult = ref(null);
         const routeError = ref('');
+        const weatherLoading = ref(false);
+        let currentRouteData = null; // 保存当前路径数据
+        
+        // 历史轨迹相关
+        const trackMmsi = ref('');
+        const trackStartTime = ref('');
+        const trackEndTime = ref('');
+        const trackLoading = ref(false);
+        const trackResult = ref(null);
+        const trackError = ref('');
         
         // 单船搜索
         const handleSingleSearch = async () => {
@@ -419,8 +591,13 @@ export default {
         
         // 航线规划
         const handleRoutePlan = async () => {
+            console.log('🗺️ 开始航线规划...');
+            console.log('   - 出发港:', startPort.value);
+            console.log('   - 到达港:', endPort.value);
+            
             if (!startPort.value || !endPort.value) {
                 routeError.value = '请输入出发港和到达港代码';
+                console.error('❌ 港口代码为空');
                 return;
             }
             
@@ -429,37 +606,149 @@ export default {
             routeResult.value = null;
             
             try {
+                console.log('⏳ 调用 API...');
                 const result = await planRouteByPort(
                     startPort.value.toUpperCase(),
                     endPort.value.toUpperCase()
                 );
                 
+                console.log('📦 API 返回结果:', result);
+                
                 if (result.success && result.data) {
+                    console.log('✅ 路径规划成功');
+                    console.log('   - 距离:', result.data.distance);
+                    console.log('   - 航点数:', result.data.route?.length);
+                    
                     routeResult.value = {
                         distance: result.data.distance?.toFixed(2) || 0,
                         pointCount: result.data.route?.length || 0
                     };
                     
-                    emit('routePlanned', {
+                    // 保存路径数据供气象分析使用
+                    currentRouteData = {
                         route: result.data.route,
                         distance: result.data.distance,
                         startPort: startPort.value,
                         endPort: endPort.value
-                    });
+                    };
+                    
+                    console.log('📤 发送 routePlanned 事件');
+                    emit('routePlanned', currentRouteData);
                 } else {
-                    routeError.value = result.error || '路径规划失败，请检查港口代码是否正确';
+                    console.error('❌ 路径规划失败:', result.error);
+                    if (result.error && result.error.includes('未找到')) {
+                        routeError.value = `${result.error}。提示：请联系船讯网获取正确的港口代码列表，或查看 docs/港口代码参考.md`;
+                    } else {
+                        routeError.value = result.error || '路径规划失败，请检查港口代码是否正确';
+                    }
                 }
             } catch (err) {
-                routeError.value = '网络错误，请稍后重试';
+                console.error('❌ 网络错误:', err);
+                routeError.value = '网络错误，请稍后重试: ' + err.message;
             } finally {
                 routeLoading.value = false;
+                console.log('🏁 航线规划流程结束');
             }
         };
         
         const handleClearRoute = () => {
             routeResult.value = null;
             routeError.value = '';
+            currentRouteData = null;
             emit('routeCleared');
+        };
+        
+        // 航线气象分析
+        const handleRouteWeather = () => {
+            if (!currentRouteData) {
+                routeError.value = '没有可用的航线数据';
+                return;
+            }
+            
+            weatherLoading.value = true;
+            emit('routeWeatherAnalysis', currentRouteData);
+            
+            // 模拟加载完成（实际由地图组件完成后通知）
+            setTimeout(() => {
+                weatherLoading.value = false;
+            }, 3000);
+        };
+        
+        // 取消航线（清除路径和气象数据）
+        const handleCancelRoute = () => {
+            handleClearRoute();
+        };
+        
+        // 快捷时间选择
+        const setQuickTime = (hours) => {
+            const now = new Date();
+            const start = new Date(now.getTime() - hours * 60 * 60 * 1000);
+            
+            trackEndTime.value = now.toISOString().slice(0, 16);
+            trackStartTime.value = start.toISOString().slice(0, 16);
+        };
+        
+        // 历史轨迹查询
+        const handleTrackQuery = async () => {
+            if (!trackMmsi.value.trim()) {
+                trackError.value = '请输入MMSI';
+                return;
+            }
+            
+            const mmsi = parseInt(trackMmsi.value);
+            if (isNaN(mmsi) || trackMmsi.value.length !== 9) {
+                trackError.value = 'MMSI必须是9位数字';
+                return;
+            }
+            
+            if (!trackStartTime.value || !trackEndTime.value) {
+                trackError.value = '请选择时间范围';
+                return;
+            }
+            
+            const startTimestamp = Math.floor(new Date(trackStartTime.value).getTime() / 1000);
+            const endTimestamp = Math.floor(new Date(trackEndTime.value).getTime() / 1000);
+            
+            if (startTimestamp >= endTimestamp) {
+                trackError.value = '开始时间必须早于结束时间';
+                return;
+            }
+            
+            trackLoading.value = true;
+            trackError.value = '';
+            trackResult.value = null;
+            
+            try {
+                const result = await getShipTrack(mmsi, startTimestamp, endTimestamp);
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    trackResult.value = {
+                        pointCount: result.data.length,
+                        startTime: trackStartTime.value,
+                        endTime: trackEndTime.value,
+                        mmsi: mmsi
+                    };
+                    
+                    emit('trackLoaded', {
+                        mmsi: mmsi,
+                        track: result.data,
+                        startTime: startTimestamp,
+                        endTime: endTimestamp
+                    });
+                } else {
+                    trackError.value = result.error || '该时间段内没有轨迹数据';
+                }
+            } catch (err) {
+                trackError.value = '查询失败: ' + err.message;
+            } finally {
+                trackLoading.value = false;
+            }
+        };
+        
+        const handleClearTrack = () => {
+            trackResult.value = null;
+            trackError.value = '';
+            emit('trackCleared');
         };
         
         return {
@@ -483,8 +772,20 @@ export default {
             routeLoading,
             routeResult,
             routeError,
+            weatherLoading,
             handleRoutePlan,
-            handleClearRoute
+            handleClearRoute,
+            handleRouteWeather,
+            handleCancelRoute,
+            trackMmsi,
+            trackStartTime,
+            trackEndTime,
+            trackLoading,
+            trackResult,
+            trackError,
+            setQuickTime,
+            handleTrackQuery,
+            handleClearTrack
         };
     }
 };

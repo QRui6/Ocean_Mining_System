@@ -46,6 +46,7 @@ export default {
         }
     },
     emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleAreaMonitor'], // 向父组件发送面板切换事件
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather'], // 向父组件发送面板切换事件
     setup(props, { emit }) {
         // ==================== 计算属性 ====================
         
@@ -96,6 +97,12 @@ export default {
                     emit('toggleRoutePlan');
                 } else if (tool === '区域监控') {
                     emit('toggleAreaMonitor');
+                } else if (tool === '历史轨迹') {
+                    emit('toggleHistoryTrack');
+                } else if (tool === '船舶列表') {
+                    emit('toggleShipList');
+                } else if (tool === '航线气象') {
+                    emit('toggleRouteWeather');
                 } else {
                     console.log(`🚧 "${tool}" 功能开发中...`);
                 }
@@ -132,6 +139,9 @@ export default {
                 if (tool === '船舶搜索') return props.activePanels.shipSearch;
                 if (tool === '航线规划') return props.activePanels.routePlan;
                 if (tool === '区域监控') return props.activePanels.areaMonitor;
+                if (tool === '历史轨迹') return props.activePanels.historyTrack;
+                if (tool === '船舶列表') return props.activePanels.shipList;
+                if (tool === '航线气象') return props.activePanels.routeWeather;
             }
             
             return false;

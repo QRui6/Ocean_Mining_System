@@ -13,7 +13,11 @@
                 :weatherLayerState="weatherLayerState"
                 :shipToLocate="shipToLocate"
                 :routeToDraw="routeToDraw"
+                :trackToDraw="trackToDraw"
+                :routeWeatherRequest="routeWeatherRequest"
+                :weatherFilter="weatherFilter"
                 @dataLoaded="handleDataLoaded"
+                @weatherDataLoaded="handleWeatherDataLoaded"
             />
             
             <!-- UI Layer (Z-10+) -->
@@ -33,9 +37,13 @@
                 <ShipTrackingPanel 
                     :showShipSearch="activePanels.shipSearch"
                     :showRoutePlan="activePanels.routePlan"
+                    :showHistoryTrack="activePanels.historyTrack"
                     @locate="handleShipLocate"
                     @routePlanned="handleRoutePlanned"
                     @routeCleared="handleRouteCleared"
+                    @trackLoaded="handleTrackLoaded"
+                    @trackCleared="handleTrackCleared"
+                    @routeWeatherAnalysis="handleRouteWeatherAnalysis"
                 />
                 
                 <!-- 区域监控面板 -->
@@ -62,6 +70,9 @@
                     @toggleShipSearch="toggleShipSearch"
                     @toggleRoutePlan="toggleRoutePlan"
                     @toggleAreaMonitor="toggleAreaMonitor"
+                    @toggleHistoryTrack="toggleHistoryTrack"
+                    @toggleShipList="toggleShipList"
+                    @toggleRouteWeather="handleRouteWeatherAnalysis"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -69,6 +80,24 @@
                 <div v-if="activePanels.list" class="pointer-events-auto">
                      <BottomTable :miningData="filteredMiningData" />
                 </div>
+                
+                <div v-if="activePanels.shipList" class="pointer-events-auto">
+                     <ShipListTable 
+                        :shipData="shipListData" 
+                        @rowClick="handleShipListRowClick"
+                        @clear="handleClearShipList"
+                    />
+                </div>
+                
+                <!-- 气象数据列表 -->
+                <WeatherListTable 
+                    v-if="showWeatherList && weatherListData.length > 0"
+                    :weatherData="weatherListData"
+                    @clear="handleClearWeatherList"
+                    @filter="handleWeatherFilter"
+                    @rowClick="handleWeatherRowClick"
+                    @refresh="handleWeatherRefresh"
+                />
                 
                 <!-- 时间轴控制（当有气象图层激活时显示） -->
                 <TimelineControl 
@@ -108,6 +137,8 @@ import TimelineControl from './components/TimelineControl.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
 import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
 import AreaDetailDialog from './components/AreaDetailDialog.vue';
+import ShipListTable from './components/ShipListTable.vue';
+import WeatherListTable from './components/WeatherListTable.vue';
 
 export default {
     components: {
@@ -120,6 +151,8 @@ export default {
         ShipTrackingPanel,
         AreaMonitorPanel,
         AreaDetailDialog
+        ShipListTable,
+        WeatherListTable
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -140,6 +173,9 @@ export default {
             shipSearch: false,    // 船舶搜索面板（左侧）
             routePlan: false,     // 航线规划面板（左侧）
             areaMonitor: false    // 区域监控面板（左侧）
+            historyTrack: false,  // 历史轨迹面板（左侧）
+            shipList: false,      // 船舶列表（底部表格）
+            routeWeather: false   // 航线气象（右侧按钮高亮）
         });
         
         // 区域详情对话框状态
@@ -176,6 +212,23 @@ export default {
         
         // 路径规划请求（传递给地图组件）
         const routeToDraw = ref(null);
+        
+        // 历史轨迹请求（传递给地图组件）
+        const trackToDraw = ref(null);
+        
+        // 航线气象分析请求（传递给地图组件）
+        const routeWeatherRequest = ref(null);
+        
+        // 当前航线数据（用于右侧按钮触发气象分析）
+        const currentRouteData = ref(null);
+        
+        // 船舶列表数据
+        const shipListData = ref([]);
+        
+        // 气象列表数据
+        const weatherListData = ref([]);
+        const showWeatherList = ref(false);
+        const weatherFilter = ref(null);
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -565,6 +618,20 @@ export default {
         };
         
         /**
+         * 切换历史轨迹面板的显示状态
+         */
+        const toggleHistoryTrack = () => {
+            activePanels.value.historyTrack = !activePanels.value.historyTrack;
+        };
+        
+        /**
+         * 切换船舶列表的显示状态
+         */
+        const toggleShipList = () => {
+            activePanels.value.shipList = !activePanels.value.shipList;
+        };
+        
+        /**
          * 处理船舶定位事件
          * @param {Object} ship - 船舶信息
          */
@@ -572,6 +639,12 @@ export default {
             console.log('📍 定位到船舶:', ship);
             // 通知地图飞到船舶位置
             shipToLocate.value = { ...ship, timestamp: Date.now() };
+            
+            // 添加到船舶列表（去重）
+            const exists = shipListData.value.find(s => s.mmsi === ship.mmsi);
+            if (!exists) {
+                shipListData.value.push(ship);
+            }
         };
         
         /**
@@ -589,6 +662,8 @@ export default {
          */
         const handleRoutePlanned = (routeData) => {
             console.log('🗺️ 路径规划完成:', routeData);
+            // 保存当前航线数据
+            currentRouteData.value = routeData;
             // 通知地图组件绘制路径
             routeToDraw.value = { ...routeData, timestamp: Date.now(), action: 'draw' };
         };
@@ -598,8 +673,131 @@ export default {
          */
         const handleRouteCleared = () => {
             console.log('🗑️ 清除路径');
+            // 清除当前航线数据
+            currentRouteData.value = null;
+            // 清除航线气象高亮状态
+            activePanels.value.routeWeather = false;
+            // 清除气象列表
+            showWeatherList.value = false;
+            weatherListData.value = [];
+            weatherFilter.value = null;
             // 通知地图组件清除路径
             routeToDraw.value = { action: 'clear', timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理历史轨迹加载事件
+         * @param {Object} trackData - 轨迹数据
+         */
+        const handleTrackLoaded = (trackData) => {
+            console.log('📈 历史轨迹加载:', trackData);
+            trackToDraw.value = { ...trackData, timestamp: Date.now(), action: 'draw' };
+        };
+        
+        /**
+         * 处理清除轨迹事件
+         */
+        const handleTrackCleared = () => {
+            console.log('🗑️ 清除轨迹');
+            trackToDraw.value = { action: 'clear', timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理船舶列表行点击事件
+         * @param {Object} ship - 船舶信息
+         */
+        const handleShipListRowClick = (ship) => {
+            console.log('🚢 点击船舶列表:', ship);
+            // 定位到该船舶
+            shipToLocate.value = { ...ship, timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理清空船舶列表事件
+         */
+        const handleClearShipList = () => {
+            console.log('🗑️ 清空船舶列表');
+            shipListData.value = [];
+        };
+        
+        /**
+         * 处理航线气象分析事件
+         * @param {Object} routeData - 航线数据（可选，如果没有则使用当前航线）
+         */
+        const handleRouteWeatherAnalysis = (routeData) => {
+            // 如果已经显示气象列表，则关闭它（切换功能）
+            if (showWeatherList.value && activePanels.value.routeWeather) {
+                console.log('🗑️ 关闭航线气象列表');
+                showWeatherList.value = false;
+                weatherListData.value = [];
+                weatherFilter.value = null;
+                activePanels.value.routeWeather = false;
+                return;
+            }
+            
+            // 如果没有传入路径数据，使用当前保存的航线数据
+            const dataToAnalyze = routeData || currentRouteData.value;
+            
+            if (!dataToAnalyze) {
+                console.warn('⚠️ 没有可用的航线数据，请先规划航线');
+                return;
+            }
+            
+            console.log('🌦️ 开始航线气象分析:', dataToAnalyze);
+            // 设置航线气象为激活状态（橙色高亮）
+            activePanels.value.routeWeather = true;
+            // 通知地图组件进行气象分析
+            routeWeatherRequest.value = { ...dataToAnalyze, timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理气象数据加载完成
+         */
+        const handleWeatherDataLoaded = (data) => {
+            console.log('📊 气象数据加载完成:', data);
+            weatherListData.value = data.data || [];
+            showWeatherList.value = true;
+        };
+        
+        /**
+         * 处理气象列表筛选
+         */
+        const handleWeatherFilter = (filters) => {
+            console.log('🔍 气象筛选条件:', filters);
+            weatherFilter.value = { ...filters, timestamp: Date.now() };
+        };
+        
+        /**
+         * 处理气象列表行点击
+         */
+        const handleWeatherRowClick = (item, index) => {
+            console.log('📍 点击气象数据行:', index, item);
+            // TODO: 可以飞到该点位置或高亮标记
+        };
+        
+        /**
+         * 处理气象数据刷新
+         */
+        const handleWeatherRefresh = () => {
+            console.log('🔄 请求刷新气象数据');
+            if (currentRouteData.value) {
+                routeWeatherRequest.value = { 
+                    ...currentRouteData.value, 
+                    timestamp: Date.now(),
+                    refresh: true 
+                };
+            }
+        };
+        
+        /**
+         * 清除气象列表
+         */
+        const handleClearWeatherList = () => {
+            showWeatherList.value = false;
+            weatherListData.value = [];
+            weatherFilter.value = null;
+            // 同时取消右侧按钮的高亮状态
+            activePanels.value.routeWeather = false;
         };
 
         // ==================== 数据处理函数 ====================
@@ -698,7 +896,9 @@ export default {
                     query: false,
                     layers: false,
                     weatherLayers: false,
-                    shipSearch: true      // 自动打开船舶搜索
+                    shipSearch: true,     // 自动打开船舶搜索
+                    routePlan: false,
+                    historyTrack: false
                 };
             } else {
                 // 其他选项卡：关闭所有面板
@@ -982,6 +1182,8 @@ export default {
             toggleShipSearch,
             toggleRoutePlan,
             toggleAreaMonitor,
+            toggleHistoryTrack,
+            toggleShipList,
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
@@ -1000,6 +1202,7 @@ export default {
             handleShipLocate,
             handleShipDetails,
             routeToDraw,
+            trackToDraw,
             handleRoutePlanned,
             handleRouteCleared,
             areaMonitorRef,
@@ -1016,6 +1219,21 @@ export default {
             selectedAreaForDetail,
             closeAreaDetailDialog,
             showAreaDetailDialog
+            handleTrackLoaded,
+            handleTrackCleared,
+            shipListData,
+            handleShipListRowClick,
+            handleClearShipList,
+            routeWeatherRequest,
+            handleRouteWeatherAnalysis,
+            weatherListData,
+            showWeatherList,
+            weatherFilter,
+            handleWeatherDataLoaded,
+            handleWeatherFilter,
+            handleWeatherRowClick,
+            handleWeatherRefresh,
+            handleClearWeatherList
         };
     }
 };

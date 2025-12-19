@@ -207,6 +207,41 @@
             </div>
         </transition>
         
+        <!-- Weather Info Window Modal -->
+        <transition enter-active-class="animate-fadeIn" leave-active-class="transition-opacity duration-200 opacity-0">
+            <div v-if="selectedWeather" 
+                :style="{ 
+                    left: weatherInfoPosition.x + 'px', 
+                    top: weatherInfoPosition.y + 'px' 
+                }"
+                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
+                <!-- Scanning Line -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+
+                <!-- Header -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-4 py-3 border-b border-cyan-500/30">
+                    <div class="flex items-center gap-3">
+                         <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
+                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">{{ selectedWeather.title }}</span>
+                    </div>
+                    <button @click="closeWeatherInfo" class="group p-1">
+                        <div class="w-6 h-6 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-sm">✕</div>
+                    </button>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-4 space-y-3 relative">
+                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    
+                    <div v-for="item in selectedWeather.items" :key="item.label" class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">{{ item.label }}</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">{{ item.value }}</span>
+                    </div>
+                </div>
+            </div>
+        </transition>
+        
         <!-- 路径规划面板 -->
         <RoutePlanPanel 
             v-if="showRoutePlan"
@@ -221,13 +256,14 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
-import { loadGeoJson, styleByProperty, ColorSchemes, setupClickHandler } from '../utils/geoJsonLoader.js';
+import { loadGeoJson } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
 // 使用官方 cesium-wind-layer 插件
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 import { ShipLayer } from '../utils/shipLayer.js';
 import { RouteLayer } from '../utils/routeLayer.js';
+import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 
 export default {
@@ -266,9 +302,24 @@ export default {
         routeToDraw: {
             type: Object,
             default: null
+        },
+        // 历史轨迹绘制请求
+        trackToDraw: {
+            type: Object,
+            default: null
+        },
+        // 航线气象分析请求
+        routeWeatherRequest: {
+            type: Object,
+            default: null
+        },
+        // 气象筛选条件
+        weatherFilter: {
+            type: Object,
+            default: null
         }
     },
-    emits: ['dataLoaded'],
+    emits: ['dataLoaded', 'weatherDataLoaded'],
     setup(props, { emit }) {
         const cesiumContainer = ref(null);
         const selectedArea = ref(null);
@@ -285,14 +336,16 @@ export default {
         const showTrajectory = ref(false); // 轨迹显示状态
         const selectedShip = ref(null); // 选中的船舶信息
         const shipInfoPosition = ref({ x: 0, y: 0 }); // 船舶信息窗口位置
+        const selectedWeather = ref(null); // 选中的气象信息
+        const weatherInfoPosition = ref({ x: 0, y: 0 }); // 气象信息窗口位置
         let shipLayer = null; // 船舶图层实例
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
-        // 当前使用：天地图（TianDiTu）全球影像服务 + 注记服务
-        const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029"; 
+        let routeWeatherLayer = null; // 航线气象图层实例
+        // 天地图 Token
+        const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
-        const initCesium = () => {
-
+        const initCesium = async () => {
             viewer = new Cesium.Viewer(cesiumContainer.value, {
                 animation: false,
                 timeline: false,
@@ -305,53 +358,22 @@ export default {
                 vrButton: false,
                 infoBox: false,
                 selectionIndicator: false,
-                imageryProvider: false,  // 先不加载任何底图
-                sceneMode: Cesium.SceneMode.SCENE3D,
-                contextOptions: {
-                    webgl: {
-                        alpha: false,  // 禁用透明度以提升性能
-                        depth: true,
-                        stencil: false,
-                        antialias: true,
-                        powerPreference: 'high-performance',
-                        premultipliedAlpha: true,
-                        preserveDrawingBuffer: false,
-                        failIfMajorPerformanceCaveat: false
-                    }
-                },
-                // 性能优化设置
-                requestRenderMode: true, // 按需渲染
-                maximumRenderTimeChange: Infinity,
-                // 场景优化
-                useBrowserRecommendedResolution: true,
-                orderIndependentTranslucency: false,  // 禁用半透明排序以提升性能
-                scene3DOnly: true,  // 仅3D模式
-                shouldAnimate: true
-            });
-
-            // 移除默认图层
-            viewer.imageryLayers.removeAll();
-            
-            // 使用多个服务器节点进行负载均衡（t0-t7）
-            const serverIndex = Math.floor(Math.random() * 8);
-            
-            // 添加天地图影像图层
-            viewer.imageryLayers.addImageryProvider(
-                new Cesium.WebMapTileServiceImageryProvider({
-                    url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                imageryProvider: new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t0.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "img",
                     style: "default",
                     format: "tiles",
                     tileMatrixSetID: "w",
                     credit: new Cesium.Credit("天地图"),
                     maximumLevel: 18
-                })
-            );
-            
+                }),
+                sceneMode: Cesium.SceneMode.SCENE3D
+            });
+
             // 添加天地图注记图层
             viewer.imageryLayers.addImageryProvider(
                 new Cesium.WebMapTileServiceImageryProvider({
-                    url: `https://t${serverIndex}.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    url: `https://t0.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "cia",
                     style: "default",
                     format: "tiles",
@@ -360,28 +382,24 @@ export default {
                     maximumLevel: 18
                 })
             );
-            
-            // 场景优化设置
+
+            // 场景优化
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#020617');
             viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000000');
             viewer.scene.skyAtmosphere.show = true;
             viewer.scene.skyAtmosphere.hueShift = -0.1;
-            viewer.scene.globe.enableLighting = false;  // 禁用光照以提升性能
-            viewer.scene.globe.showGroundAtmosphere = false;  // 禁用地面大气层
-            viewer.scene.fog.enabled = false;  // 禁用雾效
-            viewer.scene.sun.show = false;  // 隐藏太阳
-            viewer.scene.moon.show = false;  // 隐藏月亮
-            viewer.scene.skyBox.show = true;  // 保留星空背景
-            
-            // 性能优化：减少瓦片加载数量
-            viewer.scene.globe.maximumScreenSpaceError = 2;  // 默认2，增大可减少瓦片数量
-            viewer.scene.globe.tileCacheSize = 100;  // 瓦片缓存大小
+            viewer.scene.globe.enableLighting = false;
+            viewer.scene.globe.showGroundAtmosphere = false;
+            viewer.scene.fog.enabled = false;
+            viewer.scene.sun.show = false;
+            viewer.scene.moon.show = false;
+            viewer.scene.skyBox.show = true;
             
             viewer._cesiumWidget._creditContainer.style.display = "none";
 
-            // 设置初始视角：中国区域（从太空俯瞰）
+            // 设置初始视角
             viewer.camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(105.0, 35.0, 18000000),
+                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
                 orientation: {
                     heading: 0,
                     pitch: Cesium.Math.toRadians(-90),
@@ -399,6 +417,10 @@ export default {
             // 初始化航线图层
             routeLayer = new RouteLayer(viewer);
             console.log('🗺️ 航线图层初始化完成');
+            
+            // 初始化航线气象图层
+            routeWeatherLayer = new RouteWeatherLayer(viewer);
+            console.log('🌦️ 航线气象图层初始化完成');
 
             // 注释掉自动加载风场，改为手动点击按钮加载
             // updateWindVisibility(props.layerState);
@@ -520,7 +542,7 @@ export default {
                     console.log('   - 是否有 id:', pickedObject?.id);
                     console.log('   - id 类型:', pickedObject?.id?.constructor?.name);
                     
-                    // 检查是否点击了船舶
+                    // 检查是否点击了船舶或气象标记
                     if (Cesium.defined(pickedObject) && pickedObject.id) {
                         const entity = pickedObject.id;
                         
@@ -530,6 +552,39 @@ export default {
                         console.log('   - 有 billboard:', !!entity.billboard);
                         console.log('   - 有 polygon:', !!entity.polygon);
                         console.log('   - 有 properties:', !!entity.properties);
+                        
+                        // 如果点击的是气象标记
+                        if (entity.id && entity.id.startsWith('weather_marker_')) {
+                            console.log('🌦️ 点击了气象标记:', entity.id);
+                            
+                            // 从 entity 上直接读取存储的数据
+                            const weatherData = {
+                                weather: entity._weatherData,
+                                risk: entity._riskData
+                            };
+                            
+                            console.log('📦 气象数据:', weatherData);
+                            
+                            if (!weatherData.weather || !weatherData.risk) {
+                                console.error('❌ 气象数据不存在');
+                                return;
+                            }
+                            
+                            const details = routeWeatherLayer.showWeatherDetails(weatherData);
+                            
+                            // 关闭船舶信息窗口
+                            selectedShip.value = null;
+                            
+                            // 显示气象详情窗口
+                            selectedWeather.value = details;
+                            weatherInfoPosition.value = {
+                                x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
+                                y: Math.max(correctedPosition.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示气象详情:', details);
+                            return;
+                        }
                         
                         // 如果点击的是船舶（检查 id 是否以 ship_ 开头）
                         if (entity.id && entity.id.startsWith('ship_') && entity.billboard) {
@@ -688,16 +743,16 @@ export default {
                 
                 clickHandler = handler;
 
-                // 延迟1.5秒后，从中国飞到太平洋矿区
+                // 延迟1.5秒后，飞到太平洋矿区（适中高度，展示矿区全貌）
                 setTimeout(() => {
                     viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 18000000),
+                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
                         orientation: {
                             heading: 0,
                             pitch: Cesium.Math.toRadians(-90),
                             roll: 0
                         },
-                        duration: 4,
+                        duration: 3,
                         easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
                     });
                 }, 1500);
@@ -742,7 +797,7 @@ export default {
         const resetView = () => {
             if (!viewer) return;
             viewer.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
+                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
                 duration: 2
             });
         };
@@ -763,10 +818,10 @@ export default {
                 // 3D → 2D：切换到平面视图
                 viewer.scene.morphTo2D(1);
                 
-                // 切换到2D后，飞到理想视角（既能看到中国，又能看到太平洋矿区）
+                // 切换到2D后，飞到理想视角（太平洋矿区）
                 setTimeout(() => {
                     viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(150.0, 20.0, 25000000),
+                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 20000000),
                         orientation: {
                             heading: 0,
                             pitch: Cesium.Math.toRadians(-90),
@@ -782,7 +837,7 @@ export default {
                 // 切换到3D后，飞到太平洋矿区
                 setTimeout(() => {
                     viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 18000000),
+                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
                         orientation: {
                             heading: 0,
                             pitch: Cesium.Math.toRadians(-90),
@@ -1059,6 +1114,11 @@ export default {
                 trajectoryLayer.resumeAnimation();  // 恢复动画
             }
         };
+        
+        // 关闭气象信息窗口
+        const closeWeatherInfo = () => {
+            selectedWeather.value = null;
+        };
 
         // 切换路径规划面板
         const toggleRoutePlan = () => {
@@ -1089,6 +1149,10 @@ export default {
         const handleRouteCleared = () => {
             if (routeLayer) {
                 routeLayer.clearRoute();
+            }
+            if (routeWeatherLayer) {
+                routeWeatherLayer.clear();
+                console.log('🗑️ 气象数据已清除');
             }
         };
         
@@ -1303,6 +1367,164 @@ export default {
             }
         }, { deep: true });
         
+        // 监听历史轨迹绘制请求
+        watch(() => props.trackToDraw, (trackData) => {
+            if (!trackData || !viewer) return;
+            
+            console.log('📈 收到轨迹绘制请求:', trackData);
+            
+            if (trackData.action === 'draw' && trackData.track) {
+                // 先清除之前的轨迹（避免重复添加）
+                const existingTrack = viewer.entities.getById('ship-track');
+                if (existingTrack) viewer.entities.remove(existingTrack);
+                
+                const existingStart = viewer.entities.getById('track-start');
+                if (existingStart) viewer.entities.remove(existingStart);
+                
+                const existingEnd = viewer.entities.getById('track-end');
+                if (existingEnd) viewer.entities.remove(existingEnd);
+                
+                // 构建轨迹点位置数组
+                const positions = trackData.track.map(point => 
+                    Cesium.Cartesian3.fromDegrees(point.lng, point.lat)
+                );
+                
+                if (positions.length > 0) {
+                    // 绘制轨迹线 - 蓝色粗线
+                    viewer.entities.add({
+                        id: 'ship-track',
+                        name: `船舶轨迹 (MMSI: ${trackData.mmsi})`,
+                        polyline: {
+                            positions: positions,
+                            width: 6,
+                            material: new Cesium.PolylineGlowMaterialProperty({
+                                glowPower: 0.3,
+                                color: Cesium.Color.CYAN.withAlpha(0.95)
+                            }),
+                            clampToGround: false
+                        }
+                    });
+                    
+                    // 添加起点和终点标记
+                    const startPoint = trackData.track[0];
+                    const endPoint = trackData.track[trackData.track.length - 1];
+                    
+                    viewer.entities.add({
+                        id: 'track-start',
+                        position: Cesium.Cartesian3.fromDegrees(startPoint.lng, startPoint.lat),
+                        point: {
+                            pixelSize: 12,
+                            color: Cesium.Color.GREEN,
+                            outlineColor: Cesium.Color.WHITE,
+                            outlineWidth: 3
+                        },
+                        label: {
+                            text: '起点',
+                            font: '16px sans-serif',
+                            fillColor: Cesium.Color.WHITE,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 2,
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, -12)
+                        }
+                    });
+                    
+                    viewer.entities.add({
+                        id: 'track-end',
+                        position: Cesium.Cartesian3.fromDegrees(endPoint.lng, endPoint.lat),
+                        point: {
+                            pixelSize: 12,
+                            color: Cesium.Color.RED,
+                            outlineColor: Cesium.Color.WHITE,
+                            outlineWidth: 3
+                        },
+                        label: {
+                            text: '终点',
+                            font: '16px sans-serif',
+                            fillColor: Cesium.Color.WHITE,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 2,
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, -12)
+                        }
+                    });
+                    
+                    // 飞到轨迹视角
+                    setTimeout(() => {
+                        const trackEntity = viewer.entities.getById('ship-track');
+                        if (trackEntity) {
+                            viewer.flyTo(trackEntity, {
+                                duration: 2,
+                                offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), positions.length > 100 ? 500000 : 200000)
+                            });
+                        }
+                    }, 300);
+                    
+                    console.log(`✅ 已绘制 ${positions.length} 个轨迹点`);
+                }
+            } else if (trackData.action === 'clear') {
+                // 清除轨迹
+                const existingTrack = viewer.entities.getById('ship-track');
+                if (existingTrack) viewer.entities.remove(existingTrack);
+                
+                const existingStart = viewer.entities.getById('track-start');
+                if (existingStart) viewer.entities.remove(existingStart);
+                
+                const existingEnd = viewer.entities.getById('track-end');
+                if (existingEnd) viewer.entities.remove(existingEnd);
+                
+                console.log('🗑️ 轨迹已清除');
+            }
+        }, { deep: true });
+        
+        // 监听航线气象分析请求
+        watch(() => props.routeWeatherRequest, async (request) => {
+            if (!request || !routeWeatherLayer) return;
+            
+            console.log('🌦️ 收到航线气象分析请求:', request);
+            
+            try {
+                let stats;
+                
+                // 判断是刷新还是新分析
+                if (request.refresh && routeWeatherLayer.weatherData.length > 0) {
+                    // 刷新现有数据
+                    stats = await routeWeatherLayer.refreshWeatherData((current, total) => {
+                        console.log(`🔄 刷新气象数据进度: ${current}/${total}`);
+                    });
+                } else {
+                    // 执行新的气象分析
+                    stats = await routeWeatherLayer.analyzeRoute(request.route, (current, total) => {
+                        console.log(`⏳ 气象数据获取进度: ${current}/${total}`);
+                    });
+                }
+                
+                console.log('✅ 航线气象分析完成:', stats);
+                console.log(`   - 总采样点: ${stats.total}`);
+                console.log(`   - 安全: ${stats.safe}, 注意: ${stats.caution}, 警告: ${stats.warning}, 危险: ${stats.danger}`);
+                console.log(`   - 平均风速: ${stats.avgWindSpeed} m/s, 最大风速: ${stats.maxWindSpeed} m/s`);
+                console.log(`   - 平均浪高: ${stats.avgWaveHeight} m, 最大浪高: ${stats.maxWaveHeight} m`);
+                
+                // 发送气象数据给父组件
+                emit('weatherDataLoaded', {
+                    data: routeWeatherLayer.weatherData,
+                    stats: stats
+                });
+            } catch (error) {
+                console.error('❌ 航线气象分析失败:', error);
+            }
+        }, { deep: true });
+        
+        // 监听气象筛选条件变化
+        watch(() => props.weatherFilter, (filters) => {
+            if (routeWeatherLayer && filters) {
+                console.log('🔍 应用气象筛选:', filters);
+                routeWeatherLayer.filterMarkers(filters);
+            }
+        }, { deep: true });
+        
         // 根据图层状态更新风场显示
         const updateWindVisibility = async (layers) => {
             if (!viewer) return;
@@ -1403,6 +1625,10 @@ export default {
                 routeLayer.clearRoute();
                 routeLayer = null;
             }
+            if (routeWeatherLayer) {
+                routeWeatherLayer.clear();
+                routeWeatherLayer = null;
+            }
             if (windLayer) {
                 windLayer.destroy();
                 windLayer = null;
@@ -1426,6 +1652,9 @@ export default {
             selectedShip,
             shipInfoPosition,
             closeShipInfo,
+            selectedWeather,
+            weatherInfoPosition,
+            closeWeatherInfo,
             getShipTypeName,
             getNavigationStatus,
             isEtaExpired,
