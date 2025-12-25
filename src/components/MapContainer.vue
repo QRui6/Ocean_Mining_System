@@ -266,6 +266,8 @@ import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory
 import { ShipLayer } from '../utils/shipLayer.js';
 import { RouteLayer } from '../utils/routeLayer.js';
 import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
+import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
+import { WindyLayerManager } from '../utils/windyLayer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 
 export default {
@@ -355,6 +357,8 @@ export default {
             avoid: [],      // 避让点标记数组
             through: []     // 途经点标记数组
         }; // 选点标记
+        let owmLayerManager = null; // OpenWeatherMap 图层管理器
+        let windyLayerManager = null; // Windy 图层管理器
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
@@ -451,6 +455,14 @@ export default {
             // 初始化航线气象图层
             routeWeatherLayer = new RouteWeatherLayer(viewer);
             console.log('🌦️ 航线气象图层初始化完成');
+            
+            // 初始化 OpenWeatherMap 图层管理器
+            owmLayerManager = new OpenWeatherMapLayerManager(viewer);
+            console.log('🌍 OpenWeatherMap 图层管理器初始化完成');
+            
+            // 初始化 Windy 图层管理器
+            windyLayerManager = new WindyLayerManager(viewer);
+            console.log('🌪️ Windy 图层管理器初始化完成');
 
             // 注释掉自动加载风场，改为手动点击按钮加载
             // updateWindVisibility(props.layerState);
@@ -1323,7 +1335,7 @@ export default {
                     pickPointMarkerEntity = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(lng, lat),
                         billboard: {
-                            image: 'data:image/svg+xml;base64,' + btoa(`
+                            image: 'data:image/svg+xml;base64,' + window.btoa(`
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
                                     <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
                                     <circle cx="16" cy="16" r="6" fill="#fff"/>
@@ -1877,7 +1889,7 @@ export default {
                     const marker = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(lng, lat),
                         billboard: {
-                            image: 'data:image/svg+xml;base64,' + btoa(`
+                            image: 'data:image/svg+xml;base64,' + window.btoa(`
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
                                     <path d="M16 0C7.2 0 0 7.2 0 16c0 8.8 16 32 16 32s16-23.2 16-32C32 7.2 24.8 0 16 0z" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
                                     <circle cx="16" cy="16" r="6" fill="#fff"/>
@@ -1978,38 +1990,85 @@ export default {
         const updateWeatherLayersVisibility = async (weatherLayers) => {
             if (!viewer) return;
             
-            // 查找风场图层的状态
-            let windEnabled = false;
+            console.log('🌦️ 更新气象图层显示状态:', weatherLayers);
+            
+            // 处理 Windy 图层
             for (const group of weatherLayers) {
+                if (group.id === 'windy' && group.subLayers) {
+                    for (const subLayer of group.subLayers) {
+                        if (subLayer.type === 'windy' && subLayer.layer) {
+                            if (subLayer.active) {
+                                // 激活 Windy 图层
+                                if (!windyLayerManager) {
+                                    windyLayerManager = new WindyLayerManager(viewer);
+                                }
+                                console.log(`✅ 显示 Windy 图层: ${subLayer.label} (${subLayer.layer})`);
+                                await windyLayerManager.showLayer(subLayer.layer);
+                            } else {
+                                // 隐藏 Windy 图层
+                                if (windyLayerManager) {
+                                    console.log(`🙈 隐藏 Windy 图层: ${subLayer.label}`);
+                                    windyLayerManager.hideLayer();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 处理 OpenWeatherMap 图层
+                if (group.id === 'openweathermap' && group.subLayers) {
+                    if (!owmLayerManager) continue;
+                    
+                    for (const subLayer of group.subLayers) {
+                        if (subLayer.type === 'imagery' && subLayer.url) {
+                            if (subLayer.active) {
+                                // 激活图层：添加到地图
+                                if (!owmLayerManager.hasLayer(subLayer.id)) {
+                                    console.log(`✅ 添加 OpenWeatherMap 图层: ${subLayer.label}`);
+                                    owmLayerManager.addLayer(subLayer.id, subLayer.url, {
+                                        alpha: 0.7
+                                    });
+                                } else {
+                                    // 图层已存在，只需显示
+                                    owmLayerManager.toggleLayer(subLayer.id, true);
+                                }
+                            } else {
+                                // 取消激活：隐藏或移除图层
+                                if (owmLayerManager.hasLayer(subLayer.id)) {
+                                    console.log(`🙈 隐藏 OpenWeatherMap 图层: ${subLayer.label}`);
+                                    owmLayerManager.removeLayer(subLayer.id);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 处理基础气象图层（风场）
                 if (group.id === 'basic_weather' && group.active && group.subLayers) {
                     const windSub = group.subLayers.find(s => s.id === 'wind');
                     if (windSub && windSub.active) {
-                        windEnabled = true;
-                        break;
+                        // 需要显示风场
+                        if (!windLayer) {
+                            // 未初始化，初始化风场
+                            await initWindLayer();
+                            if (windLayer) {
+                                windLayer.show = true;
+                                showWind.value = true;
+                                viewer.scene.requestRenderMode = false;
+                            }
+                        } else {
+                            // 已初始化，显示风场
+                            windLayer.show = true;
+                            showWind.value = true;
+                            viewer.scene.requestRenderMode = false;
+                        }
+                    } else if (windLayer) {
+                        // 不需要显示，隐藏风场
+                        windLayer.show = false;
+                        showWind.value = false;
+                        viewer.scene.requestRenderMode = true;
                     }
                 }
-            }
-            
-            console.log('🌬️ 风场图层状态（气象图层控制）:', windEnabled);
-            
-            if (windEnabled && !windLayer) {
-                // 需要显示但未初始化，初始化风场
-                await initWindLayer();
-                if (windLayer) {
-                    windLayer.show = true;
-                    showWind.value = true;
-                    viewer.scene.requestRenderMode = false;
-                }
-            } else if (windEnabled && windLayer) {
-                // 需要显示且已初始化，显示风场
-                windLayer.show = true;
-                showWind.value = true;
-                viewer.scene.requestRenderMode = false;
-            } else if (!windEnabled && windLayer) {
-                // 不需要显示，隐藏风场
-                windLayer.show = false;
-                showWind.value = false;
-                viewer.scene.requestRenderMode = true;
             }
             
             // TODO: 处理其他气象图层（波浪、洋流、台风等）
@@ -2038,6 +2097,14 @@ export default {
             if (routeWeatherLayer) {
                 routeWeatherLayer.clear();
                 routeWeatherLayer = null;
+            }
+            if (owmLayerManager) {
+                owmLayerManager.clearAll();
+                owmLayerManager = null;
+            }
+            if (windyLayerManager) {
+                windyLayerManager.destroy();
+                windyLayerManager = null;
             }
             if (windLayer) {
                 windLayer.destroy();
@@ -2072,6 +2139,7 @@ export default {
             toggleRoutePlan,
             handleRoutePlanned,
             handleRouteCleared,
+            handlePickPoint,  // 暴露地图选点处理函数
             handleThresholdsChanged,  // 暴露阈值变化处理函数
             zoomIn,
             zoomOut,

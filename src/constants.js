@@ -129,8 +129,124 @@ export const TAB_TOOLS_MAPPING = {
     ]
 };
 
+// OpenWeatherMap API Key
+export const OPENWEATHERMAP_API_KEY = 'e38083a03cfa6c139f0067249c4f7b19';
+
 // 气象图层配置（分组结构，参考图层控制）
 export const WEATHER_LAYER_GROUPS = [
+    {
+        id: 'windy',
+        label: 'Windy 气象图层',
+        active: true,
+        subLayers: [
+            { 
+                id: 'windy_wind', 
+                label: '风场动画', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'wind'
+            },
+            { 
+                id: 'windy_temp', 
+                label: '温度分布', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'temp'
+            },
+            { 
+                id: 'windy_clouds', 
+                label: '云层覆盖', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'clouds'
+            },
+            { 
+                id: 'windy_rain', 
+                label: '降雨预报', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'rain'
+            },
+            { 
+                id: 'windy_waves', 
+                label: '海浪高度', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'waves'
+            },
+            { 
+                id: 'windy_pressure', 
+                label: '气压分布', 
+                active: false, 
+                hasTimeline: true, 
+                dataSource: 'Windy',
+                type: 'windy',
+                layer: 'pressure'
+            }
+        ]
+    },
+    {
+        id: 'openweathermap',
+        label: 'OpenWeatherMap',
+        active: true,
+        subLayers: [
+            { 
+                id: 'owm_clouds', 
+                label: '云层覆盖', 
+                active: false, 
+                hasTimeline: false, 
+                dataSource: 'OpenWeatherMap',
+                type: 'imagery',
+                url: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
+            },
+            { 
+                id: 'owm_precipitation', 
+                label: '降水分布', 
+                active: false, 
+                hasTimeline: false, 
+                dataSource: 'OpenWeatherMap',
+                type: 'imagery',
+                url: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
+            },
+            { 
+                id: 'owm_temp', 
+                label: '温度分布', 
+                active: false, 
+                hasTimeline: false, 
+                dataSource: 'OpenWeatherMap',
+                type: 'imagery',
+                url: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
+            },
+            { 
+                id: 'owm_wind', 
+                label: '风速分布', 
+                active: false, 
+                hasTimeline: false, 
+                dataSource: 'OpenWeatherMap',
+                type: 'imagery',
+                url: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
+            },
+            { 
+                id: 'owm_pressure', 
+                label: '气压分布', 
+                active: false, 
+                hasTimeline: false, 
+                dataSource: 'OpenWeatherMap',
+                type: 'imagery',
+                url: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
+            }
+        ]
+    },
     {
         id: 'basic_weather',
         label: '基础气象',
