@@ -1,0 +1,37 @@
+{
+  "source_file": "wav_halfday_global_20200101.nc",
+  "dims": {
+    "time": 5,
+    "latitude": 899,
+    "longitude": 1800
+  },
+  "grid": {
+    "lat_min": -89.80000305175781,
+    "lat_max": 89.80000305175781,
+    "lat_step": 0.20000457763671875,
+    "lon_min": -180.0,
+    "lon_max": 179.8000030517578,
+    "lon_step": 0.1999969482421875,
+    "lat_size": 899,
+    "lon_size": 1800
+  },
+  "time": [
+    "2020-01-01T00:00:00.000000000",
+    "2020-01-01T03:00:00.000000000",
+    "2020-01-01T06:00:00.000000000",
+    "2020-01-01T09:00:00.000000000",
+    "2020-01-01T12:00:00.000000000"
+  ],
+  "variables": {
+    "hs": "VHM0",
+    "dir_from": "VMDR",
+    "stokes_u": "VSDX",
+    "stokes_v": "VSDY",
+    "units": {
+      "hs": "m",
+      "dir_from": "degree",
+      "stokes_u": "m s-1",
+      "stokes_v": "m s-1"
+    }
+  }
+}

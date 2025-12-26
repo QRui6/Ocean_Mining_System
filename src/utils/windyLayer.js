@@ -29,13 +29,19 @@ export class WindyLayerManager {
         try {
             console.log('🌪️ 开始初始化 Windy API...');
 
-            // 动态加载 Windy API
+            // 1. 先加载依赖脚本
             await this.loadWindyScript();
 
-            // 获取 Cesium 相机位置
+            // 2. 创建 Windy 容器（必须在 windyInit 之前）
+            this.createWindyContainer();
+
+            // 3. 等待容器渲染
+            await this.waitForContainerReady();
+
+            // 4. 获取 Cesium 相机位置
             const center = this.getCesiumCenter();
 
-            // 初始化 Windy 地图配置
+            // 5. 初始化 Windy 地图配置
             const options = {
                 key: this.windyKey,
                 lat: center.lat,
@@ -45,34 +51,29 @@ export class WindyLayerManager {
 
             console.log('🌪️ Windy 初始化参数:', options);
 
-            // 创建 Windy 容器
-            if (!this.windyContainer) {
-                this.windyContainer = document.createElement('div');
-                this.windyContainer.id = 'windy';
-                this.windyContainer.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    pointer-events: none;
-                    z-index: 1;
-                `;
-                this.viewer.container.appendChild(this.windyContainer);
-            }
+            // 6. 使用 Windy API 初始化（包装成 Promise）
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Windy 初始化超时'));
+                }, 10000);
 
-            // 使用 Windy API 初始化
-            window.windyInit(options, (windyAPI) => {
-                this.windyAPI = windyAPI;
-                this.windyMap = windyAPI.map;
-                
-                console.log('✅ Windy API 初始化成功');
-                console.log('   - 可用图层:', windyAPI.store.getAllowed('overlay'));
-                
-                this.isInitialized = true;
+                window.windyInit(options, (windyAPI) => {
+                    clearTimeout(timeout);
+                    
+                    this.windyAPI = windyAPI;
+                    this.windyMap = windyAPI.map;
+                    
+                    console.log('✅ Windy API 初始化成功');
+                    console.log('   - 可用图层:', windyAPI.store.getAllowed('overlay'));
+                    console.log('   - Windy 地图对象:', this.windyMap);
+                    
+                    this.isInitialized = true;
 
-                // 同步 Cesium 和 Windy 的视角
-                this.startSync();
+                    // 同步 Cesium 和 Windy 的视角
+                    this.startSync();
+                    
+                    resolve();
+                });
             });
 
         } catch (error) {
@@ -82,10 +83,55 @@ export class WindyLayerManager {
     }
 
     /**
+     * 创建 Windy 容器
+     */
+    createWindyContainer() {
+        if (this.windyContainer) {
+            console.log('✅ Windy 容器已存在');
+            return;
+        }
+
+        console.log('📦 创建 Windy 容器...');
+        
+        this.windyContainer = document.createElement('div');
+        this.windyContainer.id = 'windy';
+        this.windyContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        `;
+        
+        // 添加到 body，而不是 Cesium 容器内
+        document.body.appendChild(this.windyContainer);
+        
+        console.log('✅ Windy 容器已创建并添加到 DOM');
+        console.log('   - 容器尺寸:', this.windyContainer.offsetWidth, 'x', this.windyContainer.offsetHeight);
+    }
+
+    /**
+     * 等待容器准备就绪
+     */
+    waitForContainerReady() {
+        return new Promise((resolve) => {
+            // 使用 requestAnimationFrame 确保容器已渲染
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    console.log('✅ Windy 容器已准备就绪');
+                    resolve();
+                });
+            });
+        });
+    }
+
+    /**
      * 动态加载 Windy API 脚本
      */
     loadWindyScript() {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // 检查是否已加载
             if (window.windyInit) {
                 console.log('✅ Windy 脚本已加载');
@@ -93,28 +139,103 @@ export class WindyLayerManager {
                 return;
             }
 
-            console.log('⏳ 开始加载 Windy 脚本...');
+            try {
+                // 1. 先加载 Leaflet CSS
+                await this.loadLeafletCSS();
+                
+                // 2. 再加载 Leaflet JS
+                await this.loadLeafletJS();
+                
+                // 3. 最后加载 Windy 脚本
+                console.log('⏳ 开始加载 Windy 脚本...');
+                const script = document.createElement('script');
+                script.src = 'https://api.windy.com/assets/map-forecast/libBoot.js';
+                script.async = true;
+                
+                script.onload = () => {
+                    console.log('✅ Windy 脚本加载成功，等待初始化...');
+                    // 等待 windyInit 函数可用
+                    setTimeout(() => {
+                        if (window.windyInit) {
+                            console.log('✅ windyInit 函数已就绪');
+                            resolve();
+                        } else {
+                            console.error('❌ windyInit 函数不可用');
+                            reject(new Error('Windy 脚本加载失败'));
+                        }
+                    }, 1000);
+                };
+                
+                script.onerror = () => {
+                    console.error('❌ Windy 脚本加载失败');
+                    reject(new Error('Windy 脚本加载失败'));
+                };
+                
+                document.head.appendChild(script);
+            } catch (error) {
+                console.error('❌ 加载依赖失败:', error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * 加载 Leaflet CSS
+     */
+    loadLeafletCSS() {
+        return new Promise((resolve, reject) => {
+            // 检查是否已加载
+            const existingLink = document.querySelector('link[href*="leaflet.css"]');
+            if (existingLink) {
+                console.log('✅ Leaflet CSS 已加载');
+                resolve();
+                return;
+            }
+
+            console.log('⏳ 开始加载 Leaflet CSS...');
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.4.0/dist/leaflet.css';
+            
+            link.onload = () => {
+                console.log('✅ Leaflet CSS 加载成功');
+                resolve();
+            };
+            
+            link.onerror = () => {
+                console.error('❌ Leaflet CSS 加载失败');
+                reject(new Error('Leaflet CSS 加载失败'));
+            };
+            
+            document.head.appendChild(link);
+        });
+    }
+
+    /**
+     * 加载 Leaflet JS
+     */
+    loadLeafletJS() {
+        return new Promise((resolve, reject) => {
+            // 检查是否已加载
+            if (window.L) {
+                console.log('✅ Leaflet JS 已加载');
+                resolve();
+                return;
+            }
+
+            console.log('⏳ 开始加载 Leaflet JS...');
             const script = document.createElement('script');
-            script.src = 'https://api.windy.com/assets/map-forecast/libBoot.js';
+            script.src = 'https://unpkg.com/leaflet@1.4.0/dist/leaflet.js';
             script.async = true;
             
             script.onload = () => {
-                console.log('✅ Windy 脚本加载成功，等待初始化...');
-                // 简单等待 1 秒让脚本完全初始化
-                setTimeout(() => {
-                    if (window.windyInit) {
-                        console.log('✅ windyInit 函数已就绪');
-                        resolve();
-                    } else {
-                        console.error('❌ windyInit 函数不可用');
-                        reject(new Error('Windy 脚本加载失败'));
-                    }
-                }, 1000);
+                console.log('✅ Leaflet JS 加载成功');
+                resolve();
             };
             
             script.onerror = () => {
-                console.error('❌ Windy 脚本加载失败');
-                reject(new Error('Windy 脚本加载失败'));
+                console.error('❌ Leaflet JS 加载失败');
+                reject(new Error('Leaflet JS 加载失败'));
             };
             
             document.head.appendChild(script);
@@ -177,6 +298,8 @@ export class WindyLayerManager {
                 const center = this.getCesiumCenter();
                 const zoom = this.getCesiumZoom();
                 
+                console.log(`🔄 同步视角: lat=${center.lat.toFixed(2)}, lon=${center.lon.toFixed(2)}, zoom=${zoom}`);
+                
                 // 更新 Windy 地图视角
                 this.windyMap.setView([center.lat, center.lon], zoom);
             }
@@ -190,7 +313,10 @@ export class WindyLayerManager {
      * @param {String} layerName - 图层名称 (wind, temp, clouds, rain, waves, pressure)
      */
     async showLayer(layerName) {
+        console.log(`🌪️ 请求显示 Windy 图层: ${layerName}`);
+        
         if (!this.isInitialized) {
+            console.log('⏳ Windy 未初始化，开始初始化...');
             await this.initialize();
         }
 
@@ -200,7 +326,7 @@ export class WindyLayerManager {
         }
 
         try {
-            console.log(`🌪️ 显示 Windy 图层: ${layerName}`);
+            console.log(`🎨 设置 Windy 图层: ${layerName}`);
 
             // 设置图层
             this.windyAPI.store.set('overlay', layerName);
@@ -209,6 +335,7 @@ export class WindyLayerManager {
             // 显示容器
             if (this.windyContainer) {
                 this.windyContainer.style.display = 'block';
+                console.log('👁️ Windy 容器已显示');
             }
 
             console.log(`✅ Windy 图层 "${layerName}" 已显示`);
@@ -221,11 +348,10 @@ export class WindyLayerManager {
      * 隐藏当前 Windy 图层
      */
     hideLayer() {
-        if (this.windyContainer) {
-            this.windyContainer.style.display = 'none';
-        }
+        // 不要隐藏容器，只是清除当前图层
+        // 容器应该保持显示，除非明确调用 destroy()
         this.currentLayer = null;
-        console.log('✅ Windy 图层已隐藏');
+        console.log('✅ Windy 当前图层已清除（容器保持显示）');
     }
 
     /**

@@ -1,0 +1,68 @@
+{
+  "source": {
+    "product_id": "GLOBAL_MULTIYEAR_PHY_001_030",
+    "dataset_id": "cmems_mod_glo_phy_my_0.083deg_P1D-m",
+    "note": "Downloaded via copernicusmarine subset (daily mean GLORYS12V1)."
+  },
+  "grid": {
+    "lat_min": -80.0,
+    "lat_max": 90.0,
+    "lat_step": 0.08333587646484375,
+    "lon_min": -180.0,
+    "lon_max": 179.9166717529297,
+    "lon_step": 0.0833282470703125,
+    "lat_size": 2041,
+    "lon_size": 4320,
+    "order": "C",
+    "shape": [
+      "lat",
+      "lon"
+    ]
+  },
+  "time": {
+    "count": 2,
+    "values": [
+      "2020-01-01T00:00:00",
+      "2020-01-02T00:00:00"
+    ],
+    "timezone": "UTC",
+    "step_hint": "P1D (daily mean)"
+  },
+  "depth": 0.49402499198913574,
+  "variables": {
+    "uo": {
+      "units": "m s-1",
+      "meaning": "eastward_sea_water_velocity"
+    },
+    "vo": {
+      "units": "m s-1",
+      "meaning": "northward_sea_water_velocity"
+    },
+    "speed": {
+      "units": "m s-1",
+      "meaning": "hypot(uo, vo)"
+    },
+    "dir_u": {
+      "units": "1",
+      "meaning": "normalized u component (uo/speed)"
+    },
+    "dir_v": {
+      "units": "1",
+      "meaning": "normalized v component (vo/speed)"
+    }
+  },
+  "missing_value": -9999.0,
+  "indexing": {
+    "linear_index": "idx = i*lon_size + j",
+    "lat_formula": "lat(i) = lat_min + i*lat_step",
+    "lon_formula": "lon(j) = lon_min + j*lon_step"
+  },
+  "advection_note": {
+    "unit": "uo/vo are m/s",
+    "to_degrees_per_second": {
+      "dlat_deg_s": "v / R * 180/pi",
+      "dlon_deg_s": "u / (R*cos(lat)) * 180/pi",
+      "R_m": 6371000
+    }
+  }
+}
