@@ -268,6 +268,8 @@ import { RouteLayer } from '../utils/routeLayer.js';
 import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
 import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
+import { WindyApiLayer } from '../utils/windyApiLayer.js';
+import { WindyPointVisualizer } from '../utils/windyPointVisualizer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 
 export default {
@@ -358,7 +360,9 @@ export default {
             through: []     // 途经点标记数组
         }; // 选点标记
         let owmLayerManager = null; // OpenWeatherMap 图层管理器
-        let windyLayerManager = null; // Windy 图层管理器
+        let windyLayerManager = null; // Windy 图层管理器（OpenWeatherMap瓦片）
+        let windyApiLayer = null; // Windy API 图层（实时动态数据）
+        let windyPointVisualizer = null; // Windy Point Forecast 可视化器（网格点数据）
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
@@ -1995,22 +1999,37 @@ export default {
             // 处理 Windy 图层
             for (const group of weatherLayers) {
                 if (group.id === 'windy' && group.subLayers) {
-                    for (const subLayer of group.subLayers) {
-                        if (subLayer.type === 'windy' && subLayer.layer) {
-                            if (subLayer.active) {
-                                // 激活 Windy 图层
-                                if (!windyLayerManager) {
-                                    windyLayerManager = new WindyLayerManager(viewer);
-                                }
-                                console.log(`✅ 显示 Windy 图层: ${subLayer.label} (${subLayer.layer})`);
-                                await windyLayerManager.showLayer(subLayer.layer);
-                            } else {
-                                // 隐藏 Windy 图层
-                                if (windyLayerManager) {
-                                    console.log(`🙈 隐藏 Windy 图层: ${subLayer.label}`);
-                                    windyLayerManager.hideLayer();
-                                }
-                            }
+                    // 检查是否有激活的 Windy 子图层
+                    const activeWindyLayer = group.subLayers.find(sub => sub.active && sub.type === 'windy');
+                    
+                    if (activeWindyLayer) {
+                        console.log(`✅ 激活 Windy 图层: ${activeWindyLayer.label} (${activeWindyLayer.layer})`);
+                        
+                        // 方案选择：使用 Point Forecast 可视化（无需 Leaflet）
+                        if (!windyPointVisualizer) {
+                            console.log('🌪️ 初始化 Windy Point Forecast 可视化器');
+                            windyPointVisualizer = new WindyPointVisualizer(viewer);
+                        }
+                        
+                        // 根据图层类型显示网格
+                        const typeMapping = {
+                            'wind': 'wind',
+                            'temp': 'temp',
+                            'pressure': 'pressure'
+                        };
+                        
+                        const visualType = typeMapping[activeWindyLayer.layer];
+                        if (visualType) {
+                            console.log(`📊 显示 ${visualType} 网格可视化`);
+                            await windyPointVisualizer.showGrid(visualType);
+                        } else {
+                            console.warn(`⚠️ 图层 ${activeWindyLayer.layer} 暂不支持 Point Forecast 可视化`);
+                        }
+                    } else {
+                        // 没有激活的 Windy 图层，清除可视化
+                        if (windyPointVisualizer) {
+                            console.log(`🙈 清除 Windy Point Forecast 可视化`);
+                            windyPointVisualizer.clear();
                         }
                     }
                 }
@@ -2105,6 +2124,14 @@ export default {
             if (windyLayerManager) {
                 windyLayerManager.destroy();
                 windyLayerManager = null;
+            }
+            if (windyApiLayer) {
+                windyApiLayer.destroy();
+                windyApiLayer = null;
+            }
+            if (windyPointVisualizer) {
+                windyPointVisualizer.clear();
+                windyPointVisualizer = null;
             }
             if (windLayer) {
                 windLayer.destroy();
