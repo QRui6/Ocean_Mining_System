@@ -1,6 +1,6 @@
 /**
- * 气象图层管理器 - 使用 OpenWeatherMap
- * OpenWeatherMap 提供实时气象瓦片数据，支持 API Key
+ * Windy 图层管理器
+ * 用于在 Cesium 地图上集成 Windy 气象图层
  */
 
 import * as Cesium from 'cesium';
@@ -8,123 +8,350 @@ import * as Cesium from 'cesium';
 export class WindyLayerManager {
     constructor(viewer) {
         this.viewer = viewer;
-        this.currentLayers = new Map(); // 存储当前激活的图层
-        // 使用 OpenWeatherMap API Key（从环境变量获取）
-        this.apiKey = import.meta.env.VITE_OPENWEATHERMAP_API_KEY || '4e2486228d2e4e8e8e2486228d2e4e8e';
+        this.windyAPI = null;
+        this.windyMap = null;
+        this.currentLayer = null;
+        this.isInitialized = false;
+        this.windyKey = import.meta.env.VITE_WINDY_API_KEY;
+        this.windyContainer = null;
+        this.syncInterval = null;
     }
 
     /**
-     * 显示指定的气象图层
-     * @param {String} layerName - 图层名称 (wind, temp, clouds, rain, pressure)
+     * 初始化 Windy API
      */
-    async showLayer(layerName) {
-        try {
-            console.log(`🌪️ 显示气象图层: ${layerName}`);
+    async initialize() {
+        if (this.isInitialized) {
+            console.log('✅ Windy 已初始化');
+            return;
+        }
 
-            // 如果图层已存在，直接显示
-            if (this.currentLayers.has(layerName)) {
-                const layer = this.currentLayers.get(layerName);
-                layer.show = true;
-                console.log(`✅ 气象图层 "${layerName}" 已显示（复用现有图层）`);
-                console.log(`   - 图层索引: ${this.viewer.imageryLayers.indexOf(layer)}`);
-                console.log(`   - 透明度: ${layer.alpha}`);
-                console.log(`   - 显示状态: ${layer.show}`);
+        try {
+            console.log('🌪️ 开始初始化 Windy API...');
+
+            // 1. 先加载依赖脚本
+            await this.loadWindyScript();
+
+            // 2. 创建 Windy 容器（必须在 windyInit 之前）
+            this.createWindyContainer();
+
+            // 3. 等待容器渲染
+            await this.waitForContainerReady();
+
+            // 4. 获取 Cesium 相机位置
+            const center = this.getCesiumCenter();
+
+            // 5. 初始化 Windy 地图配置
+            const options = {
+                key: this.windyKey,
+                lat: center.lat,
+                lon: center.lon,
+                zoom: this.getCesiumZoom()
+            };
+
+            console.log('🌪️ Windy 初始化参数:', options);
+
+            // 6. 使用 Windy API 初始化（包装成 Promise）
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Windy 初始化超时'));
+                }, 10000);
+
+                window.windyInit(options, (windyAPI) => {
+                    clearTimeout(timeout);
+                    
+                    this.windyAPI = windyAPI;
+                    this.windyMap = windyAPI.map;
+                    
+                    console.log('✅ Windy API 初始化成功');
+                    console.log('   - 可用图层:', windyAPI.store.getAllowed('overlay'));
+                    console.log('   - Windy 地图对象:', this.windyMap);
+                    
+                    this.isInitialized = true;
+
+                    // 同步 Cesium 和 Windy 的视角
+                    this.startSync();
+                    
+                    resolve();
+                });
+            });
+
+        } catch (error) {
+            console.error('❌ Windy 初始化失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 创建 Windy 容器
+     */
+    createWindyContainer() {
+        if (this.windyContainer) {
+            console.log('✅ Windy 容器已存在');
+            return;
+        }
+
+        console.log('📦 创建 Windy 容器...');
+        
+        this.windyContainer = document.createElement('div');
+        this.windyContainer.id = 'windy';
+        this.windyContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        `;
+        
+        // 添加到 body，而不是 Cesium 容器内
+        document.body.appendChild(this.windyContainer);
+        
+        console.log('✅ Windy 容器已创建并添加到 DOM');
+        console.log('   - 容器尺寸:', this.windyContainer.offsetWidth, 'x', this.windyContainer.offsetHeight);
+    }
+
+    /**
+     * 等待容器准备就绪
+     */
+    waitForContainerReady() {
+        return new Promise((resolve) => {
+            // 使用 requestAnimationFrame 确保容器已渲染
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    console.log('✅ Windy 容器已准备就绪');
+                    resolve();
+                });
+            });
+        });
+    }
+
+    /**
+     * 动态加载 Windy API 脚本
+     */
+    loadWindyScript() {
+        return new Promise(async (resolve, reject) => {
+            // 检查是否已加载
+            if (window.windyInit) {
+                console.log('✅ Windy 脚本已加载');
+                resolve();
                 return;
             }
 
-            // 创建新的图层
-            const imageryLayer = this.createWeatherLayer(layerName);
-            
-            if (imageryLayer) {
-                this.currentLayers.set(layerName, imageryLayer);
-                console.log(`✅ 气象图层 "${layerName}" 已创建并显示`);
-                console.log(`   - 图层索引: ${this.viewer.imageryLayers.indexOf(imageryLayer)}`);
-                console.log(`   - 透明度: ${imageryLayer.alpha}`);
-                console.log(`   - 显示状态: ${imageryLayer.show}`);
-                console.log(`   - 总图层数: ${this.viewer.imageryLayers.length}`);
+            try {
+                // 1. 先加载 Leaflet CSS
+                await this.loadLeafletCSS();
+                
+                // 2. 再加载 Leaflet JS
+                await this.loadLeafletJS();
+                
+                // 3. 最后加载 Windy 脚本
+                console.log('⏳ 开始加载 Windy 脚本...');
+                const script = document.createElement('script');
+                script.src = 'https://api.windy.com/assets/map-forecast/libBoot.js';
+                script.async = true;
+                
+                script.onload = () => {
+                    console.log('✅ Windy 脚本加载成功，等待初始化...');
+                    // 等待 windyInit 函数可用
+                    setTimeout(() => {
+                        if (window.windyInit) {
+                            console.log('✅ windyInit 函数已就绪');
+                            resolve();
+                        } else {
+                            console.error('❌ windyInit 函数不可用');
+                            reject(new Error('Windy 脚本加载失败'));
+                        }
+                    }, 1000);
+                };
+                
+                script.onerror = () => {
+                    console.error('❌ Windy 脚本加载失败');
+                    reject(new Error('Windy 脚本加载失败'));
+                };
+                
+                document.head.appendChild(script);
+            } catch (error) {
+                console.error('❌ 加载依赖失败:', error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * 加载 Leaflet CSS
+     */
+    loadLeafletCSS() {
+        return new Promise((resolve, reject) => {
+            // 检查是否已加载
+            const existingLink = document.querySelector('link[href*="leaflet.css"]');
+            if (existingLink) {
+                console.log('✅ Leaflet CSS 已加载');
+                resolve();
+                return;
             }
 
-        } catch (error) {
-            console.error(`❌ 显示气象图层失败:`, error);
-        }
+            console.log('⏳ 开始加载 Leaflet CSS...');
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.4.0/dist/leaflet.css';
+            
+            link.onload = () => {
+                console.log('✅ Leaflet CSS 加载成功');
+                resolve();
+            };
+            
+            link.onerror = () => {
+                console.error('❌ Leaflet CSS 加载失败');
+                reject(new Error('Leaflet CSS 加载失败'));
+            };
+            
+            document.head.appendChild(link);
+        });
     }
 
     /**
-     * 创建气象瓦片图层
-     * @param {String} layerName - 图层名称
-     * @returns {Cesium.ImageryLayer} Cesium 图层对象
+     * 加载 Leaflet JS
      */
-    createWeatherLayer(layerName) {
-        // 映射图层名称到 OpenWeatherMap 的图层代码
-        const layerMapping = {
-            'wind': 'wind_new',
-            'temp': 'temp_new',
-            'clouds': 'clouds_new',
-            'rain': 'precipitation_new',
-            'pressure': 'pressure_new',
-            'waves': 'wind_new' // OpenWeatherMap 没有海浪数据，用风速代替
+    loadLeafletJS() {
+        return new Promise((resolve, reject) => {
+            // 检查是否已加载
+            if (window.L) {
+                console.log('✅ Leaflet JS 已加载');
+                resolve();
+                return;
+            }
+
+            console.log('⏳ 开始加载 Leaflet JS...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.4.0/dist/leaflet.js';
+            script.async = true;
+            
+            script.onload = () => {
+                console.log('✅ Leaflet JS 加载成功');
+                resolve();
+            };
+            
+            script.onerror = () => {
+                console.error('❌ Leaflet JS 加载失败');
+                reject(new Error('Leaflet JS 加载失败'));
+            };
+            
+            document.head.appendChild(script);
+        });
+    }
+
+    /**
+     * 获取 Cesium 相机中心点
+     */
+    getCesiumCenter() {
+        const camera = this.viewer.camera;
+        const ellipsoid = this.viewer.scene.globe.ellipsoid;
+        const windowPosition = new Cesium.Cartesian2(
+            this.viewer.canvas.clientWidth / 2,
+            this.viewer.canvas.clientHeight / 2
+        );
+        const ray = camera.getPickRay(windowPosition);
+        const cartesian = this.viewer.scene.globe.pick(ray, this.viewer.scene);
+
+        if (cartesian) {
+            const cartographic = ellipsoid.cartesianToCartographic(cartesian);
+            return {
+                lat: Cesium.Math.toDegrees(cartographic.latitude),
+                lon: Cesium.Math.toDegrees(cartographic.longitude)
+            };
+        }
+
+        // 默认返回当前相机位置
+        const cameraCartographic = camera.positionCartographic;
+        return {
+            lat: Cesium.Math.toDegrees(cameraCartographic.latitude),
+            lon: Cesium.Math.toDegrees(cameraCartographic.longitude)
         };
+    }
 
-        const owmLayer = layerMapping[layerName] || 'temp_new';
+    /**
+     * 获取 Cesium 缩放级别（转换为 Leaflet zoom）
+     */
+    getCesiumZoom() {
+        const camera = this.viewer.camera;
+        const height = camera.positionCartographic.height;
         
-        // OpenWeatherMap 瓦片服务 URL
-        const tileUrl = `https://tile.openweathermap.org/map/${owmLayer}/{z}/{x}/{y}.png?appid=${this.apiKey}`;
+        // 将 Cesium 高度转换为 Leaflet zoom level
+        // Leaflet zoom 公式: zoom = log2(earthCircumference / (tileSize * metersPerPixel))
+        const earthCircumference = 40075017; // 地球周长（米）
+        const tileSize = 256;
+        const metersPerPixel = height / this.viewer.canvas.clientHeight;
+        const zoom = Math.log2(earthCircumference / (tileSize * metersPerPixel));
+        
+        return Math.max(1, Math.min(18, Math.round(zoom)));
+    }
 
-        console.log(`📍 创建气象瓦片图层:`);
-        console.log(`   - 图层名称: ${layerName}`);
-        console.log(`   - OWM 图层: ${owmLayer}`);
-        console.log(`   - 瓦片 URL: ${tileUrl.replace(this.apiKey, '***')}`);
-
-        // 创建 UrlTemplateImageryProvider
-        const provider = new Cesium.UrlTemplateImageryProvider({
-            url: tileUrl,
-            maximumLevel: 15, // OpenWeatherMap 支持更高的缩放级别
-            minimumLevel: 0,
-            tilingScheme: new Cesium.WebMercatorTilingScheme(),
-            credit: new Cesium.Credit('OpenWeatherMap', false)
+    /**
+     * 同步 Cesium 和 Windy 的视角
+     */
+    startSync() {
+        // 监听 Cesium 相机移动
+        this.viewer.camera.moveEnd.addEventListener(() => {
+            if (this.windyMap && this.isInitialized) {
+                const center = this.getCesiumCenter();
+                const zoom = this.getCesiumZoom();
+                
+                console.log(`🔄 同步视角: lat=${center.lat.toFixed(2)}, lon=${center.lon.toFixed(2)}, zoom=${zoom}`);
+                
+                // 更新 Windy 地图视角
+                this.windyMap.setView([center.lat, center.lon], zoom);
+            }
         });
 
-        console.log(`   - Provider 已创建`);
-
-        // 添加到 Cesium 图层
-        const imageryLayer = this.viewer.imageryLayers.addImageryProvider(provider);
-        
-        console.log(`   - 图层已添加到 viewer`);
-        
-        // 设置透明度和其他属性
-        imageryLayer.alpha = 0.7; // 70% 透明度
-        imageryLayer.brightness = 1.0;
-        imageryLayer.contrast = 1.0;
-        imageryLayer.show = true;
-
-        console.log(`   - 图层属性已设置 (alpha: ${imageryLayer.alpha})`);
-
-        return imageryLayer;
+        console.log('✅ Cesium-Windy 视角同步已启动');
     }
 
     /**
-     * 隐藏指定图层
-     * @param {String} layerName - 图层名称
+     * 显示指定的 Windy 图层
+     * @param {String} layerName - 图层名称 (wind, temp, clouds, rain, waves, pressure)
      */
-    hideLayer(layerName) {
-        if (this.currentLayers.has(layerName)) {
-            const layer = this.currentLayers.get(layerName);
-            layer.show = false;
-            console.log(`✅ 气象图层 "${layerName}" 已隐藏`);
+    async showLayer(layerName) {
+        console.log(`🌪️ 请求显示 Windy 图层: ${layerName}`);
+        
+        if (!this.isInitialized) {
+            console.log('⏳ Windy 未初始化，开始初始化...');
+            await this.initialize();
+        }
+
+        if (!this.windyAPI) {
+            console.error('❌ Windy API 未初始化');
+            return;
+        }
+
+        try {
+            console.log(`🎨 设置 Windy 图层: ${layerName}`);
+
+            // 设置图层
+            this.windyAPI.store.set('overlay', layerName);
+            this.currentLayer = layerName;
+
+            // 显示容器
+            if (this.windyContainer) {
+                this.windyContainer.style.display = 'block';
+                console.log('👁️ Windy 容器已显示');
+            }
+
+            console.log(`✅ Windy 图层 "${layerName}" 已显示`);
+        } catch (error) {
+            console.error(`❌ 显示 Windy 图层失败:`, error);
         }
     }
 
     /**
-     * 移除指定图层
-     * @param {String} layerName - 图层名称
+     * 隐藏当前 Windy 图层
      */
-    removeLayer(layerName) {
-        if (this.currentLayers.has(layerName)) {
-            const layer = this.currentLayers.get(layerName);
-            this.viewer.imageryLayers.remove(layer);
-            this.currentLayers.delete(layerName);
-            console.log(`✅ 气象图层 "${layerName}" 已移除`);
-        }
+    hideLayer() {
+        // 不要隐藏容器，只是清除当前图层
+        // 容器应该保持显示，除非明确调用 destroy()
+        this.currentLayer = null;
+        console.log('✅ Windy 当前图层已清除（容器保持显示）');
     }
 
     /**
@@ -136,48 +363,27 @@ export class WindyLayerManager {
         if (visible) {
             await this.showLayer(layerName);
         } else {
-            this.hideLayer(layerName);
+            this.hideLayer();
         }
     }
 
     /**
-     * 设置图层透明度
-     * @param {String} layerName - 图层名称
-     * @param {Number} alpha - 透明度 (0-1)
-     */
-    setLayerAlpha(layerName, alpha) {
-        if (this.currentLayers.has(layerName)) {
-            const layer = this.currentLayers.get(layerName);
-            layer.alpha = alpha;
-            console.log(`✅ 气象图层 "${layerName}" 透明度已设置为 ${alpha}`);
-        }
-    }
-
-    /**
-     * 获取所有激活的图层
-     * @returns {Array} 图层名称数组
-     */
-    getActiveLayers() {
-        return Array.from(this.currentLayers.keys());
-    }
-
-    /**
-     * 清除所有图层
-     */
-    clearAllLayers() {
-        this.currentLayers.forEach((layer, name) => {
-            this.viewer.imageryLayers.remove(layer);
-            console.log(`✅ 气象图层 "${name}" 已移除`);
-        });
-        this.currentLayers.clear();
-        console.log('✅ 所有气象图层已清除');
-    }
-
-    /**
-     * 销毁图层管理器
+     * 销毁 Windy 图层
      */
     destroy() {
-        this.clearAllLayers();
-        console.log('✅ 气象图层管理器已销毁');
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+
+        if (this.windyContainer && this.windyContainer.parentNode) {
+            this.windyContainer.parentNode.removeChild(this.windyContainer);
+        }
+
+        this.windyAPI = null;
+        this.windyMap = null;
+        this.currentLayer = null;
+        this.isInitialized = false;
+
+        console.log('✅ Windy 图层管理器已销毁');
     }
 }

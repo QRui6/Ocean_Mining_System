@@ -262,14 +262,14 @@ import { loadGeoJson } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
 // 使用官方 cesium-wind-layer 插件
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
+import { loadGlobalWaveData } from '../utils/waveDataLoader.js';
+import { loadGlobalOceanCurrentData } from '../utils/oceanCurrentLoader.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 import { ShipLayer } from '../utils/shipLayer.js';
 import { RouteLayer } from '../utils/routeLayer.js';
 import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
 import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
-import { WindyApiLayer } from '../utils/windyApiLayer.js';
-import { WindyPointVisualizer } from '../utils/windyPointVisualizer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 
 export default {
@@ -343,6 +343,10 @@ export default {
         let previousEntity = null; // 存储上一个选中的实体
         let windLayer = null; // 风场图层实例
         const showWind = ref(false); // 风场显示状态
+        let waveLayer = null; // 波浪图层实例
+        const showWave = ref(false); // 波浪显示状态
+        let oceanCurrentLayer = null; // 洋流图层实例
+        const showOceanCurrent = ref(false); // 洋流显示状态
         let trajectoryLayer = null; // 轨迹图层实例
         const showTrajectory = ref(false); // 轨迹显示状态
         const selectedShip = ref(null); // 选中的船舶信息
@@ -360,9 +364,7 @@ export default {
             through: []     // 途经点标记数组
         }; // 选点标记
         let owmLayerManager = null; // OpenWeatherMap 图层管理器
-        let windyLayerManager = null; // Windy 图层管理器（OpenWeatherMap瓦片）
-        let windyApiLayer = null; // Windy API 图层（实时动态数据）
-        let windyPointVisualizer = null; // Windy Point Forecast 可视化器（网格点数据）
+        let windyLayerManager = null; // Windy 图层管理器
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
 
@@ -852,12 +854,22 @@ export default {
         const toggle2D3D = () => {
             if (!viewer) return;
             
-            // 如果风场正在显示，先隐藏（因为风场在2D模式下不支持）
+            // 如果风场或波浪正在显示，先隐藏（因为在2D模式下不支持）
             const windWasVisible = showWind.value;
+            const waveWasVisible = showWave.value;
+            
             if (windWasVisible && windLayer) {
                 console.log('⚠️ 2D模式不支持风场显示，自动隐藏风场');
                 windLayer.show = false;
                 showWind.value = false;
+            }
+            
+            if (waveWasVisible && waveLayer) {
+                console.log('⚠️ 2D模式不支持波浪显示，自动隐藏波浪');
+                waveLayer.show = false;
+                showWave.value = false;
+                // 停止相机高度监控
+                stopCameraHeightMonitoring();
             }
             
             if (is3D.value) {
@@ -900,6 +912,18 @@ export default {
                         windLayer.show = true;
                         showWind.value = true;
                         viewer.scene.requestRenderMode = false;
+                    }, 1500);
+                }
+                
+                // 如果之前波浪是显示的，切换回3D后重新显示
+                if (waveWasVisible && waveLayer) {
+                    setTimeout(() => {
+                        console.log('✅ 切换回3D，恢复波浪显示');
+                        waveLayer.show = true;
+                        showWave.value = true;
+                        viewer.scene.requestRenderMode = false;
+                        // 重新启动相机高度监控
+                        startCameraHeightMonitoring();
                     }, 1500);
                 }
             }
@@ -1092,7 +1116,272 @@ export default {
             }
         };
 
+        // 波浪数据缓存（避免重复加载）
+        let cachedWaveData = null;
+        
+        // 相机高度监控变量
+        let lastCameraHeight = null;
+        let cameraHeightCheckInterval = null;
+        
+        // 初始化波浪图层
+        const initWaveLayer = async () => {
+            console.log('🔧 initWaveLayer 被调用');
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - waveLayer 已存在:', !!waveLayer);
+            
+            if (!viewer) {
+                console.warn('⚠️ 跳过初始化: viewer 不存在');
+                return;
+            }
+            
+            // 如果已存在，先移除旧图层
+            if (waveLayer) {
+                console.log('🗑️ 移除旧的波浪图层');
+                waveLayer.remove();
+                waveLayer = null;
+            }
+            
+            try {
+                // 加载或使用缓存的波浪数据
+                if (!cachedWaveData) {
+                    console.log('🌊 开始加载全球波浪数据...');
+                    cachedWaveData = await loadGlobalWaveData(0);
+                    console.log('✅ 波浪数据加载成功并缓存');
+                } else {
+                    console.log('📦 使用缓存的波浪数据');
+                }
+                
+                // 动态导入 cesium-wind-layer（复用风场渲染引擎）
+                console.log('⏳ 动态导入 cesium-wind-layer...');
+                const { WindLayer } = await import('cesium-wind-layer');
+                console.log('✅ 插件导入成功');
+                
+                // 确保场景已经渲染，WebGL 上下文已初始化
+                viewer.scene.requestRenderMode = false;
+                viewer.scene.render();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // 创建 WaveLayer（实际是 WindLayer，但用于渲染波浪）
+                console.log('⏳ 创建 WaveLayer...');
+                console.log('   - Viewer scene:', viewer.scene);
+                console.log('   - WebGL context:', viewer.scene.context);
+                
+                // 检查 WebGL 上下文
+                const gl = viewer.scene.context._gl;
+                const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+                console.log('   - Max texture size:', maxTextureSize);
+                console.log('   - Data width:', cachedWaveData.width);
+                console.log('   - Data height:', cachedWaveData.height);
+                
+                if (cachedWaveData.width > maxTextureSize || cachedWaveData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${cachedWaveData.width}x${cachedWaveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                }
+                
+                waveLayer = new WindLayer(viewer, cachedWaveData, {
+                    // 粒子数量：增加一些，展现更丰富的波浪细节
+                    particlesTextureSize: 640,
+                    
+                    particleHeight: 0,
+                    
+                    // 线条粗细：恢复原来的粗线条
+                    lineWidth: { min: 6, max: 10 },
+                    
+                    // 线条长度：减小长度，让线条更短更紧凑
+                    lineLength: { min: 30, max: 60 },
+                    
+                    // 速度因子：适中，让波浪运动更明显
+                    speedFactor: 1.0,
+                    
+                    // 粒子消失率：适中
+                    dropRate: 0.006,
+                    
+                    // 粒子消失率增量
+                    dropRateBump: 0.002,
+                    
+                    // 波浪色带：蓝→青→绿→黄→橙→红
+                    colors: [
+                        'rgba(0, 0, 139, 0.7)',      // 深蓝（低波高 0-1m）
+                        'rgba(0, 0, 255, 0.75)',     // 蓝色
+                        'rgba(0, 191, 255, 0.8)',    // 深天蓝（1-2m）
+                        'rgba(0, 255, 255, 0.85)',   // 青色
+                        'rgba(0, 255, 127, 0.9)',    // 春绿（2-3m）
+                        'rgba(173, 255, 47, 0.9)',   // 黄绿
+                        'rgba(255, 255, 0, 0.95)',   // 黄色（3-4m）
+                        'rgba(255, 165, 0, 0.98)',   // 橙色（4-5m）
+                        'rgba(255, 69, 0, 1.0)',     // 橙红（5-6m）
+                        'rgba(255, 0, 0, 1.0)'       // 红色（>6m 高波高）
+                    ],
+                    
+                    flipY: false,
+                    dynamic: true
+                });
+                
+                console.log('✅ WaveLayer 创建成功');
+                
+                // 记录当前相机高度
+                lastCameraHeight = viewer.camera.positionCartographic.height;
+                console.log('📏 初始相机高度:', lastCameraHeight.toFixed(0), 'm');
+                
+                // 启动相机高度监控
+                startCameraHeightMonitoring();
+                
+                // WindLayer 构造函数会自动添加到场景，不需要手动调用 add()
+                
+            } catch (error) {
+                console.error('❌ 波浪图层加载失败:', error);
+                console.error('   - 堆栈:', error.stack);
+            }
+        };
+        
+        // 启动相机高度监控（防抖处理）
+        const startCameraHeightMonitoring = () => {
+            // 清除旧的监控
+            if (cameraHeightCheckInterval) {
+                clearInterval(cameraHeightCheckInterval);
+            }
+            
+            let debounceTimer = null;
+            
+            // 每500ms检查一次相机高度
+            cameraHeightCheckInterval = setInterval(() => {
+                if (!viewer || !waveLayer || !lastCameraHeight) return;
+                
+                const currentHeight = viewer.camera.positionCartographic.height;
+                const heightChange = Math.abs(currentHeight - lastCameraHeight) / lastCameraHeight;
+                
+                // 如果高度变化超过30%，触发重建
+                if (heightChange > 0.3) {
+                    console.log('📏 相机高度变化:', {
+                        旧高度: lastCameraHeight.toFixed(0) + 'm',
+                        新高度: currentHeight.toFixed(0) + 'm',
+                        变化率: (heightChange * 100).toFixed(1) + '%'
+                    });
+                    
+                    // 防抖：延迟500ms后重建，避免频繁操作
+                    if (debounceTimer) {
+                        clearTimeout(debounceTimer);
+                    }
+                    
+                    debounceTimer = setTimeout(async () => {
+                        console.log('🔄 重建波浪图层以适应新的缩放级别...');
+                        const wasVisible = waveLayer.show;
+                        await initWaveLayer();
+                        if (waveLayer && wasVisible) {
+                            waveLayer.show = true;
+                        }
+                    }, 500);
+                }
+            }, 500);
+            
+            console.log('👁️ 相机高度监控已启动');
+        };
+        
+        // 停止相机高度监控
+        const stopCameraHeightMonitoring = () => {
+            if (cameraHeightCheckInterval) {
+                clearInterval(cameraHeightCheckInterval);
+                cameraHeightCheckInterval = null;
+                console.log('👁️ 相机高度监控已停止');
+            }
+        };
 
+        // 洋流数据缓存（避免重复加载）
+        let cachedOceanCurrentData = null;
+        
+        // 初始化洋流图层
+        const initOceanCurrentLayer = async () => {
+            console.log('🔧 initOceanCurrentLayer 被调用');
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - oceanCurrentLayer 已存在:', !!oceanCurrentLayer);
+            
+            if (!viewer || oceanCurrentLayer) {
+                console.warn('⚠️ 跳过初始化:', !viewer ? 'viewer 不存在' : 'oceanCurrentLayer 已存在');
+                return;
+            }
+            
+            try {
+                // 加载或使用缓存的洋流数据
+                if (!cachedOceanCurrentData) {
+                    console.log('🌊 开始加载洋流数据...');
+                    cachedOceanCurrentData = await loadGlobalOceanCurrentData(0);
+                    console.log('✅ 洋流数据加载成功并缓存');
+                } else {
+                    console.log('📦 使用缓存的洋流数据');
+                }
+                
+                // 动态导入 cesium-wind-layer
+                console.log('⏳ 动态导入 cesium-wind-layer...');
+                const { WindLayer } = await import('cesium-wind-layer');
+                console.log('✅ 插件导入成功');
+                
+                // 确保场景已经渲染，WebGL 上下文已初始化
+                viewer.scene.requestRenderMode = false;
+                viewer.scene.render();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // 创建 OceanCurrentLayer（实际是 WindLayer，但用于渲染洋流）
+                console.log('⏳ 创建 OceanCurrentLayer...');
+                
+                // 检查 WebGL 上下文
+                const gl = viewer.scene.context._gl;
+                const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+                console.log('   - Max texture size:', maxTextureSize);
+                console.log('   - Data width:', cachedOceanCurrentData.width);
+                console.log('   - Data height:', cachedOceanCurrentData.height);
+                
+                if (cachedOceanCurrentData.width > maxTextureSize || cachedOceanCurrentData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${cachedOceanCurrentData.width}x${cachedOceanCurrentData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                }
+                
+                oceanCurrentLayer = new WindLayer(viewer, cachedOceanCurrentData, {
+                    // 粒子数量：与风场一致
+                    particlesTextureSize: 640,
+                    
+                    particleHeight: 0,
+                    
+                    // 线条粗细：与风场一致
+                    lineWidth: { min: 2.5, max: 6 },
+                    
+                    // 线条长度：长流线效果（Windy 风格）
+                    lineLength: { min: 300, max: 800 },
+                    
+                    // 速度因子：与风场一致
+                    speedFactor: 2.0,
+                    
+                    // 粒子消失率：与风场一致
+                    dropRate: 0.003,
+                    
+                    // 粒子消失率增量
+                    dropRateBump: 0.001,
+                    
+                    // 洋流色带：蓝色系（冷色调）
+                    colors: [
+                        'rgba(0, 50, 100, 0.6)',      // 深蓝（慢流 0-0.2 m/s）
+                        'rgba(0, 80, 130, 0.65)',     // 蓝色
+                        'rgba(0, 100, 150, 0.7)',     // 中蓝（0.2-0.4 m/s）
+                        'rgba(0, 130, 180, 0.75)',    // 亮蓝
+                        'rgba(0, 150, 200, 0.8)',     // 天蓝（0.4-0.6 m/s）
+                        'rgba(0, 180, 220, 0.85)',    // 浅蓝
+                        'rgba(0, 200, 255, 0.9)',     // 亮青（0.6-0.8 m/s）
+                        'rgba(50, 220, 255, 0.95)',   // 青色
+                        'rgba(100, 240, 255, 1.0)',   // 浅青（0.8-1.0 m/s）
+                        'rgba(150, 255, 255, 1.0)'    // 白青（>1.0 m/s 快流）
+                    ],
+                    
+                    flipY: true,  // PNG 数据顶部=北极，需要翻转到底部=南极
+                    flipY: false,  // 数据本身就是从南到北，不需要翻转
+                    dynamic: true
+                });
+                
+                console.log('✅ OceanCurrentLayer 创建成功');
+                
+                // WindLayer 构造函数会自动添加到场景，不需要手动调用 add()
+                
+            } catch (error) {
+                console.error('❌ 洋流图层加载失败:', error);
+                console.error('   - 堆栈:', error.stack);
+            }
+        };
 
         // 获取船舶类型名称
         const getShipTypeName = (shipType) => {
@@ -1999,37 +2288,22 @@ export default {
             // 处理 Windy 图层
             for (const group of weatherLayers) {
                 if (group.id === 'windy' && group.subLayers) {
-                    // 检查是否有激活的 Windy 子图层
-                    const activeWindyLayer = group.subLayers.find(sub => sub.active && sub.type === 'windy');
-                    
-                    if (activeWindyLayer) {
-                        console.log(`✅ 激活 Windy 图层: ${activeWindyLayer.label} (${activeWindyLayer.layer})`);
-                        
-                        // 方案选择：使用 Point Forecast 可视化（无需 Leaflet）
-                        if (!windyPointVisualizer) {
-                            console.log('🌪️ 初始化 Windy Point Forecast 可视化器');
-                            windyPointVisualizer = new WindyPointVisualizer(viewer);
-                        }
-                        
-                        // 根据图层类型显示网格
-                        const typeMapping = {
-                            'wind': 'wind',
-                            'temp': 'temp',
-                            'pressure': 'pressure'
-                        };
-                        
-                        const visualType = typeMapping[activeWindyLayer.layer];
-                        if (visualType) {
-                            console.log(`📊 显示 ${visualType} 网格可视化`);
-                            await windyPointVisualizer.showGrid(visualType);
-                        } else {
-                            console.warn(`⚠️ 图层 ${activeWindyLayer.layer} 暂不支持 Point Forecast 可视化`);
-                        }
-                    } else {
-                        // 没有激活的 Windy 图层，清除可视化
-                        if (windyPointVisualizer) {
-                            console.log(`🙈 清除 Windy Point Forecast 可视化`);
-                            windyPointVisualizer.clear();
+                    for (const subLayer of group.subLayers) {
+                        if (subLayer.type === 'windy' && subLayer.layer) {
+                            if (subLayer.active) {
+                                // 激活 Windy 图层
+                                if (!windyLayerManager) {
+                                    windyLayerManager = new WindyLayerManager(viewer);
+                                }
+                                console.log(`✅ 显示 Windy 图层: ${subLayer.label} (${subLayer.layer})`);
+                                await windyLayerManager.showLayer(subLayer.layer);
+                            } else {
+                                // 隐藏 Windy 图层
+                                if (windyLayerManager) {
+                                    console.log(`🙈 隐藏 Windy 图层: ${subLayer.label}`);
+                                    windyLayerManager.hideLayer();
+                                }
+                            }
                         }
                     }
                 }
@@ -2062,8 +2336,9 @@ export default {
                     }
                 }
                 
-                // 处理基础气象图层（风场）
+                // 处理基础气象图层（风场、波浪）
                 if (group.id === 'basic_weather' && group.active && group.subLayers) {
+                    // 处理风场图层
                     const windSub = group.subLayers.find(s => s.id === 'wind');
                     if (windSub && windSub.active) {
                         // 需要显示风场
@@ -2087,10 +2362,60 @@ export default {
                         showWind.value = false;
                         viewer.scene.requestRenderMode = true;
                     }
+                    
+                    // 处理波浪图层
+                    const waveSub = group.subLayers.find(s => s.id === 'wave');
+                    if (waveSub && waveSub.active) {
+                        // 需要显示波浪
+                        if (!waveLayer) {
+                            // 未初始化，初始化波浪
+                            await initWaveLayer();
+                            if (waveLayer) {
+                                waveLayer.show = true;
+                                showWave.value = true;
+                                viewer.scene.requestRenderMode = false;
+                            }
+                        } else {
+                            // 已初始化，显示波浪
+                            waveLayer.show = true;
+                            showWave.value = true;
+                            viewer.scene.requestRenderMode = false;
+                        }
+                    } else if (waveLayer) {
+                        // 不需要显示，隐藏波浪
+                        waveLayer.show = false;
+                        showWave.value = false;
+                        viewer.scene.requestRenderMode = true;
+                        // 停止相机高度监控
+                        stopCameraHeightMonitoring();
+                    }
+                    
+                    // 处理洋流图层
+                    const oceanCurrentSub = group.subLayers.find(s => s.id === 'current');
+                    if (oceanCurrentSub && oceanCurrentSub.active) {
+                        // 需要显示洋流
+                        if (!oceanCurrentLayer) {
+                            // 未初始化，初始化洋流
+                            await initOceanCurrentLayer();
+                            if (oceanCurrentLayer) {
+                                oceanCurrentLayer.show = true;
+                                showOceanCurrent.value = true;
+                                viewer.scene.requestRenderMode = false;
+                            }
+                        } else {
+                            // 已初始化，显示洋流
+                            oceanCurrentLayer.show = true;
+                            showOceanCurrent.value = true;
+                            viewer.scene.requestRenderMode = false;
+                        }
+                    } else if (oceanCurrentLayer) {
+                        // 不需要显示，隐藏洋流
+                        oceanCurrentLayer.show = false;
+                        showOceanCurrent.value = false;
+                        viewer.scene.requestRenderMode = true;
+                    }
                 }
             }
-            
-            // TODO: 处理其他气象图层（波浪、洋流、台风等）
         };
 
         onMounted(() => {
@@ -2098,9 +2423,20 @@ export default {
         });
 
         onUnmounted(() => {
+            // 停止相机高度监控
+            stopCameraHeightMonitoring();
+            
             if (windLayer) {
                 windLayer.remove();
                 windLayer = null;
+            }
+            if (waveLayer) {
+                waveLayer.remove();
+                waveLayer = null;
+            }
+            if (oceanCurrentLayer) {
+                oceanCurrentLayer.remove();
+                oceanCurrentLayer = null;
             }
             if (clickHandler) {
                 clickHandler.destroy();
@@ -2124,14 +2460,6 @@ export default {
             if (windyLayerManager) {
                 windyLayerManager.destroy();
                 windyLayerManager = null;
-            }
-            if (windyApiLayer) {
-                windyApiLayer.destroy();
-                windyApiLayer = null;
-            }
-            if (windyPointVisualizer) {
-                windyPointVisualizer.clear();
-                windyPointVisualizer = null;
             }
             if (windLayer) {
                 windLayer.destroy();

@@ -23,7 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
-# 数据文件（太大，不上传到 GitHub）
-export_out/*.bin
+# 大数据文件（排除二进制数据，保留元数据）
 export_currents_out/*.bin
-backend/scripts/*.nc
+export_out/*.bin
+tiles_out/**/*.png
+
+# 保留元数据文件
+!export_currents_out/meta.json
+!export_currents_out/*.md
+!export_out/meta.json
+!tiles_out/metadata.json
