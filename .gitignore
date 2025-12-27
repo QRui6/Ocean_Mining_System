@@ -33,3 +33,4 @@ tiles_out/**/*.png
 !export_currents_out/*.md
 !export_out/meta.json
 !tiles_out/metadata.json
+backend/scripts/*.nc
