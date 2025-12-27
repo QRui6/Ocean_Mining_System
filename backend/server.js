@@ -13,14 +13,22 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const axios = require('axios');
 const { Pool } = require('pg');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 导入 NOAA 服务
+const NOAADataService = require('./services/noaaDataService');
+const noaaRoutes = require('./routes/noaaRoutes');
+
 // 中间件
 app.use(cors());
 app.use(express.json());
+
+// 静态文件服务（提供 NOAA JSON 数据）
+app.use('/data/noaa', express.static(path.join(__dirname, 'public/data/noaa')));
 
 // PostgreSQL连接池配置
 const pool = new Pool({
@@ -1246,8 +1254,27 @@ setInterval(async () => {
     }
 }, 10 * 60 * 1000); // 10分钟
 
+// 初始化 NOAA 服务
+const noaaService = new NOAADataService();
+
+// 注册 NOAA API 路由
+app.use('/api/noaa', noaaRoutes(noaaService));
+
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`🚀 服务器启动成功: http://localhost:${PORT}`);
     console.log(`📡 WebSocket服务: ws://localhost:${process.env.WS_PORT || 8080}`);
+    
+    // 注意：NOAA 数据下载已禁用（国内网络无法访问）
+    // 如需启用，请配置代理或部署到海外服务器
+    console.log('\n💡 提示：NOAA 实时数据下载已禁用');
+    console.log('   原因：NOAA 服务器从中国大陆无法直接访问');
+    console.log('   当前使用：本地示例数据（public/data/）');
+    console.log('   如需启用：配置代理或部署到海外服务器');
+    console.log('   手动触发：curl -X POST http://localhost:' + PORT + '/api/noaa/update -H "Content-Type: application/json" -d \'{"type": "wind"}\'');
+    
+    // 如果你有代理或在海外服务器，可以取消下面的注释
+    // noaaService.init().catch(err => {
+    //     console.error('⚠️  NOAA 服务初始化失败:', err.message);
+    // });
 });

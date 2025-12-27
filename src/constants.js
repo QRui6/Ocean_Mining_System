@@ -135,63 +135,36 @@ export const OPENWEATHERMAP_API_KEY = 'e38083a03cfa6c139f0067249c4f7b19';
 // 气象图层配置（分组结构，参考图层控制）
 export const WEATHER_LAYER_GROUPS = [
     {
-        id: 'windy',
-        label: 'Windy 气象图层',
+        id: 'noaa_data',
+        label: 'NOAA 实时数据',
         active: true,
         subLayers: [
             { 
-                id: 'windy_wind', 
-                label: '风场动画', 
+                id: 'noaa_wind', 
+                label: '风场动画 (GFS)', 
                 active: false, 
                 hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'wind'
+                dataSource: 'NOAA GFS 0.25°',
+                type: 'noaa',
+                dataType: 'wind'
             },
             { 
-                id: 'windy_temp', 
-                label: '温度分布', 
+                id: 'noaa_current', 
+                label: '洋流动画 (RTOFS)', 
                 active: false, 
                 hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'temp'
+                dataSource: 'NOAA RTOFS',
+                type: 'noaa',
+                dataType: 'current'
             },
             { 
-                id: 'windy_clouds', 
-                label: '云层覆盖', 
+                id: 'noaa_wave', 
+                label: '海浪动画 (GFS-Wave)', 
                 active: false, 
                 hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'clouds'
-            },
-            { 
-                id: 'windy_rain', 
-                label: '降雨预报', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'rain'
-            },
-            { 
-                id: 'windy_waves', 
-                label: '海浪高度', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'waves'
-            },
-            { 
-                id: 'windy_pressure', 
-                label: '气压分布', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'pressure'
+                dataSource: 'NOAA GFS-Wave',
+                type: 'noaa',
+                dataType: 'wave'
             }
         ]
     },
