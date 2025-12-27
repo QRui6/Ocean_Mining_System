@@ -1368,7 +1368,6 @@ export default {
                         'rgba(150, 255, 255, 1.0)'    // 白青（>1.0 m/s 快流）
                     ],
                     
-                    flipY: true,  // PNG 数据顶部=北极，需要翻转到底部=南极
                     flipY: false,  // 数据本身就是从南到北，不需要翻转
                     dynamic: true
                 });

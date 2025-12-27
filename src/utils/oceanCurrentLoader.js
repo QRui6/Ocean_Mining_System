@@ -92,7 +92,8 @@ export async function loadGlobalOceanCurrentData(timeIndex = 0) {
             经度范围: `${lon_min}° 到 ${lon_max}°`,
             纬度范围: `${lat_min}° 到 ${lat_max}°`,
             网格尺寸: `${lon_size} × ${lat_size}`,
-            时间帧: meta.time.values[timeIndex]
+            起始时间: meta.start_time,
+            时间索引: timeIndex
         });
         
         // 2. 加载 U 和 V 分量数据
