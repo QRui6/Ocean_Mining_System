@@ -10,7 +10,7 @@ import sys
 
 def convert_wave_data(nc_file):
     print(f"📖 读取海浪数据: {nc_file}")
-    ds = xr.open_dataset(nc_file)
+    ds = xr.open_dataset(nc_file, chunks={'time': 1})  # 使用 dask 延迟加载
     
     # 创建输出目录
     output_dir = os.path.join(os.path.dirname(__file__), '../../export_out')
@@ -24,22 +24,26 @@ def convert_wave_data(nc_file):
     print(f"   时间步数: {len(times)}")
     print(f"   网格大小: {len(lats)} × {len(lons)}")
     
-    # 提取变量
-    hs = ds['VHM0'].values  # 波高
-    u = ds['VSDX'].values   # U分量
-    v = ds['VSDY'].values   # V分量
-    
-    # 保存每个时间步
+    # 逐时间步处理，避免一次性加载所有数据到内存
     for t in range(len(times)):
-        hs_t = np.nan_to_num(hs[t], nan=-9999.0)
-        u_t = np.nan_to_num(u[t], nan=-9999.0)
-        v_t = np.nan_to_num(v[t], nan=-9999.0)
+        print(f"   处理第 {t+1}/{len(times)} 帧...", end='', flush=True)
         
+        # 只加载当前时间步的数据
+        hs_t = ds['VHM0'].isel(time=t).values
+        u_t = ds['VSDX'].isel(time=t).values
+        v_t = ds['VSDY'].isel(time=t).values
+        
+        # 处理 NaN 值
+        hs_t = np.nan_to_num(hs_t, nan=-9999.0)
+        u_t = np.nan_to_num(u_t, nan=-9999.0)
+        v_t = np.nan_to_num(v_t, nan=-9999.0)
+        
+        # 保存为二进制文件
         hs_t.astype('float32').tofile(os.path.join(output_dir, f'hs_t{t:02d}.bin'))
         u_t.astype('float32').tofile(os.path.join(output_dir, f'stokes_u_t{t:02d}.bin'))
         v_t.astype('float32').tofile(os.path.join(output_dir, f'stokes_v_t{t:02d}.bin'))
         
-        print(f"   ✅ 第 {t} 帧已保存")
+        print(" ✅")
     
     # 生成 meta.json
     meta = {
@@ -66,7 +70,7 @@ def convert_wave_data(nc_file):
 
 def convert_current_data(nc_file):
     print(f"📖 读取洋流数据: {nc_file}")
-    ds = xr.open_dataset(nc_file)
+    ds = xr.open_dataset(nc_file, chunks={'time': 1})  # 使用 dask 延迟加载
     
     # 创建输出目录
     output_dir = os.path.join(os.path.dirname(__file__), '../../export_currents_out')
@@ -80,19 +84,23 @@ def convert_current_data(nc_file):
     print(f"   时间步数: {len(times)}")
     print(f"   网格大小: {len(lats)} × {len(lons)}")
     
-    # 提取变量
-    u = ds['uo'].values
-    v = ds['vo'].values
-    
-    # 保存每个时间步
+    # 逐时间步处理，避免一次性加载所有数据到内存
     for t in range(len(times)):
-        u_t = np.nan_to_num(u[t], nan=-9999.0)
-        v_t = np.nan_to_num(v[t], nan=-9999.0)
+        print(f"   处理第 {t+1}/{len(times)} 帧...", end='', flush=True)
         
+        # 只加载当前时间步的数据
+        u_t = ds['uo'].isel(time=t).values
+        v_t = ds['vo'].isel(time=t).values
+        
+        # 处理 NaN 值
+        u_t = np.nan_to_num(u_t, nan=-9999.0)
+        v_t = np.nan_to_num(v_t, nan=-9999.0)
+        
+        # 保存为二进制文件
         u_t.astype('float32').tofile(os.path.join(output_dir, f'u_t{t:02d}.bin'))
         v_t.astype('float32').tofile(os.path.join(output_dir, f'v_t{t:02d}.bin'))
         
-        print(f"   ✅ 第 {t} 帧已保存")
+        print(" ✅")
     
     # 生成 meta.json
     meta = {

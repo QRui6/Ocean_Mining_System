@@ -1,67 +1,216 @@
 /**
  * 风场数据加载工具
- * 支持从 JSON 或 NetCDF 格式加载风场数据
+ * 支持从 ERA5 二进制数据加载风场数据
+ * 参考 waveDataLoader.js 和 oceanCurrentLoader.js 的实现模式
  */
 
 /**
- * 从 JSON 文件加载风场数据
- * @param {string} url - 风场数据 URL
- * @returns {Promise<Object>} 风场数据对象
+ * 加载风场元数据
+ * @returns {Promise<Object>} 元数据对象
  */
-export async function loadWindDataFromJSON(url) {
+export async function loadWindMeta() {
     try {
-        const response = await fetch(url);
+        console.log('📋 开始加载风场元数据...');
+        const response = await fetch('/wind_data/meta.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        
-        // 验证数据格式
-        if (!data.xmin || !data.xmax || !data.ymin || !data.ymax || !data.rows || !data.cols) {
-            throw new Error('Invalid wind data format');
-        }
-        
-        return data;
+        const meta = await response.json();
+        console.log('✅ 风场元数据加载成功:', meta);
+        return meta;
     } catch (error) {
-        console.error('Failed to load wind data:', error);
+        console.error('❌ 加载风场元数据失败:', error);
         throw error;
     }
 }
 
 /**
- * 生成示例风场数据（用于测试）
- * @param {number} rows - 行数
- * @param {number} cols - 列数
+ * 从二进制文件加载 U 分量数据
+ * @param {number} timeIndex - 时间索引 (0-95)
+ * @returns {Promise<Float32Array>} U 分量数据数组
+ */
+async function loadUComponentBinary(timeIndex) {
+    const timeStr = String(timeIndex).padStart(2, '0');
+    const url = `/wind_data/u_t${timeStr}.bin`;
+    
+    try {
+        console.log(`⏳ 加载 U 分量数据: ${url}`);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        const data = new Float32Array(buffer);
+        console.log(`✅ U 分量数据加载成功: ${data.length} 个数据点`);
+        return data;
+    } catch (error) {
+        console.error(`❌ 加载 U 分量数据失败 (t${timeIndex}):`, error);
+        throw error;
+    }
+}
+
+/**
+ * 从二进制文件加载 V 分量数据
+ * @param {number} timeIndex - 时间索引 (0-95)
+ * @returns {Promise<Float32Array>} V 分量数据数组
+ */
+async function loadVComponentBinary(timeIndex) {
+    const timeStr = String(timeIndex).padStart(2, '0');
+    const url = `/wind_data/v_t${timeStr}.bin`;
+    
+    try {
+        console.log(`⏳ 加载 V 分量数据: ${url}`);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        const data = new Float32Array(buffer);
+        console.log(`✅ V 分量数据加载成功: ${data.length} 个数据点`);
+        return data;
+    } catch (error) {
+        console.error(`❌ 加载 V 分量数据失败 (t${timeIndex}):`, error);
+        throw error;
+    }
+}
+
+/**
+ * 从全球风场数据加载并转换为 WindLayer 兼容格式
+ * @param {number} timeIndex - 时间索引 (0-95)，默认为 0
+ * @returns {Promise<Object>} WindLayer 兼容的数据对象
+ */
+export async function loadGlobalWindData(timeIndex = 0) {
+    try {
+        console.log('🌬️  开始加载全球风场数据...');
+        
+        // 1. 加载元数据
+        const meta = await loadWindMeta();
+        const { grid } = meta;
+        const { lon_size, lat_size, lon_min, lat_min, lon_max, lat_max } = grid;
+        
+        // 2. 验证时间索引
+        if (timeIndex >= meta.frames) {
+            console.warn(`⚠️  时间索引 ${timeIndex} 超出范围，使用最后一帧 ${meta.frames - 1}`);
+            timeIndex = meta.frames - 1;
+        }
+        
+        console.log('📊 风场数据网格信息:', {
+            经度范围: `${lon_min}° 到 ${lon_max}°`,
+            纬度范围: `${lat_min}° 到 ${lat_max}°`,
+            网格尺寸: `${lon_size} × ${lat_size}`,
+            分辨率: `${grid.lon_step}°`,
+            起始时间: meta.start_time,
+            时间索引: timeIndex
+        });
+        
+        // 3. 加载 U 和 V 分量数据
+        const [uData, vData] = await Promise.all([
+            loadUComponentBinary(timeIndex),
+            loadVComponentBinary(timeIndex)
+        ]);
+        
+        // 4. 计算统计信息
+        let uMin = Infinity;
+        let uMax = -Infinity;
+        let vMin = Infinity;
+        let vMax = -Infinity;
+        let validCount = 0;
+        
+        for (let i = 0; i < uData.length; i++) {
+            const u = uData[i];
+            const v = vData[i];
+            const speed = Math.sqrt(u * u + v * v);
+            
+            // 过滤无效值（风速过大或过小）
+            if (speed >= 0 && speed <= 100) {
+                uMin = Math.min(uMin, u);
+                uMax = Math.max(uMax, u);
+                vMin = Math.min(vMin, v);
+                vMax = Math.max(vMax, v);
+                validCount++;
+            }
+        }
+        
+        console.log('📈 风场数据统计:', {
+            有效数据点: validCount,
+            无效数据点: uData.length - validCount,
+            U范围: `${uMin.toFixed(2)}m/s ~ ${uMax.toFixed(2)}m/s`,
+            V范围: `${vMin.toFixed(2)}m/s ~ ${vMax.toFixed(2)}m/s`
+        });
+        
+        // 5. 构造 WindLayer 兼容格式
+        const windData = {
+            u: {
+                array: uData,
+                min: uMin,
+                max: uMax
+            },
+            v: {
+                array: vData,
+                min: vMin,
+                max: vMax
+            },
+            width: lon_size,
+            height: lat_size,
+            bounds: {
+                west: lon_min,
+                south: lat_min,
+                east: lon_max,
+                north: lat_max
+            }
+        };
+        
+        console.log('✅ 风场数据加载完成');
+        console.log('   - 网格:', lon_size, 'x', lat_size);
+        console.log('   - U范围:', windData.u.min.toFixed(2), '~', windData.u.max.toFixed(2), 'm/s');
+        console.log('   - V范围:', windData.v.min.toFixed(2), '~', windData.v.max.toFixed(2), 'm/s');
+        console.log('   - 边界:', windData.bounds);
+        
+        return windData;
+        
+    } catch (error) {
+        console.error('❌ 加载全球风场数据失败:', error);
+        throw error;
+    }
+}
+
+/**
+ * 生成示例风场数据（备用方案）
+ * @param {number} rows - 纬度网格数
+ * @param {number} cols - 经度网格数
  * @returns {Object} 风场数据对象
  */
 export function generateSampleWindData(rows = 180, cols = 360) {
+    console.log('🔧 生成示例风场数据...');
+    
     const totalSize = rows * cols;
     const uData = new Float32Array(totalSize);
     const vData = new Float32Array(totalSize);
     
+    // 生成简单的风场模式
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-            const index = i * cols + j;
-            const lat = -90 + (i / rows) * 180;
-            const lon = -180 + (j / cols) * 360;
+            const idx = i * cols + j;
+            const lat = 90 - (i / (rows - 1)) * 180; // -90 to 90
+            const lon = (j / (cols - 1)) * 360 - 180; // -180 to 180
             
-            // 模拟全球风场模式
-            // U 分量（东西方向）：模拟西风带和信风
-            uData[index] = Math.sin(lat * Math.PI / 180) * 15 + 
-                          Math.cos(lon * Math.PI / 360) * 5;
-            
-            // V 分量（南北方向）：模拟季风和环流
-            vData[index] = Math.cos(lat * Math.PI / 180) * 10 + 
-                          Math.sin(lon * Math.PI / 360) * 3;
+            // 简单的风场模式：西风带和信风
+            const latRad = lat * Math.PI / 180;
+            uData[idx] = Math.cos(latRad * 3) * 10; // 东西向风速
+            vData[idx] = Math.sin(lon * Math.PI / 180) * 5; // 南北向风速
         }
     }
     
     return {
         u: {
-            array: uData
+            array: uData,
+            min: Math.min(...uData),
+            max: Math.max(...uData)
         },
         v: {
-            array: vData
+            array: vData,
+            min: Math.min(...vData),
+            max: Math.max(...vData)
         },
         width: cols,
         height: rows,
@@ -72,165 +221,4 @@ export function generateSampleWindData(rows = 180, cols = 360) {
             north: 90
         }
     };
-}
-
-/**
- * 生成太平洋区域的风场数据（针对海洋采矿系统）
- * @returns {Object} 风场数据对象
- */
-export function generatePacificWindData() {
-    // 小区域高密度数据：中国东海到太平洋
-    // 经度 110° 到 150°（40度范围）
-    // 纬度 10° 到 40°（30度范围）
-    const rows = 60;   // 高分辨率：每0.5度一个点
-    const cols = 80;
-    const totalSize = rows * cols;
-    const uData = new Float32Array(totalSize);
-    const vData = new Float32Array(totalSize);
-    
-    // 创建一个旋转的涡旋风场（类似台风效果）
-    const centerLat = 25;  // 涡旋中心纬度
-    const centerLon = 130; // 涡旋中心经度
-    
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-            const index = i * cols + j;
-            const lat = 10 + (i / rows) * 30;
-            const lon = 110 + (j / cols) * 40;
-            
-            // 计算到涡旋中心的距离和角度
-            const dx = lon - centerLon;
-            const dy = lat - centerLat;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx);
-            
-            // 创建旋转风场（逆时针旋转）
-            const windSpeed = 15 * Math.exp(-distance / 10); // 距离越远风速越小
-            
-            // 切向速度（旋转）
-            const tangentialU = -windSpeed * Math.sin(angle);
-            const tangentialV = windSpeed * Math.cos(angle);
-            
-            // 径向速度（向外扩散）
-            const radialSpeed = 5 * (1 - Math.exp(-distance / 5));
-            const radialU = radialSpeed * Math.cos(angle);
-            const radialV = radialSpeed * Math.sin(angle);
-            
-            // 添加一些随机扰动让流场更自然
-            const noise = (Math.random() - 0.5) * 2;
-            
-            uData[index] = tangentialU + radialU + noise;
-            vData[index] = tangentialV + radialV + noise;
-        }
-    }
-    
-    return {
-        u: {
-            array: uData
-        },
-        v: {
-            array: vData
-        },
-        width: cols,
-        height: rows,
-        bounds: {
-            west: 110,
-            south: 10,
-            east: 150,
-            north: 40
-        }
-    };
-}
-
-/**
- * 从 wind_data_0701.json 加载全球风场数据（稀疏数据优化版本）
- * @returns {Promise<Object>} 风场数据对象
- */
-export async function loadGlobalWindData() {
-    try {
-        console.log('🌍 开始加载全球风场数据...');
-        const response = await fetch('/data/wind_data_0701.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        console.log('📦 原始数据格式:', {
-            hasWind: !!data.wind,
-            windLength: data.wind?.length,
-            firstPoint: data.wind?.[0]
-        });
-        
-        // 转换数据格式：保留稀疏数据结构，使用空间索引
-        const windPoints = data.wind;
-        
-        // 计算边界
-        let minLat = Infinity, maxLat = -Infinity;
-        let minLon = Infinity, maxLon = -Infinity;
-        
-        windPoints.forEach(p => {
-            minLat = Math.min(minLat, p.lat);
-            maxLat = Math.max(maxLat, p.lat);
-            minLon = Math.min(minLon, p.lon);
-            maxLon = Math.max(maxLon, p.lon);
-        });
-        
-        // 创建空间网格索引（用于快速查找最近的数据点）
-        const gridSize = 1.0; // 1度网格
-        const gridRows = Math.ceil((maxLat - minLat) / gridSize) + 1;
-        const gridCols = Math.ceil((maxLon - minLon) / gridSize) + 1;
-        const spatialGrid = new Array(gridRows * gridCols).fill(null).map(() => []);
-        
-        // 将数据点分配到网格中
-        windPoints.forEach(point => {
-            const gridRow = Math.floor((point.lat - minLat) / gridSize);
-            const gridCol = Math.floor((point.lon - minLon) / gridSize);
-            const gridIndex = gridRow * gridCols + gridCol;
-            if (gridIndex >= 0 && gridIndex < spatialGrid.length) {
-                spatialGrid[gridIndex].push(point);
-            }
-        });
-        
-        console.log('📊 稀疏数据信息:', {
-            纬度范围: `${minLat.toFixed(2)}° 到 ${maxLat.toFixed(2)}°`,
-            经度范围: `${minLon.toFixed(2)}° 到 ${maxLon.toFixed(2)}°`,
-            实际数据点: windPoints.length,
-            空间网格: `${gridRows} × ${gridCols}`,
-            平均每格点数: (windPoints.length / (gridRows * gridCols)).toFixed(2)
-        });
-        
-        return {
-            // 稀疏数据结构
-            sparseData: windPoints,
-            spatialGrid: spatialGrid,
-            gridSize: gridSize,
-            gridRows: gridRows,
-            gridCols: gridCols,
-            // 兼容原有接口（用于不需要密集网格的场景）
-            width: gridCols,
-            height: gridRows,
-            bounds: {
-                west: minLon,
-                south: minLat,
-                east: maxLon,
-                north: maxLat
-            }
-        };
-    } catch (error) {
-        console.error('❌ 加载全球风场数据失败:', error);
-        throw error;
-    }
-}
-
-/**
- * 从 URL 加载 NetCDF 风场数据（需要后端支持）
- * @param {string} url - NetCDF 文件 URL
- * @returns {Promise<Object>} 风场数据对象
- */
-export async function loadWindDataFromNetCDF(url) {
-    // 注意：浏览器无法直接解析 NetCDF 文件
-    // 需要后端服务将 NetCDF 转换为 JSON 格式
-    // 或使用 netcdfjs 库（需要额外安装）
-    console.warn('NetCDF loading requires backend support or netcdfjs library');
-    throw new Error('NetCDF loading not implemented');
 }

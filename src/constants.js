@@ -135,64 +135,13 @@ export const OPENWEATHERMAP_API_KEY = 'e38083a03cfa6c139f0067249c4f7b19';
 // 气象图层配置（分组结构，参考图层控制）
 export const WEATHER_LAYER_GROUPS = [
     {
-        id: 'windy',
-        label: 'Windy 气象图层',
+        id: 'basic_weather',
+        label: '基础气象',
         active: true,
         subLayers: [
-            { 
-                id: 'windy_wind', 
-                label: '风场动画', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'wind'
-            },
-            { 
-                id: 'windy_temp', 
-                label: '温度分布', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'temp'
-            },
-            { 
-                id: 'windy_clouds', 
-                label: '云层覆盖', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'clouds'
-            },
-            { 
-                id: 'windy_rain', 
-                label: '降雨预报', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'rain'
-            },
-            { 
-                id: 'windy_waves', 
-                label: '海浪高度', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'waves'
-            },
-            { 
-                id: 'windy_pressure', 
-                label: '气压分布', 
-                active: false, 
-                hasTimeline: true, 
-                dataSource: 'Windy',
-                type: 'windy',
-                layer: 'pressure'
-            }
+            { id: 'wind', label: '近日风场预报', active: false, hasTimeline: true, dataSource: 'NOAA GFS' },
+            { id: 'wave', label: '近日海浪预报', active: false, hasTimeline: true, dataSource: 'WaveWatch III' },
+            { id: 'current', label: '近日洋流预报', active: false, hasTimeline: true, dataSource: 'HYCOM' }
         ]
     },
     {
@@ -245,16 +194,6 @@ export const WEATHER_LAYER_GROUPS = [
                 type: 'imagery',
                 url: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
             }
-        ]
-    },
-    {
-        id: 'basic_weather',
-        label: '基础气象',
-        active: true,
-        subLayers: [
-            { id: 'wind', label: '近日风场预报', active: false, hasTimeline: true, dataSource: 'NOAA GFS' },
-            { id: 'wave', label: '近日海浪预报', active: false, hasTimeline: true, dataSource: 'WaveWatch III' },
-            { id: 'current', label: '近日洋流预报', active: false, hasTimeline: true, dataSource: 'HYCOM' }
         ]
     },
     {

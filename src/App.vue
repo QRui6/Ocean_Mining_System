@@ -108,8 +108,16 @@
                 <!-- 时间轴控制（当有气象图层激活时显示） -->
                 <TimelineControl 
                     :show="showTimeline"
+                    :activeWeatherLayers="activeWeatherLayers"
                     @close="showTimeline = false"
                     @timeChange="handleTimeChange"
+                />
+                
+                <!-- Windy 风格气象图层按钮（左侧垂直排列，由右侧按钮控制） -->
+                <WeatherLayerButtons 
+                    :show="activePanels.weatherLayers"
+                    :weatherLayerGroups="weatherLayerState"
+                    @layerToggle="handleWeatherLayerToggle"
                 />
             </div>
 
@@ -140,6 +148,7 @@ import RightPanel from './components/RightPanel.vue';
 import MapContainer from './components/MapContainer.vue';
 import BottomTable from './components/BottomTable.vue';
 import TimelineControl from './components/TimelineControl.vue';
+import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
 import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
 import AreaDetailDialog from './components/AreaDetailDialog.vue';
@@ -154,6 +163,7 @@ export default {
         MapContainer,
         BottomTable,
         TimelineControl,
+        WeatherLayerButtons,
         ShipTrackingPanel,
         AreaMonitorPanel,
         AreaDetailDialog,
@@ -353,11 +363,25 @@ export default {
         
         /**
          * 处理时间轴变化事件
-         * @param {Date} time - 选中的时间
+         * @param {Object} data - 时间数据 { time: Date, index: Number, layerId: String }
          */
-        const handleTimeChange = (time) => {
-            console.log('⏰ 时间轴变化:', time);
-            // TODO: 通知地图更新气象数据
+        const handleTimeChange = (data) => {
+            console.log('⏰ App.vue 收到时间轴变化:', data);
+            console.log('   - 时间索引:', data.index);
+            console.log('   - 图层ID:', data.layerId);
+            console.log('   - mapContainerRef存在:', !!mapContainerRef.value);
+            console.log('   - updateWeatherTime方法存在:', !!mapContainerRef.value?.updateWeatherTime);
+            
+            // 通知 MapContainer 更新气象数据
+            if (mapContainerRef.value && mapContainerRef.value.updateWeatherTime) {
+                console.log('✅ 调用 MapContainer.updateWeatherTime');
+                mapContainerRef.value.updateWeatherTime(data.index);
+            } else {
+                console.error('❌ 无法调用 updateWeatherTime:', {
+                    hasRef: !!mapContainerRef.value,
+                    hasMethod: !!mapContainerRef.value?.updateWeatherTime
+                });
+            }
         };
         
         /**
@@ -906,6 +930,43 @@ export default {
         };
         
         /**
+         * 处理 Windy 风格按钮的图层切换
+         * @param {Object} data - { groupId, layerId, active }
+         */
+        const handleWeatherLayerToggle = (data) => {
+            console.log('🎯 切换气象图层:', data);
+            
+            // 找到对应的图层组和子图层
+            const group = weatherLayerState.value.find(g => g.id === data.groupId);
+            if (group && group.subLayers) {
+                const layer = group.subLayers.find(l => l.id === data.layerId);
+                if (layer) {
+                    layer.active = data.active;
+                    
+                    // 触发更新
+                    weatherLayerState.value = [...weatherLayerState.value];
+                    console.log('✅ 图层已更新:', layer.label, layer.active);
+                }
+            }
+        };
+        
+        // 提取激活的气象图层（扁平化）
+        const activeWeatherLayers = computed(() => {
+            const activeLayers = [];
+            weatherLayerState.value.forEach(group => {
+                if (group.subLayers) {
+                    group.subLayers.forEach(sub => {
+                        if (sub.active) {
+                            activeLayers.push(sub);
+                        }
+                    });
+                }
+            });
+            console.log('📊 激活的气象图层:', activeLayers);
+            return activeLayers;
+        });
+        
+        /**
          * 处理气象风险阈值变化
          * @param {Object} thresholds - 新的阈值设置
          */
@@ -1280,6 +1341,7 @@ export default {
             handleFilterChange,
             handleLayersChange,
             handleWeatherLayersChange,
+            handleWeatherLayerToggle,
             handleTabChange,
             filters,
             availableCountries,
@@ -1287,6 +1349,7 @@ export default {
             filteredMiningData,
             layerState,
             weatherLayerState,
+            activeWeatherLayers,
             shipToLocate,
             containerStyle,
             showTimeline,

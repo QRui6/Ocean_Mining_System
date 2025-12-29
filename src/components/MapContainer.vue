@@ -251,6 +251,16 @@
             @pickPoint="handlePickPoint"
             @thresholdsChanged="handleThresholdsChanged"
         />
+        
+        <!-- 气象点查询 -->
+        <WeatherPointPicker
+            :pickedPoint="weatherPickedPoint"
+            :currentLayer="currentWeatherLayer"
+            :weatherData="weatherDataCache"
+            :timeSteps="weatherTimeSteps"
+            :currentTimeIndex="currentTimeIndex"
+            @close="closeWeatherPicker"
+        />
     </div>
 </template>
 
@@ -264,6 +274,10 @@ import { getContractorColor } from '../utils/contractorColors.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { loadGlobalWaveData } from '../utils/waveDataLoader.js';
 import { loadGlobalOceanCurrentData } from '../utils/oceanCurrentLoader.js';
+// 使用 Cesium 原生热力图层（性能更好，效果更平滑）
+import { CesiumHeatmapLayer as HeatmapLayer } from '../utils/cesiumHeatmapLayer.js';
+// 旧的 Canvas 实现（已弃用）
+// import { HeatmapLayer } from '../utils/heatmapLayer.js';
 import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory.js';
 import { ShipLayer } from '../utils/shipLayer.js';
 import { RouteLayer } from '../utils/routeLayer.js';
@@ -271,10 +285,12 @@ import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
 import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
+import WeatherPointPicker from './WeatherPointPicker.vue';
 
 export default {
     components: {
-        RoutePlanPanel
+        RoutePlanPanel,
+        WeatherPointPicker
     },
     props: {
         showToolbar: {
@@ -344,8 +360,10 @@ export default {
         let windLayer = null; // 风场图层实例
         const showWind = ref(false); // 风场显示状态
         let waveLayer = null; // 波浪图层实例
+        let waveHeatmap = null; // 波浪热力图实例
         const showWave = ref(false); // 波浪显示状态
         let oceanCurrentLayer = null; // 洋流图层实例
+        let oceanCurrentHeatmap = null; // 洋流热力图实例
         const showOceanCurrent = ref(false); // 洋流显示状态
         let trajectoryLayer = null; // 轨迹图层实例
         const showTrajectory = ref(false); // 轨迹显示状态
@@ -363,6 +381,13 @@ export default {
             avoid: [],      // 避让点标记数组
             through: []     // 途经点标记数组
         }; // 选点标记
+        
+        // 气象点查询相关
+        const weatherPickedPoint = ref(null);  // 选中的气象查询点
+        const currentWeatherLayer = ref(null); // 当前激活的气象图层
+        const weatherDataCache = ref({});      // 气象数据缓存
+        const weatherTimeSteps = ref([]);      // 时间步长数组
+        const currentTimeIndex = ref(0);       // 当前时间索引
         let owmLayerManager = null; // OpenWeatherMap 图层管理器
         let windyLayerManager = null; // Windy 图层管理器
         // 天地图 Token
@@ -558,21 +583,11 @@ export default {
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
                 const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
                 handler.setInputAction((click) => {
-                    // 恢复上一个选中实体的样式
-                    if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
-                        previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.8);
-                        previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
-                        previousEntity.polygon.outlineWidth = 1;
-                    }
-                    
                     // 计算 CSS scale 缩放比例（App.vue 中的缩放）
                     const baseWidth = 1920;
                     const baseHeight = 1080;
                     const scaleX = window.innerWidth / baseWidth;
                     const scaleY = window.innerHeight / baseHeight;
-                    
-                    console.log('🔍 缩放比例:', { scaleX, scaleY });
-                    console.log('🖱️ 原始点击坐标:', click.position);
                     
                     // 修正点击坐标（除以缩放比例）
                     const correctedPosition = new Cesium.Cartesian2(
@@ -580,6 +595,35 @@ export default {
                         click.position.y / scaleY
                     );
                     
+                    // 如果正在选点（路径规划），不处理其他点击
+                    if (props.pickingPointType) {
+                        return;
+                    }
+                    
+                    // 如果有激活的气象图层，优先处理气象查询
+                    if (showWind.value || showWave.value || showOceanCurrent.value) {
+                        // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
+                        const pickedObject = viewer.scene.pick(correctedPosition);
+                        
+                        // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
+                        if (!pickedObject || 
+                            (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
+                            // 传递原始坐标和修正后的坐标
+                            handleWeatherPointClick(click.position, correctedPosition);
+                            return;
+                        }
+                        // 如果点击到了其他实体（矿区、船舶），继续下面的处理
+                    }
+                    
+                    // 恢复上一个选中实体的样式
+                    if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
+                        previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.8);
+                        previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
+                        previousEntity.polygon.outlineWidth = 1;
+                    }
+                    
+                    console.log('🔍 缩放比例:', { scaleX, scaleY });
+                    console.log('🖱️ 原始点击坐标:', click.position);
                     console.log('✅ 修正后坐标:', correctedPosition);
                     
                     // 使用修正后的坐标拾取实体
@@ -953,96 +997,16 @@ export default {
             
             try {
                 console.log('🌬️ 开始加载全球风场数据...');
-                const windData = await loadGlobalWindData();
-                console.log('✅ 数据加载成功，数据点:', windData.sparseData.length);
+                const windData = await loadGlobalWindData(0); // 加载第0帧
+                console.log('✅ 数据加载成功');
+                console.log('   - 网格:', windData.width, 'x', windData.height);
+                console.log('   - U范围:', windData.u.min.toFixed(2), '~', windData.u.max.toFixed(2));
+                console.log('   - V范围:', windData.v.min.toFixed(2), '~', windData.v.max.toFixed(2));
                 
-                // 直接使用插件，不经过适配器
+                // 动态导入 cesium-wind-layer
                 console.log('⏳ 动态导入 cesium-wind-layer...');
                 const { WindLayer } = await import('cesium-wind-layer');
                 console.log('✅ 插件导入成功');
-                
-                // 转换数据格式 - 使用插值填充全球网格
-                console.log('⏳ 转换数据格式...');
-                const { sparseData } = windData;
-                
-                const nx = 361, ny = 181;
-                const uData = new Float32Array(nx * ny);
-                const vData = new Float32Array(nx * ny);
-                
-                // 先填充原始数据
-                const hasData = new Uint8Array(nx * ny);
-                for (const point of sparseData) {
-                    const i = Math.round(point.lon + 180);
-                    const j = Math.round(point.lat + 90);
-                    if (i >= 0 && i < nx && j >= 0 && j < ny) {
-                        const index = j * nx + i;
-                        uData[index] = point.u;
-                        vData[index] = point.v;
-                        hasData[index] = 1;
-                    }
-                }
-                
-                // 简单插值填充空白区域
-                console.log('⏳ 插值填充空白区域...');
-                for (let j = 0; j < ny; j++) {
-                    for (let i = 0; i < nx; i++) {
-                        const index = j * nx + i;
-                        if (!hasData[index]) {
-                            let sumU = 0, sumV = 0, count = 0;
-                            // 查找周围8个方向的数据
-                            for (let dj = -3; dj <= 3; dj++) {
-                                for (let di = -3; di <= 3; di++) {
-                                    if (di === 0 && dj === 0) continue;
-                                    const ni = (i + di + nx) % nx;
-                                    const nj = j + dj;
-                                    if (nj >= 0 && nj < ny) {
-                                        const nIndex = nj * nx + ni;
-                                        if (hasData[nIndex]) {
-                                            const dist = Math.sqrt(di*di + dj*dj);
-                                            const weight = 1.0 / dist;
-                                            sumU += uData[nIndex] * weight;
-                                            sumV += vData[nIndex] * weight;
-                                            count += weight;
-                                        }
-                                    }
-                                }
-                            }
-                            if (count > 0) {
-                                uData[index] = sumU / count;
-                                vData[index] = sumV / count;
-                            } else {
-                                // 如果周围没有数据，使用全球平均风场模式
-                                const lat = j - 90;
-                                uData[index] = Math.sin(lat * Math.PI / 180) * 10;
-                                vData[index] = Math.cos(lat * Math.PI / 180) * 5;
-                            }
-                        }
-                    }
-                }
-                
-                let uMin = Infinity, uMax = -Infinity;
-                let vMin = Infinity, vMax = -Infinity;
-                for (let i = 0; i < uData.length; i++) {
-                    uMin = Math.min(uMin, uData[i]);
-                    uMax = Math.max(uMax, uData[i]);
-                    vMin = Math.min(vMin, vData[i]);
-                    vMax = Math.max(vMax, vData[i]);
-                }
-                
-                console.log('✅ 插值完成，全球覆盖');
-                
-                const formattedData = {
-                    u: { array: uData, min: uMin, max: uMax },
-                    v: { array: vData, min: vMin, max: vMax },
-                    width: nx,
-                    height: ny,
-                    bounds: { west: -180, south: -90, east: 180, north: 90 }
-                };
-                
-                console.log('✅ 数据转换完成');
-                console.log('   - 网格:', nx, 'x', ny);
-                console.log('   - U范围:', uMin.toFixed(2), '~', uMax.toFixed(2));
-                console.log('   - V范围:', vMin.toFixed(2), '~', vMax.toFixed(2));
                 
                 // 确保场景已经渲染，WebGL 上下文已初始化
                 viewer.scene.requestRenderMode = false;
@@ -1051,70 +1015,41 @@ export default {
                 
                 // 创建 WindLayer
                 console.log('⏳ 创建 WindLayer...');
-                console.log('   - Viewer scene:', viewer.scene);
-                console.log('   - WebGL context:', viewer.scene.context);
                 
-                // 检查 WebGL 上下文
-                const gl = viewer.scene.context._gl;
-                const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-                console.log('   - Max texture size:', maxTextureSize);
-                console.log('   - Data width:', formattedData.width);
-                console.log('   - Data height:', formattedData.height);
-                
-                if (formattedData.width > maxTextureSize || formattedData.height > maxTextureSize) {
-                    throw new Error(`数据尺寸 ${formattedData.width}x${formattedData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
-                }
-                
-                windLayer = new WindLayer(viewer, formattedData, {
-                    // 粒子数量：降到 640 保证流畅（约41万粒子）
+                windLayer = new WindLayer(viewer, windData, {
                     particlesTextureSize: 640,
-                    
-                    particleHeight: 0,
-                    
-                    // 线条粗细：保持适中
-                    lineWidth: { min: 2.5, max: 6 },
-                    
-                    // 线条长度：保持流线效果
-                    lineLength: { min: 300, max: 800 },
-                    
-                    // 速度因子：加快到 2.0，让粒子移动更明显
-                    speedFactor: 2.0,
-                    
-                    // 粒子消失率：提高到 0.003，让粒子更频繁地重新生成在随机位置
-                    // 这样可以打散条纹，形成更均匀的分布
+                    particleHeight: 100000,        // 高度：100km（在大气层显示）
+                    lineWidth: { min: 1.5, max: 4 },
+                    lineLength: { min: 100, max: 200 },
+                    speedFactor: 1.5,
                     dropRate: 0.003,
-                    
-                    // 粒子消失率增量：提高，增加随机性
                     dropRateBump: 0.001,
-                    
-                    // 彩虹色谱：紫→蓝→青→绿→黄→橙→红
                     colors: [
-                        'rgba(138, 43, 226, 0.7)',   // 紫色（弱风）
-                        'rgba(75, 0, 130, 0.75)',    // 靛蓝
-                        'rgba(0, 0, 255, 0.8)',      // 蓝色
-                        'rgba(0, 191, 255, 0.85)',   // 深天蓝
-                        'rgba(0, 255, 255, 0.9)',    // 青色
-                        'rgba(0, 255, 127, 0.9)',    // 春绿
-                        'rgba(173, 255, 47, 0.95)',  // 黄绿
-                        'rgba(255, 255, 0, 0.95)',   // 黄色
-                        'rgba(255, 165, 0, 0.98)',   // 橙色
-                        'rgba(255, 69, 0, 1.0)',     // 橙红
-                        'rgba(255, 0, 0, 1.0)'       // 红色（强风）
+                        'rgba(0, 98, 255, 1)',      // 深蓝（低风速）
+                        'rgba(0, 180, 255, 1)',     // 青色
+                        'rgba(0, 255, 200, 1)',     // 青绿
+                        'rgba(100, 255, 100, 1)',   // 绿色
+                        'rgba(255, 255, 0, 1)',     // 黄色
+                        'rgba(255, 150, 0, 1)',     // 橙色
+                        'rgba(255, 50, 0, 1)'       // 红色（高风速）
                     ],
-                    
+                    displayRange: { min: 0, max: 30 },  // 风速范围：0-30 m/s
                     flipY: false,
-                    dynamic: true
+                    useColorScale: true,
+                    fadeOpacity: 0.95
                 });
                 
                 console.log('✅ WindLayer 创建成功');
-                
-                // WindLayer 构造函数会自动添加到场景，不需要手动调用 add()
+                cachedWindData = windData;
                 
             } catch (error) {
                 console.error('❌ 风场图层加载失败:', error);
                 console.error('   - 堆栈:', error.stack);
             }
         };
+
+        // 风场数据缓存（避免重复加载）
+        let cachedWindData = null;
 
         // 波浪数据缓存（避免重复加载）
         let cachedWaveData = null;
@@ -1213,10 +1148,46 @@ export default {
                     ],
                     
                     flipY: false,
-                    dynamic: true
+                    dynamic: true,
+                    // 启用热力图模式（类似Windy）
+                    useColorScale: true,  // 显示颜色热力图
+                    fadeOpacity: 0.95     // 热力图透明度
                 });
                 
                 console.log('✅ WaveLayer 创建成功');
+                
+                // 禁用热力图 - 保持纯粹的粒子效果
+                /*
+                // 创建 Cesium 原生热力图层（作为背景）
+                if (!waveHeatmap) {
+                    waveHeatmap = new HeatmapLayer(viewer);
+                }
+                
+                // 生成热力图（Windy 标准配色）
+                const colorScale = [
+                    'rgba(58, 0, 140, 1)',      // 深紫（0-1m）
+                    'rgba(70, 50, 200, 1)',     // 紫色
+                    'rgba(0, 100, 255, 1)',     // 深蓝（1-2m）
+                    'rgba(0, 180, 255, 1)',     // 蓝色
+                    'rgba(0, 230, 255, 1)',     // 浅蓝（2-3m）
+                    'rgba(0, 255, 200, 1)',     // 青绿
+                    'rgba(100, 255, 100, 1)',   // 绿色（3-4m）
+                    'rgba(200, 255, 0, 1)',     // 黄绿
+                    'rgba(255, 255, 0, 1)',     // 黄色（4-5m）
+                    'rgba(255, 150, 0, 1)',     // 橙色
+                    'rgba(255, 50, 0, 1)',      // 橙红（5-6m）
+                    'rgba(200, 0, 0, 1)'        // 深红（>6m）
+                ];
+                
+                console.log('🗺️ 准备创建波浪热力图（Cesium 原生），数据bounds:', cachedWaveData.bounds);
+                
+                await waveHeatmap.createHeatmap(cachedWaveData, colorScale, {
+                    alpha: 0.5,  // 半透明，作为背景
+                    bounds: cachedWaveData.bounds
+                });
+                
+                console.log('✅ 波浪热力图已创建（Cesium Primitive）');
+                */
                 
                 // 记录当前相机高度
                 lastCameraHeight = viewer.camera.positionCartographic.height;
@@ -1334,45 +1305,81 @@ export default {
                 }
                 
                 oceanCurrentLayer = new WindLayer(viewer, cachedOceanCurrentData, {
-                    // 粒子数量：与风场一致
+                    // 粒子数量：适中密度（Windy 风格）
                     particlesTextureSize: 640,
                     
                     particleHeight: 0,
                     
-                    // 线条粗细：与风场一致
-                    lineWidth: { min: 2.5, max: 6 },
+                    // 线条粗细：细腻的线条（Windy 风格）
+                    lineWidth: { min: 1.5, max: 3.5 },
                     
-                    // 线条长度：长流线效果（Windy 风格）
-                    lineLength: { min: 300, max: 800 },
+                    // 线条长度：稍长的流线
+                    lineLength: { min: 300, max: 700 },
                     
-                    // 速度因子：与风场一致
-                    speedFactor: 2.0,
+                    // 速度因子：更缓慢的动画速度
+                    speedFactor: 1.8,
                     
-                    // 粒子消失率：与风场一致
+                    // 粒子消失率：适中，保持流线连续性
                     dropRate: 0.003,
                     
                     // 粒子消失率增量
                     dropRateBump: 0.001,
                     
-                    // 洋流色带：蓝色系（冷色调）
+                    // 洋流色带：保持当前的蓝绿色系
                     colors: [
-                        'rgba(0, 50, 100, 0.6)',      // 深蓝（慢流 0-0.2 m/s）
-                        'rgba(0, 80, 130, 0.65)',     // 蓝色
-                        'rgba(0, 100, 150, 0.7)',     // 中蓝（0.2-0.4 m/s）
-                        'rgba(0, 130, 180, 0.75)',    // 亮蓝
-                        'rgba(0, 150, 200, 0.8)',     // 天蓝（0.4-0.6 m/s）
-                        'rgba(0, 180, 220, 0.85)',    // 浅蓝
-                        'rgba(0, 200, 255, 0.9)',     // 亮青（0.6-0.8 m/s）
-                        'rgba(50, 220, 255, 0.95)',   // 青色
-                        'rgba(100, 240, 255, 1.0)',   // 浅青（0.8-1.0 m/s）
-                        'rgba(150, 255, 255, 1.0)'    // 白青（>1.0 m/s 快流）
+                        'rgba(0, 30, 80, 0.75)',       // 深蓝（慢流 0-0.2 m/s）
+                        'rgba(0, 60, 120, 0.8)',       // 蓝色
+                        'rgba(0, 100, 160, 0.85)',     // 中蓝（0.2-0.4 m/s）
+                        'rgba(0, 140, 200, 0.88)',     // 亮蓝
+                        'rgba(0, 180, 240, 0.9)',      // 天蓝（0.4-0.6 m/s）
+                        'rgba(0, 220, 255, 0.92)',     // 浅蓝
+                        'rgba(50, 240, 255, 0.95)',    // 亮青（0.6-0.8 m/s）
+                        'rgba(100, 255, 255, 0.97)',   // 青色
+                        'rgba(150, 255, 200, 0.98)',   // 青绿（0.8-1.0 m/s）
+                        'rgba(200, 255, 150, 1.0)'     // 黄绿（>1.0 m/s 快流）
                     ],
                     
-                    flipY: false,  // 数据本身就是从南到北，不需要翻转
-                    dynamic: true
+                    flipY: false,
+                    dynamic: true,
+                    // 启用热力图模式
+                    useColorScale: true,
+                    fadeOpacity: 0.92
                 });
                 
                 console.log('✅ OceanCurrentLayer 创建成功');
+                
+                // 禁用洋流热力图 - 保持纯粹的粒子效果
+                /*
+                // 创建洋流热力图层（Cesium 原生，作为背景）
+                if (!oceanCurrentHeatmap) {
+                    oceanCurrentHeatmap = new HeatmapLayer(viewer);
+                }
+                
+                // 生成洋流热力图（Windy 洋流配色）
+                const currentColorScale = [
+                    'rgba(58, 0, 140, 1)',      // 深紫（慢流）
+                    'rgba(70, 50, 200, 1)',     // 紫色
+                    'rgba(0, 100, 255, 1)',     // 深蓝
+                    'rgba(0, 180, 255, 1)',     // 蓝色
+                    'rgba(0, 230, 255, 1)',     // 浅蓝
+                    'rgba(0, 255, 200, 1)',     // 青绿
+                    'rgba(100, 255, 100, 1)',   // 绿色
+                    'rgba(200, 255, 0, 1)',     // 黄绿
+                    'rgba(255, 255, 0, 1)',     // 黄色
+                    'rgba(255, 150, 0, 1)',     // 橙色
+                    'rgba(255, 50, 0, 1)',      // 橙红（快流）
+                    'rgba(200, 0, 0, 1)'        // 深红
+                ];
+                
+                console.log('🗺️ 准备创建洋流热力图（Cesium 原生），数据bounds:', cachedOceanCurrentData.bounds);
+                
+                await oceanCurrentHeatmap.createHeatmap(cachedOceanCurrentData, currentColorScale, {
+                    alpha: 0.4,  // 更透明，作为背景
+                    bounds: cachedOceanCurrentData.bounds
+                });
+                
+                console.log('✅ 洋流热力图已创建（Cesium Primitive）');
+                */
                 
                 // WindLayer 构造函数会自动添加到场景，不需要手动调用 add()
                 
@@ -1452,6 +1459,101 @@ export default {
         // 关闭气象信息窗口
         const closeWeatherInfo = () => {
             selectedWeather.value = null;
+        };
+        
+        // 关闭气象选择器
+        const closeWeatherPicker = () => {
+            weatherPickedPoint.value = null;
+        };
+        
+        // 处理地图点击查询气象
+        const handleWeatherPointClick = (screenPosition, correctedPosition) => {
+            // 获取点击位置的经纬度（使用修正后的坐标）
+            const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+            if (!cartesian) {
+                console.warn('⚠️ 无法获取点击位置的坐标');
+                return;
+            }
+            
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            const lon = Cesium.Math.toDegrees(cartographic.longitude);
+            const lat = Cesium.Math.toDegrees(cartographic.latitude);
+            
+            // 设置选中点
+            weatherPickedPoint.value = {
+                lat,
+                lon,
+                cartesian3: cartesian,
+                screenPosition: screenPosition  // 使用原始屏幕坐标显示标签
+            };
+            
+            // 设置当前图层
+            if (showWind.value) {
+                currentWeatherLayer.value = { id: 'wind', name: '风速' };
+            } else if (showWave.value) {
+                currentWeatherLayer.value = { id: 'wave', name: '波高' };
+            } else if (showOceanCurrent.value) {
+                currentWeatherLayer.value = { id: 'current', name: '洋流' };
+            }
+            
+            // 缓存气象数据
+            weatherDataCache.value = {
+                wind: cachedWindData,
+                wave: cachedWaveData,
+                current: cachedOceanCurrentData
+            };
+            
+            // 生成时间步长（基于当前激活的图层）
+            generateWeatherTimeSteps();
+            
+            console.log('📍 气象点查询:', { 
+                lat: lat.toFixed(2), 
+                lon: lon.toFixed(2), 
+                layer: currentWeatherLayer.value,
+                timeSteps: weatherTimeSteps.value.length
+            });
+        };
+        
+        // 生成气象时间步长
+        const generateWeatherTimeSteps = async () => {
+            try {
+                // 根据当前激活的图层读取 meta.json
+                let metaPath = '';
+                if (showWind.value) {
+                    metaPath = '/wind_data/meta.json';
+                } else if (showWave.value) {
+                    metaPath = '/wave_data/meta.json';
+                } else if (showOceanCurrent.value) {
+                    metaPath = '/ocean_currents/meta.json';
+                } else {
+                    weatherTimeSteps.value = [];
+                    return;
+                }
+                
+                const response = await fetch(metaPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const meta = await response.json();
+                const startTime = new Date(meta.start_time);
+                const frames = meta.frames;
+                const timeStepHours = meta.time_step_hours;
+                
+                // 生成时间步长数组
+                const steps = [];
+                for (let i = 0; i < frames; i++) {
+                    const time = new Date(startTime);
+                    time.setHours(time.getHours() + i * timeStepHours);
+                    steps.push(time);
+                }
+                
+                weatherTimeSteps.value = steps;
+                console.log('⏰ 生成时间步长:', steps.length, '个');
+            } catch (error) {
+                console.error('❌ 生成时间步长失败:', error);
+                weatherTimeSteps.value = [];
+            }
         };
 
         // 切换路径规划面板
@@ -2318,7 +2420,7 @@ export default {
                                 if (!owmLayerManager.hasLayer(subLayer.id)) {
                                     console.log(`✅ 添加 OpenWeatherMap 图层: ${subLayer.label}`);
                                     owmLayerManager.addLayer(subLayer.id, subLayer.url, {
-                                        alpha: 0.7
+                                        alpha: 0.9  // 提高透明度到90%，更清晰可见
                                     });
                                 } else {
                                     // 图层已存在，只需显示
@@ -2472,6 +2574,201 @@ export default {
         // 暴露viewer给父组件使用
         const getViewer = () => viewer;
         
+        /**
+         * 更新气象数据时间帧
+         * @param {Number} timeIndex - 时间索引
+         */
+        const updateWeatherTime = async (timeIndex) => {
+            console.log('⏰ 更新气象数据时间帧:', timeIndex);
+            
+            try {
+                // 更新波浪数据
+                if (showWave.value && waveLayer) {
+                    console.log('🌊 重新加载波浪数据，时间帧:', timeIndex);
+                    const newWaveData = await loadGlobalWaveData(timeIndex);
+                    
+                    // 彻底移除旧图层
+                    try {
+                        waveLayer.remove();
+                        waveLayer = null;
+                    } catch (e) {
+                        console.warn('移除旧波浪图层时出错:', e);
+                    }
+                    
+                    // 等待一帧，确保旧图层完全清理
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 动态导入 cesium-wind-layer
+                    const { WindLayer } = await import('cesium-wind-layer');
+                    
+                    // 创建新图层（使用相同的配置）
+                    waveLayer = new WindLayer(viewer, newWaveData, {
+                        particlesTextureSize: 640,
+                        particleHeight: 0,
+                        lineWidth: { min: 6, max: 10 },
+                        lineLength: { min: 30, max: 60 },
+                        speedFactor: 1.0,
+                        dropRate: 0.006,
+                        dropRateBump: 0.002,
+                        colors: [
+                            'rgba(0, 98, 255, 1)',      // 深蓝（低波高）
+                            'rgba(0, 180, 255, 1)',     // 青色
+                            'rgba(0, 255, 200, 1)',     // 青绿
+                            'rgba(100, 255, 100, 1)',   // 绿色
+                            'rgba(255, 255, 0, 1)',     // 黄色
+                            'rgba(255, 150, 0, 1)',     // 橙色
+                            'rgba(255, 50, 0, 1)'       // 红色（高波高）
+                        ],
+                        displayRange: { min: 0, max: 10 },
+                        flipY: false,
+                        // 启用热力图模式（类似Windy）
+                        useColorScale: true,  // 显示颜色热力图
+                        fadeOpacity: 0.95     // 热力图透明度
+                    });
+                    
+                    waveLayer.show = true;
+                    cachedWaveData = newWaveData;
+                    
+                    // 暂时禁用热力图更新
+                    /*
+                    // 更新热力图
+                    if (waveHeatmap) {
+                        const colorScale = [
+                            'rgba(0, 0, 139, 1)',
+                            'rgba(0, 0, 255, 1)',
+                            'rgba(0, 191, 255, 1)',
+                            'rgba(0, 255, 255, 1)',
+                            'rgba(0, 255, 127, 1)',
+                            'rgba(173, 255, 47, 1)',
+                            'rgba(255, 255, 0, 1)',
+                            'rgba(255, 165, 0, 1)',
+                            'rgba(255, 69, 0, 1)',
+                            'rgba(255, 0, 0, 1)'
+                        ];
+                        
+                        waveHeatmap.createHeatmap(newWaveData, colorScale, {
+                            alpha: 0.7,
+                            bounds: newWaveData.bounds
+                        });
+                    }
+                    */
+                    
+                    console.log('✅ 波浪数据已更新');
+                    console.log('   📊 新数据统计:');
+                    console.log('   - 时间帧:', timeIndex);
+                    console.log('   - 数据点:', newWaveData.width, 'x', newWaveData.height);
+                }
+                
+                // 更新洋流数据
+                if (showOceanCurrent.value && oceanCurrentLayer) {
+                    console.log('🌊 重新加载洋流数据，时间帧:', timeIndex);
+                    const newCurrentData = await loadGlobalOceanCurrentData(timeIndex);
+                    
+                    // 彻底移除旧图层
+                    try {
+                        oceanCurrentLayer.remove();
+                        oceanCurrentLayer = null;
+                    } catch (e) {
+                        console.warn('移除旧洋流图层时出错:', e);
+                    }
+                    
+                    // 等待一帧，确保旧图层完全清理
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 动态导入 cesium-wind-layer
+                    const { WindLayer } = await import('cesium-wind-layer');
+                    
+                    // 创建新图层（使用相同的配置）
+                    oceanCurrentLayer = new WindLayer(viewer, newCurrentData, {
+                        particlesTextureSize: 640,
+                        particleHeight: 0,
+                        lineWidth: { min: 1.5, max: 3.5 },
+                        lineLength: { min: 300, max: 700 },
+                        speedFactor: 1.8,
+                        dropRate: 0.003,
+                        dropRateBump: 0.001,
+                        colors: [
+                            'rgba(0, 30, 80, 0.75)',
+                            'rgba(0, 60, 120, 0.8)',
+                            'rgba(0, 100, 160, 0.85)',
+                            'rgba(0, 140, 200, 0.88)',
+                            'rgba(0, 180, 240, 0.9)',
+                            'rgba(0, 220, 255, 0.92)',
+                            'rgba(50, 240, 255, 0.95)',
+                            'rgba(100, 255, 255, 0.97)',
+                            'rgba(150, 255, 200, 0.98)',
+                            'rgba(200, 255, 150, 1.0)'
+                        ],
+                        flipY: false,
+                        dynamic: true,
+                        useColorScale: true,
+                        fadeOpacity: 0.92
+                    });
+                    
+                    oceanCurrentLayer.show = true;
+                    cachedOceanCurrentData = newCurrentData;
+                    
+                    console.log('✅ 洋流数据已更新');
+                }
+                
+                // 更新风场数据
+                if (showWind.value && windLayer) {
+                    console.log('🌬️  重新加载风场数据，时间帧:', timeIndex);
+                    const newWindData = await loadGlobalWindData(timeIndex);
+                    
+                    // 彻底移除旧图层
+                    try {
+                        windLayer.remove();
+                        windLayer = null;
+                    } catch (e) {
+                        console.warn('移除旧风场图层时出错:', e);
+                    }
+                    
+                    // 等待一帧，确保旧图层完全清理
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 动态导入 cesium-wind-layer
+                    const { WindLayer } = await import('cesium-wind-layer');
+                    
+                    // 创建新图层（使用相同的配置）
+                    windLayer = new WindLayer(viewer, newWindData, {
+                        particlesTextureSize: 640,
+                        particleHeight: 100000,
+                        lineWidth: { min: 1.5, max: 4 },
+                        lineLength: { min: 100, max: 200 },
+                        speedFactor: 1.5,
+                        dropRate: 0.003,
+                        dropRateBump: 0.001,
+                        colors: [
+                            'rgba(0, 98, 255, 1)',
+                            'rgba(0, 180, 255, 1)',
+                            'rgba(0, 255, 200, 1)',
+                            'rgba(100, 255, 100, 1)',
+                            'rgba(255, 255, 0, 1)',
+                            'rgba(255, 150, 0, 1)',
+                            'rgba(255, 50, 0, 1)'
+                        ],
+                        displayRange: { min: 0, max: 30 },
+                        flipY: false,
+                        useColorScale: true,
+                        fadeOpacity: 0.95
+                    });
+                    
+                    windLayer.show = true;
+                    cachedWindData = newWindData;
+                    
+                    console.log('✅ 风场数据已更新');
+                }
+                
+                // 强制刷新场景
+                if (viewer) {
+                    viewer.scene.requestRender();
+                }
+            } catch (error) {
+                console.error('❌ 更新气象数据失败:', error);
+            }
+        };
+        
         return {
             cesiumContainer,
             selectedArea,
@@ -2495,13 +2792,21 @@ export default {
             handleRouteCleared,
             handlePickPoint,  // 暴露地图选点处理函数
             handleThresholdsChanged,  // 暴露阈值变化处理函数
+            updateWeatherTime,  // 暴露时间更新函数
             zoomIn,
             zoomOut,
             resetView,
             toggle2D3D,
             toggleFullscreen,
             toggleTrajectory,
-            viewer: getViewer  // 暴露viewer
+            viewer: getViewer,  // 暴露viewer
+            // 气象点查询相关
+            weatherPickedPoint,
+            currentWeatherLayer,
+            weatherDataCache,
+            weatherTimeSteps,
+            currentTimeIndex,
+            closeWeatherPicker
         };
     }
 };

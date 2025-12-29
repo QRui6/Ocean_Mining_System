@@ -182,9 +182,10 @@
         </transition>
 
         <!-- 3. 气象图层面板 - 参考图层控制样式 -->
+        <!-- 已注释：改用右侧 Windy 风格按钮控制 -->
+        <!--
         <transition name="slide-down">
             <div v-if="showWeatherLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
-                <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-bl scale-125"></div>
                 <div class="corner-decoration corner-br scale-125"></div>
@@ -197,19 +198,16 @@
              
              <div class="space-y-2 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
                 <div v-for="group in weatherLayerGroups" :key="group.id" class="mb-2">
-                    <!-- Parent Layer -->
                     <div class="flex items-center justify-between py-2 px-4 bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all cursor-pointer" @click="toggleWeatherGroup(group.id)">
                         <div class="flex items-center gap-3">
                             <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', group.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
                             <span :class="['text-lg font-bold transition-colors', group.active ? 'text-white' : 'text-slate-400']">{{ group.label }}</span>
                         </div>
-                        <!-- Switch -->
                         <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', group.active ? 'bg-cyan-600' : 'bg-slate-700']">
                             <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', group.active ? 'left-[22px]' : 'left-0.5']"></div>
                         </div>
                     </div>
 
-                    <!-- Sub Layers -->
                     <div v-if="group.subLayers && group.active" class="ml-6 pl-4 border-l border-slate-600/30 mt-1 space-y-1">
                         <div v-for="sub in group.subLayers" :key="sub.id" 
                             class="flex items-center justify-between py-2 px-3 hover:bg-cyan-500/10 rounded cursor-pointer transition-all"
@@ -218,7 +216,6 @@
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <span :class="['text-base transition-colors', sub.active ? 'text-cyan-100 font-medium' : 'text-slate-500']">{{ sub.label }}</span>
-                                    <!-- 时序标签 -->
                                     <span 
                                         v-if="sub.hasTimeline"
                                         class="text-xs px-1.5 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono"
@@ -226,7 +223,6 @@
                                         TIME
                                     </span>
                                 </div>
-                                <!-- 数据源 -->
                                 <div v-if="sub.dataSource" class="text-xs text-slate-600 mt-0.5 ml-0.5">
                                     {{ sub.dataSource }}
                                 </div>
@@ -238,6 +234,7 @@
              </div>
             </div>
         </transition>
+        -->
     </div>
 </template>
 
@@ -554,6 +551,7 @@ export default {
 
         // 初始时发送一次图层状态
         emitLayers();
+        emitWeatherLayers(); // 同时发送气象图层状态
 
         return {
             activeMinerals,

@@ -18,6 +18,10 @@ export default defineConfig(({ mode }) => {
             secure: false,
             timeout: 30000  // 增加超时时间到30秒
           }
+        },
+        fs: {
+          // 允许访问项目根目录的文件
+          allow: ['..']
         }
       },
       plugins: [
@@ -32,6 +36,9 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(import.meta.dirname || __dirname, './src'),
         }
-      }
+      },
+      // 配置静态资源处理
+      publicDir: 'public',
+      assetsInclude: ['**/*.bin']
     };
 });

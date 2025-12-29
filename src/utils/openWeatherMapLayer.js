@@ -42,7 +42,7 @@ export class OpenWeatherMapLayerManager {
             const imageryLayer = this.viewer.imageryLayers.addImageryProvider(provider);
             
             // 设置透明度和显示状态
-            imageryLayer.alpha = options.alpha || 0.7;
+            imageryLayer.alpha = options.alpha || 0.9;  // 默认90%不透明度
             imageryLayer.show = true;
 
             // 存储图层引用

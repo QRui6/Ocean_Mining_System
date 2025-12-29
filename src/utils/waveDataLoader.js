@@ -11,7 +11,7 @@
 export async function loadWaveMeta() {
     try {
         console.log('📋 开始加载波浪元数据...');
-        const response = await fetch('/export_out/meta.json');
+        const response = await fetch('/wave_data/meta.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -31,7 +31,7 @@ export async function loadWaveMeta() {
  */
 async function loadWaveHeightBinary(timeIndex) {
     const timeStr = String(timeIndex).padStart(2, '0');
-    const url = `/export_out/hs_t${timeStr}.bin`;
+    const url = `/wave_data/hs_t${timeStr}.bin`;
     
     try {
         console.log(`⏳ 加载波高数据: ${url}`);
@@ -56,8 +56,8 @@ async function loadWaveHeightBinary(timeIndex) {
  */
 async function loadStokesDriftBinary(timeIndex) {
     const timeStr = String(timeIndex).padStart(2, '0');
-    const uUrl = `/export_out/stokes_u_t${timeStr}.bin`;
-    const vUrl = `/export_out/stokes_v_t${timeStr}.bin`;
+    const uUrl = `/wave_data/stokes_u_t${timeStr}.bin`;
+    const vUrl = `/wave_data/stokes_v_t${timeStr}.bin`;
     
     try {
         console.log(`⏳ 加载 Stokes drift 数据...`);
