@@ -52,6 +52,68 @@ export const getLayersByOcean = () => {
     ];
 };
 
+// 矿区地理分区配置
+export const MINING_REGIONS = [
+    {
+        id: 'pacific_ccz',
+        label: '太平洋CCZ区',
+        description: 'Clarion-Clipperton Zone',
+        active: true,
+        count: 0, // 将在运行时计算
+        // 筛选条件
+        filter: {
+            location: ['太平洋 (CCZ)']
+        },
+        // 定位坐标(中心点)
+        center: { lng: -130, lat: 12, height: 5000000 }
+    },
+    {
+        id: 'pacific_other',
+        label: '太平洋其他区',
+        description: '太平洋其他海域',
+        active: true,
+        count: 0,
+        filter: {
+            location: ['太平洋'], // 不包含CCZ的太平洋区域
+            excludeLocation: ['太平洋 (CCZ)']
+        },
+        center: { lng: 150, lat: 15, height: 5000000 }
+    },
+    {
+        id: 'indian_ocean',
+        label: '印度洋区',
+        description: '印度洋矿区',
+        active: true,
+        count: 0,
+        filter: {
+            location: ['印度洋']
+        },
+        center: { lng: 75, lat: -10, height: 5000000 }
+    },
+    {
+        id: 'atlantic_ocean',
+        label: '大西洋区',
+        description: '大西洋矿区',
+        active: true,
+        count: 0,
+        filter: {
+            location: ['大西洋']
+        },
+        center: { lng: -30, lat: 30, height: 5000000 }
+    },
+    {
+        id: 'apei',
+        label: '环境保护区',
+        description: 'APEI区域',
+        active: true,
+        count: 0,
+        filter: {
+            category: ['APEI']
+        },
+        center: { lng: -140, lat: 15, height: 6000000 }
+    }
+];
+
 export const MOCK_MINING_INFO = {
     id: 'CCZ-01',
     name: 'CCZ多金属结核矿区',
@@ -213,7 +275,7 @@ export const WEATHER_LAYER_GROUPS = [
         subLayers: [
             { id: 'extreme_ocean', label: '极端海洋环境', active: false, hasTimeline: true, dataSource: 'NOAA' },
             { id: 'extreme_atmosphere', label: '极端大气环境', active: false, hasTimeline: true, dataSource: 'ECMWF' },
-            { id: 'internal_wave', label: '内波', active: false, hasTimeline: true, dataSource: 'HYCOM' }
+            { id: 'internal_wave', label: '内波', active: false, hasTimeline: true, dataSource: 'NASA HRET14' }
         ]
     }
 ];

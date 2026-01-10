@@ -132,7 +132,26 @@ export async function loadGlobalWaveData(timeIndex = 0) {
             波高范围: `${hsMin.toFixed(2)}m ~ ${hsMax.toFixed(2)}m`
         });
         
-        // 4. 插值填充缺测值（波高和 Stokes drift）
+        // 4. 创建陆地标记数组（在插值之前标记哪些是陆地）
+        console.log('🗺️ 标记陆地区域...');
+        const isLandMask = new Uint8Array(hsData.length);
+        let landCount = 0;
+        
+        for (let i = 0; i < hsData.length; i++) {
+            // 如果是缺测值或负值，标记为陆地
+            if (hsData[i] === MISSING || hsData[i] < 0) {
+                isLandMask[i] = 1;
+                landCount++;
+            }
+        }
+        
+        console.log('📊 陆地标记统计:', {
+            陆地点数: landCount,
+            海洋点数: hsData.length - landCount,
+            陆地占比: `${(landCount / hsData.length * 100).toFixed(2)}%`
+        });
+        
+        // 5. 插值填充缺测值（波高和 Stokes drift）
         console.log('⏳ 插值填充缺测值...');
         const filledHsData = new Float32Array(hsData.length);
         const filledStokesU = new Float32Array(stokesData.u.length);
@@ -228,7 +247,7 @@ export async function loadGlobalWaveData(timeIndex = 0) {
         
         console.log('✅ 插值填充完成');
         
-        // 5. 转换为 WindLayer 兼容格式
+        // 6. 转换为 WindLayer 兼容格式
         // 新方案：让线条垂直，运动水平，产生"波浪"效果
         // u 主导水平运动（大值），v 提供垂直长度（小值）
         const uData = new Float32Array(filledHsData.length);
@@ -240,16 +259,29 @@ export async function loadGlobalWaveData(timeIndex = 0) {
         // 波高阈值：提高阈值，更严格过滤陆地区域
         const WAVE_HEIGHT_THRESHOLD = 0.5; // 0.5米（提高到0.5米）
         
+        let filteredLandCount = 0;
+        let filteredLowWaveCount = 0;
+        
         for (let i = 0; i < filledHsData.length; i++) {
             const su = filledStokesU[i];
             const sv = filledStokesV[i];
             const hs = filledHsData[i];
             
-            // 过滤：波高小于阈值的区域（陆地或无效区域），强制设为0
+            // ⭐ 关键：如果是陆地（根据原始数据标记），直接设为 0
+            if (isLandMask[i] === 1) {
+                uData[i] = 0;
+                vData[i] = 0;
+                filteredLandCount++;
+                continue;
+            }
+            
+            // 对于海洋区域，继续原有的过滤逻辑
+            // 过滤：波高小于阈值的区域（浅海或无效区域），强制设为0
             // 同时检查 Stokes drift 是否异常小，进一步过滤
             if (hs < WAVE_HEIGHT_THRESHOLD || (Math.abs(su) < 0.001 && Math.abs(sv) < 0.001)) {
                 uData[i] = 0;
                 vData[i] = 0;
+                filteredLowWaveCount++;
                 continue;
             }
             
@@ -268,13 +300,19 @@ export async function loadGlobalWaveData(timeIndex = 0) {
             }
         }
         
+        console.log('🔍 数据过滤统计:', {
+            陆地过滤: filteredLandCount,
+            低波高过滤: filteredLowWaveCount,
+            有效数据: hsData.length - filteredLandCount - filteredLowWaveCount
+        });
+        
         // 确保范围有效
         if (uMin === Infinity) uMin = 0;
         if (uMax === -Infinity) uMax = 0;
         if (vMin === Infinity) vMin = 0;
         if (vMax === -Infinity) vMax = 0;
         
-        // 6. 构造返回数据（WindLayer 兼容格式）
+        // 7. 构造返回数据（WindLayer 兼容格式）
         const waveData = {
             u: {
                 array: uData,
@@ -286,6 +324,7 @@ export async function loadGlobalWaveData(timeIndex = 0) {
                 min: vMin,
                 max: vMax
             },
+            landMask: isLandMask, // ⭐ 添加陆地标记，供点击验证使用
             width: lon_size,
             height: lat_size,
             bounds: {

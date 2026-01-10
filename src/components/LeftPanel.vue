@@ -138,7 +138,7 @@
             </div>
         </transition>
 
-        <!-- 2. 图层控制面板 - 增强科技感 -->
+        <!-- 2. 图层控制面板 - 矿区地理分区控制 -->
         <transition name="slide-down">
             <div v-if="showLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
                 <!-- 动态扫描线 -->
@@ -148,32 +148,46 @@
              
              <div class="flex items-center mb-4 border-b-2 border-cyan-500/30 pb-3">
                 <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
-                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">图层控制</h3>
-                <span class="text-sm text-cyan-400 font-mono border border-cyan-500/30 px-2 py-0.5 rounded bg-cyan-900/30">{{ activeOcean }}区域</span>
+                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">矿区图层控制</h3>
+                <span class="text-sm text-cyan-400 font-mono border border-cyan-500/30 px-2 py-0.5 rounded bg-cyan-900/30">REGIONS</span>
             </div>
              
-             <div class="space-y-2 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div v-for="layer in layers" :key="layer.id" class="mb-2">
-                    <!-- Parent Layer -->
-                    <div class="flex items-center justify-between py-2 px-4 bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all cursor-pointer" @click="toggleLayer(layer.id)">
-                        <div class="flex items-center gap-3">
-                            <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', layer.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
-                            <span :class="['text-lg font-bold transition-colors', layer.active ? 'text-white' : 'text-slate-400']">{{ layer.label }}</span>
+             <div class="space-y-3 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div v-for="region in miningRegions" :key="region.id" class="mb-2">
+                    <!-- 区域控制卡片 -->
+                    <div class="bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all overflow-hidden">
+                        <!-- 主控制行 -->
+                        <div class="flex items-center justify-between py-3 px-4 cursor-pointer" @click="toggleRegion(region.id)">
+                            <div class="flex items-center gap-3 flex-1">
+                                <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', region.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span :class="['text-lg font-bold transition-colors', region.active ? 'text-white' : 'text-slate-400']">{{ region.label }}</span>
+                                        <span v-if="region.count > 0" class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono">
+                                            {{ region.count }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-0.5">{{ region.description }}</div>
+                                </div>
+                            </div>
+                            <!-- 开关 -->
+                            <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', region.active ? 'bg-cyan-600' : 'bg-slate-700']">
+                                <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', region.active ? 'left-[22px]' : 'left-0.5']"></div>
+                            </div>
                         </div>
-                        <!-- Switch -->
-                        <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', layer.active ? 'bg-cyan-600' : 'bg-slate-700']">
-                            <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', layer.active ? 'left-[22px]' : 'left-0.5']"></div>
-                        </div>
-                    </div>
-
-                    <!-- Sub Layers -->
-                    <div v-if="layer.subLayers && layer.active" class="ml-6 pl-4 border-l border-slate-600/30 mt-1 space-y-1">
-                        <div v-for="sub in layer.subLayers" :key="sub.id" 
-                            class="flex items-center justify-between py-1.5 px-2 hover:bg-cyan-500/10 rounded cursor-pointer"
-                            @click.stop="toggleLayer(layer.id, sub.id)"
-                        >
-                             <span :class="['text-base transition-colors', sub.active ? 'text-cyan-100' : 'text-slate-500']">{{ sub.label }}</span>
-                             <div :class="['w-2 h-2 rounded-full', sub.active ? 'bg-yellow-400 shadow-[0_0_5px_yellow]' : 'bg-slate-600']"></div>
+                        
+                        <!-- 定位按钮 -->
+                        <div class="border-t border-slate-700/30 px-4 py-2 bg-slate-900/30">
+                            <button 
+                                @click.stop="locateRegion(region.id)"
+                                class="w-full flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-700/50 hover:bg-cyan-600/80 border border-slate-600 hover:border-cyan-400 rounded-sm transition-all text-sm font-medium text-slate-300 hover:text-white"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>定位到该区域</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -240,7 +254,7 @@
 
 <script>
 import { ref, watch, computed } from 'vue';
-import { MINERAL_TYPES, OCEANS, getLayersByOcean, WEATHER_LAYER_GROUPS } from '../constants.js';
+import { MINERAL_TYPES, OCEANS, getLayersByOcean, WEATHER_LAYER_GROUPS, MINING_REGIONS } from '../constants.js';
 
 export default {
     props: {
@@ -261,7 +275,7 @@ export default {
             default: false
         }
     },
-    emits: ['filterChange', 'layersChange', 'weatherLayersChange'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化
+    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -277,8 +291,8 @@ export default {
         // 当前可用的国家列表（从 GeoJSON 数据中提取）
         const currentCountries = ref([]);
         
-        // 图层数据（用于图层控制面板）
-        const layers = ref(getLayersByOcean(OCEANS[0]));
+        // 矿区地理分区数据（用于图层控制面板）
+        const miningRegions = ref(JSON.parse(JSON.stringify(MINING_REGIONS))); // 深拷贝
 
         // 当前激活的大洋（用于标题显示）
         const activeOcean = computed(() => {
@@ -297,7 +311,7 @@ export default {
          * 向父组件发送当前图层状态
          */
         const emitLayers = () => {
-            emit('layersChange', layers.value);
+            emit('layersChange', miningRegions.value);
         };
 
         /**
@@ -433,63 +447,33 @@ export default {
         };
 
         /**
-         * 监听大洋选择变化，动态更新图层数据
+         * 切换矿区地理分区的显示状态
+         * @param {String} regionId - 区域ID
          * 
          * 功能：
-         * 当用户选择不同的大洋时，图层控制面板会显示对应大洋的图层
-         * 如果没有选择大洋，则显示第一个大洋的图层
-        */
-        watch(activeOceans, (newOceans) => {
-            if (newOceans.length > 0) {
-                layers.value = getLayersByOcean(newOceans[0]);
-            } else {
-                layers.value = getLayersByOcean(OCEANS[0]);
-            }
-            emitLayers();
-        });
-
-        /**
-         * 切换图层的显示状态
-         * @param {String} parentId - 父图层ID
-         * @param {String} layerId - 子图层ID（可选）
-         * 
-         * 功能：
-         * 1. 如果只传 parentId，则切换父图层的显示状态
-         * 2. 如果同时传 parentId 和 layerId，则切换子图层的显示状态
-         * 
-         * 用于图层控制面板的复选框交互
+         * 切换指定区域的显示/隐藏状态，并通知父组件
          */
-        const toggleLayer = (parentId, layerId) => {
-            const parent = layers.value.find(l => l.id === parentId);
-            if (parent) {
-                if (layerId && parent.subLayers) {
-                    // 切换子图层
-                    const sub = parent.subLayers.find(l => l.id === layerId);
-                    if (sub) sub.active = !sub.active;
-                } else {
-                    // 切换父图层：控制该父图层下所有子图层
-                    const newActive = !parent.active;
-                    parent.active = newActive;
-
-                    if (parent.subLayers && parent.subLayers.length) {
-                        if (!newActive) {
-                            // 关闭父图层：记录当前哪些子图层是开的，然后全部关掉
-                            parent._prevSubActive = parent.subLayers
-                                .filter(s => s.active)
-                                .map(s => s.id);
-                            parent.subLayers.forEach(s => { s.active = false; });
-                        } else {
-                            // 打开父图层：恢复之前开着的子图层；如果没有记录，则默认全部打开
-                            const prev = parent._prevSubActive && parent._prevSubActive.length
-                                ? parent._prevSubActive
-                                : parent.subLayers.map(s => s.id);
-                            parent.subLayers.forEach(s => {
-                                s.active = prev.includes(s.id);
-                            });
-                        }
-                    }
-                }
+        const toggleRegion = (regionId) => {
+            const region = miningRegions.value.find(r => r.id === regionId);
+            if (region) {
+                region.active = !region.active;
+                console.log(`🗺️ 区域 "${region.label}" ${region.active ? '已显示' : '已隐藏'}`);
                 emitLayers();
+            }
+        };
+        
+        /**
+         * 定位到指定矿区地理分区
+         * @param {String} regionId - 区域ID
+         * 
+         * 功能：
+         * 通知父组件飞到指定区域的中心位置
+         */
+        const locateRegion = (regionId) => {
+            const region = miningRegions.value.find(r => r.id === regionId);
+            if (region) {
+                console.log(`📍 定位到区域: ${region.label}`);
+                emit('regionLocate', region);
             }
         };
 
@@ -558,7 +542,7 @@ export default {
             activeOceans,
             activeCountries,
             currentCountries,
-            layers,
+            miningRegions,
             activeOcean,
             showCountryPanel,
             weatherLayerGroups,
@@ -569,7 +553,8 @@ export default {
             removeCountry,
             clearCountries,
             emitFilter,
-            toggleLayer,
+            toggleRegion,
+            locateRegion,
             toggleWeatherGroup,
             toggleWeatherSubLayer,
             MINERAL_TYPES,

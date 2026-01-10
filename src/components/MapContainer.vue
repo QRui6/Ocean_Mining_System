@@ -274,6 +274,7 @@ import { getContractorColor } from '../utils/contractorColors.js';
 import { loadGlobalWindData } from '../utils/windDataLoader.js';
 import { loadGlobalWaveData } from '../utils/waveDataLoader.js';
 import { loadGlobalOceanCurrentData } from '../utils/oceanCurrentLoader.js';
+import { loadGlobalInternalWaveData } from '../utils/internalWaveLoader.js';
 // 使用 Cesium 原生热力图层（性能更好，效果更平滑）
 import { CesiumHeatmapLayer as HeatmapLayer } from '../utils/cesiumHeatmapLayer.js';
 // 旧的 Canvas 实现（已弃用）
@@ -365,6 +366,8 @@ export default {
         let oceanCurrentLayer = null; // 洋流图层实例
         let oceanCurrentHeatmap = null; // 洋流热力图实例
         const showOceanCurrent = ref(false); // 洋流显示状态
+        let internalWaveLayer = null; // 内波图层实例
+        const showInternalWave = ref(false); // 内波显示状态
         let trajectoryLayer = null; // 轨迹图层实例
         const showTrajectory = ref(false); // 轨迹显示状态
         const selectedShip = ref(null); // 选中的船舶信息
@@ -495,6 +498,9 @@ export default {
             windyLayerManager = new WindyLayerManager(viewer);
             console.log('🌪️ Windy 图层管理器初始化完成');
 
+            // 预加载所有气象数据（不渲染图层，只缓存数据）
+            preloadWeatherData();
+
             // 注释掉自动加载风场，改为手动点击按钮加载
             // updateWindVisibility(props.layerState);
         };
@@ -574,10 +580,12 @@ export default {
                 
                 console.log('📋 提取到的矿区数据:', miningData.length, '条');
                 
-                // 发送数据给父组件
+                // 发送数据给父组件(包含区域统计)
+                const regionCounts = calculateRegionCounts(entities);
                 emit('dataLoaded', {
                     countries: Array.from(countries).sort(),
-                    miningData: miningData
+                    miningData: miningData,
+                    regionCounts: regionCounts
                 });
 
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
@@ -601,15 +609,15 @@ export default {
                     }
                     
                     // 如果有激活的气象图层，优先处理气象查询
-                    if (showWind.value || showWave.value || showOceanCurrent.value) {
+                    if (showWind.value || showWave.value || showOceanCurrent.value || showInternalWave.value) {
                         // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
                         const pickedObject = viewer.scene.pick(correctedPosition);
                         
                         // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
                         if (!pickedObject || 
                             (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
-                            // 传递原始坐标和修正后的坐标
-                            handleWeatherPointClick(click.position, correctedPosition);
+                            // 传递原始坐标、修正后的坐标和缩放比例
+                            handleWeatherPointClick(click.position, correctedPosition, scaleX, scaleY);
                             return;
                         }
                         // 如果点击到了其他实体（矿区、船舶），继续下面的处理
@@ -670,8 +678,8 @@ export default {
                             // 显示气象详情窗口
                             selectedWeather.value = details;
                             weatherInfoPosition.value = {
-                                x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
-                                y: Math.max(correctedPosition.y - 100, 10)
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
                             };
                             
                             console.log('✅ 显示气象详情:', details);
@@ -711,8 +719,8 @@ export default {
                                 // 显示船舶信息
                                 selectedShip.value = shipInfo;
                                 shipInfoPosition.value = {
-                                    x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
-                                    y: Math.max(correctedPosition.y - 100, 10)
+                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                    y: Math.max(click.position.y - 100, 10)
                                 };
                                 
                                 console.log('✅ 显示船舶信息:', shipInfo);
@@ -737,8 +745,8 @@ export default {
                                     // 显示船舶信息
                                     selectedShip.value = trajectory.data.shipInfo;
                                     shipInfoPosition.value = {
-                                        x: Math.min(correctedPosition.x + 20, window.innerWidth / scaleX - 370),
-                                        y: Math.max(correctedPosition.y - 100, 10)
+                                        x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                        y: Math.max(click.position.y - 100, 10)
                                     };
                                     
                                     console.log('✅ 显示轨迹船舶信息:', trajectory.data.shipInfo);
@@ -776,13 +784,13 @@ export default {
                         const panelHeight = 280; // 估计高度
                         const margin = 10; // 容器边缘安全距离
                         
-                        // 容器尺寸（缩放前的基准尺寸）
-                        const containerWidth = baseWidth;
-                        const containerHeight = baseHeight;
+                        // 使用原始屏幕坐标
+                        const containerWidth = window.innerWidth;
+                        const containerHeight = window.innerHeight;
                         
                         // 默认：点击位置作为面板左上角
-                        let x = correctedPosition.x;
-                        let y = correctedPosition.y;
+                        let x = click.position.x;
+                        let y = click.position.y;
                         
                         // 边界检测：防止超出右边界
                         if (x + panelWidth > containerWidth - margin) {
@@ -806,8 +814,8 @@ export default {
                         
                         console.log('📍 面板位置:', { 
                             x, y, 
-                            correctedClickX: correctedPosition.x,
-                            correctedClickY: correctedPosition.y,
+                            originalClickX: click.position.x,
+                            originalClickY: click.position.y,
                             scale: { scaleX, scaleY }
                         });
                         
@@ -1054,6 +1062,73 @@ export default {
         // 波浪数据缓存（避免重复加载）
         let cachedWaveData = null;
         
+        // 洋流数据缓存（避免重复加载）
+        let cachedOceanCurrentData = null;
+        
+        // 内波数据缓存（避免重复加载）
+        let cachedInternalWaveData = null;
+        
+        /**
+         * 预加载所有气象数据（不渲染图层，只缓存数据）
+         * 这样用户点击地图时，所有数据都已经准备好了
+         */
+        const preloadWeatherData = async () => {
+            console.log('🚀 开始预加载所有气象数据...');
+            
+            try {
+                // 并行加载所有气象数据的第0帧
+                const [windData, waveData, currentData, internalWaveData] = await Promise.all([
+                    loadGlobalWindData(0).catch(err => {
+                        console.warn('⚠️ 风场数据预加载失败:', err.message);
+                        return null;
+                    }),
+                    loadGlobalWaveData(0).catch(err => {
+                        console.warn('⚠️ 波浪数据预加载失败:', err.message);
+                        return null;
+                    }),
+                    loadGlobalOceanCurrentData(0).catch(err => {
+                        console.warn('⚠️ 洋流数据预加载失败:', err.message);
+                        return null;
+                    }),
+                    loadGlobalInternalWaveData(0).catch(err => {
+                        console.warn('⚠️ 内波数据预加载失败:', err.message);
+                        return null;
+                    })
+                ]);
+                
+                // 缓存加载成功的数据
+                if (windData) {
+                    cachedWindData = windData;
+                    console.log('✅ 风场数据预加载成功');
+                }
+                if (waveData) {
+                    cachedWaveData = waveData;
+                    console.log('✅ 波浪数据预加载成功');
+                }
+                if (currentData) {
+                    cachedOceanCurrentData = currentData;
+                    console.log('✅ 洋流数据预加载成功');
+                }
+                if (internalWaveData) {
+                    cachedInternalWaveData = internalWaveData;
+                    console.log('✅ 内波数据预加载成功');
+                }
+                
+                console.log('🎉 气象数据预加载完成！');
+                
+                // 通知父组件数据已加载（可选）
+                emit('weatherDataLoaded', {
+                    wind: !!windData,
+                    wave: !!waveData,
+                    current: !!currentData,
+                    internalWave: !!internalWaveData
+                });
+                
+            } catch (error) {
+                console.error('❌ 气象数据预加载失败:', error);
+            }
+        };
+        
         // 相机高度监控变量
         let lastCameraHeight = null;
         let cameraHeightCheckInterval = null;
@@ -1255,9 +1330,6 @@ export default {
                 console.log('👁️ 相机高度监控已停止');
             }
         };
-
-        // 洋流数据缓存（避免重复加载）
-        let cachedOceanCurrentData = null;
         
         // 初始化洋流图层
         const initOceanCurrentLayer = async () => {
@@ -1388,6 +1460,104 @@ export default {
                 console.error('   - 堆栈:', error.stack);
             }
         };
+        
+        // 初始化内波图层
+        const initInternalWaveLayer = async () => {
+            console.log('🔧 initInternalWaveLayer 被调用');
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - internalWaveLayer 已存在:', !!internalWaveLayer);
+            
+            if (!viewer || internalWaveLayer) {
+                console.warn('⚠️ 跳过初始化:', !viewer ? 'viewer 不存在' : 'internalWaveLayer 已存在');
+                return;
+            }
+            
+            try {
+                // 加载或使用缓存的内波数据
+                if (!cachedInternalWaveData) {
+                    console.log('🌊 开始加载内波数据...');
+                    cachedInternalWaveData = await loadGlobalInternalWaveData(0);
+                    console.log('✅ 内波数据加载成功并缓存');
+                } else {
+                    console.log('📦 使用缓存的内波数据');
+                }
+                
+                // 动态导入 cesium-wind-layer
+                console.log('⏳ 动态导入 cesium-wind-layer...');
+                const { WindLayer } = await import('cesium-wind-layer');
+                console.log('✅ 插件导入成功');
+                
+                // 确保场景已经渲染，WebGL 上下文已初始化
+                viewer.scene.requestRenderMode = false;
+                viewer.scene.render();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // 创建 InternalWaveLayer（实际是 WindLayer，但用于渲染内波）
+                console.log('⏳ 创建 InternalWaveLayer...');
+                
+                // 检查 WebGL 上下文
+                const gl = viewer.scene.context._gl;
+                const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+                console.log('   - Max texture size:', maxTextureSize);
+                console.log('   - Data width:', cachedInternalWaveData.width);
+                console.log('   - Data height:', cachedInternalWaveData.height);
+                
+                if (cachedInternalWaveData.width > maxTextureSize || cachedInternalWaveData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${cachedInternalWaveData.width}x${cachedInternalWaveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                }
+                
+                internalWaveLayer = new WindLayer(viewer, cachedInternalWaveData, {
+                    // 粒子数量：适中密度，避免卡顿
+                    particlesTextureSize: 640,
+                    
+                    // 粒子高度：海面上方一点，避免被地形遮挡
+                    particleHeight: 1000,
+                    
+                    // 线条粗细：粗线条
+                    lineWidth: { min: 3.0, max: 6.0 },
+                    
+                    // 线条长度：适中长度
+                    lineLength: { min: 80, max: 180 },
+                    
+                    // 速度因子：慢速动画，避免卡顿
+                    speedFactor: 0.3,
+                    
+                    // 粒子消失率：适中
+                    dropRate: 0.002,
+                    
+                    // 粒子消失率增量
+                    dropRateBump: 0.001,
+                    
+                    // 显示范围：扩大范围以适应放大后的数据
+                    displayRange: { min: 0, max: 100 },
+                    
+                    // 内波色带：超亮的青色系，完全不透明
+                    colors: [
+                        'rgba(0, 255, 255, 1)',        // 亮青
+                        'rgba(0, 255, 255, 1)',        // 亮青
+                        'rgba(50, 255, 255, 1)',       // 亮青
+                        'rgba(100, 255, 255, 1)',      // 亮青
+                        'rgba(150, 255, 255, 1)',      // 亮青
+                        'rgba(200, 255, 255, 1)',      // 极亮青
+                        'rgba(255, 255, 255, 1)',      // 白色
+                        'rgba(255, 255, 255, 1)',      // 白色
+                        'rgba(255, 255, 255, 1)',      // 白色
+                        'rgba(255, 255, 255, 1)'       // 白色
+                    ],
+                    
+                    flipY: true,
+                    dynamic: true,
+                    useColorScale: true,
+                    fadeOpacity: 0.98
+                });
+                
+                console.log('✅ InternalWaveLayer 创建成功');
+                
+            } catch (error) {
+                console.error('❌ 内波图层加载失败:', error);
+                console.error('   - 堆栈:', error.stack);
+            }
+        };
 
         // 获取船舶类型名称
         const getShipTypeName = (shipType) => {
@@ -1467,7 +1637,7 @@ export default {
         };
         
         // 处理地图点击查询气象
-        const handleWeatherPointClick = (screenPosition, correctedPosition) => {
+        const handleWeatherPointClick = (screenPosition, correctedPosition, scaleX, scaleY) => {
             // 获取点击位置的经纬度（使用修正后的坐标）
             const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
             if (!cartesian) {
@@ -1479,12 +1649,13 @@ export default {
             const lon = Cesium.Math.toDegrees(cartographic.longitude);
             const lat = Cesium.Math.toDegrees(cartographic.latitude);
             
-            // 设置选中点
+            // 设置选中点（包含缩放比例）
             weatherPickedPoint.value = {
                 lat,
                 lon,
                 cartesian3: cartesian,
-                screenPosition: screenPosition  // 使用原始屏幕坐标显示标签
+                screenPosition: screenPosition,
+                scale: { x: scaleX, y: scaleY }  // 新增：传递缩放比例
             };
             
             // 设置当前图层
@@ -1494,14 +1665,27 @@ export default {
                 currentWeatherLayer.value = { id: 'wave', name: '波高' };
             } else if (showOceanCurrent.value) {
                 currentWeatherLayer.value = { id: 'current', name: '洋流' };
+            } else if (showInternalWave.value) {
+                currentWeatherLayer.value = { id: 'internal_wave', name: '内波' };
             }
             
             // 缓存气象数据
             weatherDataCache.value = {
                 wind: cachedWindData,
                 wave: cachedWaveData,
-                current: cachedOceanCurrentData
+                current: cachedOceanCurrentData,
+                internal_wave: cachedInternalWaveData
             };
+            
+            // 调试：打印缓存的数据状态
+            console.log('📦 气象数据缓存状态:', {
+                wind: !!cachedWindData,
+                wave: !!cachedWaveData,
+                current: !!cachedOceanCurrentData,
+                internal_wave: !!cachedInternalWaveData,
+                internal_wave_has_u: cachedInternalWaveData?.u ? true : false,
+                internal_wave_has_v: cachedInternalWaveData?.v ? true : false
+            });
             
             // 生成时间步长（基于当前激活的图层）
             generateWeatherTimeSteps();
@@ -1519,39 +1703,69 @@ export default {
             try {
                 // 根据当前激活的图层读取 meta.json
                 let metaPath = '';
+                let isInternalWave = false;
+                
                 if (showWind.value) {
                     metaPath = '/wind_data/meta.json';
                 } else if (showWave.value) {
                     metaPath = '/wave_data/meta.json';
                 } else if (showOceanCurrent.value) {
                     metaPath = '/ocean_currents/meta.json';
+                } else if (showInternalWave.value) {
+                    metaPath = '/hret14/hret14_out_uv_20200101/meta.json';
+                    isInternalWave = true;
                 } else {
+                    console.warn('⚠️ 没有激活的气象图层，无法生成时间步长');
                     weatherTimeSteps.value = [];
                     return;
                 }
                 
+                console.log('📂 读取元数据文件:', metaPath);
                 const response = await fetch(metaPath);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const meta = await response.json();
-                const startTime = new Date(meta.start_time);
-                const frames = meta.frames;
-                const timeStepHours = meta.time_step_hours;
+                console.log('📋 元数据内容:', meta);
                 
-                // 生成时间步长数组
-                const steps = [];
-                for (let i = 0; i < frames; i++) {
-                    const time = new Date(startTime);
-                    time.setHours(time.getHours() + i * timeStepHours);
-                    steps.push(time);
+                // 内波数据使用不同的格式
+                if (isInternalWave) {
+                    // 内波的 meta.json 直接提供 times 数组
+                    if (meta.times && Array.isArray(meta.times)) {
+                        const steps = meta.times.map(timeStr => new Date(timeStr));
+                        weatherTimeSteps.value = steps;
+                        console.log('✅ 生成内波时间步长:', steps.length, '个', steps.length > 0 ? `(${steps[0].toISOString()} ~ ${steps[steps.length-1].toISOString()})` : '');
+                    } else {
+                        throw new Error('内波元数据中没有 times 数组');
+                    }
+                } else {
+                    // 其他气象数据使用标准格式
+                    const startTime = new Date(meta.start_time);
+                    const frames = meta.frames;
+                    const timeStepHours = meta.time_step_hours;
+                    
+                    console.log('⏰ 时间参数:', {
+                        startTime: meta.start_time,
+                        frames: frames,
+                        timeStepHours: timeStepHours
+                    });
+                    
+                    // 生成时间步长数组
+                    const steps = [];
+                    for (let i = 0; i < frames; i++) {
+                        const time = new Date(startTime);
+                        time.setHours(time.getHours() + i * timeStepHours);
+                        steps.push(time);
+                    }
+                    
+                    weatherTimeSteps.value = steps;
+                    console.log('✅ 生成时间步长:', steps.length, '个', steps.length > 0 ? `(${steps[0].toISOString()} ~ ${steps[steps.length-1].toISOString()})` : '');
                 }
-                
-                weatherTimeSteps.value = steps;
-                console.log('⏰ 生成时间步长:', steps.length, '个');
             } catch (error) {
                 console.error('❌ 生成时间步长失败:', error);
+                console.error('   错误详情:', error.message);
+                console.error('   堆栈:', error.stack);
                 weatherTimeSteps.value = [];
             }
         };
@@ -1824,6 +2038,170 @@ export default {
             }
         };
 
+        /**
+         * 计算各区域的矿区数量
+         * @param {Array} entities - 所有矿区实体
+         * @returns {Object} 区域ID到数量的映射
+         */
+        const calculateRegionCounts = (entities) => {
+            const counts = {
+                pacific_ccz: 0,
+                pacific_other: 0,
+                indian_ocean: 0,
+                atlantic_ocean: 0,
+                apei: 0
+            };
+            
+            entities.forEach(entity => {
+                if (!entity.properties) return;
+                
+                const location = entity.properties.location?.getValue() || '';
+                const category = entity.properties.category?.getValue() || '';
+                
+                // 环境保护区
+                if (category === 'APEI') {
+                    counts.apei++;
+                }
+                // 太平洋CCZ区
+                else if (location.includes('太平洋 (CCZ)')) {
+                    counts.pacific_ccz++;
+                }
+                // 印度洋区
+                else if (location.includes('印度洋')) {
+                    counts.indian_ocean++;
+                }
+                // 大西洋区
+                else if (location.includes('大西洋')) {
+                    counts.atlantic_ocean++;
+                }
+                // 太平洋其他区
+                else if (location.includes('太平洋')) {
+                    counts.pacific_other++;
+                }
+            });
+            
+            console.log('📊 区域矿区统计:', counts);
+            return counts;
+        };
+        
+        /**
+         * 判断实体是否匹配区域筛选条件
+         * @param {Object} entity - 矿区实体
+         * @param {Object} filter - 区域筛选条件
+         * @returns {Boolean} 是否匹配
+         */
+        const matchRegionFilter = (entity, filter) => {
+            if (!entity.properties) return false;
+            
+            const location = entity.properties.location?.getValue() || '';
+            const category = entity.properties.category?.getValue() || '';
+            
+            // 检查 category 筛选
+            if (filter.category && filter.category.length > 0) {
+                if (filter.category.includes(category)) {
+                    return true;
+                }
+            }
+            
+            // 检查 location 筛选
+            if (filter.location && filter.location.length > 0) {
+                for (const loc of filter.location) {
+                    if (location.includes(loc)) {
+                        // 检查是否需要排除
+                        if (filter.excludeLocation && filter.excludeLocation.length > 0) {
+                            let shouldExclude = false;
+                            for (const excludeLoc of filter.excludeLocation) {
+                                if (location.includes(excludeLoc)) {
+                                    shouldExclude = true;
+                                    break;
+                                }
+                            }
+                            if (shouldExclude) continue;
+                        }
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        };
+        
+        /**
+         * 应用矿区地理分区筛选
+         * @param {Array} regions - 区域配置数组
+         * 
+         * 优先级规则:
+         * 1. APEI区域优先级最高(按category匹配)
+         * 2. 其他区域按location匹配
+         * 3. 每个矿区只属于一个区域
+         */
+        const applyRegionFilters = (regions) => {
+            if (!allEntities.length || !regions || !regions.length) return;
+            
+            console.log('🗺️ 应用区域筛选:', regions);
+            
+            // 按优先级排序区域: APEI优先
+            const sortedRegions = [...regions].sort((a, b) => {
+                if (a.id === 'apei') return -1;
+                if (b.id === 'apei') return 1;
+                return 0;
+            });
+            
+            let visibleCount = 0;
+            
+            allEntities.forEach(entity => {
+                if (!entity.polygon || !entity.properties) return;
+                
+                // 找到实体所属的第一个匹配区域(优先级最高的)
+                let belongsToRegion = null;
+                
+                for (const region of sortedRegions) {
+                    if (matchRegionFilter(entity, region.filter)) {
+                        belongsToRegion = region;
+                        break; // 找到第一个匹配的区域就停止
+                    }
+                }
+                
+                // 只有当实体所属区域是激活状态时才显示
+                const shouldShow = belongsToRegion && belongsToRegion.active;
+                
+                // 显示或隐藏实体
+                entity.show = shouldShow;
+                if (shouldShow) visibleCount++;
+            });
+            
+            console.log(`✅ 区域筛选完成: ${visibleCount}/${allEntities.length} 个矿区可见`);
+            
+            // 强制渲染
+            if (viewer) {
+                viewer.scene.requestRender();
+            }
+        };
+        
+        /**
+         * 飞到指定区域
+         * @param {Object} region - 区域信息
+         */
+        const flyToRegion = (region) => {
+            if (!viewer || !region || !region.center) return;
+            
+            console.log('✈️ 飞到区域:', region.label);
+            
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(
+                    region.center.lng,
+                    region.center.lat,
+                    region.center.height
+                ),
+                duration: 2.0,
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                }
+            });
+        };
+
         // 筛选逻辑（支持多选）
         const applyFilters = () => {
             if (!allEntities.length) return;
@@ -1946,9 +2324,9 @@ export default {
             applyFilters();
         }, { deep: true });
 
-        // 监听图层控制变化（控制风场显隐）
-        watch(() => props.layerState, (newLayers) => {
-            updateWindVisibility(newLayers);
+        // 监听图层控制变化（矿区地理分区控制）
+        watch(() => props.layerState, (newRegions) => {
+            applyRegionFilters(newRegions);
         }, { deep: true });
         
         // 监听气象图层控制变化
@@ -2516,6 +2894,44 @@ export default {
                         viewer.scene.requestRenderMode = true;
                     }
                 }
+                
+                // 处理极端环境图层（内波）
+                if (group.id === 'extreme_environment' && group.active && group.subLayers) {
+                    // 处理内波图层
+                    const internalWaveSub = group.subLayers.find(s => s.id === 'internal_wave');
+                    console.log('🔍 检查内波图层:', { 
+                        groupId: group.id, 
+                        found: !!internalWaveSub, 
+                        active: internalWaveSub?.active 
+                    });
+                    if (internalWaveSub && internalWaveSub.active) {
+                        console.log('✅ 内波图层需要显示');
+                        // 需要显示内波
+                        if (!internalWaveLayer) {
+                            console.log('⏳ 初始化内波图层...');
+                            // 未初始化，初始化内波
+                            await initInternalWaveLayer();
+                            if (internalWaveLayer) {
+                                internalWaveLayer.show = true;
+                                showInternalWave.value = true;
+                                viewer.scene.requestRenderMode = false;
+                                console.log('✅ 内波图层已显示');
+                            }
+                        } else {
+                            console.log('✅ 内波图层已存在，直接显示');
+                            // 已初始化，显示内波
+                            internalWaveLayer.show = true;
+                            showInternalWave.value = true;
+                            viewer.scene.requestRenderMode = false;
+                        }
+                    } else if (internalWaveLayer) {
+                        console.log('🙈 隐藏内波图层');
+                        // 不需要显示，隐藏内波
+                        internalWaveLayer.show = false;
+                        showInternalWave.value = false;
+                        viewer.scene.requestRenderMode = true;
+                    }
+                }
             }
         };
 
@@ -2538,6 +2954,10 @@ export default {
             if (oceanCurrentLayer) {
                 oceanCurrentLayer.remove();
                 oceanCurrentLayer = null;
+            }
+            if (internalWaveLayer) {
+                internalWaveLayer.remove();
+                internalWaveLayer = null;
             }
             if (clickHandler) {
                 clickHandler.destroy();
@@ -2760,6 +3180,59 @@ export default {
                     console.log('✅ 风场数据已更新');
                 }
                 
+                // 更新内波数据
+                if (showInternalWave.value && internalWaveLayer) {
+                    console.log('🌊 重新加载内波数据，时间帧:', timeIndex);
+                    const newInternalWaveData = await loadGlobalInternalWaveData(timeIndex);
+                    
+                    // 彻底移除旧图层
+                    try {
+                        internalWaveLayer.remove();
+                        internalWaveLayer = null;
+                    } catch (e) {
+                        console.warn('移除旧内波图层时出错:', e);
+                    }
+                    
+                    // 等待一帧，确保旧图层完全清理
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 动态导入 cesium-wind-layer
+                    const { WindLayer } = await import('cesium-wind-layer');
+                    
+                    // 创建新图层（使用相同的配置）
+                    internalWaveLayer = new WindLayer(viewer, newInternalWaveData, {
+                        particlesTextureSize: 640,
+                        particleHeight: 1000,
+                        lineWidth: { min: 3.0, max: 6.0 },
+                        lineLength: { min: 80, max: 180 },
+                        speedFactor: 0.3,
+                        dropRate: 0.002,
+                        dropRateBump: 0.001,
+                        displayRange: { min: 0, max: 100 },
+                        colors: [
+                            'rgba(0, 255, 255, 1)',
+                            'rgba(0, 255, 255, 1)',
+                            'rgba(50, 255, 255, 1)',
+                            'rgba(100, 255, 255, 1)',
+                            'rgba(150, 255, 255, 1)',
+                            'rgba(200, 255, 255, 1)',
+                            'rgba(255, 255, 255, 1)',
+                            'rgba(255, 255, 255, 1)',
+                            'rgba(255, 255, 255, 1)',
+                            'rgba(255, 255, 255, 1)'
+                        ],
+                        flipY: true,
+                        dynamic: true,
+                        useColorScale: true,
+                        fadeOpacity: 0.98
+                    });
+                    
+                    internalWaveLayer.show = true;
+                    cachedInternalWaveData = newInternalWaveData;
+                    
+                    console.log('✅ 内波数据已更新');
+                }
+                
                 // 强制刷新场景
                 if (viewer) {
                     viewer.scene.requestRender();
@@ -2793,6 +3266,7 @@ export default {
             handlePickPoint,  // 暴露地图选点处理函数
             handleThresholdsChanged,  // 暴露阈值变化处理函数
             updateWeatherTime,  // 暴露时间更新函数
+            flyToRegion,  // 暴露区域定位函数
             zoomIn,
             zoomOut,
             resetView,

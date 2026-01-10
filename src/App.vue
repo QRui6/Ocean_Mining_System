@@ -33,6 +33,7 @@
                     @filterChange="handleFilterChange"
                     @layersChange="handleLayersChange"
                     @weatherLayersChange="handleWeatherLayersChange"
+                    @regionLocate="handleRegionLocate"
                 />
                 
                 <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
@@ -887,15 +888,25 @@ export default {
          * @param {Object} data - 包含国家列表和矿区数据的对象
          * @param {Array} data.countries - 所有担保国列表
          * @param {Array} data.miningData - 所有矿区数据
+         * @param {Object} data.regionCounts - 各区域矿区数量统计
          */
         const handleDataLoaded = (data) => {
             availableCountries.value = data.countries;
             if (data.miningData) {
                 allMiningData.value = data.miningData;
             }
+            // 更新图层状态中的区域数量
+            if (data.regionCounts && layerState.value) {
+                layerState.value.forEach(region => {
+                    if (data.regionCounts[region.id] !== undefined) {
+                        region.count = data.regionCounts[region.id];
+                    }
+                });
+            }
             console.log('📊 App.vue 接收到数据:', {
                 countries: data.countries?.length,
-                miningData: data.miningData?.length
+                miningData: data.miningData?.length,
+                regionCounts: data.regionCounts
             });
         };
 
@@ -918,6 +929,18 @@ export default {
         const handleLayersChange = (layers) => {
             layerState.value = layers;
             console.log('🗺️ App.vue 图层状态变化:', layers);
+        };
+        
+        /**
+         * 处理矿区地理分区定位事件
+         * @param {Object} region - 区域信息
+         */
+        const handleRegionLocate = (region) => {
+            console.log('📍 App.vue 收到区域定位请求:', region);
+            // 通知 MapContainer 飞到该区域
+            if (mapContainerRef.value && mapContainerRef.value.flyToRegion) {
+                mapContainerRef.value.flyToRegion(region);
+            }
         };
         
         /**
@@ -1340,6 +1363,7 @@ export default {
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
+            handleRegionLocate,
             handleWeatherLayersChange,
             handleWeatherLayerToggle,
             handleTabChange,

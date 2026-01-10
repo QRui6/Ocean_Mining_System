@@ -35,71 +35,27 @@
         </div>
     </transition>
     
-    <!-- 详细面板：显示所有时间的所有气象数据 -->
-    <transition name="slide-up">
-        <div v-if="showDetailPanel" class="absolute bottom-0 left-0 right-0 pointer-events-auto" style="z-index: 100;">
-            <div class="bg-slate-900/95 backdrop-blur-xl border-t-2 border-cyan-500/50 shadow-[0_-8px_32px_rgba(0,0,0,0.8)]" 
-                 style="max-height: 50vh; min-height: 300px;">
-                <!-- 头部 -->
-                <div class="flex items-center justify-between px-6 py-3 border-b border-slate-700">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                        <span class="text-white font-medium">气象数据详情</span>
-                        <span class="text-sm text-slate-400">
-                            {{ pickedPoint ? `${pickedPoint.lat.toFixed(2)}°, ${pickedPoint.lon.toFixed(2)}°` : '' }}
-                        </span>
-                    </div>
-                    <button @click="toggleDetailPanel" 
-                            class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                
-                <!-- 数据表格 -->
-                <div class="overflow-auto" style="max-height: calc(50vh - 60px);">
-                    <div v-if="timeSteps.length === 0" class="p-8 text-center text-slate-400">
-                        <p>暂无时间序列数据</p>
-                        <p class="text-sm mt-2">当前仅显示已加载时间帧的数据</p>
-                    </div>
-                    <table v-else class="w-full text-sm">
-                        <thead class="bg-slate-800 sticky top-0 z-10">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-cyan-400 font-medium whitespace-nowrap">图层</th>
-                                <th class="px-4 py-2 text-center text-cyan-400 font-medium whitespace-nowrap">当前值</th>
-                                <th class="px-4 py-2 text-center text-cyan-400 font-medium whitespace-nowrap">单位</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="layer in availableLayers" :key="layer.id"
-                                class="border-b border-slate-700 hover:bg-slate-800/50 transition-colors">
-                                <td class="px-4 py-2 text-slate-300 whitespace-nowrap">
-                                    {{ layer.name }}
-                                </td>
-                                <td class="px-4 py-2 text-center text-white font-['Rajdhani'] font-bold text-xl whitespace-nowrap">
-                                    {{ getCurrentLayerValue(layer.id) }}
-                                </td>
-                                <td class="px-4 py-2 text-center text-slate-400 whitespace-nowrap">
-                                    {{ layer.unit }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="p-4 text-center text-xs text-slate-500 border-t border-slate-700">
-                        <p>💡 提示：当前显示的是已加载时间帧的数据</p>
-                        <p class="mt-1">使用时间轴切换不同时间的数据</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </transition>
+    <!-- Windy 风格详细面板 -->
+    <WindyStyleWeatherPanel
+        :show="showDetailPanel"
+        :lat="pickedPoint?.lat || 0"
+        :lon="pickedPoint?.lon || 0"
+        :weatherData="weatherData"
+        :timeSteps="timeSteps"
+        @close="toggleDetailPanel"
+        @timeChange="handleTimeChange"
+    />
 </template>
 
 <script>
 import { ref, computed, watch } from 'vue';
+import WindyStyleWeatherPanel from './WindyStyleWeatherPanel.vue';
 
 export default {
+    components: {
+        WindyStyleWeatherPanel
+    },
+    
     props: {
         pickedPoint: {
             type: Object,
@@ -122,7 +78,7 @@ export default {
             default: 0
         }
     },
-    emits: ['close'],
+    emits: ['close', 'timeChange'],
     setup(props, { emit }) {
         const showDetailPanel = ref(false);
         const labelPosition = ref({ x: 0, y: 0 });
@@ -163,15 +119,22 @@ export default {
             if (props.weatherData?.current) {
                 layers.push({ id: 'current', name: '洋流', unit: 'm/s' });
             }
+            if (props.weatherData?.internal_wave) {
+                layers.push({ id: 'internal_wave', name: '内波', unit: 'm/s' });
+            }
             return layers;
         });
         
         // 监听点击位置变化，更新标签位置
         watch(() => props.pickedPoint, (newPoint) => {
             if (newPoint && newPoint.screenPosition) {
+                // 获取缩放比例（如果没有则默认为1，即不缩放）
+                const scale = newPoint.scale || { x: 1, y: 1 };
+                
+                // 使用缩放比例修正坐标
                 labelPosition.value = {
-                    x: newPoint.screenPosition.x + 10,
-                    y: newPoint.screenPosition.y - 60
+                    x: (newPoint.screenPosition.x / scale.x) + 10,
+                    y: (newPoint.screenPosition.y / scale.y) - 60
                 };
             }
         });
@@ -191,7 +154,7 @@ export default {
         const getValueAtPoint = (data, lat, lon, timeIndex) => {
             if (!data || !data.u || !data.v) return null;
             
-            const { width, height, bounds } = data;
+            const { width, height, bounds, landMask } = data;
             const { west, south, east, north } = bounds;
             
             // 将经纬度转换为数据索引
@@ -202,11 +165,30 @@ export default {
             if (x < 0 || x >= width || y < 0 || y >= height) return null;
             
             const index = y * width + x;
+            
+            // ⭐ 第一层：检查陆地标记（如果存在）
+            if (landMask && landMask[index] === 1) {
+                return null;  // 陆地返回 null，显示 N/A
+            }
+            
             const u = data.u.array[index];
             const v = data.v.array[index];
             
+            // ⭐ 第二层：直接判断 u 和 v 是否都接近 0（无效区域或陆地）
+            // 使用更严格的阈值 0.001，过滤掉所有接近0的值
+            if (Math.abs(u) < 0.001 && Math.abs(v) < 0.001) {
+                return null;
+            }
+            
             // 计算强度
-            return Math.sqrt(u * u + v * v);
+            const value = Math.sqrt(u * u + v * v);
+            
+            // ⭐ 第三层：过滤极小值（额外保险）
+            if (value < 0.01) {
+                return null;
+            }
+            
+            return value;
         };
         
         // 获取指定时间的数值
@@ -240,7 +222,8 @@ export default {
             const units = {
                 wind: 'm/s',
                 wave: 'm',
-                current: 'm/s'
+                current: 'm/s',
+                internal_wave: 'm/s'
             };
             
             return `${value.toFixed(2)} ${units[layerId] || ''}`;
@@ -255,6 +238,11 @@ export default {
             return `${month}-${day} ${hour}:00`;
         };
         
+        // 处理时间变化
+        const handleTimeChange = (index) => {
+            emit('timeChange', index);
+        };
+        
         return {
             showDetailPanel,
             labelPosition,
@@ -265,7 +253,8 @@ export default {
             closePicker,
             getValueAtTime,
             getCurrentLayerValue,
-            formatTime
+            formatTime,
+            handleTimeChange
         };
     }
 };
@@ -277,17 +266,5 @@ export default {
 }
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
-}
-
-.slide-up-enter-active, .slide-up-leave-active {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-up-enter-from {
-    opacity: 0;
-    transform: translateY(100%);
-}
-.slide-up-leave-to {
-    opacity: 0;
-    transform: translateY(100%);
 }
 </style>
