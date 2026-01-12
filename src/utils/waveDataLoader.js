@@ -314,6 +314,11 @@ export async function loadGlobalWaveData(timeIndex = 0) {
         
         // 7. 构造返回数据（WindLayer 兼容格式）
         const waveData = {
+            hs: {
+                array: hsData,  // ⭐ 添加波高数据
+                min: hsMin,
+                max: hsMax
+            },
             u: {
                 array: uData,
                 min: uMin,

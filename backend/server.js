@@ -1246,6 +1246,19 @@ setInterval(async () => {
     }
 }, 10 * 60 * 1000); // 10分钟
 
+// ==================== Copernicus 数据服务 ====================
+
+// 初始化 Copernicus 数据服务
+const CopernicusDataService = require('./services/copernicusDataService');
+const copernicusService = new CopernicusDataService();
+copernicusService.init();
+
+// 注册 Copernicus API 路由
+const copernicusRoutes = require('./routes/copernicusRoutes');
+app.use('/api/copernicus', copernicusRoutes(copernicusService));
+
+console.log('✅ Copernicus 数据服务已初始化');
+
 // 启动服务器
 app.listen(PORT, () => {
     console.log(`🚀 服务器启动成功: http://localhost:${PORT}`);

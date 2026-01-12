@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
             rewrite: (path) => path.replace(/^\/api\/shipxy/, ''),
             secure: false,
             timeout: 30000  // 增加超时时间到30秒
+          },
+          // 代理后端API请求
+          '/api': {
+            target: 'http://localhost:5678',
+            changeOrigin: true,
+            secure: false
           }
         },
         fs: {

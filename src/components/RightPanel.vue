@@ -45,8 +45,7 @@ export default {
             default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleAreaMonitor'], // 向父组件发送面板切换事件
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather'], // 向父组件发送面板切换事件
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor'],
     setup(props, { emit }) {
         // ==================== 计算属性 ====================
         
@@ -79,6 +78,8 @@ export default {
                     emit('toggleQuery');
                 } else if (tool === '图层控制') {
                     emit('toggleLayers');
+                } else if (tool === '矿区气象') {
+                    emit('toggleMiningWeatherMonitor');
                 }
             } 
             // 气象监测选项卡的功能
@@ -127,6 +128,7 @@ export default {
                 if (tool === '矿区列表') return props.activePanels.list;
                 if (tool === '矿区查询') return props.activePanels.query;
                 if (tool === '图层控制') return props.activePanels.layers;
+                if (tool === '矿区气象') return props.activePanels.miningWeatherMonitor;
             }
             
             // 气象监测选项卡的功能

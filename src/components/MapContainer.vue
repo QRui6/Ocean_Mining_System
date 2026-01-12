@@ -88,6 +88,20 @@
                         <span class="text-cyan-300/80 text-sm font-medium">{{ key }}</span>
                         <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate" :title="val">{{ val }}</span>
                     </div>
+                    
+                    <!-- 监测按钮 -->
+                    <div class="pt-3 border-t border-cyan-500/30 relative z-10">
+                        <button 
+                            @click="addToMonitoring"
+                            class="w-full px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-sm transition-all shadow-lg hover:shadow-cyan-500/50 flex items-center justify-center gap-2 pointer-events-auto cursor-pointer"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <span>加入气象监测</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </transition>
@@ -378,6 +392,36 @@ export default {
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
+        
+        // 渲染模式管理：跟踪需要持续渲染的图层
+        const activeAnimationLayers = ref(new Set());
+        
+        // 更新渲染模式
+        const updateRenderMode = () => {
+            if (!viewer) return;
+            
+            // 如果有任何动画图层激活，使用持续渲染模式
+            const shouldContinuousRender = activeAnimationLayers.value.size > 0;
+            viewer.scene.requestRenderMode = !shouldContinuousRender;
+            
+            if (shouldContinuousRender) {
+                console.log('🎬 启用持续渲染模式，激活的图层:', Array.from(activeAnimationLayers.value));
+            } else {
+                console.log('⏸️ 启用按需渲染模式');
+            }
+        };
+        
+        // 显示动画图层
+        const showAnimationLayer = (layerName) => {
+            activeAnimationLayers.value.add(layerName);
+            updateRenderMode();
+        };
+        
+        // 隐藏动画图层
+        const hideAnimationLayer = (layerName) => {
+            activeAnimationLayers.value.delete(layerName);
+            updateRenderMode();
+        };
         let pickPointMarkers = { 
             start: null, 
             end: null,
@@ -463,6 +507,12 @@ export default {
             viewer.scene.moon.show = false;
             viewer.scene.skyBox.show = true;
             
+            // ⭐ 关键：禁用按需渲染，始终保持持续渲染
+            // 这样可以避免粒子动画（风场、波浪、洋流、内波）出现卡顿
+            // 虽然会增加一些 GPU 负载，但能保证动画流畅
+            viewer.scene.requestRenderMode = false;
+            viewer.scene.maximumRenderTimeChange = Infinity; // 禁用自动降帧
+            
             viewer._cesiumWidget._creditContainer.style.display = "none";
 
             // 设置初始视角
@@ -538,13 +588,16 @@ export default {
                         const colorHex = getContractorColor(contractor);
                         const color = Cesium.Color.fromCssColorString(colorHex);
                         
-                        // 设置颜色
-                        entity.polygon.material = color.withAlpha(0.8);
+                        // 设置颜色（降低透明度，避免遮挡粒子效果）
+                        entity.polygon.material = color.withAlpha(0.5);
                         
                         // 设置边框
                         entity.polygon.outline = true;
                         entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
                         entity.polygon.outlineWidth = 1;
+                        
+                        // ⭐ 关键：设置为贴地渲染，避免遮挡粒子效果
+                        entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
                         
                         // 存储原始颜色用于筛选
                         entity._originalColor = color;
@@ -625,7 +678,7 @@ export default {
                     
                     // 恢复上一个选中实体的样式
                     if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
-                        previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.8);
+                        previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.5);
                         previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
                         previousEntity.polygon.outlineWidth = 1;
                     }
@@ -865,7 +918,7 @@ export default {
         const closeInfo = () => {
             // 恢复上一个选中实体的样式
             if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
-                previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.8);
+                previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.5);
                 previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
                 previousEntity.polygon.outlineWidth = 1;
                 previousEntity = null;
@@ -876,6 +929,80 @@ export default {
             // 强制渲染
             if (viewer) {
                 viewer.scene.requestRender();
+            }
+        };
+        
+        /**
+         * 添加矿区到气象监测
+         */
+        const addToMonitoring = () => {
+            console.log('🔘 addToMonitoring 被调用');
+            console.log('   - selectedArea.value:', selectedArea.value);
+            console.log('   - previousEntity:', previousEntity);
+            
+            if (!selectedArea.value || !previousEntity) {
+                console.warn('⚠️ 没有选中的矿区');
+                return;
+            }
+            
+            try {
+                console.log('📦 开始提取矿区数据...');
+                
+                // 提取多边形坐标
+                const positions = previousEntity.polygon.hierarchy.getValue(Cesium.JulianDate.now()).positions;
+                const polygon = positions.map(pos => {
+                    const cartographic = Cesium.Cartographic.fromCartesian(pos);
+                    return [
+                        Cesium.Math.toDegrees(cartographic.longitude),
+                        Cesium.Math.toDegrees(cartographic.latitude)
+                    ];
+                });
+                
+                console.log('✅ 多边形坐标提取成功，点数:', polygon.length);
+                
+                // 获取属性
+                const props = {};
+                if (previousEntity.properties) {
+                    previousEntity.properties.propertyNames.forEach(name => {
+                        props[name] = previousEntity.properties[name]?.getValue();
+                    });
+                }
+                
+                console.log('✅ 属性提取成功:', props);
+                
+                // 构建矿区信息
+                const miningArea = {
+                    id: previousEntity.id || props.id || `mining_${Date.now()}`,
+                    name: previousEntity.name || props.name || props.contractor || '未命名矿区',
+                    contractor: props.contractor || '未知',
+                    mineral: props.mineral || '未知',
+                    location: props.location || '未知',
+                    polygon: polygon
+                };
+                
+                console.log('📍 准备添加矿区到气象监测:', miningArea);
+                console.log('   - window 存在:', typeof window !== 'undefined');
+                console.log('   - window.app 存在:', !!window.app);
+                console.log('   - miningWeatherMonitorRef 存在:', !!window.app?.miningWeatherMonitorRef);
+                console.log('   - miningWeatherMonitorRef.value 存在:', !!window.app?.miningWeatherMonitorRef?.value);
+                
+                // 通过 window.app 访问矿区气象监测组件
+                const monitorComponent = window.app?.miningWeatherMonitorRef?.value;
+                if (monitorComponent && typeof monitorComponent.addArea === 'function') {
+                    console.log('✅ 找到监测组件，调用 addArea...');
+                    monitorComponent.addArea(miningArea);
+                    console.log('✅ 成功添加矿区到气象监测');
+                    
+                    // 关闭信息面板
+                    closeInfo();
+                } else {
+                    console.error('❌ 矿区气象监测组件未就绪');
+                    console.log('   - monitorComponent:', monitorComponent);
+                    console.log('   - addArea 方法存在:', typeof monitorComponent?.addArea);
+                }
+            } catch (err) {
+                console.error('❌ 添加矿区到气象监测失败:', err);
+                console.error('   - 错误堆栈:', err.stack);
             }
         };
 
@@ -1025,26 +1152,49 @@ export default {
                 console.log('⏳ 创建 WindLayer...');
                 
                 windLayer = new WindLayer(viewer, windData, {
+                    // 粒子数量：640x640 = 409,600 个粒子
                     particlesTextureSize: 640,
-                    particleHeight: 100000,        // 高度：100km（在大气层显示）
-                    lineWidth: { min: 1.5, max: 4 },
-                    lineLength: { min: 100, max: 200 },
-                    speedFactor: 1.5,
-                    dropRate: 0.003,
-                    dropRateBump: 0.001,
+                    
+                    // 粒子高度：降低到 10km，更贴近地表，减少球面扭曲
+                    particleHeight: 10000,
+                    
+                    // 线条粗细：细腻的线条
+                    lineWidth: { min: 1.5, max: 4.0 },
+                    
+                    // 线条长度：适中长度，避免在球面上断裂
+                    lineLength: { min: 250, max: 500 },
+                    
+                    // 速度因子：适中速度
+                    speedFactor: 2.5,
+                    
+                    // 粒子消失率：适中，保持流畅
+                    dropRate: 0.0005,
+                    
+                    // 粒子消失率增量
+                    dropRateBump: 0.0002,
+                    
+                    // 风场色带：Windy 经典配色（紫→蓝→青→绿→黄→橙→红→紫红）
                     colors: [
-                        'rgba(0, 98, 255, 1)',      // 深蓝（低风速）
-                        'rgba(0, 180, 255, 1)',     // 青色
-                        'rgba(0, 255, 200, 1)',     // 青绿
-                        'rgba(100, 255, 100, 1)',   // 绿色
-                        'rgba(255, 255, 0, 1)',     // 黄色
-                        'rgba(255, 150, 0, 1)',     // 橙色
-                        'rgba(255, 50, 0, 1)'       // 红色（高风速）
+                        'rgba(98, 113, 183, 1)',     // 淡紫（微风 0-2 m/s）
+                        'rgba(57, 97, 159, 1)',      // 蓝紫
+                        'rgba(74, 148, 169, 1)',     // 蓝色（2-5 m/s）
+                        'rgba(77, 141, 123, 1)',     // 青蓝
+                        'rgba(83, 165, 83, 1)',      // 绿色（5-8 m/s）
+                        'rgba(53, 159, 53, 1)',      // 深绿
+                        'rgba(167, 157, 81, 1)',     // 黄绿（8-11 m/s）
+                        'rgba(159, 127, 58, 1)',     // 土黄
+                        'rgba(161, 108, 92, 1)',     // 橙色（11-14 m/s）
+                        'rgba(129, 58, 78, 1)',      // 橙红
+                        'rgba(175, 80, 136, 1)',     // 红色（14-17 m/s）
+                        'rgba(117, 74, 147, 1)',     // 紫红
+                        'rgba(109, 97, 163, 1)',     // 深紫（>17 m/s）
+                        'rgba(68, 105, 141, 1)'      // 深蓝紫（极强风）
                     ],
+                    
                     displayRange: { min: 0, max: 30 },  // 风速范围：0-30 m/s
                     flipY: false,
                     useColorScale: true,
-                    fadeOpacity: 0.95
+                    fadeOpacity: 0.98
                 });
                 
                 console.log('✅ WindLayer 创建成功');
@@ -1191,7 +1341,8 @@ export default {
                     // 粒子数量：增加一些，展现更丰富的波浪细节
                     particlesTextureSize: 640,
                     
-                    particleHeight: 0,
+                    // 粒子高度：提高到 5000m，避免被矿区多边形遮挡
+                    particleHeight: 5000,
                     
                     // 线条粗细：恢复原来的粗线条
                     lineWidth: { min: 6, max: 10 },
@@ -1208,18 +1359,21 @@ export default {
                     // 粒子消失率增量
                     dropRateBump: 0.002,
                     
-                    // 波浪色带：蓝→青→绿→黄→橙→红
+                    // 波浪色带：使用高对比度配色，避免与深蓝海洋背景冲突
+                    // 从亮色开始：白→青→绿→黄→橙→红→紫
                     colors: [
-                        'rgba(0, 0, 139, 0.7)',      // 深蓝（低波高 0-1m）
-                        'rgba(0, 0, 255, 0.75)',     // 蓝色
-                        'rgba(0, 191, 255, 0.8)',    // 深天蓝（1-2m）
-                        'rgba(0, 255, 255, 0.85)',   // 青色
-                        'rgba(0, 255, 127, 0.9)',    // 春绿（2-3m）
-                        'rgba(173, 255, 47, 0.9)',   // 黄绿
-                        'rgba(255, 255, 0, 0.95)',   // 黄色（3-4m）
-                        'rgba(255, 165, 0, 0.98)',   // 橙色（4-5m）
-                        'rgba(255, 69, 0, 1.0)',     // 橙红（5-6m）
-                        'rgba(255, 0, 0, 1.0)'       // 红色（>6m 高波高）
+                        'rgba(255, 255, 255, 0.9)',  // 白色（低波高 0-0.5m）- 最显眼
+                        'rgba(0, 255, 255, 0.95)',   // 亮青色（0.5-1m）
+                        'rgba(0, 255, 200, 0.95)',   // 青绿（1-1.5m）
+                        'rgba(0, 255, 100, 0.95)',   // 绿色（1.5-2m）
+                        'rgba(150, 255, 0, 0.95)',   // 黄绿（2-2.5m）
+                        'rgba(255, 255, 0, 0.98)',   // 黄色（2.5-3m）
+                        'rgba(255, 200, 0, 0.98)',   // 金黄（3-3.5m）
+                        'rgba(255, 150, 0, 0.98)',   // 橙色（3.5-4m）
+                        'rgba(255, 100, 0, 1.0)',    // 橙红（4-5m）
+                        'rgba(255, 0, 0, 1.0)',      // 红色（5-6m）
+                        'rgba(200, 0, 100, 1.0)',    // 深红（6-7m）
+                        'rgba(150, 0, 150, 1.0)'     // 紫色（>7m 极高波浪）
                     ],
                     
                     flipY: false,
@@ -1377,45 +1531,46 @@ export default {
                 }
                 
                 oceanCurrentLayer = new WindLayer(viewer, cachedOceanCurrentData, {
-                    // 粒子数量：适中密度（Windy 风格）
-                    particlesTextureSize: 640,
+                    // 粒子数量：增加密度，形成更密集的流线
+                    particlesTextureSize: 1024,
                     
-                    particleHeight: 0,
+                    // 粒子高度：稍微抬高，避免贴地渲染问题
+                    particleHeight: 3000,
                     
-                    // 线条粗细：细腻的线条（Windy 风格）
+                    // 线条粗细：细腻的线条，像 Windy 一样
                     lineWidth: { min: 1.5, max: 3.5 },
                     
-                    // 线条长度：稍长的流线
-                    lineLength: { min: 300, max: 700 },
+                    // 线条长度：超长流线，形成婉转的曲线
+                    lineLength: { min: 600, max: 1200 },
                     
-                    // 速度因子：更缓慢的动画速度
-                    speedFactor: 1.8,
+                    // 速度因子：很慢的动画，优雅流畅
+                    speedFactor: 0.8,
                     
-                    // 粒子消失率：适中，保持流线连续性
-                    dropRate: 0.003,
+                    // 粒子消失率：极低，让粒子形成超长尾迹
+                    dropRate: 0.0003,
                     
-                    // 粒子消失率增量
-                    dropRateBump: 0.001,
+                    // 粒子消失率增量：几乎不增加
+                    dropRateBump: 0.0001,
                     
-                    // 洋流色带：保持当前的蓝绿色系
+                    // 洋流色带：暖色调（黄→橙→红→紫红），在蓝色背景下非常醒目
                     colors: [
-                        'rgba(0, 30, 80, 0.75)',       // 深蓝（慢流 0-0.2 m/s）
-                        'rgba(0, 60, 120, 0.8)',       // 蓝色
-                        'rgba(0, 100, 160, 0.85)',     // 中蓝（0.2-0.4 m/s）
-                        'rgba(0, 140, 200, 0.88)',     // 亮蓝
-                        'rgba(0, 180, 240, 0.9)',      // 天蓝（0.4-0.6 m/s）
-                        'rgba(0, 220, 255, 0.92)',     // 浅蓝
-                        'rgba(50, 240, 255, 0.95)',    // 亮青（0.6-0.8 m/s）
-                        'rgba(100, 255, 255, 0.97)',   // 青色
-                        'rgba(150, 255, 200, 0.98)',   // 青绿（0.8-1.0 m/s）
-                        'rgba(200, 255, 150, 1.0)'     // 黄绿（>1.0 m/s 快流）
+                        'rgba(255, 255, 100, 0.85)',   // 亮黄（慢流 0-0.2 m/s）
+                        'rgba(255, 240, 0, 0.88)',     // 金黄
+                        'rgba(255, 200, 0, 0.9)',      // 橙黄（0.2-0.4 m/s）
+                        'rgba(255, 160, 0, 0.92)',     // 橙色
+                        'rgba(255, 120, 0, 0.94)',     // 深橙（0.4-0.6 m/s）
+                        'rgba(255, 80, 0, 0.96)',      // 橙红
+                        'rgba(255, 40, 0, 0.97)',      // 红色（0.6-0.8 m/s）
+                        'rgba(255, 0, 50, 0.98)',      // 深红
+                        'rgba(220, 0, 100, 0.99)',     // 紫红（0.8-1.0 m/s）
+                        'rgba(180, 0, 150, 1.0)'       // 洋红（>1.0 m/s 快流）
                     ],
                     
                     flipY: false,
                     dynamic: true,
                     // 启用热力图模式
                     useColorScale: true,
-                    fadeOpacity: 0.92
+                    fadeOpacity: 0.96
                 });
                 
                 console.log('✅ OceanCurrentLayer 创建成功');
@@ -1507,42 +1662,44 @@ export default {
                 }
                 
                 internalWaveLayer = new WindLayer(viewer, cachedInternalWaveData, {
-                    // 粒子数量：适中密度，避免卡顿
-                    particlesTextureSize: 640,
+                    // 粒子数量：增加密度，展现波动细节
+                    particlesTextureSize: 1024,
                     
-                    // 粒子高度：海面上方一点，避免被地形遮挡
-                    particleHeight: 1000,
+                    // 粒子高度：稍微抬高，避免被地形遮挡
+                    particleHeight: 4000,
                     
-                    // 线条粗细：粗线条
-                    lineWidth: { min: 3.0, max: 6.0 },
+                    // 线条粗细：适中粗细
+                    lineWidth: { min: 2.5, max: 5.0 },
                     
-                    // 线条长度：适中长度
-                    lineLength: { min: 80, max: 180 },
+                    // 线条长度：更长的流线，展现波动传播
+                    lineLength: { min: 150, max: 350 },
                     
-                    // 速度因子：慢速动画，避免卡顿
-                    speedFactor: 0.3,
+                    // 速度因子：慢速动画，内波传播较慢
+                    speedFactor: 0.6,
                     
-                    // 粒子消失率：适中
+                    // 粒子消失率：较低，形成连续的波动
                     dropRate: 0.002,
                     
                     // 粒子消失率增量
                     dropRateBump: 0.001,
                     
-                    // 显示范围：扩大范围以适应放大后的数据
-                    displayRange: { min: 0, max: 100 },
+                    // 显示范围：调整为更小的范围，适应内波的实际振幅
+                    displayRange: { min: 0, max: 10 },
                     
-                    // 内波色带：超亮的青色系，完全不透明
+                    // 内波色带：使用暖色调（黄→橙→红→紫），在深蓝背景下醒目
                     colors: [
-                        'rgba(0, 255, 255, 1)',        // 亮青
-                        'rgba(0, 255, 255, 1)',        // 亮青
-                        'rgba(50, 255, 255, 1)',       // 亮青
-                        'rgba(100, 255, 255, 1)',      // 亮青
-                        'rgba(150, 255, 255, 1)',      // 亮青
-                        'rgba(200, 255, 255, 1)',      // 极亮青
-                        'rgba(255, 255, 255, 1)',      // 白色
-                        'rgba(255, 255, 255, 1)',      // 白色
-                        'rgba(255, 255, 255, 1)',      // 白色
-                        'rgba(255, 255, 255, 1)'       // 白色
+                        'rgba(255, 255, 150, 0.9)',    // 淡黄（低振幅）
+                        'rgba(255, 255, 100, 0.92)',   // 黄色
+                        'rgba(255, 220, 0, 0.94)',     // 金黄
+                        'rgba(255, 180, 0, 0.95)',     // 橙黄
+                        'rgba(255, 140, 0, 0.96)',     // 橙色
+                        'rgba(255, 100, 0, 0.97)',     // 深橙
+                        'rgba(255, 60, 0, 0.98)',      // 橙红
+                        'rgba(255, 20, 0, 0.99)',      // 红色
+                        'rgba(220, 0, 50, 1.0)',       // 深红
+                        'rgba(180, 0, 100, 1.0)',      // 紫红
+                        'rgba(140, 0, 140, 1.0)',      // 紫色
+                        'rgba(100, 0, 180, 1.0)'       // 深紫（高振幅）
                     ],
                     
                     flipY: true,
@@ -1634,10 +1791,19 @@ export default {
         // 关闭气象选择器
         const closeWeatherPicker = () => {
             weatherPickedPoint.value = null;
+            
+            // 移除标记点
+            if (weatherMarkerEntity) {
+                viewer.entities.remove(weatherMarkerEntity);
+                weatherMarkerEntity = null;
+            }
         };
         
         // 处理地图点击查询气象
-        const handleWeatherPointClick = (screenPosition, correctedPosition, scaleX, scaleY) => {
+        // 气象点击标记实体
+        let weatherMarkerEntity = null;
+        
+        const handleWeatherPointClick = async (screenPosition, correctedPosition, uniformScale) => {
             // 获取点击位置的经纬度（使用修正后的坐标）
             const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
             if (!cartesian) {
@@ -1649,13 +1815,38 @@ export default {
             const lon = Cesium.Math.toDegrees(cartographic.longitude);
             const lat = Cesium.Math.toDegrees(cartographic.latitude);
             
-            // 设置选中点（包含缩放比例）
+            console.log('🎯 气象点击 - 原始坐标:', screenPosition);
+            console.log('🎯 气象点击 - 修正坐标:', correctedPosition);
+            console.log('🎯 气象点击 - 统一缩放比例:', uniformScale);
+            
+            // 移除旧的标记点
+            if (weatherMarkerEntity) {
+                viewer.entities.remove(weatherMarkerEntity);
+                weatherMarkerEntity = null;
+            }
+            
+            // 创建白色标记点
+            weatherMarkerEntity = viewer.entities.add({
+                position: cartesian,
+                point: {
+                    pixelSize: 12,
+                    color: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.fromCssColorString('rgba(255, 255, 255, 0.4)'),
+                    outlineWidth: 2,
+                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
+            
+            // 设置选中点（使用修正后的坐标，因为弹窗在缩放后的容器内）
             weatherPickedPoint.value = {
                 lat,
                 lon,
                 cartesian3: cartesian,
-                screenPosition: screenPosition,
-                scale: { x: scaleX, y: scaleY }  // 新增：传递缩放比例
+                screenPosition: {
+                    x: correctedPosition.x,
+                    y: correctedPosition.y
+                }
             };
             
             // 设置当前图层
@@ -1688,7 +1879,7 @@ export default {
             });
             
             // 生成时间步长（基于当前激活的图层）
-            generateWeatherTimeSteps();
+            await generateWeatherTimeSteps();
             
             console.log('📍 气象点查询:', { 
                 lat: lat.toFixed(2), 
@@ -2221,7 +2412,7 @@ export default {
                 
                 if (!hasFilter) {
                     // 没有筛选条件：恢复初始状态
-                    entity.polygon.material = entity._originalColor.withAlpha(0.8);
+                    entity.polygon.material = entity._originalColor.withAlpha(0.5);
                     entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
                     entity.polygon.outlineWidth = 1;
                     entity.show = true;
@@ -2298,7 +2489,7 @@ export default {
                 if (matches) {
                     matchCount++;
                     // 匹配：保持原色，黄色边框高亮
-                    entity.polygon.material = entity._originalColor.withAlpha(0.8);
+                    entity.polygon.material = entity._originalColor.withAlpha(0.5);
                     entity.polygon.outlineColor = Cesium.Color.YELLOW;
                     entity.polygon.outlineWidth = 3;
                     entity.show = true;
@@ -2743,18 +2934,18 @@ export default {
                 if (windLayer) {
                     windLayer.show = true;
                     showWind.value = true;
-                    viewer.scene.requestRenderMode = false;
+                    showAnimationLayer('wind');
                 }
             } else if (windEnabled && windLayer) {
                 // 需要显示且已初始化，显示风场
                 windLayer.show = true;
                 showWind.value = true;
-                viewer.scene.requestRenderMode = false;
+                showAnimationLayer('wind');
             } else if (!windEnabled && windLayer) {
                 // 不需要显示，隐藏风场
                 windLayer.show = false;
                 showWind.value = false;
-                viewer.scene.requestRenderMode = true;
+                hideAnimationLayer('wind');
             }
         };
         
@@ -3100,29 +3291,29 @@ export default {
                     
                     // 创建新图层（使用相同的配置）
                     oceanCurrentLayer = new WindLayer(viewer, newCurrentData, {
-                        particlesTextureSize: 640,
-                        particleHeight: 0,
+                        particlesTextureSize: 1024,
+                        particleHeight: 3000,
                         lineWidth: { min: 1.5, max: 3.5 },
-                        lineLength: { min: 300, max: 700 },
-                        speedFactor: 1.8,
-                        dropRate: 0.003,
-                        dropRateBump: 0.001,
+                        lineLength: { min: 600, max: 1200 },
+                        speedFactor: 0.8,
+                        dropRate: 0.0003,
+                        dropRateBump: 0.0001,
                         colors: [
-                            'rgba(0, 30, 80, 0.75)',
-                            'rgba(0, 60, 120, 0.8)',
-                            'rgba(0, 100, 160, 0.85)',
-                            'rgba(0, 140, 200, 0.88)',
-                            'rgba(0, 180, 240, 0.9)',
-                            'rgba(0, 220, 255, 0.92)',
-                            'rgba(50, 240, 255, 0.95)',
-                            'rgba(100, 255, 255, 0.97)',
-                            'rgba(150, 255, 200, 0.98)',
-                            'rgba(200, 255, 150, 1.0)'
+                            'rgba(255, 255, 100, 0.85)',
+                            'rgba(255, 240, 0, 0.88)',
+                            'rgba(255, 200, 0, 0.9)',
+                            'rgba(255, 160, 0, 0.92)',
+                            'rgba(255, 120, 0, 0.94)',
+                            'rgba(255, 80, 0, 0.96)',
+                            'rgba(255, 40, 0, 0.97)',
+                            'rgba(255, 0, 50, 0.98)',
+                            'rgba(220, 0, 100, 0.99)',
+                            'rgba(180, 0, 150, 1.0)'
                         ],
                         flipY: false,
                         dynamic: true,
                         useColorScale: true,
-                        fadeOpacity: 0.92
+                        fadeOpacity: 0.96
                     });
                     
                     oceanCurrentLayer.show = true;
@@ -3152,26 +3343,33 @@ export default {
                     
                     // 创建新图层（使用相同的配置）
                     windLayer = new WindLayer(viewer, newWindData, {
-                        particlesTextureSize: 640,
+                        particlesTextureSize: 1024,
                         particleHeight: 100000,
-                        lineWidth: { min: 1.5, max: 4 },
-                        lineLength: { min: 100, max: 200 },
-                        speedFactor: 1.5,
-                        dropRate: 0.003,
-                        dropRateBump: 0.001,
+                        lineWidth: { min: 1.0, max: 2.5 },
+                        lineLength: { min: 150, max: 300 },
+                        speedFactor: 2.5,
+                        dropRate: 0.002,
+                        dropRateBump: 0.0008,
                         colors: [
-                            'rgba(0, 98, 255, 1)',
-                            'rgba(0, 180, 255, 1)',
-                            'rgba(0, 255, 200, 1)',
-                            'rgba(100, 255, 100, 1)',
-                            'rgba(255, 255, 0, 1)',
-                            'rgba(255, 150, 0, 1)',
-                            'rgba(255, 50, 0, 1)'
+                            'rgba(98, 113, 183, 1)',
+                            'rgba(57, 97, 159, 1)',
+                            'rgba(74, 148, 169, 1)',
+                            'rgba(77, 141, 123, 1)',
+                            'rgba(83, 165, 83, 1)',
+                            'rgba(53, 159, 53, 1)',
+                            'rgba(167, 157, 81, 1)',
+                            'rgba(159, 127, 58, 1)',
+                            'rgba(161, 108, 92, 1)',
+                            'rgba(129, 58, 78, 1)',
+                            'rgba(175, 80, 136, 1)',
+                            'rgba(117, 74, 147, 1)',
+                            'rgba(109, 97, 163, 1)',
+                            'rgba(68, 105, 141, 1)'
                         ],
                         displayRange: { min: 0, max: 30 },
                         flipY: false,
                         useColorScale: true,
-                        fadeOpacity: 0.95
+                        fadeOpacity: 0.98
                     });
                     
                     windLayer.show = true;
@@ -3201,25 +3399,27 @@ export default {
                     
                     // 创建新图层（使用相同的配置）
                     internalWaveLayer = new WindLayer(viewer, newInternalWaveData, {
-                        particlesTextureSize: 640,
-                        particleHeight: 1000,
-                        lineWidth: { min: 3.0, max: 6.0 },
-                        lineLength: { min: 80, max: 180 },
-                        speedFactor: 0.3,
+                        particlesTextureSize: 1024,
+                        particleHeight: 4000,
+                        lineWidth: { min: 2.5, max: 5.0 },
+                        lineLength: { min: 150, max: 350 },
+                        speedFactor: 0.6,
                         dropRate: 0.002,
                         dropRateBump: 0.001,
-                        displayRange: { min: 0, max: 100 },
+                        displayRange: { min: 0, max: 10 },
                         colors: [
-                            'rgba(0, 255, 255, 1)',
-                            'rgba(0, 255, 255, 1)',
-                            'rgba(50, 255, 255, 1)',
-                            'rgba(100, 255, 255, 1)',
-                            'rgba(150, 255, 255, 1)',
-                            'rgba(200, 255, 255, 1)',
-                            'rgba(255, 255, 255, 1)',
-                            'rgba(255, 255, 255, 1)',
-                            'rgba(255, 255, 255, 1)',
-                            'rgba(255, 255, 255, 1)'
+                            'rgba(255, 255, 150, 0.9)',
+                            'rgba(255, 255, 100, 0.92)',
+                            'rgba(255, 220, 0, 0.94)',
+                            'rgba(255, 180, 0, 0.95)',
+                            'rgba(255, 140, 0, 0.96)',
+                            'rgba(255, 100, 0, 0.97)',
+                            'rgba(255, 60, 0, 0.98)',
+                            'rgba(255, 20, 0, 0.99)',
+                            'rgba(220, 0, 50, 1.0)',
+                            'rgba(180, 0, 100, 1.0)',
+                            'rgba(140, 0, 140, 1.0)',
+                            'rgba(100, 0, 180, 1.0)'
                         ],
                         flipY: true,
                         dynamic: true,
@@ -3242,11 +3442,71 @@ export default {
             }
         };
         
+        /**
+         * 飞到矿区位置
+         * @param {Object} area - 矿区信息 { polygon: [[lon, lat], ...] }
+         */
+        const flyToMiningArea = (area) => {
+            if (!viewer || !area || !area.polygon || area.polygon.length === 0) {
+                console.warn('⚠️ 无法定位到矿区：缺少必要信息');
+                return;
+            }
+            
+            console.log('🎯 飞到矿区:', area.name || area.id);
+            
+            // 计算多边形的中心点
+            let centerLon = 0;
+            let centerLat = 0;
+            area.polygon.forEach(([lon, lat]) => {
+                centerLon += lon;
+                centerLat += lat;
+            });
+            centerLon /= area.polygon.length;
+            centerLat /= area.polygon.length;
+            
+            console.log(`   中心点: (${centerLon.toFixed(2)}, ${centerLat.toFixed(2)})`);
+            
+            // 计算合适的高度（根据多边形大小）
+            let minLon = area.polygon[0][0];
+            let maxLon = area.polygon[0][0];
+            let minLat = area.polygon[0][1];
+            let maxLat = area.polygon[0][1];
+            
+            area.polygon.forEach(([lon, lat]) => {
+                if (lon < minLon) minLon = lon;
+                if (lon > maxLon) maxLon = lon;
+                if (lat < minLat) minLat = lat;
+                if (lat > maxLat) maxLat = lat;
+            });
+            
+            const lonRange = maxLon - minLon;
+            const latRange = maxLat - minLat;
+            const maxRange = Math.max(lonRange, latRange);
+            
+            // 根据范围计算高度（范围越大，高度越高）
+            const height = Math.max(500000, maxRange * 200000);
+            
+            console.log(`   飞行高度: ${height.toFixed(0)}m`);
+            
+            // 飞到矿区
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(centerLon, centerLat, height),
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                },
+                duration: 2,
+                easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
+            });
+        };
+        
         return {
             cesiumContainer,
             selectedArea,
             infoPosition,
             closeInfo,
+            addToMonitoring,  // 添加到监测
             is3D,
             showWind,
             showTrajectory,
@@ -3267,6 +3527,7 @@ export default {
             handleThresholdsChanged,  // 暴露阈值变化处理函数
             updateWeatherTime,  // 暴露时间更新函数
             flyToRegion,  // 暴露区域定位函数
+            flyToMiningArea,  // 暴露矿区定位函数
             zoomIn,
             zoomOut,
             resetView,

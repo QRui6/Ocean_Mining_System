@@ -18,18 +18,41 @@
                 </button>
             </div>
             
-            <!-- 时间轴 -->
+            <!-- 时间轴 - Windy 风格：日期分组 + 小时数字 -->
             <div class="timeline-container">
                 <div class="timeline" ref="timelineRef">
-                    <!-- 时间槽 -->
-                    <div 
-                        v-for="(time, index) in timeSteps" 
-                        :key="index"
-                        :class="['time-slot', { active: index === currentTimeIndex }]"
-                        @click="selectTime(index)"
-                    >
-                        <div class="day">{{ formatDay(time) }}</div>
-                        <div class="hour">{{ formatHour(time) }}</div>
+                    <!-- 日期分组头部 -->
+                    <div class="date-row">
+                        <!-- 左侧占位（与数据行标签列对齐） -->
+                        <div class="timeline-label-spacer"></div>
+                        <!-- 日期分组 -->
+                        <div class="date-groups">
+                            <div 
+                                v-for="(group, dateKey) in groupedByDate" 
+                                :key="dateKey"
+                                class="date-group"
+                                :style="{ width: (group.length * 32) + 'px' }"
+                            >
+                                {{ formatDateHeader(dateKey) }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 小时时间槽 -->
+                    <div class="hour-row">
+                        <!-- 左侧占位（与数据行标签列对齐） -->
+                        <div class="timeline-label-spacer"></div>
+                        <!-- 小时槽 -->
+                        <div class="hour-slots">
+                            <div 
+                                v-for="(time, index) in timeSteps" 
+                                :key="index"
+                                :class="['hour-slot', { active: index === currentTimeIndex }]"
+                                @click="selectTime(index)"
+                            >
+                                {{ time.getHours() }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,6 +80,34 @@
                     :values="waveHeightValues"
                     :unit="'m'"
                     :colorMap="waveHeightColorMap"
+                    :showDirection="true"
+                    :directions="waveDirections"
+                    :currentTimeIndex="currentTimeIndex"
+                />
+                
+                <!-- 波浪漂移速度行 -->
+                <WeatherRow
+                    v-if="hasWave"
+                    icon="🌀"
+                    label="波浪漂移"
+                    :values="waveDriftValues"
+                    :unit="'m/s'"
+                    :colorMap="currentSpeedColorMap"
+                    :showDirection="true"
+                    :directions="waveDirections"
+                    :currentTimeIndex="currentTimeIndex"
+                />
+                
+                <!-- 波峰传播速度行 -->
+                <WeatherRow
+                    v-if="hasWave"
+                    icon="⚡"
+                    label="波峰速度"
+                    :values="wavePhaseSpeedValues"
+                    :unit="'m/s'"
+                    :colorMap="windSpeedColorMap"
+                    :showDirection="true"
+                    :directions="waveDirections"
                     :currentTimeIndex="currentTimeIndex"
                 />
                 
@@ -88,9 +139,9 @@
             </div>
             
             <!-- 底部提示 -->
-            <div class="panel-footer">
+            <!-- <div class="panel-footer">
                 <span class="tip">💡 点击时间轴切换不同时间的预报数据</span>
-            </div>
+            </div> -->
         </div>
     </transition>
 </template>
@@ -133,9 +184,41 @@ export default {
         const timelineRef = ref(null);
         const currentTimeIndex = ref(0);
         
+        // 按日期分组时间步骤
+        const groupedByDate = computed(() => {
+            const groups = {};
+            props.timeSteps.forEach(time => {
+                const dateKey = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
+                if (!groups[dateKey]) {
+                    groups[dateKey] = [];
+                }
+                groups[dateKey].push(time);
+            });
+            return groups;
+        });
+        
+        // 格式化日期头部（如：Saturday 10）
+        const formatDateHeader = (dateKey) => {
+            const [year, month, day] = dateKey.split('-');
+            const date = new Date(year, month - 1, day);
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            return `${weekdays[date.getDay()]} ${parseInt(day)}`;
+        };
+        
         // 检查是否有各类数据
         const hasWind = computed(() => {
-            return props.weatherData.wind && props.weatherData.wind.u;
+            const result = props.weatherData.wind && props.weatherData.wind.u;
+            console.log('💨 检查风场数据:', {
+                hasWindData: !!props.weatherData.wind,
+                hasU: !!props.weatherData.wind?.u,
+                hasV: !!props.weatherData.wind?.v,
+                hasLandMask: !!props.weatherData.wind?.landMask,
+                bounds: props.weatherData.wind?.bounds,
+                width: props.weatherData.wind?.width,
+                height: props.weatherData.wind?.height,
+                result: result
+            });
+            return result;
         });
         
         const hasWave = computed(() => {
@@ -196,19 +279,30 @@ export default {
             { value: 3.0, color: '#ff0000' }   // 红色 - 极强
         ];
         
-        // 从网格数据中获取指定点的值
-        const getValueAtPoint = (data, lat, lon) => {
-            if (!data || !data.u || !data.v) return null;
+        // 从网格数据中获取标量值（如波高）
+        const getScalarAtPoint = (data, lat, lon, fieldName = 'hs') => {
+            if (!data || !data[fieldName]) {
+                console.log(`❌ ${fieldName} 数据不存在`);
+                return null;
+            }
             
             const { width, height, bounds, landMask } = data;
             const { west, south, east, north } = bounds;
             
+            // 处理经度坐标系转换
+            let adjustedLon = lon;
+            if (west >= 0 && east > 180 && lon < 0) {
+                adjustedLon = lon + 360;
+            }
+            
             // 经纬度 → 网格索引
-            const x = Math.floor(((lon - west) / (east - west)) * width);
+            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
             const y = Math.floor(((north - lat) / (north - south)) * height);
             
             // 边界检查
-            if (x < 0 || x >= width || y < 0 || y >= height) return null;
+            if (x < 0 || x >= width || y < 0 || y >= height) {
+                return null;
+            }
             
             const index = y * width + x;
             
@@ -217,22 +311,77 @@ export default {
                 return null;
             }
             
+            const value = data[fieldName].array[index];
+            
+            // 过滤无效值
+            if (value === null || value === undefined || value < 0) {
+                return null;
+            }
+            
+            return value;
+        };
+        
+        // 从网格数据中获取指定点的值
+        const getValueAtPoint = (data, lat, lon, dataType = 'unknown') => {
+            if (!data || !data.u || !data.v) {
+                console.log(`❌ ${dataType} 数据不存在`);
+                return null;
+            }
+            
+            const { width, height, bounds, landMask } = data;
+            const { west, south, east, north } = bounds;
+            
+            // 处理经度坐标系转换
+            // 如果数据是 0-360 坐标系，而输入是 -180~180，需要转换
+            let adjustedLon = lon;
+            if (west >= 0 && east > 180 && lon < 0) {
+                // 数据是 0-360，输入是负数（-180~0），转换为 180-360
+                adjustedLon = lon + 360;
+                console.log(`🔄 ${dataType} 经度转换: ${lon}° → ${adjustedLon}°`);
+            }
+            
+            // 经纬度 → 网格索引
+            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
+            const y = Math.floor(((north - lat) / (north - south)) * height);
+            
+            // 边界检查
+            if (x < 0 || x >= width || y < 0 || y >= height) {
+                console.log(`❌ ${dataType} 超出边界`, { x, y, width, height, lon: adjustedLon, lat });
+                return null;
+            }
+            
+            const index = y * width + x;
+            
+            // 检查陆地标记
+            if (landMask && landMask[index] === 1) {
+                console.log(`❌ ${dataType} 陆地区域`);
+                return null;
+            }
+            
             const u = data.u.array[index];
             const v = data.v.array[index];
             
-            // 过滤无效值
-            if (Math.abs(u) < 0.001 && Math.abs(v) < 0.001) {
-                return null;
-            }
+            console.log(`📊 ${dataType} 原始数据`, { u, v, lat, lon: adjustedLon, index });
             
             // 计算速度
             const speed = Math.sqrt(u * u + v * v);
             
-            if (speed < 0.01) {
-                return null;
+            console.log(`📊 ${dataType} 计算速度`, speed);
+            
+            // 根据数据类型还原真实值（除以放大倍数）
+            let realSpeed = speed;
+            if (dataType === 'current') {
+                // 洋流数据放大了 15 倍，需要还原
+                realSpeed = speed / 15;
+                console.log(`🔧 ${dataType} 还原真实值: ${speed.toFixed(2)} → ${realSpeed.toFixed(4)} m/s`);
+            } else if (dataType === 'internal_wave') {
+                // 内波数据放大了 5000 倍，需要还原
+                realSpeed = speed / 5000;
+                console.log(`🔧 ${dataType} 还原真实值: ${speed.toFixed(2)} → ${realSpeed.toFixed(6)} m/s`);
             }
             
-            return speed;
+            // 不过滤小值（风平浪静也是有效数据）
+            return realSpeed;
         };
         
         // 获取 U/V 分量
@@ -242,7 +391,13 @@ export default {
             const { width, height, bounds } = data;
             const { west, south, east, north } = bounds;
             
-            const x = Math.floor(((lon - west) / (east - west)) * width);
+            // 处理经度坐标系转换
+            let adjustedLon = lon;
+            if (west >= 0 && east > 180 && lon < 0) {
+                adjustedLon = lon + 360;
+            }
+            
+            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
             const y = Math.floor(((north - lat) / (north - south)) * height);
             
             if (x < 0 || x >= width || y < 0 || y >= height) return { u: 0, v: 0 };
@@ -257,10 +412,28 @@ export default {
         
         // 计算风速值（当前只有一帧数据）
         const windSpeedValues = computed(() => {
-            if (!hasWind.value) return [];
+            if (!hasWind.value) {
+                console.log('❌ 没有风场数据');
+                return [];
+            }
+            
+            console.log('💨 计算风速值', {
+                lat: props.lat,
+                lon: props.lon,
+                hasData: !!props.weatherData.wind,
+                bounds: props.weatherData.wind?.bounds,
+                width: props.weatherData.wind?.width,
+                height: props.weatherData.wind?.height
+            });
             
             // 目前只有一帧数据，所以复制到所有时间点
-            const value = getValueAtPoint(props.weatherData.wind, props.lat, props.lon);
+            const value = getValueAtPoint(props.weatherData.wind, props.lat, props.lon, 'wind');
+            console.log('💨 风速值结果:', value);
+            
+            if (value === null) {
+                console.log('⚠️ 风速值为 null，将显示 N/A');
+            }
+            
             return props.timeSteps.map(() => value);
         });
         
@@ -273,19 +446,66 @@ export default {
             return props.timeSteps.map(() => direction);
         });
         
-        // 计算波高值
+        // 计算波高值（使用标量数据）
         const waveHeightValues = computed(() => {
             if (!hasWave.value) return [];
             
-            const value = getValueAtPoint(props.weatherData.wave, props.lat, props.lon);
+            // 直接读取波高标量值
+            const value = getScalarAtPoint(props.weatherData.wave, props.lat, props.lon, 'hs');
             return props.timeSteps.map(() => value);
+        });
+        
+        // 计算波浪方向（Stokes drift 方向）
+        const waveDirections = computed(() => {
+            if (!hasWave.value) return [];
+            
+            const { u, v } = getUVAtPoint(props.weatherData.wave, props.lat, props.lon);
+            const direction = Math.atan2(u, v) * 180 / Math.PI;
+            return props.timeSteps.map(() => direction);
+        });
+        
+        // 计算波浪漂移速度（Stokes drift 速度）
+        const waveDriftValues = computed(() => {
+            if (!hasWave.value) return [];
+            
+            const { u, v } = getUVAtPoint(props.weatherData.wave, props.lat, props.lon);
+            const speed = Math.sqrt(u * u + v * v);
+            return props.timeSteps.map(() => speed);
+        });
+        
+        // 计算波峰传播速度（Phase Speed）
+        // 使用深水波公式：c = √(gλ/2π) ≈ 1.56 × T
+        // 或简化公式：c ≈ 1.25 × √H （H为波高，单位：米）
+        const wavePhaseSpeedValues = computed(() => {
+            if (!hasWave.value) return [];
+            
+            const waveHeight = getScalarAtPoint(props.weatherData.wave, props.lat, props.lon, 'hs');
+            if (waveHeight === null || waveHeight <= 0) {
+                return props.timeSteps.map(() => null);
+            }
+            
+            // 使用经验公式：c ≈ 1.25 × √H （深水波近似）
+            const phaseSpeed = 1.25 * Math.sqrt(waveHeight);
+            return props.timeSteps.map(() => phaseSpeed);
         });
         
         // 计算洋流值
         const currentSpeedValues = computed(() => {
-            if (!hasCurrent.value) return [];
+            if (!hasCurrent.value) {
+                console.log('❌ 没有洋流数据');
+                return [];
+            }
             
-            const value = getValueAtPoint(props.weatherData.current, props.lat, props.lon);
+            console.log('🌊 计算洋流值', {
+                lat: props.lat,
+                lon: props.lon,
+                hasData: !!props.weatherData.current,
+                hasU: !!props.weatherData.current?.u,
+                hasV: !!props.weatherData.current?.v
+            });
+            
+            const value = getValueAtPoint(props.weatherData.current, props.lat, props.lon, 'current');
+            console.log('🌊 洋流值结果:', value);
             return props.timeSteps.map(() => value);
         });
         
@@ -302,7 +522,7 @@ export default {
         const internalWaveValues = computed(() => {
             if (!hasInternalWave.value) return [];
             
-            const value = getValueAtPoint(props.weatherData.internal_wave, props.lat, props.lon);
+            const value = getValueAtPoint(props.weatherData.internal_wave, props.lat, props.lon, 'internal_wave');
             return props.timeSteps.map(() => value);
         });
         
@@ -335,7 +555,7 @@ export default {
             // 滚动到选中的时间
             nextTick(() => {
                 if (timelineRef.value) {
-                    const activeSlot = timelineRef.value.querySelector('.time-slot.active');
+                    const activeSlot = timelineRef.value.querySelector('.hour-slot.active');
                     if (activeSlot) {
                         activeSlot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                     }
@@ -360,6 +580,8 @@ export default {
         return {
             timelineRef,
             currentTimeIndex,
+            groupedByDate,
+            formatDateHeader,
             hasWind,
             hasWave,
             hasCurrent,
@@ -371,6 +593,9 @@ export default {
             windSpeedValues,
             windDirections,
             waveHeightValues,
+            waveDirections,
+            waveDriftValues,
+            wavePhaseSpeedValues,
             currentSpeedValues,
             currentDirections,
             internalWaveValues,
@@ -388,28 +613,26 @@ export default {
 .windy-panel {
     position: fixed;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    max-width: 1400px;
-    background: rgba(20, 20, 30, 0.98);
-    backdrop-filter: blur(20px);
-    border-top: 2px solid rgba(0, 212, 255, 0.5);
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.8);
+    left: 0;
+    right: 0;
+    background: rgba(20, 20, 30, 0.96);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
     z-index: 1000;
-    max-height: 50vh;
+    height: 320px;
     display: flex;
     flex-direction: column;
-    border-radius: 8px 8px 0 0;
 }
 
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
-    border-bottom: 1px solid rgba(100, 100, 100, 0.3);
-    background: rgba(30, 30, 40, 0.8);
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(25, 25, 35, 0.8);
+    min-height: 40px;
 }
 
 .location-info {
@@ -419,7 +642,7 @@ export default {
 }
 
 .location-icon {
-    font-size: 20px;
+    font-size: 16px;
 }
 
 .coordinates {
@@ -430,8 +653,8 @@ export default {
 }
 
 .coord {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 600;
     color: #00d4ff;
 }
 
@@ -440,34 +663,35 @@ export default {
 }
 
 .close-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    color: white;
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .close-btn:hover {
-    background: rgba(255, 0, 0, 0.3);
-    border-color: rgba(255, 0, 0, 0.5);
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.4);
+    color: white;
 }
 
 .timeline-container {
-    border-bottom: 1px solid rgba(100, 100, 100, 0.3);
-    background: rgba(25, 25, 35, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(25, 25, 35, 0.6);
     overflow-x: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
+    scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
 }
 
 .timeline-container::-webkit-scrollbar {
-    height: 8px;
+    height: 6px;
 }
 
 .timeline-container::-webkit-scrollbar-track {
@@ -475,66 +699,120 @@ export default {
 }
 
 .timeline-container::-webkit-scrollbar-thumb {
-    background: rgba(100, 100, 100, 0.5);
-    border-radius: 4px;
+    background: rgba(100, 100, 100, 0.4);
+    border-radius: 3px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.6);
 }
 
 .timeline {
     display: flex;
-    padding: 8px 0;
-}
-
-.time-slot {
-    min-width: 60px;
-    width: 76px;
-    flex-shrink: 0;
-    padding: 8px;
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s;
 }
 
-.time-slot:hover {
-    background: rgba(0, 212, 255, 0.1);
+/* 左侧占位区域（与数据行标签列对齐） */
+.timeline-label-spacer {
+    width: 100px;
+    flex-shrink: 0;
+    background: rgba(25, 25, 35, 0.8);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.time-slot.active {
-    background: rgba(0, 212, 255, 0.2);
-    border-top: 3px solid #00d4ff;
-    border-bottom: 3px solid #00d4ff;
+/* 日期行 */
+.date-row {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(30, 30, 40, 0.5);
 }
 
-.day {
+/* 日期分组头部 */
+.date-groups {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.date-groups::-webkit-scrollbar {
+    display: none;
+}
+
+.date-group {
+    padding: 6px 8px;
+    text-align: center;
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     white-space: nowrap;
 }
 
-.hour {
-    font-size: 14px;
-    font-weight: bold;
-    color: white;
-    font-family: 'Rajdhani', monospace;
+/* 小时行 */
+.hour-row {
+    display: flex;
 }
 
-.time-slot.active .day,
-.time-slot.active .hour {
+/* 小时时间槽 */
+.hour-slots {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.hour-slots::-webkit-scrollbar {
+    display: none;
+}
+
+.hour-slot {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.15s;
+    position: relative;
+}
+
+.hour-slot:hover {
+    background: rgba(0, 212, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.hour-slot.active {
+    background: rgba(0, 212, 255, 0.2);
     color: #00d4ff;
+    font-weight: 700;
+}
+
+.hour-slot.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #00d4ff;
 }
 
 .weather-rows {
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
+    scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
+    background: rgba(20, 20, 30, 0.4);
+    min-height: 0;
 }
 
 .weather-rows::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .weather-rows::-webkit-scrollbar-track {
@@ -542,20 +820,25 @@ export default {
 }
 
 .weather-rows::-webkit-scrollbar-thumb {
-    background: rgba(100, 100, 100, 0.5);
-    border-radius: 4px;
+    background: rgba(100, 100, 100, 0.4);
+    border-radius: 3px;
+}
+
+.weather-rows::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.6);
 }
 
 .panel-footer {
-    padding: 8px 20px;
-    border-top: 1px solid rgba(100, 100, 100, 0.3);
-    background: rgba(30, 30, 40, 0.8);
+    padding: 6px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(25, 25, 35, 0.8);
     text-align: center;
+    min-height: 28px;
 }
 
 .tip {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
 }
 
 /* 动画 */

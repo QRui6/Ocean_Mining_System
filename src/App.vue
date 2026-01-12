@@ -79,6 +79,7 @@
                     @toggleHistoryTrack="toggleHistoryTrack"
                     @toggleShipList="toggleShipList"
                     @toggleRouteWeather="handleRouteWeatherAnalysis"
+                    @toggleMiningWeatherMonitor="toggleMiningWeatherMonitor"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -120,6 +121,13 @@
                     :weatherLayerGroups="weatherLayerState"
                     @layerToggle="handleWeatherLayerToggle"
                 />
+                
+                <!-- 矿区气象监测面板 -->
+                <MiningAreaWeatherMonitor 
+                    ref="miningWeatherMonitorRef"
+                    :show="activePanels.miningWeatherMonitor"
+                    @locate-area="handleLocateMiningArea"
+                />
             </div>
 
             <!-- Decorative Overlay Effects -->
@@ -155,6 +163,7 @@ import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
 import AreaDetailDialog from './components/AreaDetailDialog.vue';
 import ShipListTable from './components/ShipListTable.vue';
 import WeatherListTable from './components/WeatherListTable.vue';
+import MiningAreaWeatherMonitor from './components/MiningAreaWeatherMonitor.vue';
 
 export default {
     components: {
@@ -169,7 +178,8 @@ export default {
         AreaMonitorPanel,
         AreaDetailDialog,
         ShipListTable,
-        WeatherListTable
+        WeatherListTable,
+        MiningAreaWeatherMonitor
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -192,7 +202,8 @@ export default {
             areaMonitor: false,    // 区域监控面板（左侧）
             historyTrack: false,  // 历史轨迹面板（左侧）
             shipList: false,      // 船舶列表（底部表格）
-            routeWeather: false   // 航线气象（右侧按钮高亮）
+            routeWeather: false,   // 航线气象（右侧按钮高亮）
+            miningWeatherMonitor: false  // 矿区气象监测（右侧面板）
         });
         
         // 区域详情对话框状态
@@ -429,6 +440,7 @@ export default {
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
         const shipTrackingRef = ref(null);
+        const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
         
@@ -665,6 +677,24 @@ export default {
          */
         const toggleShipList = () => {
             activePanels.value.shipList = !activePanels.value.shipList;
+        };
+        
+        /**
+         * 切换矿区气象监测面板的显示状态
+         */
+        const toggleMiningWeatherMonitor = () => {
+            activePanels.value.miningWeatherMonitor = !activePanels.value.miningWeatherMonitor;
+        };
+        
+        /**
+         * 处理矿区定位
+         */
+        const handleLocateMiningArea = (area) => {
+            console.log('📍 定位到矿区:', area.name);
+            // 通知 MapContainer 飞到矿区位置
+            if (mapContainerRef.value && mapContainerRef.value.flyToMiningArea) {
+                mapContainerRef.value.flyToMiningArea(area);
+            }
         };
         
         /**
@@ -1085,6 +1115,14 @@ export default {
             
             // 连接 WebSocket
             connectWebSocket();
+            
+            // 暴露全局引用用于跨组件通信（在组件挂载后）
+            if (typeof window !== 'undefined') {
+                window.app = {
+                    miningWeatherMonitorRef
+                };
+                console.log('🌐 window.app 已设置:', window.app);
+            }
         });
         
         // WebSocket 连接函数
@@ -1341,7 +1379,8 @@ export default {
                 weatherListData,
                 mapContainerRef,
                 handleThresholdsChanged,
-                showWeatherList
+                showWeatherList,
+                miningWeatherMonitorRef  // 添加矿区气象监测引用
             };
             console.log('🐛 调试对象已挂载到 window.debugApp');
             console.log('   可以在控制台使用: window.debugApp.currentThresholds');
@@ -1360,6 +1399,7 @@ export default {
             toggleAreaMonitor,
             toggleHistoryTrack,
             toggleShipList,
+            toggleMiningWeatherMonitor,
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
@@ -1390,6 +1430,7 @@ export default {
             shipTrackingRef,
             areaMonitorRef,
             mapContainerRef,
+            miningWeatherMonitorRef,
             handleStartDrawing,
             handleCancelDrawing,
             handleAreaCreated,
@@ -1418,7 +1459,8 @@ export default {
             handleWeatherRefresh,
             handleClearWeatherList,
             handleThresholdsChanged,
-            currentThresholds
+            currentThresholds,
+            handleLocateMiningArea
         };
     }
 };

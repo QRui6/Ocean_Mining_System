@@ -1,5 +1,13 @@
 <template>
     <div class="weather-row">
+        <!-- 左侧：标签（气象名称 + 单位） -->
+        <div class="row-label">
+            <div class="label-text">
+                <div class="label-name">{{ label }}</div>
+                <div class="label-unit">{{ unit }}</div>
+            </div>
+        </div>
+        
         <!-- 右侧：数值网格 -->
         <div class="row-values">
             <div 
@@ -8,9 +16,8 @@
                 :class="['value-cell', { active: index === currentTimeIndex }]"
                 :style="{ backgroundColor: getColor(value) }"
             >
-                <!-- 数值 -->
+                <!-- 数值（不带单位） -->
                 <span class="value">{{ formatValue(value) }}</span>
-                <span class="unit">{{ unit }}</span>
                 
                 <!-- 风向箭头（可选） -->
                 <span 
@@ -107,74 +114,90 @@ export default {
 <style scoped>
 .weather-row {
     display: flex;
-    border-bottom: 1px solid rgba(100, 100, 100, 0.3);
-    min-height: 50px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    height: 42px;
 }
 
+/* 左侧标签 */
+.row-label {
+    width: 100px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: rgba(25, 25, 35, 0.8);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.label-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.label-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1;
+}
+
+.label-unit {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1;
+}
+
+/* 右侧数值网格 */
 .row-values {
     flex: 1;
     display: flex;
     overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(100, 100, 100, 0.5) transparent;
+    scrollbar-width: none;
 }
 
 .row-values::-webkit-scrollbar {
-    height: 6px;
-}
-
-.row-values::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.row-values::-webkit-scrollbar-thumb {
-    background: rgba(100, 100, 100, 0.5);
-    border-radius: 3px;
+    display: none;
 }
 
 .value-cell {
-    min-width: 60px;
-    width: 76px;
+    width: 32px;
     flex-shrink: 0;
-    padding: 8px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
     position: relative;
-    transition: all 0.2s;
+    transition: all 0.15s;
 }
 
-.value-cell.active {
+.value-cell.active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
     border: 2px solid #00d4ff;
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    pointer-events: none;
     z-index: 1;
 }
 
 .value-cell:hover {
-    transform: scale(1.05);
-    z-index: 2;
+    filter: brightness(1.2);
 }
 
 .value {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 600;
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     font-family: 'Rajdhani', monospace;
 }
 
-.unit {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.7);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
 .direction-arrow {
-    font-size: 16px;
-    color: white;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     transition: transform 0.3s;
 }
