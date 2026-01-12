@@ -1,312 +1,170 @@
 /**
  * 波浪数据加载工具
- * 支持从 WAVERYS 二进制数据加载波浪场数据
- * 参考 windDataLoader.js 的实现模式
+ * 从 Java 后端 API 加载波浪数据（二进制格式，性能优化版）
  */
 
-/**
- * 加载波浪元数据
- * @returns {Promise<Object>} 元数据对象
- */
-export async function loadWaveMeta() {
-    try {
-        console.log('📋 开始加载波浪元数据...');
-        const response = await fetch('/wave_data/meta.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const meta = await response.json();
-        console.log('✅ 波浪元数据加载成功:', meta);
-        return meta;
-    } catch (error) {
-        console.error('❌ 加载波浪元数据失败:', error);
-        throw error;
-    }
-}
+// API 基础URL - 使用相对路径,通过Vite代理转发
+const API_BASE_URL = '/api/weather';
 
 /**
- * 从二进制文件加载波高数据
- * @param {number} timeIndex - 时间索引 (0-4)
- * @returns {Promise<Float32Array>} 波高数据数组
- */
-async function loadWaveHeightBinary(timeIndex) {
-    const timeStr = String(timeIndex).padStart(2, '0');
-    const url = `/wave_data/hs_t${timeStr}.bin`;
-    
-    try {
-        console.log(`⏳ 加载波高数据: ${url}`);
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const buffer = await response.arrayBuffer();
-        const data = new Float32Array(buffer);
-        console.log(`✅ 波高数据加载成功: ${data.length} 个数据点`);
-        return data;
-    } catch (error) {
-        console.error(`❌ 加载波高数据失败 (t${timeIndex}):`, error);
-        throw error;
-    }
-}
-
-/**
- * 从二进制文件加载 Stokes drift 数据
- * @param {number} timeIndex - 时间索引 (0-4)
- * @returns {Promise<{u: Float32Array, v: Float32Array}>} Stokes drift u/v 分量
- */
-async function loadStokesDriftBinary(timeIndex) {
-    const timeStr = String(timeIndex).padStart(2, '0');
-    const uUrl = `/wave_data/stokes_u_t${timeStr}.bin`;
-    const vUrl = `/wave_data/stokes_v_t${timeStr}.bin`;
-    
-    try {
-        console.log(`⏳ 加载 Stokes drift 数据...`);
-        const [uResponse, vResponse] = await Promise.all([
-            fetch(uUrl),
-            fetch(vUrl)
-        ]);
-        
-        if (!uResponse.ok || !vResponse.ok) {
-            throw new Error('HTTP error loading Stokes drift data');
-        }
-        
-        const [uBuffer, vBuffer] = await Promise.all([
-            uResponse.arrayBuffer(),
-            vResponse.arrayBuffer()
-        ]);
-        
-        const uData = new Float32Array(uBuffer);
-        const vData = new Float32Array(vBuffer);
-        
-        console.log(`✅ Stokes drift 数据加载成功`);
-        return { u: uData, v: vData };
-    } catch (error) {
-        console.error(`❌ 加载 Stokes drift 数据失败 (t${timeIndex}):`, error);
-        throw error;
-    }
-}
-
-/**
- * 从全球波浪数据加载并转换为 WindLayer 兼容格式
- * @param {number} timeIndex - 时间索引 (0-4)，默认为 0
+ * 从全球波浪数据加载并转换为 WindLayer 兼容格式（二进制版本）
+ * @param {number} timeIndex - 时间索引 (0-64)，默认为 0
  * @returns {Promise<Object>} WindLayer 兼容的数据对象
  */
 export async function loadGlobalWaveData(timeIndex = 0) {
     try {
-        console.log('🌊 开始加载全球波浪数据...');
+        console.log('🌊 开始加载全球波浪数据（二进制格式）...');
+        console.log('   - 时间索引:', timeIndex);
+        console.log('   - API地址:', `${API_BASE_URL}/data/wave/${timeIndex}/binary`);
         
-        // 1. 加载元数据
-        const meta = await loadWaveMeta();
-        const { grid } = meta;
-        const { lon_size, lat_size, lon_min, lat_min, lon_max, lat_max } = grid;
+        const startTime = performance.now();
         
-        console.log('📊 波浪数据网格信息:', {
-            经度范围: `${lon_min}° 到 ${lon_max}°`,
-            纬度范围: `${lat_min}° 到 ${lat_max}°`,
-            网格尺寸: `${lon_size} × ${lat_size}`,
-            起始时间: meta.start_time,
-            时间索引: timeIndex
-        });
+        // 从后端API加载二进制数据
+        const response = await fetch(`${API_BASE_URL}/data/wave/${timeIndex}/binary`);
         
-        // 2. 加载波高数据和 Stokes drift 数据
-        const hsData = await loadWaveHeightBinary(timeIndex);
-        const stokesData = await loadStokesDriftBinary(timeIndex);
-        
-        // 3. 处理缺测值并计算统计信息
-        const MISSING = -9999.0;
-        let hsMin = Infinity;
-        let hsMax = -Infinity;
-        let validCount = 0;
-        
-        for (let i = 0; i < hsData.length; i++) {
-            if (hsData[i] !== MISSING && hsData[i] >= 0) {
-                hsMin = Math.min(hsMin, hsData[i]);
-                hsMax = Math.max(hsMax, hsData[i]);
-                validCount++;
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        console.log('📈 波高数据统计:', {
-            有效数据点: validCount,
-            缺测数据点: hsData.length - validCount,
-            波高范围: `${hsMin.toFixed(2)}m ~ ${hsMax.toFixed(2)}m`
-        });
+        const arrayBuffer = await response.arrayBuffer();
+        const downloadTime = performance.now() - startTime;
         
-        // 4. 插值填充缺测值（波高和 Stokes drift）
-        console.log('⏳ 插值填充缺测值...');
-        const filledHsData = new Float32Array(hsData.length);
-        const filledStokesU = new Float32Array(stokesData.u.length);
-        const filledStokesV = new Float32Array(stokesData.v.length);
+        console.log(`   - 下载完成: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, 耗时: ${downloadTime.toFixed(0)}ms`);
         
-        for (let i = 0; i < lat_size; i++) {
-            for (let j = 0; j < lon_size; j++) {
-                const index = i * lon_size + j;
-                
-                // 填充波高
-                if (hsData[index] !== MISSING && hsData[index] >= 0) {
-                    filledHsData[index] = hsData[index];
-                } else {
-                    // 缺测值，使用周围数据插值
-                    let sum = 0;
-                    let count = 0;
-                    
-                    for (let di = -1; di <= 1; di++) {
-                        for (let dj = -1; dj <= 1; dj++) {
-                            if (di === 0 && dj === 0) continue;
-                            
-                            const ni = i + di;
-                            const nj = (j + dj + lon_size) % lon_size;
-                            
-                            if (ni >= 0 && ni < lat_size) {
-                                const nIndex = ni * lon_size + nj;
-                                if (hsData[nIndex] !== MISSING && hsData[nIndex] >= 0) {
-                                    sum += hsData[nIndex];
-                                    count++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    filledHsData[index] = count > 0 ? sum / count : 2.0;
-                }
-                
-                // 填充 Stokes drift U
-                if (stokesData.u[index] !== MISSING) {
-                    filledStokesU[index] = stokesData.u[index];
-                } else {
-                    let sum = 0;
-                    let count = 0;
-                    
-                    for (let di = -1; di <= 1; di++) {
-                        for (let dj = -1; dj <= 1; dj++) {
-                            if (di === 0 && dj === 0) continue;
-                            
-                            const ni = i + di;
-                            const nj = (j + dj + lon_size) % lon_size;
-                            
-                            if (ni >= 0 && ni < lat_size) {
-                                const nIndex = ni * lon_size + nj;
-                                if (stokesData.u[nIndex] !== MISSING) {
-                                    sum += stokesData.u[nIndex];
-                                    count++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    filledStokesU[index] = count > 0 ? sum / count : 0;
-                }
-                
-                // 填充 Stokes drift V
-                if (stokesData.v[index] !== MISSING) {
-                    filledStokesV[index] = stokesData.v[index];
-                } else {
-                    let sum = 0;
-                    let count = 0;
-                    
-                    for (let di = -1; di <= 1; di++) {
-                        for (let dj = -1; dj <= 1; dj++) {
-                            if (di === 0 && dj === 0) continue;
-                            
-                            const ni = i + di;
-                            const nj = (j + dj + lon_size) % lon_size;
-                            
-                            if (ni >= 0 && ni < lat_size) {
-                                const nIndex = ni * lon_size + nj;
-                                if (stokesData.v[nIndex] !== MISSING) {
-                                    sum += stokesData.v[nIndex];
-                                    count++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    filledStokesV[index] = count > 0 ? sum / count : 0;
-                }
-            }
+        // 解析二进制数据
+        const parseStartTime = performance.now();
+        const waveData = parseBinaryWaveData(arrayBuffer);
+        const parseTime = performance.now() - parseStartTime;
+        
+        console.log('✅ 波浪数据加载完成');
+        console.log('   - 网格:', waveData.width, 'x', waveData.height);
+        console.log('   - U范围:', waveData.u.min.toFixed(3), '~', waveData.u.max.toFixed(3), 'm/s');
+        console.log('   - V范围:', waveData.v.min.toFixed(3), '~', waveData.v.max.toFixed(3), 'm/s');
+        if (waveData.hs) {
+            console.log('   - 波高范围:', waveData.hs.min.toFixed(3), '~', waveData.hs.max.toFixed(3), 'm');
         }
-        
-        console.log('✅ 插值填充完成');
-        
-        // 5. 转换为 WindLayer 兼容格式
-        // 新方案：让线条垂直，运动水平，产生"波浪"效果
-        // u 主导水平运动（大值），v 提供垂直长度（小值）
-        const uData = new Float32Array(filledHsData.length);
-        const vData = new Float32Array(filledHsData.length);
-        
-        let uMin = Infinity, uMax = -Infinity;
-        let vMin = Infinity, vMax = -Infinity;
-        
-        // 波高阈值：提高阈值，更严格过滤陆地区域
-        const WAVE_HEIGHT_THRESHOLD = 0.5; // 0.5米（提高到0.5米）
-        
-        for (let i = 0; i < filledHsData.length; i++) {
-            const su = filledStokesU[i];
-            const sv = filledStokesV[i];
-            const hs = filledHsData[i];
-            
-            // 过滤：波高小于阈值的区域（陆地或无效区域），强制设为0
-            // 同时检查 Stokes drift 是否异常小，进一步过滤
-            if (hs < WAVE_HEIGHT_THRESHOLD || (Math.abs(su) < 0.001 && Math.abs(sv) < 0.001)) {
-                uData[i] = 0;
-                vData[i] = 0;
-                continue;
-            }
-            
-            // 新的转换逻辑：
-            // u = Stokes drift 水平分量 × 放大系数 → 主导水平运动
-            // v = 波高 × 缩小系数 → 提供垂直方向的长度
-            uData[i] = su * 8;      // 水平运动（大值）
-            vData[i] = hs * 0.3;    // 垂直长度（小值）
-            
-            // 只在有效值时更新范围
-            if (uData[i] !== 0 || vData[i] !== 0) {
-                uMin = Math.min(uMin, uData[i]);
-                uMax = Math.max(uMax, uData[i]);
-                vMin = Math.min(vMin, vData[i]);
-                vMax = Math.max(vMax, vData[i]);
-            }
-        }
-        
-        // 确保范围有效
-        if (uMin === Infinity) uMin = 0;
-        if (uMax === -Infinity) uMax = 0;
-        if (vMin === Infinity) vMin = 0;
-        if (vMax === -Infinity) vMax = 0;
-        
-        // 6. 构造返回数据（WindLayer 兼容格式）
-        const waveData = {
-            u: {
-                array: uData,
-                min: uMin,
-                max: uMax
-            },
-            v: {
-                array: vData,
-                min: vMin,
-                max: vMax
-            },
-            width: lon_size,
-            height: lat_size,
-            bounds: {
-                west: lon_min,
-                south: lat_min,
-                east: lon_max,
-                north: lat_max
-            }
-        };
-        
-        console.log('✅ 波浪数据转换完成');
-        console.log('   - 网格:', lon_size, 'x', lat_size);
-        console.log('   - 波高范围:', hsMin.toFixed(2), '~', hsMax.toFixed(2), 'm');
-        console.log('   - U范围:', uMin.toFixed(3), '~', uMax.toFixed(3), 'm/s');
-        console.log('   - V范围:', vMin.toFixed(3), '~', vMax.toFixed(3), 'm/s');
         console.log('   - 边界:', waveData.bounds);
+        console.log(`   - 解析耗时: ${parseTime.toFixed(0)}ms`);
+        console.log(`   - 总耗时: ${(downloadTime + parseTime).toFixed(0)}ms`);
         
         return waveData;
         
     } catch (error) {
         console.error('❌ 加载全球波浪数据失败:', error);
+        throw error;
+    }
+}
+
+/**
+ * 解析二进制波浪数据
+ * 数据格式：[4字节: header长度] + [header JSON] + [padding对齐] + [U数据] + [V数据] + [波高数据]
+ * 
+ * @param {ArrayBuffer} arrayBuffer - 二进制数据
+ * @returns {Object} 波浪数据对象
+ */
+function parseBinaryWaveData(arrayBuffer) {
+    console.log('🔍 开始解析二进制波浪数据...');
+    console.log('   - 总大小:', arrayBuffer.byteLength, '字节');
+    
+    // 1. 读取header长度（前4字节，big-endian）
+    const headerLengthView = new DataView(arrayBuffer, 0, 4);
+    const headerLength = headerLengthView.getInt32(0, false); // false = big-endian
+    console.log('   - Header长度:', headerLength, '字节');
+    
+    // 2. 读取header（JSON）
+    const headerBytes = new Uint8Array(arrayBuffer, 4, headerLength);
+    const headerText = new TextDecoder('utf-8').decode(headerBytes);
+    const header = JSON.parse(headerText);
+    console.log('   - Header内容:', header);
+    
+    // 3. 计算padding和数据偏移量
+    const totalHeaderSize = 4 + headerLength;
+    const padding = (4 - (totalHeaderSize % 4)) % 4;
+    const dataStartOffset = totalHeaderSize + padding;
+    const dataLength = header.width * header.height;
+    
+    console.log('   - 总Header大小:', totalHeaderSize);
+    console.log('   - Padding:', padding, '字节');
+    console.log('   - 数据起始偏移:', dataStartOffset, '(是4的倍数:', dataStartOffset % 4 === 0, ')');
+    console.log('   - 数据点数量:', dataLength);
+    console.log('   - 预期U数据大小:', dataLength * 4, '字节');
+    console.log('   - 预期V数据大小:', dataLength * 4, '字节');
+    console.log('   - 预期波高数据大小:', dataLength * 4, '字节');
+    console.log('   - 预期总大小:', dataStartOffset + dataLength * 4 * 3, '字节');
+    
+    // 4. 读取U数据（Float32Array，little-endian）
+    const uDataOffset = dataStartOffset;
+    console.log('   - 尝试读取U数据: offset=', uDataOffset, ', length=', dataLength);
+    const uData = new Float32Array(arrayBuffer, uDataOffset, dataLength);
+    
+    // 5. 读取V数据（Float32Array，little-endian）
+    const vDataOffset = uDataOffset + dataLength * 4; // 4 bytes per float32
+    console.log('   - 尝试读取V数据: offset=', vDataOffset, ', length=', dataLength);
+    const vData = new Float32Array(arrayBuffer, vDataOffset, dataLength);
+    
+    // 6. 读取波高数据（如果有）
+    let hsData = null;
+    if (header.hsMin !== undefined && header.hsMax !== undefined) {
+        const hsDataOffset = vDataOffset + dataLength * 4;
+        console.log('   - 尝试读取波高数据: offset=', hsDataOffset, ', length=', dataLength);
+        hsData = new Float32Array(arrayBuffer, hsDataOffset, dataLength);
+    }
+    
+    console.log('✅ 解析成功!');
+    
+    // 7. 返回WindLayer格式
+    const result = {
+        u: {
+            array: uData,
+            min: header.uMin,
+            max: header.uMax
+        },
+        v: {
+            array: vData,
+            min: header.vMin,
+            max: header.vMax
+        },
+        width: header.width,
+        height: header.height,
+        bounds: header.bounds
+    };
+    
+    // 添加波高数据（如果有）
+    if (hsData) {
+        result.hs = {
+            array: hsData,
+            min: header.hsMin,
+            max: header.hsMax
+        };
+    }
+    
+    return result;
+}
+
+/**
+ * 加载波浪元数据（兼容旧代码）
+ * @returns {Promise<Object>} 元数据对象
+ */
+export async function loadWaveMeta() {
+    try {
+        console.log('📋 开始加载波浪元数据...');
+        const response = await fetch(`${API_BASE_URL}/metadata/wave`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载元数据失败');
+        }
+        
+        const meta = result.data;
+        console.log('✅ 波浪元数据加载成功:', meta);
+        return meta;
+    } catch (error) {
+        console.error('❌ 加载波浪元数据失败:', error);
         throw error;
     }
 }

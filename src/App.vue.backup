@@ -142,7 +142,6 @@
 <script>
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import * as Cesium from 'cesium';
-import { WEATHER_LAYER_GROUPS } from './constants.js';
 import Header from './components/Header.vue';
 import LeftPanel from './components/LeftPanel.vue';
 import RightPanel from './components/RightPanel.vue';
@@ -221,8 +220,8 @@ export default {
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
         
-        // 气象图层状态（从 constants.js 初始化，用于控制地图上的气象图层）
-        const weatherLayerState = ref(JSON.parse(JSON.stringify(WEATHER_LAYER_GROUPS)));
+        // 气象图层状态（从 LeftPanel 同步，用于控制地图上的气象图层）
+        const weatherLayerState = ref([]);
         
         // 船舶定位请求（传递给地图组件）
         const shipToLocate = ref(null);
@@ -1023,24 +1022,8 @@ export default {
                     weatherLayers: true,  // 自动打开气象图层
                     shipSearch: false     // 关闭船舶搜索
                 };
-                
-                // 🔥 自动激活风场图层
-                console.log('🌪️ 自动激活风场图层');
-                nextTick(() => {
-                    // 找到风场图层并激活
-                    const basicWeatherGroup = weatherLayerState.value.find(g => g.id === 'basic_weather');
-                    if (basicWeatherGroup && basicWeatherGroup.subLayers) {
-                        const windLayer = basicWeatherGroup.subLayers.find(l => l.id === 'wind');
-                        if (windLayer && !windLayer.active) {
-                            console.log('✅ 激活风场图层');
-                            windLayer.active = true;
-                            // 触发图层切换事件
-                            handleWeatherLayerToggle({ groupId: 'basic_weather', layerId: 'wind', active: true });
-                        }
-                    }
-                });
-                        } else if (tab === '船舶追踪') {
-                // 船舶追踪：自动打开船舶搜索
+            } else if (tab === '船舶追踪') {
+                // 船舶追踪：自动打开船舶搜索面板
                 showTimeline.value = false;
                 activePanels.value = {
                     list: false,
@@ -1065,7 +1048,6 @@ export default {
                 };
             }
         };
-
 
         // ==================== 生命周期钩子 ====================
         

@@ -1,28 +1,17 @@
 <template>
-    <!-- 浮动标签：显示当前图层数值 -->
+    <!-- 气象数据面板：显示风、浪、流三种数据 -->
     <transition name="fade">
-        <div v-if="pickedPoint && !showDetailPanel" 
+        <div v-if="pickedPoint" 
              :style="{ left: labelPosition.x + 'px', top: labelPosition.y + 'px' }"
              class="absolute pointer-events-auto"
-             style="z-index: 100;">
-            <div class="bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-lg px-4 py-2 shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-                <div class="flex items-center gap-3">
-                    <!-- 数值显示 -->
-                    <div class="text-white">
-                        <div class="text-xs text-cyan-400 mb-1">{{ currentLayerName }}</div>
-                        <div class="text-2xl font-bold font-['Rajdhani']">{{ currentValue }}</div>
+             style="z-index: 9999;">
+            <div class="bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-lg px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.8)] min-w-[320px] max-w-[400px]">
+                <!-- 标题栏 -->
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-cyan-500/30">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span class="text-white font-medium text-sm">气象数据查询</span>
                     </div>
-                    
-                    <!-- 展开按钮 -->
-                    <button @click="toggleDetailPanel" 
-                            class="w-8 h-8 flex items-center justify-center bg-cyan-600 hover:bg-cyan-500 rounded transition-colors"
-                            title="查看详细数据">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    
-                    <!-- 关闭按钮 -->
                     <button @click="closePicker" 
                             class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
                             title="关闭">
@@ -31,65 +20,75 @@
                         </svg>
                     </button>
                 </div>
-            </div>
-        </div>
-    </transition>
-    
-    <!-- 详细面板：显示所有时间的所有气象数据 -->
-    <transition name="slide-up">
-        <div v-if="showDetailPanel" class="absolute bottom-0 left-0 right-0 pointer-events-auto" style="z-index: 100;">
-            <div class="bg-slate-900/95 backdrop-blur-xl border-t-2 border-cyan-500/50 shadow-[0_-8px_32px_rgba(0,0,0,0.8)]" 
-                 style="max-height: 50vh; min-height: 300px;">
-                <!-- 头部 -->
-                <div class="flex items-center justify-between px-6 py-3 border-b border-slate-700">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                        <span class="text-white font-medium">气象数据详情</span>
-                        <span class="text-sm text-slate-400">
-                            {{ pickedPoint ? `${pickedPoint.lat.toFixed(2)}°, ${pickedPoint.lon.toFixed(2)}°` : '' }}
-                        </span>
-                    </div>
-                    <button @click="toggleDetailPanel" 
-                            class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
+                
+                <!-- 位置信息 -->
+                <div class="text-xs text-slate-400 mb-3 font-mono">
+                    📍 {{ pickedPoint.lat.toFixed(4) }}°, {{ pickedPoint.lon.toFixed(4) }}°
                 </div>
                 
-                <!-- 数据表格 -->
-                <div class="overflow-auto" style="max-height: calc(50vh - 60px);">
-                    <div v-if="timeSteps.length === 0" class="p-8 text-center text-slate-400">
-                        <p>暂无时间序列数据</p>
-                        <p class="text-sm mt-2">当前仅显示已加载时间帧的数据</p>
+                <!-- 数据列表 -->
+                <div class="space-y-3">
+                    <!-- 风速 -->
+                    <div v-if="pickedPoint.wind" class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-cyan-400 text-sm font-medium">🌬️ 风速</span>
+                            <div class="text-right">
+                                <div class="text-white font-['Rajdhani'] font-bold text-lg">
+                                    {{ pickedPoint.wind.speed.toFixed(2) }} m/s
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    方向: {{ pickedPoint.wind.direction.toFixed(1) }}°
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono">
+                            U: {{ pickedPoint.wind.u.toFixed(3) }} | V: {{ pickedPoint.wind.v.toFixed(3) }}
+                        </div>
                     </div>
-                    <table v-else class="w-full text-sm">
-                        <thead class="bg-slate-800 sticky top-0 z-10">
-                            <tr>
-                                <th class="px-4 py-2 text-left text-cyan-400 font-medium whitespace-nowrap">图层</th>
-                                <th class="px-4 py-2 text-center text-cyan-400 font-medium whitespace-nowrap">当前值</th>
-                                <th class="px-4 py-2 text-center text-cyan-400 font-medium whitespace-nowrap">单位</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="layer in availableLayers" :key="layer.id"
-                                class="border-b border-slate-700 hover:bg-slate-800/50 transition-colors">
-                                <td class="px-4 py-2 text-slate-300 whitespace-nowrap">
-                                    {{ layer.name }}
-                                </td>
-                                <td class="px-4 py-2 text-center text-white font-['Rajdhani'] font-bold text-xl whitespace-nowrap">
-                                    {{ getCurrentLayerValue(layer.id) }}
-                                </td>
-                                <td class="px-4 py-2 text-center text-slate-400 whitespace-nowrap">
-                                    {{ layer.unit }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="p-4 text-center text-xs text-slate-500 border-t border-slate-700">
-                        <p>💡 提示：当前显示的是已加载时间帧的数据</p>
-                        <p class="mt-1">使用时间轴切换不同时间的数据</p>
+                    
+                    <!-- 波高 -->
+                    <div v-if="pickedPoint.wave" class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-cyan-400 text-sm font-medium">🌊 波浪</span>
+                            <div class="text-right">
+                                <div class="text-white font-['Rajdhani'] font-bold text-lg">
+                                    {{ getWaveHeight() }} m
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    方向: {{ pickedPoint.wave.direction.toFixed(1) }}°
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono">
+                            U: {{ pickedPoint.wave.u.toFixed(3) }} | V: {{ pickedPoint.wave.v.toFixed(3) }}
+                            <span v-if="pickedPoint.wave.height !== null && pickedPoint.wave.height !== undefined">
+                                | H: {{ pickedPoint.wave.height.toFixed(3) }}
+                            </span>
+                        </div>
                     </div>
+                    
+                    <!-- 洋流 -->
+                    <div v-if="pickedPoint.current" class="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-cyan-400 text-sm font-medium">🌀 洋流</span>
+                            <div class="text-right">
+                                <div class="text-white font-['Rajdhani'] font-bold text-lg">
+                                    {{ pickedPoint.current.speed.toFixed(2) }} m/s
+                                </div>
+                                <div class="text-xs text-slate-400">
+                                    方向: {{ pickedPoint.current.direction.toFixed(1) }}°
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono">
+                            U: {{ pickedPoint.current.u.toFixed(3) }} | V: {{ pickedPoint.current.v.toFixed(3) }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 时间戳（如果有） -->
+                <div v-if="pickedPoint.timestamp" class="mt-3 pt-2 border-t border-slate-700/50 text-xs text-slate-500">
+                    ⏰ {{ pickedPoint.timestamp }}
                 </div>
             </div>
         </div>
@@ -97,175 +96,62 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 
 export default {
     props: {
         pickedPoint: {
             type: Object,
-            default: null  // { lat, lon, cartesian3 }
-        },
-        currentLayer: {
-            type: Object,
-            default: null  // { id, name }
-        },
-        weatherData: {
-            type: Object,
-            default: null  // { wind, wave, current }
-        },
-        timeSteps: {
-            type: Array,
-            default: () => []
-        },
-        currentTimeIndex: {
-            type: Number,
-            default: 0
+            default: null  // { lat, lon, wind, wave, current, screenPosition }
         }
     },
     emits: ['close'],
     setup(props, { emit }) {
-        const showDetailPanel = ref(false);
         const labelPosition = ref({ x: 0, y: 0 });
-        
-        // 当前图层名称
-        const currentLayerName = computed(() => {
-            if (!props.currentLayer) return '';
-            return props.currentLayer.name;
-        });
-        
-        // 当前数值
-        const currentValue = computed(() => {
-            if (!props.pickedPoint || !props.currentLayer || !props.weatherData) {
-                return 'N/A';
-            }
-            
-            const layerId = props.currentLayer.id;
-            const data = props.weatherData[layerId];
-            
-            if (!data) return 'N/A';
-            
-            // 根据经纬度获取数据值
-            const value = getValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, props.currentTimeIndex);
-            
-            // 格式化显示
-            return formatValue(layerId, value);
-        });
-        
-        // 可用的气象图层
-        const availableLayers = computed(() => {
-            const layers = [];
-            if (props.weatherData?.wind) {
-                layers.push({ id: 'wind', name: '风速', unit: 'm/s' });
-            }
-            if (props.weatherData?.wave) {
-                layers.push({ id: 'wave', name: '波高', unit: 'm' });
-            }
-            if (props.weatherData?.current) {
-                layers.push({ id: 'current', name: '洋流', unit: 'm/s' });
-            }
-            return layers;
-        });
         
         // 监听点击位置变化，更新标签位置
         watch(() => props.pickedPoint, (newPoint) => {
-            if (newPoint && newPoint.screenPosition) {
-                labelPosition.value = {
-                    x: newPoint.screenPosition.x + 10,
-                    y: newPoint.screenPosition.y - 60
-                };
+            console.log('🔍 pickedPoint 变化:', newPoint);
+            if (newPoint) {
+                console.log('  - screenPosition:', newPoint.screenPosition);
+                if (newPoint.screenPosition) {
+                    labelPosition.value = {
+                        x: newPoint.screenPosition.x + 10,
+                        y: newPoint.screenPosition.y - 200  // 调整位置，避免遮挡
+                    };
+                    console.log('  - labelPosition 已更新:', labelPosition.value);
+                } else {
+                    console.warn('  - ⚠️ screenPosition 不存在！');
+                }
             }
         });
         
-        // 切换详细面板
-        const toggleDetailPanel = () => {
-            showDetailPanel.value = !showDetailPanel.value;
-        };
-        
-        // 关闭选择器
-        const closePicker = () => {
-            showDetailPanel.value = false;
-            emit('close');
-        };
-        
-        // 根据经纬度获取数据值
-        const getValueAtPoint = (data, lat, lon, timeIndex) => {
-            if (!data || !data.u || !data.v) return null;
+        // 获取波高数据（优先使用 height，否则使用 speed）
+        const getWaveHeight = () => {
+            if (!props.pickedPoint || !props.pickedPoint.wave) return 'N/A';
             
-            const { width, height, bounds } = data;
-            const { west, south, east, north } = bounds;
+            const wave = props.pickedPoint.wave;
             
-            // 将经纬度转换为数据索引
-            const x = Math.floor(((lon - west) / (east - west)) * width);
-            const y = Math.floor(((north - lat) / (north - south)) * height);
+            // 检查是否是无效数据（-9999）
+            if (wave.u < -9000) return 'N/A';
             
-            // 边界检查
-            if (x < 0 || x >= width || y < 0 || y >= height) return null;
-            
-            const index = y * width + x;
-            const u = data.u.array[index];
-            const v = data.v.array[index];
-            
-            // 计算强度
-            return Math.sqrt(u * u + v * v);
-        };
-        
-        // 获取指定时间的数值
-        const getValueAtTime = (layerId, timeIndex) => {
-            if (!props.pickedPoint || !props.weatherData) return 'N/A';
-            
-            const data = props.weatherData[layerId];
-            if (!data) return 'N/A';
-            
-            const value = getValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, timeIndex);
-            return formatValue(layerId, value);
-        };
-        
-        // 获取当前图层的数值（简化版，只显示当前值）
-        const getCurrentLayerValue = (layerId) => {
-            if (!props.pickedPoint || !props.weatherData) return 'N/A';
-            
-            const data = props.weatherData[layerId];
-            if (!data) return 'N/A';
-            
-            const value = getValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, 0);
-            if (value === null || value === undefined) return 'N/A';
+            // 优先使用 height，如果没有则使用 speed
+            const value = wave.height !== undefined && wave.height !== null
+                ? wave.height
+                : wave.speed;
             
             return value.toFixed(2);
         };
         
-        // 格式化数值
-        const formatValue = (layerId, value) => {
-            if (value === null || value === undefined) return 'N/A';
-            
-            const units = {
-                wind: 'm/s',
-                wave: 'm',
-                current: 'm/s'
-            };
-            
-            return `${value.toFixed(2)} ${units[layerId] || ''}`;
-        };
-        
-        // 格式化时间
-        const formatTime = (date) => {
-            if (!date) return '';
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const hour = date.getHours().toString().padStart(2, '0');
-            return `${month}-${day} ${hour}:00`;
+        // 关闭选择器
+        const closePicker = () => {
+            emit('close');
         };
         
         return {
-            showDetailPanel,
             labelPosition,
-            currentLayerName,
-            currentValue,
-            availableLayers,
-            toggleDetailPanel,
-            closePicker,
-            getValueAtTime,
-            getCurrentLayerValue,
-            formatTime
+            getWaveHeight,
+            closePicker
         };
     }
 };
@@ -277,17 +163,5 @@ export default {
 }
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
-}
-
-.slide-up-enter-active, .slide-up-leave-active {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.slide-up-enter-from {
-    opacity: 0;
-    transform: translateY(100%);
-}
-.slide-up-leave-to {
-    opacity: 0;
-    transform: translateY(100%);
 }
 </style>

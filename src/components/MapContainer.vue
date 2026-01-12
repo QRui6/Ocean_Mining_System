@@ -600,20 +600,18 @@ export default {
                         return;
                     }
                     
-                    // 如果有激活的气象图层，优先处理气象查询
-                    if (showWind.value || showWave.value || showOceanCurrent.value) {
-                        // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
-                        const pickedObject = viewer.scene.pick(correctedPosition);
-                        
-                        // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
-                        if (!pickedObject || 
-                            (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
-                            // 传递原始坐标和修正后的坐标
-                            handleWeatherPointClick(click.position, correctedPosition);
-                            return;
-                        }
-                        // 如果点击到了其他实体（矿区、船舶），继续下面的处理
+                    // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
+                    const pickedObject = viewer.scene.pick(correctedPosition);
+                    
+                    // 如果没有点击到实体，且有激活的气象图层，进行气象查询
+                    if ((!pickedObject || 
+                        (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) &&
+                        (showWind.value || showWave.value || showOceanCurrent.value)) {
+                        // 传递原始坐标和修正后的坐标
+                        handleWeatherPointClick(click.position, correctedPosition);
+                        return;
                     }
+                    // 如果点击到了其他实体（矿区、船舶），继续下面的处理
                     
                     // 恢复上一个选中实体的样式
                     if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
@@ -625,10 +623,6 @@ export default {
                     console.log('🔍 缩放比例:', { scaleX, scaleY });
                     console.log('🖱️ 原始点击坐标:', click.position);
                     console.log('✅ 修正后坐标:', correctedPosition);
-                    
-                    // 使用修正后的坐标拾取实体
-                    const pickedObject = viewer.scene.pick(correctedPosition);
-                    
                     console.log('🎯 拾取到的对象:', pickedObject);
                     console.log('   - 是否定义:', Cesium.defined(pickedObject));
                     console.log('   - 是否有 id:', pickedObject?.id);
@@ -1467,7 +1461,7 @@ export default {
         };
         
         // 处理地图点击查询气象
-        const handleWeatherPointClick = (screenPosition, correctedPosition) => {
+        const handleWeatherPointClick = async (screenPosition, correctedPosition) => {
             // 获取点击位置的经纬度（使用修正后的坐标）
             const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
             if (!cartesian) {
@@ -1479,39 +1473,137 @@ export default {
             const lon = Cesium.Math.toDegrees(cartographic.longitude);
             const lat = Cesium.Math.toDegrees(cartographic.latitude);
             
-            // 设置选中点
-            weatherPickedPoint.value = {
-                lat,
-                lon,
-                cartesian3: cartesian,
-                screenPosition: screenPosition  // 使用原始屏幕坐标显示标签
-            };
+            console.log('📍 点击位置:', { lat: lat.toFixed(2), lon: lon.toFixed(2) });
             
-            // 设置当前图层
+            // 确定当前激活的气象图层
+            let layerType = null;
+            let layerName = '';
+            
             if (showWind.value) {
-                currentWeatherLayer.value = { id: 'wind', name: '风速' };
+                layerType = 'wind';
+                layerName = '风速';
             } else if (showWave.value) {
-                currentWeatherLayer.value = { id: 'wave', name: '波高' };
+                layerType = 'wave';
+                layerName = '波高';
             } else if (showOceanCurrent.value) {
-                currentWeatherLayer.value = { id: 'current', name: '洋流' };
+                layerType = 'current';
+                layerName = '洋流';
             }
             
-            // 缓存气象数据
-            weatherDataCache.value = {
-                wind: cachedWindData,
-                wave: cachedWaveData,
-                current: cachedOceanCurrentData
-            };
+            if (!layerType) {
+                console.warn('⚠️ 没有激活的气象图层');
+                return;
+            }
             
-            // 生成时间步长（基于当前激活的图层）
-            generateWeatherTimeSteps();
+            try {
+                // 调用后端 API 获取风浪流数据
+                const response = await fetch(
+                    `http://localhost:8081/api/weather/point-query?lat=${lat}&lon=${lon}&timeIndex=${currentTimeIndex.value || 0}`
+                );
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    // 更新气象点查询状态
+                    weatherPickedPoint.value = {
+                        lat,
+                        lon,
+                        cartesian3: cartesian,
+                        screenPosition: correctedPosition,
+                        wind: result.data.wind,
+                        wave: result.data.wave,
+                        current: result.data.current
+                    };
+                    
+                    // 设置当前图层
+                    currentWeatherLayer.value = {
+                        id: layerType,
+                        name: layerName
+                    };
+                    
+                    console.log('✅ 气象数据查询成功:', result.data);
+                } else {
+                    console.warn('⚠️ 查询失败:', result.message);
+                }
+            } catch (error) {
+                console.error('❌ 查询气象数据失败:', error);
+            }
+        };
+        
+        // 双线性插值获取指定经纬度的数值
+        const interpolateValue = (data, lat, lon) => {
+            if (!data || !data.u || !data.v) {
+                console.warn('⚠️ 数据结构不完整');
+                return null;
+            }
             
-            console.log('📍 气象点查询:', { 
-                lat: lat.toFixed(2), 
-                lon: lon.toFixed(2), 
-                layer: currentWeatherLayer.value,
-                timeSteps: weatherTimeSteps.value.length
-            });
+            const { width, height, bounds } = data;
+            let { west, south, east, north } = bounds;
+            
+            console.log('🔧 坐标转换前:', { lat, lon, bounds });
+            
+            // 坐标转换：Cesium使用-180到180，某些数据使用0到360
+            if (west >= 0 && east > 180) {
+                // 数据使用0-360度，需要转换经度
+                if (lon < 0) {
+                    console.log('✅ 检测到负经度，转换中...', lon);
+                    lon += 360;
+                    console.log('✅ 转换后经度:', lon);
+                }
+            }
+            
+            console.log('🔧 坐标转换后:', { lat, lon });
+            
+            // 将经纬度转换为网格坐标（浮点数）
+            const x = ((lon - west) / (east - west)) * (width - 1);
+            const y = ((north - lat) / (north - south)) * (height - 1);
+            
+            console.log('🔧 网格坐标:', { x, y, width, height });
+            
+            // 边界检查
+            if (x < 0 || x >= width - 1 || y < 0 || y >= height - 1) {
+                console.warn('⚠️ 坐标超出边界:', { lat, lon, x, y, bounds });
+                return null;
+            }
+            
+            // 获取四个角点的索引
+            const x0 = Math.floor(x);
+            const x1 = x0 + 1;
+            const y0 = Math.floor(y);
+            const y1 = y0 + 1;
+            
+            // 计算插值权重
+            const wx = x - x0;
+            const wy = y - y0;
+            
+            // 获取四个角点的U和V值
+            const idx00 = y0 * width + x0;
+            const idx01 = y0 * width + x1;
+            const idx10 = y1 * width + x0;
+            const idx11 = y1 * width + x1;
+            
+            const u00 = data.u.array[idx00];
+            const u01 = data.u.array[idx01];
+            const u10 = data.u.array[idx10];
+            const u11 = data.u.array[idx11];
+            
+            const v00 = data.v.array[idx00];
+            const v01 = data.v.array[idx01];
+            const v10 = data.v.array[idx10];
+            const v11 = data.v.array[idx11];
+            
+            // 双线性插值
+            const u = (1 - wx) * (1 - wy) * u00 +
+                     wx * (1 - wy) * u01 +
+                     (1 - wx) * wy * u10 +
+                     wx * wy * u11;
+            
+            const v = (1 - wx) * (1 - wy) * v00 +
+                     wx * (1 - wy) * v01 +
+                     (1 - wx) * wy * v10 +
+                     wx * wy * v11;
+            
+            // 计算强度（风速/波高/洋流速度）
+            return Math.sqrt(u * u + v * v);
         };
         
         // 生成气象时间步长

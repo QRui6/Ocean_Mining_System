@@ -11,12 +11,23 @@ export default defineConfig(({ mode }) => {
         host: 'localhost',
         strictPort: false,
         proxy: {
+          '/api': {
+            target: 'http://localhost:8081',
+            changeOrigin: true,
+            secure: false,
+            timeout: 30000
+          },
           '/api/shipxy': {
             target: 'https://api.shipxy.com',
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api\/shipxy/, ''),
             secure: false,
             timeout: 30000  // 增加超时时间到30秒
+          },
+          '/ws': {
+            target: 'ws://localhost:8081',
+            ws: true,
+            changeOrigin: true
           }
         },
         fs: {

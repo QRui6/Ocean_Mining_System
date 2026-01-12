@@ -1,175 +1,148 @@
 /**
  * 风场数据加载工具
- * 支持从 ERA5 二进制数据加载风场数据
- * 参考 waveDataLoader.js 和 oceanCurrentLoader.js 的实现模式
+ * 从 Java 后端 API 加载风场数据（二进制格式，性能优化版）
  */
 
-/**
- * 加载风场元数据
- * @returns {Promise<Object>} 元数据对象
- */
-export async function loadWindMeta() {
-    try {
-        console.log('📋 开始加载风场元数据...');
-        const response = await fetch('/wind_data/meta.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const meta = await response.json();
-        console.log('✅ 风场元数据加载成功:', meta);
-        return meta;
-    } catch (error) {
-        console.error('❌ 加载风场元数据失败:', error);
-        throw error;
-    }
-}
+// API 基础URL - 使用相对路径,通过Vite代理转发
+const API_BASE_URL = '/api/weather';
 
 /**
- * 从二进制文件加载 U 分量数据
- * @param {number} timeIndex - 时间索引 (0-95)
- * @returns {Promise<Float32Array>} U 分量数据数组
- */
-async function loadUComponentBinary(timeIndex) {
-    const timeStr = String(timeIndex).padStart(2, '0');
-    const url = `/wind_data/u_t${timeStr}.bin`;
-    
-    try {
-        console.log(`⏳ 加载 U 分量数据: ${url}`);
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const buffer = await response.arrayBuffer();
-        const data = new Float32Array(buffer);
-        console.log(`✅ U 分量数据加载成功: ${data.length} 个数据点`);
-        return data;
-    } catch (error) {
-        console.error(`❌ 加载 U 分量数据失败 (t${timeIndex}):`, error);
-        throw error;
-    }
-}
-
-/**
- * 从二进制文件加载 V 分量数据
- * @param {number} timeIndex - 时间索引 (0-95)
- * @returns {Promise<Float32Array>} V 分量数据数组
- */
-async function loadVComponentBinary(timeIndex) {
-    const timeStr = String(timeIndex).padStart(2, '0');
-    const url = `/wind_data/v_t${timeStr}.bin`;
-    
-    try {
-        console.log(`⏳ 加载 V 分量数据: ${url}`);
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const buffer = await response.arrayBuffer();
-        const data = new Float32Array(buffer);
-        console.log(`✅ V 分量数据加载成功: ${data.length} 个数据点`);
-        return data;
-    } catch (error) {
-        console.error(`❌ 加载 V 分量数据失败 (t${timeIndex}):`, error);
-        throw error;
-    }
-}
-
-/**
- * 从全球风场数据加载并转换为 WindLayer 兼容格式
- * @param {number} timeIndex - 时间索引 (0-95)，默认为 0
+ * 从全球风场数据加载并转换为 WindLayer 兼容格式（二进制版本）
+ * @param {number} timeIndex - 时间索引 (0-19)，默认为 0
  * @returns {Promise<Object>} WindLayer 兼容的数据对象
  */
 export async function loadGlobalWindData(timeIndex = 0) {
     try {
-        console.log('🌬️  开始加载全球风场数据...');
+        console.log('🌬️  开始加载全球风场数据（二进制格式）...');
+        console.log('   - 时间索引:', timeIndex);
+        console.log('   - API地址:', `${API_BASE_URL}/data/wind/${timeIndex}/binary`);
         
-        // 1. 加载元数据
-        const meta = await loadWindMeta();
-        const { grid } = meta;
-        const { lon_size, lat_size, lon_min, lat_min, lon_max, lat_max } = grid;
+        const startTime = performance.now();
         
-        // 2. 验证时间索引
-        if (timeIndex >= meta.frames) {
-            console.warn(`⚠️  时间索引 ${timeIndex} 超出范围，使用最后一帧 ${meta.frames - 1}`);
-            timeIndex = meta.frames - 1;
+        // 从后端API加载二进制数据
+        const response = await fetch(`${API_BASE_URL}/data/wind/${timeIndex}/binary`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        console.log('📊 风场数据网格信息:', {
-            经度范围: `${lon_min}° 到 ${lon_max}°`,
-            纬度范围: `${lat_min}° 到 ${lat_max}°`,
-            网格尺寸: `${lon_size} × ${lat_size}`,
-            分辨率: `${grid.lon_step}°`,
-            起始时间: meta.start_time,
-            时间索引: timeIndex
-        });
+        const arrayBuffer = await response.arrayBuffer();
+        const downloadTime = performance.now() - startTime;
         
-        // 3. 加载 U 和 V 分量数据
-        const [uData, vData] = await Promise.all([
-            loadUComponentBinary(timeIndex),
-            loadVComponentBinary(timeIndex)
-        ]);
+        console.log(`   - 下载完成: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB, 耗时: ${downloadTime.toFixed(0)}ms`);
         
-        // 4. 计算统计信息
-        let uMin = Infinity;
-        let uMax = -Infinity;
-        let vMin = Infinity;
-        let vMax = -Infinity;
-        let validCount = 0;
-        
-        for (let i = 0; i < uData.length; i++) {
-            const u = uData[i];
-            const v = vData[i];
-            const speed = Math.sqrt(u * u + v * v);
-            
-            // 过滤无效值（风速过大或过小）
-            if (speed >= 0 && speed <= 100) {
-                uMin = Math.min(uMin, u);
-                uMax = Math.max(uMax, u);
-                vMin = Math.min(vMin, v);
-                vMax = Math.max(vMax, v);
-                validCount++;
-            }
-        }
-        
-        console.log('📈 风场数据统计:', {
-            有效数据点: validCount,
-            无效数据点: uData.length - validCount,
-            U范围: `${uMin.toFixed(2)}m/s ~ ${uMax.toFixed(2)}m/s`,
-            V范围: `${vMin.toFixed(2)}m/s ~ ${vMax.toFixed(2)}m/s`
-        });
-        
-        // 5. 构造 WindLayer 兼容格式
-        const windData = {
-            u: {
-                array: uData,
-                min: uMin,
-                max: uMax
-            },
-            v: {
-                array: vData,
-                min: vMin,
-                max: vMax
-            },
-            width: lon_size,
-            height: lat_size,
-            bounds: {
-                west: lon_min,
-                south: lat_min,
-                east: lon_max,
-                north: lat_max
-            }
-        };
+        // 解析二进制数据
+        const parseStartTime = performance.now();
+        const windData = parseBinaryWindData(arrayBuffer);
+        const parseTime = performance.now() - parseStartTime;
         
         console.log('✅ 风场数据加载完成');
-        console.log('   - 网格:', lon_size, 'x', lat_size);
+        console.log('   - 网格:', windData.width, 'x', windData.height);
         console.log('   - U范围:', windData.u.min.toFixed(2), '~', windData.u.max.toFixed(2), 'm/s');
         console.log('   - V范围:', windData.v.min.toFixed(2), '~', windData.v.max.toFixed(2), 'm/s');
         console.log('   - 边界:', windData.bounds);
+        console.log(`   - 解析耗时: ${parseTime.toFixed(0)}ms`);
+        console.log(`   - 总耗时: ${(downloadTime + parseTime).toFixed(0)}ms`);
         
         return windData;
         
     } catch (error) {
         console.error('❌ 加载全球风场数据失败:', error);
+        throw error;
+    }
+}
+
+/**
+ * 解析二进制风场数据
+ * 数据格式：[4字节: header长度] + [header JSON] + [padding对齐] + [U数据] + [V数据]
+ * 
+ * @param {ArrayBuffer} arrayBuffer - 二进制数据
+ * @returns {Object} 风场数据对象
+ */
+function parseBinaryWindData(arrayBuffer) {
+    console.log('🔍 开始解析二进制数据...');
+    console.log('   - 总大小:', arrayBuffer.byteLength, '字节');
+    
+    // 1. 读取header长度（前4字节，big-endian）
+    const headerLengthView = new DataView(arrayBuffer, 0, 4);
+    const headerLength = headerLengthView.getInt32(0, false); // false = big-endian
+    console.log('   - Header长度:', headerLength, '字节');
+    
+    // 2. 读取header（JSON）
+    const headerBytes = new Uint8Array(arrayBuffer, 4, headerLength);
+    const headerText = new TextDecoder('utf-8').decode(headerBytes);
+    const header = JSON.parse(headerText);
+    console.log('   - Header内容:', header);
+    
+    // 3. 计算padding和数据偏移量
+    // 总header大小 = 4字节(长度) + headerLength + padding
+    // 需要确保数据部分从4字节对齐的位置开始
+    const totalHeaderSize = 4 + headerLength;
+    const padding = (4 - (totalHeaderSize % 4)) % 4;
+    const dataStartOffset = totalHeaderSize + padding;
+    const dataLength = header.width * header.height;
+    
+    console.log('   - 总Header大小:', totalHeaderSize);
+    console.log('   - Padding:', padding, '字节');
+    console.log('   - 数据起始偏移:', dataStartOffset, '(是4的倍数:', dataStartOffset % 4 === 0, ')');
+    console.log('   - 数据点数量:', dataLength);
+    console.log('   - 预期U数据大小:', dataLength * 4, '字节');
+    console.log('   - 预期总大小:', dataStartOffset + dataLength * 4 * 2, '字节');
+    
+    // 4. 读取U数据（Float32Array，little-endian）
+    const uDataOffset = dataStartOffset;
+    console.log('   - 尝试读取U数据: offset=', uDataOffset, ', length=', dataLength);
+    const uData = new Float32Array(arrayBuffer, uDataOffset, dataLength);
+    
+    // 5. 读取V数据（Float32Array，little-endian）
+    const vDataOffset = uDataOffset + dataLength * 4; // 4 bytes per float32
+    console.log('   - 尝试读取V数据: offset=', vDataOffset, ', length=', dataLength);
+    const vData = new Float32Array(arrayBuffer, vDataOffset, dataLength);
+    
+    console.log('✅ 解析成功!');
+    
+    // 6. 返回WindLayer格式
+    return {
+        u: {
+            array: uData,
+            min: header.uMin,
+            max: header.uMax
+        },
+        v: {
+            array: vData,
+            min: header.vMin,
+            max: header.vMax
+        },
+        width: header.width,
+        height: header.height,
+        bounds: header.bounds
+    };
+}
+
+/**
+ * 加载风场元数据（兼容旧代码）
+ * @returns {Promise<Object>} 元数据对象
+ */
+export async function loadWindMeta() {
+    try {
+        console.log('📋 开始加载风场元数据...');
+        const response = await fetch(`${API_BASE_URL}/metadata/wind`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载元数据失败');
+        }
+        
+        const meta = result.data;
+        console.log('✅ 风场元数据加载成功:', meta);
+        return meta;
+    } catch (error) {
+        console.error('❌ 加载风场元数据失败:', error);
         throw error;
     }
 }
