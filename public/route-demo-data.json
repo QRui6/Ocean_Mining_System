@@ -1,0 +1,547 @@
+{
+  "route": {
+    "name": "上海港 → 太平洋CCZ矿区",
+    "description": "从上海港出发，经东海、西太平洋，最终到达中国五矿CCZ多金属结核矿区",
+    "startPort": {
+      "name": "上海港",
+      "lng": 121.5,
+      "lat": 31.2
+    },
+    "endArea": {
+      "name": "中国五矿CCZ矿区",
+      "lng": -130.0,
+      "lat": 12.0
+    },
+    "distance": 5850,
+    "estimatedDays": 15,
+    "averageSpeed": 12,
+    "waypoints": [
+      {
+        "id": 1,
+        "lng": 121.5,
+        "lat": 31.2,
+        "name": "上海港",
+        "description": "航程起点",
+        "weather": {
+          "windSpeed": 4.5,
+          "windBeaufort": 3,
+          "windDirection": "东北",
+          "waveHeight": 0.8,
+          "visibility": 15000,
+          "temperature": 18,
+          "pressure": 1015
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "东海海域",
+          "distance": 280,
+          "duration": "23小时"
+        }
+      },
+      {
+        "id": 2,
+        "lng": 125.0,
+        "lat": 30.5,
+        "name": "东海海域",
+        "description": "进入东海",
+        "weather": {
+          "windSpeed": 6.2,
+          "windBeaufort": 4,
+          "windDirection": "东",
+          "waveHeight": 1.5,
+          "visibility": 12000,
+          "temperature": 19,
+          "pressure": 1013
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "琉球群岛",
+          "distance": 420,
+          "duration": "35小时"
+        }
+      },
+      {
+        "id": 3,
+        "lng": 128.5,
+        "lat": 28.0,
+        "name": "琉球群岛附近",
+        "description": "接近琉球海沟",
+        "weather": {
+          "windSpeed": 8.5,
+          "windBeaufort": 5,
+          "windDirection": "东南",
+          "waveHeight": 2.2,
+          "visibility": 8000,
+          "temperature": 21,
+          "pressure": 1011
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "西太平洋",
+          "distance": 380,
+          "duration": "32小时"
+        }
+      },
+      {
+        "id": 4,
+        "lng": 132.0,
+        "lat": 26.0,
+        "name": "西太平洋海域",
+        "description": "进入开阔洋面",
+        "weather": {
+          "windSpeed": 7.8,
+          "windBeaufort": 4,
+          "windDirection": "东",
+          "waveHeight": 2.0,
+          "visibility": 10000,
+          "temperature": 22,
+          "pressure": 1012
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "台风影响区",
+          "distance": 450,
+          "duration": "38小时"
+        }
+      },
+      {
+        "id": 5,
+        "lng": 137.0,
+        "lat": 24.0,
+        "name": "台风外围影响区",
+        "description": "受台风外围环流影响",
+        "weather": {
+          "windSpeed": 12.5,
+          "windBeaufort": 6,
+          "windDirection": "东北",
+          "waveHeight": 3.5,
+          "visibility": 5000,
+          "temperature": 24,
+          "pressure": 1008
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "台风边缘",
+          "distance": 320,
+          "duration": "27小时"
+        }
+      },
+      {
+        "id": 6,
+        "lng": 141.0,
+        "lat": 22.5,
+        "name": "台风边缘区域",
+        "description": "强风浪区域",
+        "weather": {
+          "windSpeed": 16.8,
+          "windBeaufort": 8,
+          "windDirection": "东北",
+          "waveHeight": 4.5,
+          "visibility": 3000,
+          "temperature": 25,
+          "pressure": 1004
+        },
+        "risk": "warning",
+        "segment": {
+          "to": "避让航行",
+          "distance": 280,
+          "duration": "23小时"
+        }
+      },
+      {
+        "id": 7,
+        "lng": 144.5,
+        "lat": 21.0,
+        "name": "避让航行区",
+        "description": "绕行台风，风浪依然较大",
+        "weather": {
+          "windSpeed": 14.2,
+          "windBeaufort": 7,
+          "windDirection": "东",
+          "waveHeight": 4.0,
+          "visibility": 4000,
+          "temperature": 26,
+          "pressure": 1006
+        },
+        "risk": "warning",
+        "segment": {
+          "to": "风浪减弱区",
+          "distance": 350,
+          "duration": "29小时"
+        }
+      },
+      {
+        "id": 8,
+        "lng": 148.0,
+        "lat": 20.0,
+        "name": "风浪减弱区",
+        "description": "逐渐远离台风影响",
+        "weather": {
+          "windSpeed": 10.5,
+          "windBeaufort": 5,
+          "windDirection": "东南",
+          "waveHeight": 2.8,
+          "visibility": 8000,
+          "temperature": 27,
+          "pressure": 1010
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "中太平洋",
+          "distance": 520,
+          "duration": "43小时"
+        }
+      },
+      {
+        "id": 9,
+        "lng": 153.0,
+        "lat": 18.5,
+        "name": "中太平洋海域",
+        "description": "海况好转",
+        "weather": {
+          "windSpeed": 7.2,
+          "windBeaufort": 4,
+          "windDirection": "东",
+          "waveHeight": 1.8,
+          "visibility": 12000,
+          "temperature": 28,
+          "pressure": 1013
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "热带辐合带",
+          "distance": 480,
+          "duration": "40小时"
+        }
+      },
+      {
+        "id": 10,
+        "lng": 158.0,
+        "lat": 17.0,
+        "name": "热带辐合带",
+        "description": "对流活跃，降水频繁",
+        "weather": {
+          "windSpeed": 9.5,
+          "windBeaufort": 5,
+          "windDirection": "东南",
+          "waveHeight": 2.5,
+          "visibility": 6000,
+          "temperature": 29,
+          "pressure": 1009
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "强对流区",
+          "distance": 420,
+          "duration": "35小时"
+        }
+      },
+      {
+        "id": 11,
+        "lng": 163.0,
+        "lat": 16.0,
+        "name": "强对流天气区",
+        "description": "雷暴、强降水",
+        "weather": {
+          "windSpeed": 13.5,
+          "windBeaufort": 7,
+          "windDirection": "东",
+          "waveHeight": 3.8,
+          "visibility": 2000,
+          "temperature": 29,
+          "pressure": 1006
+        },
+        "risk": "warning",
+        "segment": {
+          "to": "天气转好",
+          "distance": 380,
+          "duration": "32小时"
+        }
+      },
+      {
+        "id": 12,
+        "lng": 168.0,
+        "lat": 15.5,
+        "name": "天气转好区",
+        "description": "对流减弱",
+        "weather": {
+          "windSpeed": 8.8,
+          "windBeaufort": 5,
+          "windDirection": "东南",
+          "waveHeight": 2.3,
+          "visibility": 10000,
+          "temperature": 28,
+          "pressure": 1011
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "东太平洋",
+          "distance": 550,
+          "duration": "46小时"
+        }
+      },
+      {
+        "id": 13,
+        "lng": 174.0,
+        "lat": 14.5,
+        "name": "东太平洋海域",
+        "description": "进入东太平洋",
+        "weather": {
+          "windSpeed": 6.5,
+          "windBeaufort": 4,
+          "windDirection": "东",
+          "waveHeight": 1.6,
+          "visibility": 15000,
+          "temperature": 27,
+          "pressure": 1014
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "国际日期变更线",
+          "distance": 320,
+          "duration": "27小时"
+        }
+      },
+      {
+        "id": 14,
+        "lng": 180.0,
+        "lat": 14.0,
+        "name": "国际日期变更线",
+        "description": "跨越日期变更线",
+        "weather": {
+          "windSpeed": 7.0,
+          "windBeaufort": 4,
+          "windDirection": "东北",
+          "waveHeight": 1.8,
+          "visibility": 14000,
+          "temperature": 27,
+          "pressure": 1013
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "东太平洋中部",
+          "distance": 480,
+          "duration": "40小时"
+        }
+      },
+      {
+        "id": 15,
+        "lng": -175.0,
+        "lat": 13.5,
+        "name": "东太平洋中部",
+        "description": "接近赤道",
+        "weather": {
+          "windSpeed": 5.5,
+          "windBeaufort": 3,
+          "windDirection": "东",
+          "waveHeight": 1.2,
+          "visibility": 16000,
+          "temperature": 28,
+          "pressure": 1015
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "赤道无风带",
+          "distance": 420,
+          "duration": "35小时"
+        }
+      },
+      {
+        "id": 16,
+        "lng": -170.0,
+        "lat": 13.0,
+        "name": "赤道无风带边缘",
+        "description": "风力微弱",
+        "weather": {
+          "windSpeed": 3.2,
+          "windBeaufort": 2,
+          "windDirection": "变化",
+          "waveHeight": 0.6,
+          "visibility": 18000,
+          "temperature": 29,
+          "pressure": 1013
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "CCZ外围",
+          "distance": 520,
+          "duration": "43小时"
+        }
+      },
+      {
+        "id": 17,
+        "lng": -164.0,
+        "lat": 12.8,
+        "name": "CCZ区外围",
+        "description": "接近矿区",
+        "weather": {
+          "windSpeed": 6.8,
+          "windBeaufort": 4,
+          "windDirection": "东北",
+          "waveHeight": 1.5,
+          "visibility": 15000,
+          "temperature": 28,
+          "pressure": 1014
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "矿区边界",
+          "distance": 450,
+          "duration": "38小时"
+        }
+      },
+      {
+        "id": 18,
+        "lng": -158.0,
+        "lat": 12.5,
+        "name": "CCZ矿区边界",
+        "description": "进入矿区范围",
+        "weather": {
+          "windSpeed": 7.5,
+          "windBeaufort": 4,
+          "windDirection": "东",
+          "waveHeight": 1.7,
+          "visibility": 14000,
+          "temperature": 27,
+          "pressure": 1013
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "矿区中部",
+          "distance": 380,
+          "duration": "32小时"
+        }
+      },
+      {
+        "id": 19,
+        "lng": -152.0,
+        "lat": 12.3,
+        "name": "CCZ矿区中部",
+        "description": "深入矿区",
+        "weather": {
+          "windSpeed": 8.2,
+          "windBeaufort": 5,
+          "windDirection": "东南",
+          "waveHeight": 2.0,
+          "visibility": 12000,
+          "temperature": 27,
+          "pressure": 1012
+        },
+        "risk": "safe",
+        "segment": {
+          "to": "作业区域",
+          "distance": 320,
+          "duration": "27小时"
+        }
+      },
+      {
+        "id": 20,
+        "lng": -146.0,
+        "lat": 12.2,
+        "name": "矿区作业区",
+        "description": "接近作业点",
+        "weather": {
+          "windSpeed": 9.0,
+          "windBeaufort": 5,
+          "windDirection": "东",
+          "waveHeight": 2.3,
+          "visibility": 11000,
+          "temperature": 26,
+          "pressure": 1011
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "目标矿区",
+          "distance": 280,
+          "duration": "23小时"
+        }
+      },
+      {
+        "id": 21,
+        "lng": -140.0,
+        "lat": 12.1,
+        "name": "接近目标矿区",
+        "description": "最后航段",
+        "weather": {
+          "windSpeed": 10.5,
+          "windBeaufort": 6,
+          "windDirection": "东北",
+          "waveHeight": 2.8,
+          "visibility": 9000,
+          "temperature": 26,
+          "pressure": 1009
+        },
+        "risk": "caution",
+        "segment": {
+          "to": "中国五矿CCZ矿区",
+          "distance": 180,
+          "duration": "15小时"
+        }
+      },
+      {
+        "id": 22,
+        "lng": -130.0,
+        "lat": 12.0,
+        "name": "中国五矿CCZ矿区",
+        "description": "到达目的地，开始作业准备",
+        "weather": {
+          "windSpeed": 11.2,
+          "windBeaufort": 6,
+          "windDirection": "东",
+          "waveHeight": 3.0,
+          "visibility": 8000,
+          "temperature": 25,
+          "pressure": 1008
+        },
+        "risk": "caution",
+        "segment": null
+      }
+    ]
+  },
+  "animation": {
+    "defaultSpeed": 1,
+    "speedOptions": [0.5, 1, 2, 5, 10, 20],
+    "updateInterval": 2000,
+    "shipModel": {
+      "scale": 50000,
+      "heading": 0,
+      "pitch": 0,
+      "roll": 0
+    },
+    "camera": {
+      "followShip": true,
+      "height": 500000,
+      "pitch": -30
+    }
+  },
+  "riskLevels": {
+    "safe": {
+      "label": "安全",
+      "color": "#10b981",
+      "bgColor": "rgba(16, 185, 129, 0.1)",
+      "borderColor": "rgba(16, 185, 129, 0.5)",
+      "icon": "✓"
+    },
+    "caution": {
+      "label": "注意",
+      "color": "#f59e0b",
+      "bgColor": "rgba(245, 158, 11, 0.1)",
+      "borderColor": "rgba(245, 158, 11, 0.5)",
+      "icon": "⚠"
+    },
+    "warning": {
+      "label": "警告",
+      "color": "#f97316",
+      "bgColor": "rgba(249, 115, 22, 0.1)",
+      "borderColor": "rgba(249, 115, 22, 0.5)",
+      "icon": "⚠"
+    },
+    "danger": {
+      "label": "危险",
+      "color": "#ef4444",
+      "bgColor": "rgba(239, 68, 68, 0.1)",
+      "borderColor": "rgba(239, 68, 68, 0.5)",
+      "icon": "✕"
+    }
+  }
+}

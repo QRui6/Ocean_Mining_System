@@ -45,7 +45,7 @@ export default {
             default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor'],
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleRouteDemo'],
     setup(props, { emit }) {
         // ==================== 计算属性 ====================
         
@@ -104,6 +104,8 @@ export default {
                     emit('toggleShipList');
                 } else if (tool === '航线气象') {
                     emit('toggleRouteWeather');
+                } else if (tool === '航线演示') {
+                    emit('toggleRouteDemo');
                 } else {
                     console.log(`🚧 "${tool}" 功能开发中...`);
                 }
@@ -144,6 +146,7 @@ export default {
                 if (tool === '历史轨迹') return props.activePanels.historyTrack;
                 if (tool === '船舶列表') return props.activePanels.shipList;
                 if (tool === '航线气象') return props.activePanels.routeWeather;
+                if (tool === '航线演示') return props.activePanels.routeDemo;
             }
             
             return false;

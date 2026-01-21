@@ -400,6 +400,7 @@ import {
     updateMiningMonitoringThresholds 
 } from '../api/miningMonitoring.js';
 import * as echarts from 'echarts';
+import { API_BASE_URL } from '../api/config.js';
 
 export default {
     props: {
@@ -909,7 +910,7 @@ export default {
                 
                 // 获取最新气象数据
                 try {
-                    const response = await fetch('/api/copernicus/query-area', {
+                    const response = await fetch(`${API_BASE_URL}/api/copernicus/query-area`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

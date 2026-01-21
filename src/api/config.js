@@ -3,8 +3,12 @@
  * 统一管理后端API地址
  */
 
-// 后端API基础URL（内网穿透）
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://myocean.loca.lt';
+// 后端API基础URL
+// 开发环境：使用空字符串（Vite代理会自动转发/api请求）
+// 生产环境：使用完整URL
+export const API_BASE_URL = import.meta.env.DEV 
+    ? ''  // 开发环境：相对路径，通过Vite代理
+    : (import.meta.env.VITE_API_BASE_URL || 'http://121.194.93.61:8081');  // 生产环境：完整URL
 
 // API端点配置
 export const API_ENDPOINTS = {

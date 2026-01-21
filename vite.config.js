@@ -23,12 +23,12 @@ export default defineConfig(({ mode }) => {
             secure: false,
             timeout: 30000
           },
-          // 代理后端API请求
-          '/api/backend': {
-            target: 'http://localhost:8081',
+          // 代理所有其他/api请求到后端
+          '/api': {
+            target: 'http://121.194.93.61:8081',
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/api\/backend/, ''),
-            secure: false
+            secure: false,
+            timeout: 30000
           }
         },
         fs: {

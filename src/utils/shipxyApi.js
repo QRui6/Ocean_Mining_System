@@ -160,6 +160,29 @@ export async function planRouteByPort(startPortCode, endPortCode, avoid = '', th
  * @returns {Promise<Object>} 航线信息 { distance, route: [{lng, lat}] }
  */
 export async function planRouteByPoint(startPoint, endPoint, avoid = '', through = '') {
+    // 临时使用本地JSON文件代替API调用
+    try {
+        console.log('📂 使用本地JSON文件进行航线规划');
+        console.log('   - 起点:', startPoint);
+        console.log('   - 终点:', endPoint);
+        
+        const response = await fetch('/点到点航线规划.json');
+        const jsonData = await response.json();
+        
+        console.log('✅ 本地航线数据加载成功:', jsonData);
+        
+        // 返回与API相同的格式
+        if (jsonData.status === 0) {
+            return { success: true, data: jsonData.data };
+        } else {
+            return { success: false, error: jsonData.msg || '加载本地航线数据失败' };
+        }
+    } catch (error) {
+        console.error('❌ 加载本地航线数据失败:', error);
+        return { success: false, error: error.message };
+    }
+    
+    /* 原API调用代码（已注释）
     let url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${startPoint}&end_point=${endPoint}`;
     if (avoid) url += `&avoid=${avoid}`;
     if (through) url += `&through=${through}`;
@@ -167,6 +190,7 @@ export async function planRouteByPoint(startPoint, endPoint, avoid = '', through
     const result = await request(url);
     console.log('📦 点到点航线响应:', result);
     return result;
+    */
 }
 
 /**

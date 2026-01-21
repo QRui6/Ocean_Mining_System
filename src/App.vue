@@ -80,6 +80,7 @@
                     @toggleShipList="toggleShipList"
                     @toggleRouteWeather="handleRouteWeatherAnalysis"
                     @toggleMiningWeatherMonitor="toggleMiningWeatherMonitor"
+                    @toggleRouteDemo="toggleRouteDemo"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -128,6 +129,20 @@
                     :show="activePanels.miningWeatherMonitor"
                     @locate-area="handleLocateMiningArea"
                 />
+                
+                <!-- 航线演示面板 -->
+                <RouteDemoPanel 
+                    ref="routeDemoRef"
+                    :show="activePanels.routeDemo"
+                    @play="handleDemoPlay"
+                    @pause="handleDemoPause"
+                    @resume="handleDemoResume"
+                    @stop="handleDemoStop"
+                    @speedChange="handleDemoSpeedChange"
+                />
+                
+                <!-- 高风险警告组件 -->
+                <RouteRiskWarning ref="riskWarningRef" />
             </div>
 
             <!-- Decorative Overlay Effects -->
@@ -164,6 +179,8 @@ import AreaDetailDialog from './components/AreaDetailDialog.vue';
 import ShipListTable from './components/ShipListTable.vue';
 import WeatherListTable from './components/WeatherListTable.vue';
 import MiningAreaWeatherMonitor from './components/MiningAreaWeatherMonitor.vue';
+import RouteDemoPanel from './components/RouteDemoPanel.vue';
+import RouteRiskWarning from './components/RouteRiskWarning.vue';
 
 export default {
     components: {
@@ -179,7 +196,9 @@ export default {
         AreaDetailDialog,
         ShipListTable,
         WeatherListTable,
-        MiningAreaWeatherMonitor
+        MiningAreaWeatherMonitor,
+        RouteDemoPanel,
+        RouteRiskWarning
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -203,7 +222,8 @@ export default {
             historyTrack: false,  // 历史轨迹面板（左侧）
             shipList: false,      // 船舶列表（底部表格）
             routeWeather: false,   // 航线气象（右侧按钮高亮）
-            miningWeatherMonitor: false  // 矿区气象监测（右侧面板）
+            miningWeatherMonitor: false,  // 矿区气象监测（右侧面板）
+            routeDemo: false      // 航线演示（左侧面板）
         });
         
         // 区域详情对话框状态
@@ -448,6 +468,8 @@ export default {
         const mapContainerRef = ref(null);
         const shipTrackingRef = ref(null);
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
+        const routeDemoRef = ref(null);  // 航线演示面板引用
+        const riskWarningRef = ref(null);  // 高风险警告组件引用
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
         
@@ -691,6 +713,75 @@ export default {
          */
         const toggleMiningWeatherMonitor = () => {
             activePanels.value.miningWeatherMonitor = !activePanels.value.miningWeatherMonitor;
+        };
+        
+        /**
+         * 切换航线演示面板的显示状态
+         */
+        const toggleRouteDemo = () => {
+            activePanels.value.routeDemo = !activePanels.value.routeDemo;
+            
+            if (activePanels.value.routeDemo) {
+                // 打开演示面板时，通知地图组件初始化演示
+                if (mapContainerRef.value && mapContainerRef.value.initRouteDemo) {
+                    mapContainerRef.value.initRouteDemo();
+                }
+            } else {
+                // 关闭演示面板时，清除演示
+                if (mapContainerRef.value && mapContainerRef.value.clearRouteDemo) {
+                    mapContainerRef.value.clearRouteDemo();
+                }
+            }
+        };
+        
+        /**
+         * 处理演示播放
+         */
+        const handleDemoPlay = () => {
+            console.log('▶️ 开始播放演示');
+            if (mapContainerRef.value && mapContainerRef.value.playRouteDemo) {
+                mapContainerRef.value.playRouteDemo();
+            }
+        };
+        
+        /**
+         * 处理演示暂停
+         */
+        const handleDemoPause = () => {
+            console.log('⏸️ 暂停演示');
+            if (mapContainerRef.value && mapContainerRef.value.pauseRouteDemo) {
+                mapContainerRef.value.pauseRouteDemo();
+            }
+        };
+        
+        /**
+         * 处理演示继续
+         */
+        const handleDemoResume = () => {
+            console.log('▶️ 继续演示');
+            if (mapContainerRef.value && mapContainerRef.value.resumeRouteDemo) {
+                mapContainerRef.value.resumeRouteDemo();
+            }
+        };
+        
+        /**
+         * 处理演示停止
+         */
+        const handleDemoStop = () => {
+            console.log('⏹️ 停止演示');
+            if (mapContainerRef.value && mapContainerRef.value.stopRouteDemo) {
+                mapContainerRef.value.stopRouteDemo();
+            }
+        };
+        
+        /**
+         * 处理演示速度变化
+         */
+        const handleDemoSpeedChange = (speed) => {
+            console.log('⚡ 演示速度:', speed);
+            if (mapContainerRef.value && mapContainerRef.value.setRouteDemoSpeed) {
+                mapContainerRef.value.setRouteDemoSpeed(speed);
+            }
         };
         
         /**
@@ -1128,7 +1219,11 @@ export default {
                 window.app = {
                     miningWeatherMonitorRef
                 };
+                window.appRouteDemoRef = routeDemoRef.value;
+                window.appRiskWarningRef = riskWarningRef.value;  // 添加警告组件引用
                 console.log('🌐 window.app 已设置:', window.app);
+                console.log('🎬 window.appRouteDemoRef 已设置');
+                console.log('⚠️ window.appRiskWarningRef 已设置');
             }
         });
         
@@ -1407,6 +1502,12 @@ export default {
             toggleHistoryTrack,
             toggleShipList,
             toggleMiningWeatherMonitor,
+            toggleRouteDemo,
+            handleDemoPlay,
+            handleDemoPause,
+            handleDemoResume,
+            handleDemoStop,
+            handleDemoSpeedChange,
             handleDataLoaded,
             handleFilterChange,
             handleLayersChange,
@@ -1438,6 +1539,8 @@ export default {
             areaMonitorRef,
             mapContainerRef,
             miningWeatherMonitorRef,
+            routeDemoRef,
+            riskWarningRef,
             handleStartDrawing,
             handleCancelDrawing,
             handleAreaCreated,

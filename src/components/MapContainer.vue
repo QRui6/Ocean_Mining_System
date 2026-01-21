@@ -299,6 +299,7 @@ import { ShipTrajectoryLayer, sampleTrajectories } from '../utils/shipTrajectory
 import { ShipLayer } from '../utils/shipLayer.js';
 import { RouteLayer } from '../utils/routeLayer.js';
 import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
+import { RouteDemoLayer } from '../utils/routeDemoLayer.js';
 import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
@@ -394,6 +395,7 @@ export default {
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
+        let routeDemoLayer = null; // 航线演示图层实例
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -550,8 +552,8 @@ export default {
             windyLayerManager = new WindyLayerManager(viewer);
             console.log('🌪️ Windy 图层管理器初始化完成');
 
-            // 预加载所有气象数据（不渲染图层，只缓存数据）
-            preloadWeatherData();
+            // 预加载已禁用 - 改为按需加载，不缓存数据
+            // preloadWeatherData();
 
             // 注释掉自动加载风场，改为手动点击按钮加载
             // updateWindVisibility(props.layerState);
@@ -646,6 +648,9 @@ export default {
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
                 const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
                 handler.setInputAction((click) => {
+                    console.log('🖱️ ========== 地图被点击 ==========');
+                    console.log('原始坐标:', click.position);
+                    
                     // 计算 CSS scale 缩放比例（App.vue 中的缩放）
                     const baseWidth = 1920;
                     const baseHeight = 1080;
@@ -658,23 +663,30 @@ export default {
                         click.position.y / scaleY
                     );
                     
+                    console.log('修正后坐标:', correctedPosition);
+                    console.log('缩放比例:', { scaleX, scaleY });
+                    
                     // 如果正在选点（路径规划），不处理其他点击
                     if (props.pickingPointType) {
+                        console.log('⚠️ 正在选点模式，跳过处理');
                         return;
                     }
                     
                     // 如果有激活的气象图层，优先处理气象查询
                     if (showWind.value || showWave.value || showOceanCurrent.value || showInternalWave.value) {
+                        console.log('🌦️ 气象图层已激活');
                         // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
                         const pickedObject = viewer.scene.pick(correctedPosition);
                         
                         // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
                         if (!pickedObject || 
                             (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
+                            console.log('→ 进行气象查询');
                             // 传递原始坐标、修正后的坐标和缩放比例
                             handleWeatherPointClick(click.position, correctedPosition, scaleX, scaleY);
                             return;
                         }
+                        console.log('→ 点击到了其他实体，继续处理');
                         // 如果点击到了其他实体（矿区、船舶），继续下面的处理
                     }
                     
@@ -685,17 +697,24 @@ export default {
                         previousEntity.polygon.outlineWidth = 1;
                     }
                     
-                    console.log('🔍 缩放比例:', { scaleX, scaleY });
-                    console.log('🖱️ 原始点击坐标:', click.position);
-                    console.log('✅ 修正后坐标:', correctedPosition);
+                    console.log('🔍 开始拾取实体...');
+                    console.log('   - 修正后坐标:', correctedPosition);
                     
                     // 使用修正后的坐标拾取实体
                     const pickedObject = viewer.scene.pick(correctedPosition);
                     
-                    console.log('🎯 拾取到的对象:', pickedObject);
-                    console.log('   - 是否定义:', Cesium.defined(pickedObject));
-                    console.log('   - 是否有 id:', pickedObject?.id);
-                    console.log('   - id 类型:', pickedObject?.id?.constructor?.name);
+                    console.log('🎯 拾取结果:');
+                    console.log('   - 是否拾取到对象:', Cesium.defined(pickedObject));
+                    console.log('   - pickedObject:', pickedObject);
+                    
+                    if (Cesium.defined(pickedObject)) {
+                        console.log('   - 有 id:', !!pickedObject.id);
+                        console.log('   - 有 primitive:', !!pickedObject.primitive);
+                        if (pickedObject.id) {
+                            console.log('   - entity.id:', pickedObject.id.id);
+                            console.log('   - entity.name:', pickedObject.id.name);
+                        }
+                    }
                     
                     // 检查是否点击了船舶或气象标记
                     if (Cesium.defined(pickedObject) && pickedObject.id) {
@@ -707,6 +726,95 @@ export default {
                         console.log('   - 有 billboard:', !!entity.billboard);
                         console.log('   - 有 polygon:', !!entity.polygon);
                         console.log('   - 有 properties:', !!entity.properties);
+                        console.log('   - 有 point:', !!entity.point);
+                        console.log('   - 有 model:', !!entity.model);
+                        console.log('   - 有 _waypointData:', !!entity._waypointData);
+                        console.log('   - 有 _shipData:', !!entity._shipData);
+                        
+                        // 如果点击的是航线演示的航点
+                        if (entity.name && entity.name.startsWith('waypoint-')) {
+                            console.log('✅ 检测到航点实体:', entity.name);
+                            console.log('   - _waypointData 存在:', !!entity._waypointData);
+                            
+                            if (entity._waypointData) {
+                                console.log('📍 点击了航线演示航点:', entity.name);
+                                
+                                const waypointData = entity._waypointData;
+                            
+                            // 构建气象信息显示数据
+                            const weatherDetails = {
+                                title: waypointData.name,
+                                items: [
+                                    { label: '风险等级', value: waypointData.risk === 'safe' ? '安全' : 
+                                                                 waypointData.risk === 'caution' ? '注意' :
+                                                                 waypointData.risk === 'warning' ? '警告' : '危险' },
+                                    { label: '风速', value: `${waypointData.weather.windSpeed} m/s` },
+                                    { label: '风级', value: `${waypointData.weather.windBeaufort} 级` },
+                                    { label: '风向', value: waypointData.weather.windDirection },
+                                    { label: '浪高', value: `${waypointData.weather.waveHeight} m` },
+                                    { label: '能见度', value: `${(waypointData.weather.visibility / 1000).toFixed(1)} km` },
+                                    { label: '温度', value: `${waypointData.weather.temperature} °C` },
+                                    { label: '气压', value: `${waypointData.weather.pressure} hPa` }
+                                ]
+                            };
+                            
+                            // 关闭船舶信息窗口
+                            selectedShip.value = null;
+                            
+                            // 显示气象详情窗口
+                            selectedWeather.value = weatherDetails;
+                            weatherInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示航点气象信息:', weatherDetails);
+                            return;
+                            } else {
+                                console.log('❌ 航点没有 _waypointData 属性');
+                            }
+                        }
+                        
+                        // 如果点击的是航线演示的船舶
+                        if (entity.name === 'demo-ship') {
+                            console.log('✅ 检测到演示船舶:', entity.name);
+                            console.log('   - _shipData 存在:', !!entity._shipData);
+                            
+                            if (entity._shipData) {
+                                console.log('🚢 点击了航线演示船舶:', entity.name);
+                                
+                                const shipData = entity._shipData;
+                            
+                            // 关闭气象信息窗口
+                            selectedWeather.value = null;
+                            
+                            // 显示船舶信息（使用特殊格式以区分演示船舶）
+                            selectedShip.value = {
+                                ship_name: shipData.ship_name,
+                                ship_cnname: shipData.ship_cnname,
+                                ship_type: shipData.ship_type,
+                                // 使用航线信息填充其他字段
+                                length: shipData.route,
+                                width: shipData.description,
+                                sog: shipData.averageSpeed,
+                                dest: shipData.endArea,
+                                draught: shipData.distance,
+                                eta: shipData.estimatedDays,
+                                last_time: '演示中',
+                                navistat: '航行中'
+                            };
+                            
+                            shipInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示演示船舶信息:', selectedShip.value);
+                            return;
+                            } else {
+                                console.log('❌ 船舶没有 _shipData 属性');
+                            }
+                        }
                         
                         // 如果点击的是气象标记
                         if (entity.id && entity.id.startsWith('weather_marker_')) {
@@ -1123,8 +1231,8 @@ export default {
         };
 
         // 初始化风场图层
-        const initWindLayer = async () => {
-            console.log('🔧 initWindLayer 被调用');
+        const initWindLayer = async (timeIndex = 0) => {
+            console.log('🔧 initWindLayer 被调用, timeIndex:', timeIndex);
             console.log('   - viewer 存在:', !!viewer);
             console.log('   - windLayer 已存在:', !!windLayer);
             
@@ -1135,9 +1243,9 @@ export default {
             
             try {
                 console.log('🌬️ 开始加载全球风场数据...');
-                // 使用动态加载器
+                // 使用动态加载器，直接加载指定时间帧
                 const windLoader = await getWindDataLoader();
-                const windData = await windLoader.loadGlobalWindData(0); // 加载第0帧
+                const windData = await windLoader.loadGlobalWindData(timeIndex);
                 console.log('✅ 数据加载成功');
                 console.log('   - 网格:', windData.width, 'x', windData.height);
                 console.log('   - U范围:', windData.u.min.toFixed(2), '~', windData.u.max.toFixed(2));
@@ -1203,7 +1311,7 @@ export default {
                 });
                 
                 console.log('✅ WindLayer 创建成功');
-                cachedWindData = windData;
+                // 缓存已移除 - 不再缓存数据
                 
             } catch (error) {
                 console.error('❌ 风场图层加载失败:', error);
@@ -1211,85 +1319,16 @@ export default {
             }
         };
 
-        // 风场数据缓存（避免重复加载）
-        let cachedWindData = null;
-
-        // 波浪数据缓存（避免重复加载）
-        let cachedWaveData = null;
-        
-        // 洋流数据缓存（避免重复加载）
-        let cachedOceanCurrentData = null;
-        
-        // 内波数据缓存（避免重复加载）
-        let cachedInternalWaveData = null;
+        // 缓存已移除 - 改为每次按需加载，不缓存数据
         
         /**
-         * 预加载所有气象数据（不渲染图层，只缓存数据）
-         * 这样用户点击地图时，所有数据都已经准备好了
+         * 预加载函数已禁用
+         * 原因：不需要预加载和缓存数据，改为按需加载
+         * 所有图层初始化函数现在接受timeIndex参数，直接加载指定时间帧
          */
         const preloadWeatherData = async () => {
-            console.log('🚀 开始预加载所有气象数据...');
-            
-            try {
-                // 动态导入加载器
-                const [windLoader, waveLoader, currentLoader, internalWaveLoader] = await Promise.all([
-                    getWindDataLoader(),
-                    getWaveDataLoader(),
-                    getOceanCurrentLoader(),
-                    getInternalWaveLoader()
-                ]);
-                
-                // 并行加载所有气象数据的第0帧
-                const [windData, waveData, currentData, internalWaveData] = await Promise.all([
-                    windLoader.loadGlobalWindData(0).catch(err => {
-                        console.warn('⚠️ 风场数据预加载失败:', err.message);
-                        return null;
-                    }),
-                    waveLoader.loadGlobalWaveData(0).catch(err => {
-                        console.warn('⚠️ 波浪数据预加载失败:', err.message);
-                        return null;
-                    }),
-                    currentLoader.loadGlobalOceanCurrentData(0).catch(err => {
-                        console.warn('⚠️ 洋流数据预加载失败:', err.message);
-                        return null;
-                    }),
-                    internalWaveLoader.loadGlobalInternalWaveData(0).catch(err => {
-                        console.warn('⚠️ 内波数据预加载失败:', err.message);
-                        return null;
-                    })
-                ]);
-                
-                // 缓存加载成功的数据
-                if (windData) {
-                    cachedWindData = windData;
-                    console.log('✅ 风场数据预加载成功');
-                }
-                if (waveData) {
-                    cachedWaveData = waveData;
-                    console.log('✅ 波浪数据预加载成功');
-                }
-                if (currentData) {
-                    cachedOceanCurrentData = currentData;
-                    console.log('✅ 洋流数据预加载成功');
-                }
-                if (internalWaveData) {
-                    cachedInternalWaveData = internalWaveData;
-                    console.log('✅ 内波数据预加载成功');
-                }
-                
-                console.log('🎉 气象数据预加载完成！');
-                
-                // 通知父组件数据已加载（可选）
-                emit('weatherDataLoaded', {
-                    wind: !!windData,
-                    wave: !!waveData,
-                    current: !!currentData,
-                    internalWave: !!internalWaveData
-                });
-                
-            } catch (error) {
-                console.error('❌ 气象数据预加载失败:', error);
-            }
+            console.log('⚠️ preloadWeatherData 已禁用 - 使用按需加载模式');
+            // 函数体已清空，保留函数声明以避免引用错误
         };
         
         // 相机高度监控变量
@@ -1297,8 +1336,8 @@ export default {
         let cameraHeightCheckInterval = null;
         
         // 初始化波浪图层
-        const initWaveLayer = async () => {
-            console.log('🔧 initWaveLayer 被调用');
+        const initWaveLayer = async (timeIndex = 0) => {
+            console.log('🔧 initWaveLayer 被调用, timeIndex:', timeIndex);
             console.log('   - viewer 存在:', !!viewer);
             console.log('   - waveLayer 已存在:', !!waveLayer);
             
@@ -1319,14 +1358,10 @@ export default {
                 const waveDataLoaderModule = await getWaveDataLoader();
                 const { loadGlobalWaveData } = waveDataLoaderModule;
                 
-                // 加载或使用缓存的波浪数据
-                if (!cachedWaveData) {
-                    console.log('🌊 开始加载全球波浪数据...');
-                    cachedWaveData = await loadGlobalWaveData(0);
-                    console.log('✅ 波浪数据加载成功并缓存');
-                } else {
-                    console.log('📦 使用缓存的波浪数据');
-                }
+                // 直接加载指定时间帧，不使用缓存
+                console.log('🌊 开始加载全球波浪数据...');
+                const waveData = await loadGlobalWaveData(timeIndex);
+                console.log('✅ 波浪数据加载成功');
                 
                 // 动态导入 cesium-wind-layer（复用风场渲染引擎）
                 console.log('⏳ 动态导入 cesium-wind-layer...');
@@ -1347,14 +1382,14 @@ export default {
                 const gl = viewer.scene.context._gl;
                 const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
                 console.log('   - Max texture size:', maxTextureSize);
-                console.log('   - Data width:', cachedWaveData.width);
-                console.log('   - Data height:', cachedWaveData.height);
+                console.log('   - Data width:', waveData.width);
+                console.log('   - Data height:', waveData.height);
                 
-                if (cachedWaveData.width > maxTextureSize || cachedWaveData.height > maxTextureSize) {
-                    throw new Error(`数据尺寸 ${cachedWaveData.width}x${cachedWaveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                if (waveData.width > maxTextureSize || waveData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${waveData.width}x${waveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
                 }
                 
-                waveLayer = new WindLayer(viewer, cachedWaveData, {
+                waveLayer = new WindLayer(viewer, waveData, {
                     // 粒子数量：增加一些，展现更丰富的波浪细节
                     particlesTextureSize: 640,
                     
@@ -1425,11 +1460,11 @@ export default {
                     'rgba(200, 0, 0, 1)'        // 深红（>6m）
                 ];
                 
-                console.log('🗺️ 准备创建波浪热力图（Cesium 原生），数据bounds:', cachedWaveData.bounds);
+                console.log('🗺️ 准备创建波浪热力图（Cesium 原生），数据bounds:', waveData.bounds);
                 
-                await waveHeatmap.createHeatmap(cachedWaveData, colorScale, {
+                await waveHeatmap.createHeatmap(waveData, colorScale, {
                     alpha: 0.5,  // 半透明，作为背景
-                    bounds: cachedWaveData.bounds
+                    bounds: waveData.bounds
                 });
                 
                 console.log('✅ 波浪热力图已创建（Cesium Primitive）');
@@ -1503,8 +1538,8 @@ export default {
         };
         
         // 初始化洋流图层
-        const initOceanCurrentLayer = async () => {
-            console.log('🔧 initOceanCurrentLayer 被调用');
+        const initOceanCurrentLayer = async (timeIndex = 0) => {
+            console.log('🔧 initOceanCurrentLayer 被调用, timeIndex:', timeIndex);
             console.log('   - viewer 存在:', !!viewer);
             console.log('   - oceanCurrentLayer 已存在:', !!oceanCurrentLayer);
             
@@ -1518,14 +1553,10 @@ export default {
                 const oceanCurrentLoaderModule = await getOceanCurrentLoader();
                 const { loadGlobalOceanCurrentData } = oceanCurrentLoaderModule;
                 
-                // 加载或使用缓存的洋流数据
-                if (!cachedOceanCurrentData) {
-                    console.log('🌊 开始加载洋流数据...');
-                    cachedOceanCurrentData = await loadGlobalOceanCurrentData(0);
-                    console.log('✅ 洋流数据加载成功并缓存');
-                } else {
-                    console.log('📦 使用缓存的洋流数据');
-                }
+                // 直接加载指定时间帧，不使用缓存
+                console.log('🌊 开始加载洋流数据...');
+                const oceanCurrentData = await loadGlobalOceanCurrentData(timeIndex);
+                console.log('✅ 洋流数据加载成功');
                 
                 // 动态导入 cesium-wind-layer
                 console.log('⏳ 动态导入 cesium-wind-layer...');
@@ -1544,14 +1575,14 @@ export default {
                 const gl = viewer.scene.context._gl;
                 const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
                 console.log('   - Max texture size:', maxTextureSize);
-                console.log('   - Data width:', cachedOceanCurrentData.width);
-                console.log('   - Data height:', cachedOceanCurrentData.height);
+                console.log('   - Data width:', oceanCurrentData.width);
+                console.log('   - Data height:', oceanCurrentData.height);
                 
-                if (cachedOceanCurrentData.width > maxTextureSize || cachedOceanCurrentData.height > maxTextureSize) {
-                    throw new Error(`数据尺寸 ${cachedOceanCurrentData.width}x${cachedOceanCurrentData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                if (oceanCurrentData.width > maxTextureSize || oceanCurrentData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${oceanCurrentData.width}x${oceanCurrentData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
                 }
                 
-                oceanCurrentLayer = new WindLayer(viewer, cachedOceanCurrentData, {
+                oceanCurrentLayer = new WindLayer(viewer, oceanCurrentData, {
                     // 粒子数量：增加密度，形成更密集的流线
                     particlesTextureSize: 1024,
                     
@@ -1619,11 +1650,11 @@ export default {
                     'rgba(200, 0, 0, 1)'        // 深红
                 ];
                 
-                console.log('🗺️ 准备创建洋流热力图（Cesium 原生），数据bounds:', cachedOceanCurrentData.bounds);
+                console.log('🗺️ 准备创建洋流热力图（Cesium 原生），数据bounds:', oceanCurrentData.bounds);
                 
-                await oceanCurrentHeatmap.createHeatmap(cachedOceanCurrentData, currentColorScale, {
+                await oceanCurrentHeatmap.createHeatmap(oceanCurrentData, currentColorScale, {
                     alpha: 0.4,  // 更透明，作为背景
-                    bounds: cachedOceanCurrentData.bounds
+                    bounds: oceanCurrentData.bounds
                 });
                 
                 console.log('✅ 洋流热力图已创建（Cesium Primitive）');
@@ -1638,8 +1669,8 @@ export default {
         };
         
         // 初始化内波图层
-        const initInternalWaveLayer = async () => {
-            console.log('🔧 initInternalWaveLayer 被调用');
+        const initInternalWaveLayer = async (timeIndex = 0) => {
+            console.log('🔧 initInternalWaveLayer 被调用, timeIndex:', timeIndex);
             console.log('   - viewer 存在:', !!viewer);
             console.log('   - internalWaveLayer 已存在:', !!internalWaveLayer);
             
@@ -1649,16 +1680,11 @@ export default {
             }
             
             try {
-                // 加载或使用缓存的内波数据
-                if (!cachedInternalWaveData) {
-                    console.log('🌊 开始加载内波数据...');
-                    // 使用动态加载器
-                    const internalWaveLoader = await getInternalWaveLoader();
-                    cachedInternalWaveData = await internalWaveLoader.loadGlobalInternalWaveData(0);
-                    console.log('✅ 内波数据加载成功并缓存');
-                } else {
-                    console.log('📦 使用缓存的内波数据');
-                }
+                // 直接加载指定时间帧，不使用缓存
+                console.log('🌊 开始加载内波数据...');
+                const internalWaveLoader = await getInternalWaveLoader();
+                const internalWaveData = await internalWaveLoader.loadGlobalInternalWaveData(timeIndex);
+                console.log('✅ 内波数据加载成功');
                 
                 // 动态导入 cesium-wind-layer
                 console.log('⏳ 动态导入 cesium-wind-layer...');
@@ -1677,14 +1703,14 @@ export default {
                 const gl = viewer.scene.context._gl;
                 const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
                 console.log('   - Max texture size:', maxTextureSize);
-                console.log('   - Data width:', cachedInternalWaveData.width);
-                console.log('   - Data height:', cachedInternalWaveData.height);
+                console.log('   - Data width:', internalWaveData.width);
+                console.log('   - Data height:', internalWaveData.height);
                 
-                if (cachedInternalWaveData.width > maxTextureSize || cachedInternalWaveData.height > maxTextureSize) {
-                    throw new Error(`数据尺寸 ${cachedInternalWaveData.width}x${cachedInternalWaveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
+                if (internalWaveData.width > maxTextureSize || internalWaveData.height > maxTextureSize) {
+                    throw new Error(`数据尺寸 ${internalWaveData.width}x${internalWaveData.height} 超过 WebGL 纹理限制 ${maxTextureSize}`);
                 }
                 
-                internalWaveLayer = new WindLayer(viewer, cachedInternalWaveData, {
+                internalWaveLayer = new WindLayer(viewer, internalWaveData, {
                     // 粒子数量：增加密度，展现波动细节
                     particlesTextureSize: 1024,
                     
@@ -1883,23 +1909,11 @@ export default {
                 currentWeatherLayer.value = { id: 'internal_wave', name: '内波' };
             }
             
-            // 缓存气象数据
-            weatherDataCache.value = {
-                wind: cachedWindData,
-                wave: cachedWaveData,
-                current: cachedOceanCurrentData,
-                internal_wave: cachedInternalWaveData
-            };
+            // 缓存已移除 - weatherDataCache不再使用缓存数据
+            // 气象点查询将直接从API加载数据
+            weatherDataCache.value = {};
             
-            // 调试：打印缓存的数据状态
-            console.log('📦 气象数据缓存状态:', {
-                wind: !!cachedWindData,
-                wave: !!cachedWaveData,
-                current: !!cachedOceanCurrentData,
-                internal_wave: !!cachedInternalWaveData,
-                internal_wave_has_u: cachedInternalWaveData?.u ? true : false,
-                internal_wave_has_v: cachedInternalWaveData?.v ? true : false
-            });
+            console.log('📍 气象点查询已启用（按需加载模式）');
             
             // 生成时间步长（基于当前激活的图层）
             await generateWeatherTimeSteps();
@@ -3561,6 +3575,186 @@ export default {
             });
         };
         
+        // ==================== 航线演示控制函数 ====================
+        
+        /**
+         * 初始化航线演示
+         */
+        const initRouteDemo = async () => {
+            try {
+                console.log('🎬 初始化航线演示...');
+                
+                if (!routeDemoLayer) {
+                    routeDemoLayer = new RouteDemoLayer(viewer);
+                }
+                
+                await routeDemoLayer.initialize();
+                
+                // 设置航点到达回调
+                routeDemoLayer.onWaypointReached = (waypoint, index) => {
+                    console.log('📍 到达航点:', waypoint.name);
+                    
+                    // 通知App.vue更新面板
+                    const appRouteDemoRef = window.appRouteDemoRef;
+                    if (appRouteDemoRef) {
+                        appRouteDemoRef.updateWeather(waypoint);
+                        appRouteDemoRef.updateProgress(index, routeDemoLayer.demoData.route.waypoints.length);
+                    }
+                };
+                
+                // 设置高风险警告回调
+                routeDemoLayer.onHighRiskWarning = (waypoint) => {
+                    console.log('⚠️ 高风险警告:', waypoint.name, waypoint.risk);
+                    
+                    // 通知App.vue显示警告
+                    const appRiskWarningRef = window.appRiskWarningRef;
+                    if (appRiskWarningRef) {
+                        appRiskWarningRef.showWarning(waypoint);
+                    }
+                };
+                
+                // 设置航点点击回调
+                routeDemoLayer.onWaypointClick = (waypointData, clickPosition) => {
+                    console.log('📍 [MapContainer] 航点被点击:', waypointData.name);
+                    
+                    // 构建气象信息显示数据
+                    const weatherDetails = {
+                        title: waypointData.name,
+                        items: [
+                            { label: '风险等级', value: waypointData.risk === 'safe' ? '安全' : 
+                                                         waypointData.risk === 'caution' ? '注意' :
+                                                         waypointData.risk === 'warning' ? '警告' : '危险' },
+                            { label: '风速', value: `${waypointData.weather.windSpeed} m/s` },
+                            { label: '风级', value: `${waypointData.weather.windBeaufort} 级` },
+                            { label: '风向', value: waypointData.weather.windDirection },
+                            { label: '浪高', value: `${waypointData.weather.waveHeight} m` },
+                            { label: '能见度', value: `${(waypointData.weather.visibility / 1000).toFixed(1)} km` },
+                            { label: '温度', value: `${waypointData.weather.temperature} °C` },
+                            { label: '气压', value: `${waypointData.weather.pressure} hPa` }
+                        ]
+                    };
+                    
+                    // 关闭船舶信息窗口
+                    selectedShip.value = null;
+                    
+                    // 显示气象详情窗口
+                    selectedWeather.value = weatherDetails;
+                    weatherInfoPosition.value = {
+                        x: Math.min(clickPosition.x + 20, window.innerWidth - 370),
+                        y: Math.max(clickPosition.y - 100, 10)
+                    };
+                    
+                    console.log('✅ [MapContainer] 显示航点气象信息');
+                };
+                
+                // 设置船舶点击回调
+                routeDemoLayer.onShipClick = (shipData, clickPosition) => {
+                    console.log('🚢 [MapContainer] 船舶被点击');
+                    
+                    // 关闭气象信息窗口
+                    selectedWeather.value = null;
+                    
+                    // 显示船舶信息
+                    selectedShip.value = {
+                        ship_name: shipData.ship_name,
+                        ship_cnname: shipData.ship_cnname,
+                        ship_type: shipData.ship_type,
+                        length: shipData.route,
+                        width: shipData.description,
+                        sog: shipData.averageSpeed,
+                        dest: shipData.endArea,
+                        draught: shipData.distance,
+                        eta: shipData.estimatedDays,
+                        last_time: '演示中',
+                        navistat: '航行中'
+                    };
+                    
+                    shipInfoPosition.value = {
+                        x: Math.min(clickPosition.x + 20, window.innerWidth - 370),
+                        y: Math.max(clickPosition.y - 100, 10)
+                    };
+                    
+                    console.log('✅ [MapContainer] 显示演示船舶信息');
+                };
+                
+                // 设置动画完成回调
+                routeDemoLayer.onAnimationComplete = () => {
+                    console.log('✅ 演示完成');
+                };
+                
+                // 设置航线信息到面板
+                const appRouteDemoRef = window.appRouteDemoRef;
+                if (appRouteDemoRef && routeDemoLayer.demoData) {
+                    appRouteDemoRef.setRouteInfo(routeDemoLayer.demoData.route);
+                    // 设置初始航点信息
+                    const firstWaypoint = routeDemoLayer.demoData.route.waypoints[0];
+                    appRouteDemoRef.updateWeather(firstWaypoint);
+                }
+                
+                console.log('✅ 航线演示初始化完成');
+            } catch (error) {
+                console.error('❌ 初始化航线演示失败:', error);
+            }
+        };
+        
+        /**
+         * 播放演示
+         */
+        const playRouteDemo = () => {
+            if (routeDemoLayer) {
+                routeDemoLayer.play();
+                showAnimationLayer('routeDemo');
+            }
+        };
+        
+        /**
+         * 暂停演示
+         */
+        const pauseRouteDemo = () => {
+            if (routeDemoLayer) {
+                routeDemoLayer.pause();
+            }
+        };
+        
+        /**
+         * 继续演示
+         */
+        const resumeRouteDemo = () => {
+            if (routeDemoLayer) {
+                routeDemoLayer.resume();
+            }
+        };
+        
+        /**
+         * 停止演示
+         */
+        const stopRouteDemo = () => {
+            if (routeDemoLayer) {
+                routeDemoLayer.stop();
+                hideAnimationLayer('routeDemo');
+            }
+        };
+        
+        /**
+         * 设置演示速度
+         */
+        const setRouteDemoSpeed = (speed) => {
+            if (routeDemoLayer) {
+                routeDemoLayer.setSpeed(speed);
+            }
+        };
+        
+        /**
+         * 清除演示
+         */
+        const clearRouteDemo = () => {
+            if (routeDemoLayer) {
+                routeDemoLayer.clear();
+                routeDemoLayer = null;
+                hideAnimationLayer('routeDemo');
+            }
+        };
+        
         return {
             cesiumContainer,
             selectedArea,
@@ -3580,6 +3774,13 @@ export default {
             getNavigationStatus,
             isEtaExpired,
             showRoutePlan,
+            initRouteDemo,
+            playRouteDemo,
+            pauseRouteDemo,
+            resumeRouteDemo,
+            stopRouteDemo,
+            setRouteDemoSpeed,
+            clearRouteDemo,
             toggleRoutePlan,
             handleRoutePlanned,
             handleRouteCleared,
