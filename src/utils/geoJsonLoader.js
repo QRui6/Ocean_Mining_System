@@ -2,11 +2,12 @@
  * GeoJSON 数据加载工具
  */
 import * as Cesium from 'cesium';
+import { fetchMiningAreasGeoJSON } from '../api/miningAreas.js';
 
 /**
- * 加载 GeoJSON 数据到 Cesium
+ * 加载 GeoJSON 数据到 Cesium（从后端API）
  * @param {Cesium.Viewer} viewer - Cesium Viewer 实例
- * @param {string} url - GeoJSON 文件路径
+ * @param {string} url - GeoJSON 文件路径（已废弃，保留参数兼容性）
  * @param {Object} options - 样式配置选项
  * @returns {Promise<Cesium.GeoJsonDataSource>}
  */
@@ -19,8 +20,13 @@ export async function loadGeoJson(viewer, url, options = {}) {
     } = options;
 
     try {
-        // 加载 GeoJSON 数据（优化版）
-        const dataSource = await Cesium.GeoJsonDataSource.load(url, {
+        console.log('🌐 从后端API加载矿区GeoJSON数据...');
+        
+        // 从后端API获取GeoJSON数据
+        const geojsonData = await fetchMiningAreasGeoJSON();
+        
+        // 使用Cesium加载GeoJSON数据
+        const dataSource = await Cesium.GeoJsonDataSource.load(geojsonData, {
             stroke: strokeColor,
             fill: fillColor,
             strokeWidth: strokeWidth,
@@ -34,10 +40,11 @@ export async function loadGeoJson(viewer, url, options = {}) {
         // 添加到 viewer
         await viewer.dataSources.add(dataSource);
 
+        console.log('✅ 矿区GeoJSON数据加载到Cesium成功');
         return dataSource;
     } catch (error) {
         console.error('❌ GeoJSON 数据加载失败:', error);
-        console.error('请确保文件存在：public/data/ocean_mining_final.geojson');
+        console.error('请确保后端服务正在运行: http://121.194.93.61:8081');
         throw error;
     }
 }

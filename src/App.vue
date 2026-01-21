@@ -380,18 +380,25 @@ export default {
         const handleTimeChange = (data) => {
             console.log('⏰ App.vue 收到时间轴变化:', data);
             console.log('   - 时间索引:', data.index);
+            console.log('   - 时间:', data.time);
             console.log('   - 图层ID:', data.layerId);
             console.log('   - mapContainerRef存在:', !!mapContainerRef.value);
             console.log('   - updateWeatherTime方法存在:', !!mapContainerRef.value?.updateWeatherTime);
             
             // 通知 MapContainer 更新气象数据
             if (mapContainerRef.value && mapContainerRef.value.updateWeatherTime) {
-                console.log('✅ 调用 MapContainer.updateWeatherTime');
-                mapContainerRef.value.updateWeatherTime(data.index);
+                console.log('✅ 调用 MapContainer.updateWeatherTime，时间索引:', data.index);
+                try {
+                    mapContainerRef.value.updateWeatherTime(data.index);
+                    console.log('✅ updateWeatherTime 调用成功');
+                } catch (error) {
+                    console.error('❌ updateWeatherTime 调用失败:', error);
+                }
             } else {
                 console.error('❌ 无法调用 updateWeatherTime:', {
                     hasRef: !!mapContainerRef.value,
-                    hasMethod: !!mapContainerRef.value?.updateWeatherTime
+                    hasMethod: !!mapContainerRef.value?.updateWeatherTime,
+                    refKeys: mapContainerRef.value ? Object.keys(mapContainerRef.value) : []
                 });
             }
         };
@@ -1127,7 +1134,7 @@ export default {
         
         // WebSocket 连接函数
         const connectWebSocket = () => {
-            const WS_URL = 'ws://localhost:8081';
+            const WS_URL = 'ws://121.194.93.61:8081';
             
             console.log('🔌 连接 WebSocket:', WS_URL);
             

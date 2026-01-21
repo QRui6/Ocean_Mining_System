@@ -284,11 +284,13 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
-// 使用官方 cesium-wind-layer 插件
-import { loadGlobalWindData } from '../utils/windDataLoader.js';
-import { loadGlobalWaveData } from '../utils/waveDataLoader.js';
-import { loadGlobalOceanCurrentData } from '../utils/oceanCurrentLoader.js';
-import { loadGlobalInternalWaveData } from '../utils/internalWaveLoader.js';
+// 动态加载气象数据加载器（支持API和本地文件两种模式）
+import { 
+    getWindDataLoader, 
+    getOceanCurrentLoader, 
+    getWaveDataLoader,
+    getInternalWaveLoader 
+} from '../config/dataSource.js';
 // 使用 Cesium 原生热力图层（性能更好，效果更平滑）
 import { CesiumHeatmapLayer as HeatmapLayer } from '../utils/cesiumHeatmapLayer.js';
 // 旧的 Canvas 实现（已弃用）
@@ -970,9 +972,9 @@ export default {
                 
                 console.log('✅ 属性提取成功:', props);
                 
-                // 构建矿区信息
+                // 构建矿区信息（使用数据库ID）
                 const miningArea = {
-                    id: previousEntity.id || props.id || `mining_${Date.now()}`,
+                    id: props.dbId || props.id,  // 使用数据库ID
                     name: previousEntity.name || props.name || props.contractor || '未命名矿区',
                     contractor: props.contractor || '未知',
                     mineral: props.mineral || '未知',
@@ -981,6 +983,7 @@ export default {
                 };
                 
                 console.log('📍 准备添加矿区到气象监测:', miningArea);
+                console.log('   - 矿区ID:', miningArea.id);
                 console.log('   - window 存在:', typeof window !== 'undefined');
                 console.log('   - window.app 存在:', !!window.app);
                 console.log('   - miningWeatherMonitorRef 存在:', !!window.app?.miningWeatherMonitorRef);
@@ -1132,7 +1135,9 @@ export default {
             
             try {
                 console.log('🌬️ 开始加载全球风场数据...');
-                const windData = await loadGlobalWindData(0); // 加载第0帧
+                // 使用动态加载器
+                const windLoader = await getWindDataLoader();
+                const windData = await windLoader.loadGlobalWindData(0); // 加载第0帧
                 console.log('✅ 数据加载成功');
                 console.log('   - 网格:', windData.width, 'x', windData.height);
                 console.log('   - U范围:', windData.u.min.toFixed(2), '~', windData.u.max.toFixed(2));
@@ -1226,21 +1231,29 @@ export default {
             console.log('🚀 开始预加载所有气象数据...');
             
             try {
+                // 动态导入加载器
+                const [windLoader, waveLoader, currentLoader, internalWaveLoader] = await Promise.all([
+                    getWindDataLoader(),
+                    getWaveDataLoader(),
+                    getOceanCurrentLoader(),
+                    getInternalWaveLoader()
+                ]);
+                
                 // 并行加载所有气象数据的第0帧
                 const [windData, waveData, currentData, internalWaveData] = await Promise.all([
-                    loadGlobalWindData(0).catch(err => {
+                    windLoader.loadGlobalWindData(0).catch(err => {
                         console.warn('⚠️ 风场数据预加载失败:', err.message);
                         return null;
                     }),
-                    loadGlobalWaveData(0).catch(err => {
+                    waveLoader.loadGlobalWaveData(0).catch(err => {
                         console.warn('⚠️ 波浪数据预加载失败:', err.message);
                         return null;
                     }),
-                    loadGlobalOceanCurrentData(0).catch(err => {
+                    currentLoader.loadGlobalOceanCurrentData(0).catch(err => {
                         console.warn('⚠️ 洋流数据预加载失败:', err.message);
                         return null;
                     }),
-                    loadGlobalInternalWaveData(0).catch(err => {
+                    internalWaveLoader.loadGlobalInternalWaveData(0).catch(err => {
                         console.warn('⚠️ 内波数据预加载失败:', err.message);
                         return null;
                     })
@@ -1302,6 +1315,10 @@ export default {
             }
             
             try {
+                // 动态加载波浪数据加载器
+                const waveDataLoaderModule = await getWaveDataLoader();
+                const { loadGlobalWaveData } = waveDataLoaderModule;
+                
                 // 加载或使用缓存的波浪数据
                 if (!cachedWaveData) {
                     console.log('🌊 开始加载全球波浪数据...');
@@ -1497,6 +1514,10 @@ export default {
             }
             
             try {
+                // 动态加载洋流数据加载器
+                const oceanCurrentLoaderModule = await getOceanCurrentLoader();
+                const { loadGlobalOceanCurrentData } = oceanCurrentLoaderModule;
+                
                 // 加载或使用缓存的洋流数据
                 if (!cachedOceanCurrentData) {
                     console.log('🌊 开始加载洋流数据...');
@@ -1631,7 +1652,9 @@ export default {
                 // 加载或使用缓存的内波数据
                 if (!cachedInternalWaveData) {
                     console.log('🌊 开始加载内波数据...');
-                    cachedInternalWaveData = await loadGlobalInternalWaveData(0);
+                    // 使用动态加载器
+                    const internalWaveLoader = await getInternalWaveLoader();
+                    cachedInternalWaveData = await internalWaveLoader.loadGlobalInternalWaveData(0);
                     console.log('✅ 内波数据加载成功并缓存');
                 } else {
                     console.log('📦 使用缓存的内波数据');
@@ -1892,72 +1915,91 @@ export default {
         // 生成气象时间步长
         const generateWeatherTimeSteps = async () => {
             try {
-                // 根据当前激活的图层读取 meta.json
-                let metaPath = '';
-                let isInternalWave = false;
+                // 根据当前激活的图层确定数据类型
+                let dataType = '';
                 
                 if (showWind.value) {
-                    metaPath = '/wind_data/meta.json';
+                    dataType = 'wind';
                 } else if (showWave.value) {
-                    metaPath = '/wave_data/meta.json';
+                    dataType = 'wave';
                 } else if (showOceanCurrent.value) {
-                    metaPath = '/ocean_currents/meta.json';
+                    dataType = 'ocean_current';
                 } else if (showInternalWave.value) {
-                    metaPath = '/hret14/hret14_out_uv_20200101/meta.json';
-                    isInternalWave = true;
+                    dataType = 'internal_wave';
                 } else {
                     console.warn('⚠️ 没有激活的气象图层，无法生成时间步长');
                     weatherTimeSteps.value = [];
                     return;
                 }
                 
-                console.log('📂 读取元数据文件:', metaPath);
-                const response = await fetch(metaPath);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                console.log('📂 从后端API获取可用时间索引:', dataType);
+                
+                // 1. 获取可用的时间索引列表
+                const availableResponse = await fetch(`http://121.194.93.61:8081/api/weather/available/${dataType}`);
+                if (!availableResponse.ok) {
+                    throw new Error(`获取可用索引失败: ${availableResponse.status}`);
                 }
                 
-                const meta = await response.json();
-                console.log('📋 元数据内容:', meta);
-                
-                // 内波数据使用不同的格式
-                if (isInternalWave) {
-                    // 内波的 meta.json 直接提供 times 数组
-                    if (meta.times && Array.isArray(meta.times)) {
-                        const steps = meta.times.map(timeStr => new Date(timeStr));
-                        weatherTimeSteps.value = steps;
-                        console.log('✅ 生成内波时间步长:', steps.length, '个', steps.length > 0 ? `(${steps[0].toISOString()} ~ ${steps[steps.length-1].toISOString()})` : '');
-                    } else {
-                        throw new Error('内波元数据中没有 times 数组');
-                    }
-                } else {
-                    // 其他气象数据使用标准格式
-                    const startTime = new Date(meta.start_time);
-                    const frames = meta.frames;
-                    const timeStepHours = meta.time_step_hours;
-                    
-                    console.log('⏰ 时间参数:', {
-                        startTime: meta.start_time,
-                        frames: frames,
-                        timeStepHours: timeStepHours
-                    });
-                    
-                    // 生成时间步长数组
-                    const steps = [];
-                    for (let i = 0; i < frames; i++) {
-                        const time = new Date(startTime);
-                        time.setHours(time.getHours() + i * timeStepHours);
-                        steps.push(time);
-                    }
-                    
-                    weatherTimeSteps.value = steps;
-                    console.log('✅ 生成时间步长:', steps.length, '个', steps.length > 0 ? `(${steps[0].toISOString()} ~ ${steps[steps.length-1].toISOString()})` : '');
+                const availableResult = await availableResponse.json();
+                if (!availableResult.success) {
+                    throw new Error(availableResult.error || '获取可用索引失败');
                 }
+                
+                const availableIndices = availableResult.data.indices || [];
+                console.log('📊 数据库中可用的时间索引:', availableIndices);
+                
+                if (availableIndices.length === 0) {
+                    console.warn('⚠️ 数据库中没有可用的时间索引，使用默认配置');
+                    // 降级方案：假设只有timeIndex=0的数据，生成一个单点时间序列
+                    const now = new Date();
+                    weatherTimeSteps.value = [now];
+                    console.log('✅ 生成单点时间序列（仅timeIndex=0）');
+                    return;
+                }
+                
+                // 2. 获取元数据（用于获取起始时间和时间间隔）
+                const metaResponse = await fetch(`http://121.194.93.61:8081/api/weather/metadata/${dataType}`);
+                if (!metaResponse.ok) {
+                    throw new Error(`获取元数据失败: ${metaResponse.status}`);
+                }
+                
+                const metaResult = await metaResponse.json();
+                if (!metaResult.success) {
+                    throw new Error(metaResult.error || '获取元数据失败');
+                }
+                
+                const meta = metaResult.data;
+                console.log('📋 元数据:', meta);
+                
+                // 3. 根据可用索引生成时间步长
+                // 假设时间间隔为3小时（可以从元数据中获取）
+                const timeStepHours = 3; // 默认3小时间隔
+                const now = new Date();
+                
+                const steps = availableIndices.map(index => {
+                    const time = new Date(now.getTime() + index * timeStepHours * 3600000);
+                    return time;
+                });
+                
+                weatherTimeSteps.value = steps;
+                console.log('✅ 根据数据库生成时间步长:', steps.length, '个', 
+                    steps.length > 0 ? `(索引: ${availableIndices[0]} ~ ${availableIndices[availableIndices.length-1]})` : '');
+                console.log('   时间范围:', steps.length > 0 ? `${steps[0].toISOString()} ~ ${steps[steps.length-1].toISOString()}` : '');
             } catch (error) {
                 console.error('❌ 生成时间步长失败:', error);
                 console.error('   错误详情:', error.message);
                 console.error('   堆栈:', error.stack);
-                weatherTimeSteps.value = [];
+                
+                // 降级方案：生成默认的24小时时间序列
+                console.log('⚠️ 使用默认时间序列（24小时，每3小时一个点）');
+                const steps = [];
+                const now = new Date();
+                for (let i = 0; i < 24; i++) {
+                    const time = new Date(now.getTime() + i * 3 * 3600000);
+                    steps.push(time);
+                }
+                weatherTimeSteps.value = steps;
+                console.log('✅ 生成默认时间步长:', steps.length, '个');
             }
         };
 
@@ -3190,13 +3232,28 @@ export default {
          * @param {Number} timeIndex - 时间索引
          */
         const updateWeatherTime = async (timeIndex) => {
-            console.log('⏰ 更新气象数据时间帧:', timeIndex);
+            console.log('⏰ MapContainer.updateWeatherTime 被调用');
+            console.log('   - 接收到的 timeIndex:', timeIndex, '类型:', typeof timeIndex);
+            console.log('   - showWave:', showWave.value);
+            console.log('   - showOceanCurrent:', showOceanCurrent.value);
+            console.log('   - showWind:', showWind.value);
+            console.log('   - showInternalWave:', showInternalWave.value);
+            
+            // 确保 timeIndex 是数字
+            const index = parseInt(timeIndex, 10);
+            if (isNaN(index)) {
+                console.error('❌ timeIndex 不是有效的数字:', timeIndex);
+                return;
+            }
+            
+            console.log('   - 转换后的 index:', index);
             
             try {
                 // 更新波浪数据
                 if (showWave.value && waveLayer) {
-                    console.log('🌊 重新加载波浪数据，时间帧:', timeIndex);
-                    const newWaveData = await loadGlobalWaveData(timeIndex);
+                    console.log('🌊 重新加载波浪数据，时间帧:', index);
+                    const waveDataLoaderModule = await getWaveDataLoader();
+                    const newWaveData = await waveDataLoaderModule.loadGlobalWaveData(index);
                     
                     // 彻底移除旧图层
                     try {
@@ -3272,8 +3329,9 @@ export default {
                 
                 // 更新洋流数据
                 if (showOceanCurrent.value && oceanCurrentLayer) {
-                    console.log('🌊 重新加载洋流数据，时间帧:', timeIndex);
-                    const newCurrentData = await loadGlobalOceanCurrentData(timeIndex);
+                    console.log('🌊 重新加载洋流数据，时间帧:', index);
+                    const oceanCurrentLoaderModule = await getOceanCurrentLoader();
+                    const newCurrentData = await oceanCurrentLoaderModule.loadGlobalOceanCurrentData(index);
                     
                     // 彻底移除旧图层
                     try {
@@ -3324,8 +3382,9 @@ export default {
                 
                 // 更新风场数据
                 if (showWind.value && windLayer) {
-                    console.log('🌬️  重新加载风场数据，时间帧:', timeIndex);
-                    const newWindData = await loadGlobalWindData(timeIndex);
+                    console.log('🌬️  重新加载风场数据，时间帧:', index);
+                    const windDataLoaderModule = await getWindDataLoader();
+                    const newWindData = await windDataLoaderModule.loadGlobalWindData(index);
                     
                     // 彻底移除旧图层
                     try {
@@ -3380,8 +3439,9 @@ export default {
                 
                 // 更新内波数据
                 if (showInternalWave.value && internalWaveLayer) {
-                    console.log('🌊 重新加载内波数据，时间帧:', timeIndex);
-                    const newInternalWaveData = await loadGlobalInternalWaveData(timeIndex);
+                    console.log('🌊 重新加载内波数据，时间帧:', index);
+                    const internalWaveLoaderModule = await getInternalWaveLoader();
+                    const newInternalWaveData = await internalWaveLoaderModule.loadGlobalInternalWaveData(index);
                     
                     // 彻底移除旧图层
                     try {

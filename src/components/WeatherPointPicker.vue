@@ -20,11 +20,26 @@
                 
                 <!-- 中间：主要数值 -->
                 <div class="main-value">
-                    <div class="value-container">
-                        <span class="value-number">{{ mainValue }}</span>
-                        <span class="value-unit">{{ mainUnit }}</span>
+                    <!-- 加载状态 -->
+                    <div v-if="isLoadingBackendData" class="loading-container">
+                        <div class="spinner"></div>
+                        <span class="loading-text">查询中...</span>
                     </div>
-                    <span v-if="windDirection" class="wind-direction">{{ windDirection }}</span>
+                    
+                    <!-- 错误状态 -->
+                    <div v-else-if="backendError" class="error-container">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text">{{ backendError }}</span>
+                    </div>
+                    
+                    <!-- 正常显示 -->
+                    <template v-else>
+                        <div class="value-container">
+                            <span class="value-number">{{ mainValue }}</span>
+                            <span class="value-unit">{{ mainUnit }}</span>
+                        </div>
+                        <span v-if="windDirection" class="wind-direction">{{ windDirection }}</span>
+                    </template>
                 </div>
                 
                 <!-- 波浪额外信息（仅波浪图层显示） -->
@@ -55,7 +70,7 @@
         :show="showDetailPanel"
         :lat="pickedPoint?.lat || 0"
         :lon="pickedPoint?.lon || 0"
-        :weatherData="weatherData"
+        :weatherData="weatherData || {}"
         :timeSteps="timeSteps"
         @close="toggleDetailPanel"
         @timeChange="handleTimeChange"
@@ -65,6 +80,7 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import WindyStyleWeatherPanel from './WindyStyleWeatherPanel.vue';
+import { API_ENDPOINTS } from '../api/config.js';
 
 export default {
     components: {
@@ -82,7 +98,7 @@ export default {
         },
         weatherData: {
             type: Object,
-            default: null  // { wind, wave, current }
+            default: null  // { wind, wave, current } - 保留用于兼容，但优先使用后端数据
         },
         timeSteps: {
             type: Array,
@@ -98,6 +114,79 @@ export default {
         const showDetailPanel = ref(false);
         const labelPosition = ref({ x: 0, y: 0 });
         
+        // ==================== 后端数据状态 ====================
+        const backendWeatherData = ref(null);
+        const isLoadingBackendData = ref(false);
+        const backendError = ref(null);
+        
+        // ==================== 从后端获取气象数据 ====================
+        const fetchWeatherFromBackend = async (lat, lon, timeIndex = 0) => {
+            try {
+                console.log(`🌊 从后端查询气象数据: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, timeIndex=${timeIndex}`);
+                
+                const response = await fetch(
+                    `${API_ENDPOINTS.WEATHER.POINT_QUERY}?lat=${lat}&lon=${lon}&timeIndex=${timeIndex}`,
+                    {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: AbortSignal.timeout(5000)
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ 后端数据查询成功:', result.data);
+                    return result.data;
+                } else {
+                    throw new Error(result.error || '查询失败');
+                }
+            } catch (err) {
+                console.error('❌ 后端查询失败:', err);
+                throw err;
+            }
+        };
+        
+        // ==================== 监听点击位置变化 ====================
+        watch(() => [props.pickedPoint, props.currentTimeIndex], async ([newPoint, newTimeIndex]) => {
+            if (!newPoint) {
+                backendWeatherData.value = null;
+                return;
+            }
+            
+            // 更新标签位置
+            if (newPoint.screenPosition) {
+                labelPosition.value = {
+                    x: newPoint.screenPosition.x,
+                    y: newPoint.screenPosition.y
+                };
+                console.log('🎯 弹窗位置更新:', labelPosition.value);
+            }
+            
+            // 从后端获取数据
+            isLoadingBackendData.value = true;
+            backendError.value = null;
+            
+            try {
+                backendWeatherData.value = await fetchWeatherFromBackend(
+                    newPoint.lat,
+                    newPoint.lon,
+                    newTimeIndex || 0
+                );
+            } catch (err) {
+                backendError.value = err.message || '查询失败';
+                backendWeatherData.value = null;
+            } finally {
+                isLoadingBackendData.value = false;
+            }
+        }, { immediate: true });
+        
+        // ==================== 计算属性 ====================
+        
         // 当前图层名称
         const currentLayerName = computed(() => {
             if (!props.currentLayer) return '';
@@ -106,26 +195,48 @@ export default {
         
         // 主要数值（大号显示）
         const mainValue = computed(() => {
-            if (!props.pickedPoint || !props.currentLayer || !props.weatherData) {
+            if (!props.pickedPoint || !props.currentLayer) {
+                return 'N/A';
+            }
+            
+            if (isLoadingBackendData.value) {
+                return '...';
+            }
+            
+            if (backendError.value) {
+                return 'N/A';
+            }
+            
+            if (!backendWeatherData.value) {
                 return 'N/A';
             }
             
             const layerId = props.currentLayer.id;
-            const data = props.weatherData[layerId];
-            
-            if (!data) return 'N/A';
-            
-            // 根据经纬度获取数据值
             let value;
-            if (layerId === 'wave') {
-                // 波高使用标量值
-                value = getScalarAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, 'hs');
-            } else {
-                // 其他使用矢量值
-                value = getVectorValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, layerId);
+            
+            // 从后端数据中获取值
+            switch (layerId) {
+                case 'wind':
+                    value = backendWeatherData.value.wind?.speed;
+                    break;
+                case 'wave':
+                    // 波浪显示波高
+                    value = backendWeatherData.value.wave?.height;
+                    break;
+                case 'current':
+                case 'ocean_current':
+                    value = backendWeatherData.value.current?.speed;
+                    break;
+                case 'internal_wave':
+                    // 内波显示速度
+                    value = backendWeatherData.value.internalWave?.speed;
+                    break;
+                default:
+                    value = null;
             }
             
-            if (value === null || value === undefined) return 'N/A';
+            // 过滤无效值（-9999表示无数据）
+            if (value === null || value === undefined || value < -9000) return 'N/A';
             
             // 风速转换为 km/h（更直观）
             if (layerId === 'wind') {
@@ -144,6 +255,7 @@ export default {
                 wind: 'km/h',
                 wave: 'm',
                 current: 'm/s',
+                ocean_current: 'm/s',
                 internal_wave: 'm/s'
             };
             
@@ -153,14 +265,13 @@ export default {
         // 风向文字（仅风速图层显示）
         const windDirection = computed(() => {
             if (!props.currentLayer || props.currentLayer.id !== 'wind') return null;
-            if (!props.pickedPoint || !props.weatherData?.wind) return null;
+            if (isLoadingBackendData.value || !backendWeatherData.value?.wind) return null;
             
-            const { u, v } = getUVAtPoint(props.weatherData.wind, props.pickedPoint.lat, props.pickedPoint.lon);
-            const angle = Math.atan2(u, v) * 180 / Math.PI;
+            const direction = backendWeatherData.value.wind.direction;
             
             // 转换为方位
             const directions = ['↓ N', '↙ NE', '← E', '↖ SE', '↑ S', '↗ SW', '→ W', '↘ NW'];
-            const index = Math.round((angle + 180) / 45) % 8;
+            const index = Math.round(direction / 45) % 8;
             return directions[index];
         });
         
@@ -177,23 +288,19 @@ export default {
         // 波浪额外信息（仅波浪图层显示）
         const waveExtraInfo = computed(() => {
             if (!props.currentLayer || props.currentLayer.id !== 'wave') return null;
-            if (!props.pickedPoint || !props.weatherData?.wave) return null;
+            if (isLoadingBackendData.value || !backendWeatherData.value?.wave) return null;
             
-            const data = props.weatherData.wave;
-            const lat = props.pickedPoint.lat;
-            const lon = props.pickedPoint.lon;
+            const wave = backendWeatherData.value.wave;
             
-            // 获取波高
-            const waveHeight = getScalarAtPoint(data, lat, lon, 'hs');
+            // 过滤无效值
+            if (wave.height < -9000 || wave.speed < -9000) return null;
             
-            // 获取 Stokes drift（波浪漂移速度）
-            const { u, v } = getUVAtPoint(data, lat, lon);
-            const driftSpeed = Math.sqrt(u * u + v * v);
-            
-            if (!waveHeight && !driftSpeed) return null;
+            // Stokes drift速度（后端已计算）
+            const driftSpeed = wave.speed;
             
             // 计算波峰传播速度（Phase Speed）
             // 使用经验公式：c ≈ 1.25 × √H （深水波近似）
+            const waveHeight = wave.height || 0;
             const phaseSpeed = waveHeight > 0 ? 1.25 * Math.sqrt(waveHeight) : 0;
             
             return {
@@ -202,35 +309,25 @@ export default {
             };
         });
         
-        // 可用的气象图层
+        // 可用的气象图层（基于后端数据）
         const availableLayers = computed(() => {
             const layers = [];
-            if (props.weatherData?.wind) {
+            if (backendWeatherData.value?.wind) {
                 layers.push({ id: 'wind', name: '风速', unit: 'm/s' });
             }
-            if (props.weatherData?.wave) {
+            if (backendWeatherData.value?.wave) {
                 layers.push({ id: 'wave', name: '波高', unit: 'm' });
             }
-            if (props.weatherData?.current) {
+            if (backendWeatherData.value?.current) {
                 layers.push({ id: 'current', name: '洋流', unit: 'm/s' });
             }
-            if (props.weatherData?.internal_wave) {
+            if (backendWeatherData.value?.internalWave) {
                 layers.push({ id: 'internal_wave', name: '内波', unit: 'm/s' });
             }
             return layers;
         });
         
-        // 监听点击位置变化，更新标签位置
-        watch(() => props.pickedPoint, (newPoint) => {
-            if (newPoint && newPoint.screenPosition) {
-                // 直接使用屏幕坐标，弹窗通过 CSS transform 自动居中
-                labelPosition.value = {
-                    x: newPoint.screenPosition.x,
-                    y: newPoint.screenPosition.y
-                };
-                console.log('🎯 弹窗位置更新:', labelPosition.value);
-            }
-        });
+        // ==================== 方法 ====================
         
         // 切换详细面板
         const toggleDetailPanel = () => {
@@ -243,183 +340,6 @@ export default {
             emit('close');
         };
         
-        // 获取 U/V 分量（用于风向计算）
-        const getUVAtPoint = (data, lat, lon) => {
-            if (!data || !data.u || !data.v) return { u: 0, v: 0 };
-            
-            const { width, height, bounds } = data;
-            const { west, south, east, north } = bounds;
-            
-            let adjustedLon = lon;
-            if (west >= 0 && east > 180 && lon < 0) {
-                adjustedLon = lon + 360;
-            }
-            
-            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
-            const y = Math.floor(((north - lat) / (north - south)) * height);
-            
-            if (x < 0 || x >= width || y < 0 || y >= height) return { u: 0, v: 0 };
-            
-            const index = y * width + x;
-            return {
-                u: data.u.array[index] || 0,
-                v: data.v.array[index] || 0
-            };
-        };
-        
-        // 获取矢量数据的强度值
-        const getVectorValueAtPoint = (data, lat, lon, dataType) => {
-            const { u, v } = getUVAtPoint(data, lat, lon);
-            
-            if (Math.abs(u) < 0.001 && Math.abs(v) < 0.001) {
-                return null;
-            }
-            
-            const speed = Math.sqrt(u * u + v * v);
-            
-            if (speed < 0.01) return null;
-            
-            // 根据数据类型还原真实值
-            if (dataType === 'current') {
-                return speed / 15;
-            } else if (dataType === 'internal_wave') {
-                return speed / 5000;
-            }
-            
-            return speed;
-        };
-        
-        // 获取标量数据值（如波高）
-        const getScalarAtPoint = (data, lat, lon, field = 'hs') => {
-            if (!data || !data[field]) return null;
-            
-            const { width, height, bounds } = data;
-            const { west, south, east, north } = bounds;
-            
-            let adjustedLon = lon;
-            if (west >= 0 && east > 180 && lon < 0) {
-                adjustedLon = lon + 360;
-            }
-            
-            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
-            const y = Math.floor(((north - lat) / (north - south)) * height);
-            
-            if (x < 0 || x >= width || y < 0 || y >= height) return null;
-            
-            const index = y * width + x;
-            const value = data[field].array[index];
-            
-            if (value === undefined || value === null || value < 0.01) return null;
-            
-            return value;
-        };
-        
-        // 根据经纬度获取数据值
-        const getValueAtPoint = (data, lat, lon, timeIndex, dataType = 'unknown') => {
-            if (!data || !data.u || !data.v) return null;
-            
-            const { width, height, bounds, landMask } = data;
-            const { west, south, east, north } = bounds;
-            
-            // 处理经度坐标系转换
-            // 如果数据是 0-360 坐标系，而输入是 -180~180，需要转换
-            let adjustedLon = lon;
-            if (west >= 0 && east > 180 && lon < 0) {
-                // 数据是 0-360，输入是负数（-180~0），转换为 180-360
-                adjustedLon = lon + 360;
-            }
-            
-            // 将经纬度转换为数据索引
-            const x = Math.floor(((adjustedLon - west) / (east - west)) * width);
-            const y = Math.floor(((north - lat) / (north - south)) * height);
-            
-            // 边界检查
-            if (x < 0 || x >= width || y < 0 || y >= height) return null;
-            
-            const index = y * width + x;
-            
-            // ⭐ 第一层：检查陆地标记（如果存在）
-            if (landMask && landMask[index] === 1) {
-                return null;  // 陆地返回 null，显示 N/A
-            }
-            
-            const u = data.u.array[index];
-            const v = data.v.array[index];
-            
-            // ⭐ 第二层：直接判断 u 和 v 是否都接近 0（无效区域或陆地）
-            // 使用更严格的阈值 0.001，过滤掉所有接近0的值
-            if (Math.abs(u) < 0.001 && Math.abs(v) < 0.001) {
-                return null;
-            }
-            
-            // 计算强度
-            const speed = Math.sqrt(u * u + v * v);
-            
-            // ⭐ 第三层：过滤极小值（额外保险）
-            if (speed < 0.01) {
-                return null;
-            }
-            
-            // 根据数据类型还原真实值（除以放大倍数）
-            let realSpeed = speed;
-            if (dataType === 'current') {
-                // 洋流数据放大了 15 倍，需要还原
-                realSpeed = speed / 15;
-            } else if (dataType === 'internal_wave') {
-                // 内波数据放大了 5000 倍，需要还原
-                realSpeed = speed / 5000;
-            }
-            
-            return realSpeed;
-        };
-        
-        // 获取指定时间的数值
-        const getValueAtTime = (layerId, timeIndex) => {
-            if (!props.pickedPoint || !props.weatherData) return 'N/A';
-            
-            const data = props.weatherData[layerId];
-            if (!data) return 'N/A';
-            
-            const value = getValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, timeIndex, layerId);
-            return formatValue(layerId, value);
-        };
-        
-        // 获取当前图层的数值（简化版，只显示当前值）
-        const getCurrentLayerValue = (layerId) => {
-            if (!props.pickedPoint || !props.weatherData) return 'N/A';
-            
-            const data = props.weatherData[layerId];
-            if (!data) return 'N/A';
-            
-            const value = getValueAtPoint(data, props.pickedPoint.lat, props.pickedPoint.lon, 0, layerId);
-            if (value === null || value === undefined) return 'N/A';
-            
-            return value.toFixed(2);
-        };
-        
-        // 格式化数值
-        const formatValue = (layerId, value) => {
-            if (value === null || value === undefined) return 'N/A';
-            
-            const units = {
-                wind: 'm/s',
-                wave: 'm',
-                current: 'm/s',
-                internal_wave: 'm/s'
-            };
-            
-            return `${value.toFixed(2)} ${units[layerId] || ''}`;
-        };
-        
-        // 格式化时间
-        const formatTime = (date) => {
-            if (!date) return '';
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const hour = date.getHours().toString().padStart(2, '0');
-            return `${month}-${day} ${hour}:00`;
-        };
-        
         // 处理时间变化
         const handleTimeChange = (index) => {
             emit('timeChange', index);
@@ -428,6 +348,9 @@ export default {
         return {
             showDetailPanel,
             labelPosition,
+            backendWeatherData,
+            isLoadingBackendData,
+            backendError,
             currentLayerName,
             mainValue,
             mainUnit,
@@ -437,9 +360,6 @@ export default {
             availableLayers,
             toggleDetailPanel,
             closePicker,
-            getValueAtTime,
-            getCurrentLayerValue,
-            formatTime,
             handleTimeChange
         };
     }
@@ -571,6 +491,47 @@ export default {
     font-weight: 700;
     color: rgba(6, 182, 212, 1);
     white-space: nowrap;
+}
+
+/* 加载状态样式 */
+.loading-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(6, 182, 212, 0.3);
+    border-top-color: rgba(6, 182, 212, 1);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 12px;
+    color: rgba(6, 182, 212, 0.8);
+}
+
+/* 错误状态样式 */
+.error-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.error-icon {
+    font-size: 16px;
+}
+
+.error-text {
+    font-size: 11px;
+    color: rgba(239, 68, 68, 0.9);
 }
 
 /* 波浪额外信息 */

@@ -647,11 +647,24 @@ export default {
         };
         
         const onTimeChange = () => {
-            if (!currentLayer.value) return;
+            if (!currentLayer.value) {
+                console.warn('⚠️ onTimeChange: 没有当前图层');
+                return;
+            }
+            
+            // 确保 currentIndex 是数字类型
+            const timeIndex = parseInt(currentIndex.value, 10);
+            
+            console.log('⏰ TimelineControl.onTimeChange 触发:', {
+                currentIndex: currentIndex.value,
+                timeIndex,
+                time: currentTime.value,
+                layerId: currentLayer.value.id
+            });
             
             emit('timeChange', {
                 time: currentTime.value,
-                index: currentIndex.value,
+                index: timeIndex,  // 使用转换后的数字
                 layerId: currentLayer.value.id
             });
         };

@@ -170,7 +170,7 @@
                     <!-- 内容区域 -->
                     <div class="p-6 overflow-y-auto max-h-[calc(80vh-80px)] custom-scrollbar">
                         <!-- 矿区基本信息 -->
-                        <div class="mb-6 bg-slate-800/40 border border-slate-700 rounded-sm p-4">
+                        <div v-if="weatherDetailData && weatherDetailData.miningArea" class="mb-6 bg-slate-800/40 border border-slate-700 rounded-sm p-4">
                             <div class="text-cyan-400 font-bold mb-3 flex items-center">
                                 <span class="mr-2">📍</span>
                                 矿区信息
@@ -178,15 +178,15 @@
                             <div class="grid grid-cols-2 gap-3 text-sm">
                                 <div class="flex justify-between">
                                     <span class="text-slate-400">承包者：</span>
-                                    <span class="text-white font-bold">{{ selectedAreaDetail.contractor }}</span>
+                                    <span class="text-white font-bold">{{ weatherDetailData.miningArea.contractor }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-slate-400">矿种类型：</span>
-                                    <span class="text-white font-bold">{{ selectedAreaDetail.mineral }}</span>
+                                    <span class="text-white font-bold">{{ weatherDetailData.miningArea.mineral }}</span>
                                 </div>
                                 <div class="flex justify-between col-span-2">
                                     <span class="text-slate-400">位置：</span>
-                                    <span class="text-white font-bold">{{ selectedAreaDetail.location }}</span>
+                                    <span class="text-white font-bold">{{ weatherDetailData.miningArea.location }}</span>
                                 </div>
                             </div>
                         </div>
@@ -197,69 +197,183 @@
                             <div class="text-slate-400 mt-4">正在加载气象数据...</div>
                         </div>
                         
-                        <!-- 气象数据列表 -->
-                        <div v-else-if="weatherDetailData.length > 0" class="space-y-4">
-                            <div class="text-cyan-400 font-bold mb-3 flex items-center">
-                                <span class="mr-2">🌊</span>
-                                气象数据 ({{ weatherDetailData.length }} 条记录)
-                            </div>
-                            
-                            <div 
-                                v-for="(data, index) in weatherDetailData" 
-                                :key="index"
-                                class="bg-slate-800/40 border border-slate-700 rounded-sm p-4 hover:border-cyan-500/50 transition-all"
-                            >
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="text-white font-bold">时间点 {{ index + 1 }}</div>
-                                    <div class="text-xs text-slate-400">{{ data.time || '当前' }}</div>
+                        <!-- 气象统计数据 -->
+                        <div v-else-if="weatherDetailData && weatherDetailData.statistics" class="space-y-6">
+                            <!-- 实时统计卡片 -->
+                            <div class="bg-slate-800/40 border border-slate-700 rounded-sm p-4">
+                                <div class="text-cyan-400 font-bold mb-4 flex items-center">
+                                    <span class="mr-2">🌊</span>
+                                    实时气象统计
                                 </div>
                                 
                                 <div class="grid grid-cols-3 gap-4">
-                                    <!-- 风速 -->
-                                    <div class="text-center p-3 bg-slate-900/50 rounded-sm">
-                                        <div class="text-xs text-slate-500 mb-1">风速</div>
-                                        <div 
-                                            class="text-lg font-bold"
-                                            :class="data.windSpeed > thresholds.windSpeed ? 'text-red-400 animate-pulse' : 'text-cyan-400'"
-                                        >
-                                            {{ data.windSpeed.toFixed(1) }}
+                                    <!-- 风速统计 -->
+                                    <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
+                                        <div class="text-center mb-3">
+                                            <div class="text-xs text-slate-500 mb-1">风速</div>
+                                            <div 
+                                                class="text-3xl font-bold"
+                                                :class="getStatusColor(weatherDetailData.statistics.windSpeed.current, weatherDetailData.statistics.windSpeed.threshold)"
+                                            >
+                                                {{ weatherDetailData.statistics.windSpeed.current.toFixed(1) }}
+                                            </div>
+                                            <div class="text-xs text-slate-500 mt-1">m/s</div>
                                         </div>
-                                        <div class="text-xs text-slate-500 mt-1">m/s</div>
-                                        <div v-if="data.windSpeed > thresholds.windSpeed" class="text-xs text-red-400 mt-1">
-                                            ⚠️ 超过阈值
+                                        <div class="space-y-1 text-xs">
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>平均:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.windSpeed.avg.toFixed(1) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最大:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.windSpeed.max.toFixed(1) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最小:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.windSpeed.min.toFixed(1) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
+                                                <span>阈值:</span>
+                                                <span class="text-orange-400">{{ weatherDetailData.statistics.windSpeed.threshold.toFixed(1) }} m/s</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <span 
+                                                class="text-xs px-2 py-1 rounded-sm"
+                                                :class="getStatusBadge(weatherDetailData.statistics.windSpeed.current, weatherDetailData.statistics.windSpeed.threshold)"
+                                            >
+                                                {{ getStatusText(weatherDetailData.statistics.windSpeed.current, weatherDetailData.statistics.windSpeed.threshold) }}
+                                            </span>
                                         </div>
                                     </div>
                                     
-                                    <!-- 浪高 -->
-                                    <div class="text-center p-3 bg-slate-900/50 rounded-sm">
-                                        <div class="text-xs text-slate-500 mb-1">浪高</div>
-                                        <div 
-                                            class="text-lg font-bold"
-                                            :class="data.waveHeight > thresholds.waveHeight ? 'text-red-400 animate-pulse' : 'text-cyan-400'"
-                                        >
-                                            {{ data.waveHeight.toFixed(1) }}
+                                    <!-- 浪高统计 -->
+                                    <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
+                                        <div class="text-center mb-3">
+                                            <div class="text-xs text-slate-500 mb-1">浪高</div>
+                                            <div 
+                                                class="text-3xl font-bold"
+                                                :class="getStatusColor(weatherDetailData.statistics.waveHeight.current, weatherDetailData.statistics.waveHeight.threshold)"
+                                            >
+                                                {{ weatherDetailData.statistics.waveHeight.current.toFixed(1) }}
+                                            </div>
+                                            <div class="text-xs text-slate-500 mt-1">m</div>
                                         </div>
-                                        <div class="text-xs text-slate-500 mt-1">m</div>
-                                        <div v-if="data.waveHeight > thresholds.waveHeight" class="text-xs text-red-400 mt-1">
-                                            ⚠️ 超过阈值
+                                        <div class="space-y-1 text-xs">
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>平均:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.waveHeight.avg.toFixed(1) }} m</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最大:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.waveHeight.max.toFixed(1) }} m</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最小:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.waveHeight.min.toFixed(1) }} m</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
+                                                <span>阈值:</span>
+                                                <span class="text-orange-400">{{ weatherDetailData.statistics.waveHeight.threshold.toFixed(1) }} m</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <span 
+                                                class="text-xs px-2 py-1 rounded-sm"
+                                                :class="getStatusBadge(weatherDetailData.statistics.waveHeight.current, weatherDetailData.statistics.waveHeight.threshold)"
+                                            >
+                                                {{ getStatusText(weatherDetailData.statistics.waveHeight.current, weatherDetailData.statistics.waveHeight.threshold) }}
+                                            </span>
                                         </div>
                                     </div>
                                     
-                                    <!-- 洋流 -->
-                                    <div class="text-center p-3 bg-slate-900/50 rounded-sm">
-                                        <div class="text-xs text-slate-500 mb-1">洋流</div>
-                                        <div 
-                                            class="text-lg font-bold"
-                                            :class="data.currentSpeed > thresholds.currentSpeed ? 'text-red-400 animate-pulse' : 'text-cyan-400'"
-                                        >
-                                            {{ data.currentSpeed.toFixed(2) }}
+                                    <!-- 洋流统计 -->
+                                    <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
+                                        <div class="text-center mb-3">
+                                            <div class="text-xs text-slate-500 mb-1">洋流</div>
+                                            <div 
+                                                class="text-3xl font-bold"
+                                                :class="getStatusColor(weatherDetailData.statistics.currentSpeed.current, weatherDetailData.statistics.currentSpeed.threshold)"
+                                            >
+                                                {{ weatherDetailData.statistics.currentSpeed.current.toFixed(2) }}
+                                            </div>
+                                            <div class="text-xs text-slate-500 mt-1">m/s</div>
                                         </div>
-                                        <div class="text-xs text-slate-500 mt-1">m/s</div>
-                                        <div v-if="data.currentSpeed > thresholds.currentSpeed" class="text-xs text-red-400 mt-1">
-                                            ⚠️ 超过阈值
+                                        <div class="space-y-1 text-xs">
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>平均:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.currentSpeed.avg.toFixed(2) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最大:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.currentSpeed.max.toFixed(2) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400">
+                                                <span>最小:</span>
+                                                <span class="text-white">{{ weatherDetailData.statistics.currentSpeed.min.toFixed(2) }} m/s</span>
+                                            </div>
+                                            <div class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
+                                                <span>阈值:</span>
+                                                <span class="text-orange-400">{{ weatherDetailData.statistics.currentSpeed.threshold.toFixed(2) }} m/s</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <span 
+                                                class="text-xs px-2 py-1 rounded-sm"
+                                                :class="getStatusBadge(weatherDetailData.statistics.currentSpeed.current, weatherDetailData.statistics.currentSpeed.threshold)"
+                                            >
+                                                {{ getStatusText(weatherDetailData.statistics.currentSpeed.current, weatherDetailData.statistics.currentSpeed.threshold) }}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            
+                            <!-- 气象趋势图表 -->
+                            <div class="bg-slate-800/40 border border-slate-700 rounded-sm p-4">
+                                <div class="text-cyan-400 font-bold mb-4 flex items-center">
+                                    <span class="mr-2">📈</span>
+                                    气象趋势（未来24小时）
+                                </div>
+                                <div ref="chartContainer" class="w-full h-80"></div>
+                            </div>
+                            
+                            <!-- 预警信息 -->
+                            <div v-if="weatherDetailData.warnings && weatherDetailData.warnings.length > 0" class="bg-slate-800/40 border border-orange-500/50 rounded-sm p-4">
+                                <div class="text-orange-400 font-bold mb-4 flex items-center">
+                                    <span class="mr-2">⚠️</span>
+                                    预警信息 ({{ weatherDetailData.warnings.length }} 条)
+                                </div>
+                                <div class="space-y-2">
+                                    <div 
+                                        v-for="(warning, index) in weatherDetailData.warnings" 
+                                        :key="index"
+                                        class="flex items-start gap-3 p-3 bg-slate-900/50 rounded-sm border"
+                                        :class="warning.severity === 'high' ? 'border-red-500/50' : 'border-yellow-500/50'"
+                                    >
+                                        <div 
+                                            class="text-2xl"
+                                            :class="warning.severity === 'high' ? 'text-red-400' : 'text-yellow-400'"
+                                        >
+                                            {{ warning.severity === 'high' ? '🔴' : '🟡' }}
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="text-white font-bold text-sm mb-1">{{ warning.message }}</div>
+                                            <div class="text-xs text-slate-400">
+                                                时间: {{ formatWarningTime(warning.startTime) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 无预警 -->
+                            <div v-else class="bg-slate-800/40 border border-green-500/50 rounded-sm p-4">
+                                <div class="text-green-400 font-bold mb-2 flex items-center">
+                                    <span class="mr-2">✅</span>
+                                    气象状况良好
+                                </div>
+                                <div class="text-sm text-slate-400">未来24小时内无气象预警</div>
                             </div>
                         </div>
                         
@@ -276,9 +390,16 @@
 </template>
 
 <script>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { weatherWarningService } from '../utils/weatherWarningService.js';
+import { 
+    addMiningMonitoring, 
+    getMiningMonitoringList, 
+    removeMiningMonitoring,
+    updateMiningMonitoringThresholds 
+} from '../api/miningMonitoring.js';
+import * as echarts from 'echarts';
 
 export default {
     props: {
@@ -300,52 +421,137 @@ export default {
         // 气象详情对话框
         const showDetailDialog = ref(false);
         const selectedAreaDetail = ref(null);
-        const weatherDetailData = ref([]);
+        const weatherDetailData = ref(null);
         const loadingWeatherDetail = ref(false);
+        const chartContainer = ref(null);
+        let chartInstance = null;
         
         let updateInterval = null;
+        
+        /**
+         * 加载监测列表（从数据库）
+         */
+        const loadMonitoringList = async () => {
+            try {
+                console.log('📥 从数据库加载监测列表...');
+                const result = await getMiningMonitoringList();
+                
+                if (result.success && result.data) {
+                    console.log('✅ 加载成功，数据:', result.data);
+                    
+                    // 转换数据格式
+                    monitoredAreas.value = result.data.map(item => ({
+                        id: item.miningAreaId,  // 使用矿区ID作为主键
+                        monitoringId: item.id,  // 保存监测记录ID用于删除
+                        name: item.name || item.contractor,
+                        contractor: item.contractor,
+                        mineral: item.mineral,
+                        location: item.location,
+                        polygon: item.polygon,
+                        thresholds: {
+                            windSpeed: item.windSpeedThreshold,
+                            waveHeight: item.waveHeightThreshold,
+                            currentSpeed: item.currentSpeedThreshold
+                        },
+                        warningCount: 0,
+                        latestWeather: null
+                    }));
+                    
+                    console.log('✅ 监测列表加载完成，共', monitoredAreas.value.length, '个矿区');
+                    
+                    // 启动气象监控
+                    monitoredAreas.value.forEach(area => {
+                        weatherWarningService.startMonitoring(area);
+                    });
+                } else {
+                    console.error('❌ 加载失败:', result.error);
+                }
+            } catch (err) {
+                console.error('❌ 加载监测列表异常:', err);
+            }
+        };
         
         /**
          * 添加矿区监测
          * @param {Object} miningArea - 矿区信息
          */
-        const addArea = (miningArea) => {
+        const addArea = async (miningArea) => {
+            console.log('📍 添加矿区到监测:', miningArea);
+            
             // 检查是否已经在监测
             if (monitoredAreas.value.find(a => a.id === miningArea.id)) {
                 ElMessage.warning(`矿区 "${miningArea.name}" 已在监测中`);
                 return;
             }
             
-            // 添加到监测列表
-            const area = {
-                ...miningArea,
-                thresholds: { ...thresholds.value },
-                warningCount: 0,
-                latestWeather: null
-            };
-            
-            monitoredAreas.value.push(area);
-            
-            // 启动气象监控
-            weatherWarningService.startMonitoring(area);
-            
-            ElMessage.success(`已添加矿区 "${miningArea.name}" 到气象监测`);
+            try {
+                // 调用后端API保存到数据库
+                const result = await addMiningMonitoring({
+                    miningAreaId: miningArea.id,
+                    windSpeedThreshold: thresholds.value.windSpeed,
+                    waveHeightThreshold: thresholds.value.waveHeight,
+                    currentSpeedThreshold: thresholds.value.currentSpeed
+                });
+                
+                if (result.success) {
+                    console.log('✅ 保存到数据库成功');
+                    
+                    // 添加到前端列表
+                    const area = {
+                        ...miningArea,
+                        monitoringId: result.data.id,  // 保存监测记录ID
+                        thresholds: { ...thresholds.value },
+                        warningCount: 0,
+                        latestWeather: null
+                    };
+                    
+                    monitoredAreas.value.push(area);
+                    
+                    // 启动气象监控
+                    weatherWarningService.startMonitoring(area);
+                    
+                    ElMessage.success(`已添加矿区 "${miningArea.name}" 到气象监测`);
+                } else {
+                    console.error('❌ 保存失败:', result.error);
+                    ElMessage.error(`添加失败: ${result.error}`);
+                }
+            } catch (err) {
+                console.error('❌ 添加监测异常:', err);
+                ElMessage.error(`添加失败: ${err.message}`);
+            }
         };
         
         /**
          * 移除矿区监测
          * @param {String} areaId - 矿区ID
          */
-        const removeArea = (areaId) => {
+        const removeArea = async (areaId) => {
             const index = monitoredAreas.value.findIndex(a => a.id === areaId);
             if (index > -1) {
                 const area = monitoredAreas.value[index];
-                monitoredAreas.value.splice(index, 1);
                 
-                // 停止气象监控
-                weatherWarningService.stopMonitoring(areaId);
-                
-                ElMessage.info(`已移除矿区 "${area.name}" 的气象监测`);
+                try {
+                    // 调用后端API从数据库删除
+                    const result = await removeMiningMonitoring(area.monitoringId);
+                    
+                    if (result.success) {
+                        console.log('✅ 从数据库删除成功');
+                        
+                        // 从前端列表移除
+                        monitoredAreas.value.splice(index, 1);
+                        
+                        // 停止气象监控
+                        weatherWarningService.stopMonitoring(areaId);
+                        
+                        ElMessage.info(`已移除矿区 "${area.name}" 的气象监测`);
+                    } else {
+                        console.error('❌ 删除失败:', result.error);
+                        ElMessage.error(`移除失败: ${result.error}`);
+                    }
+                } catch (err) {
+                    console.error('❌ 移除监测异常:', err);
+                    ElMessage.error(`移除失败: ${err.message}`);
+                }
             }
         };
         
@@ -365,44 +571,317 @@ export default {
             selectedAreaDetail.value = area;
             showDetailDialog.value = true;
             loadingWeatherDetail.value = true;
-            weatherDetailData.value = [];
+            weatherDetailData.value = null;
             
             try {
-                // 获取多个时间点的气象数据（例如未来24小时，每3小时一个点）
-                const timePoints = 8; // 8个时间点
-                const promises = [];
+                console.log('📊 加载气象统计数据:', area.monitoringId);
                 
-                for (let i = 0; i < timePoints; i++) {
-                    promises.push(
-                        fetch('/api/copernicus/query-area', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                polygon: area.polygon,
-                                timeIndex: i
-                            })
-                        }).then(res => res.json())
-                    );
+                // 调用新的气象统计API
+                const response = await fetch(`http://121.194.93.61:8081/api/mining-monitoring/${area.monitoringId}/weather-stats`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    weatherDetailData.value = result.data;
+                    console.log('✅ 气象统计数据加载成功:', result.data);
+                    
+                    // 等待DOM更新后初始化图表
+                    await nextTick();
+                    
+                    // 再等待一个微任务，确保DOM完全渲染
+                    setTimeout(() => {
+                        initChart();
+                    }, 100);
+                } else {
+                    console.error('❌ 加载气象统计失败:', result.error);
+                    ElMessage.error('加载气象数据失败');
                 }
-                
-                const results = await Promise.all(promises);
-                
-                weatherDetailData.value = results
-                    .filter(result => result.success && result.data)
-                    .map((result, index) => ({
-                        time: `+${index * 3}h`,
-                        windSpeed: result.data.data.windSpeed || 0,
-                        waveHeight: result.data.data.waveHeight || 0,
-                        currentSpeed: result.data.data.currentSpeed || 0
-                    }));
-                
-                console.log('✅ 气象详情数据加载成功:', weatherDetailData.value.length, '条');
             } catch (err) {
-                console.error('❌ 加载气象详情失败:', err);
+                console.error('❌ 加载气象统计异常:', err);
                 ElMessage.error('加载气象数据失败');
             } finally {
                 loadingWeatherDetail.value = false;
             }
+        };
+        
+        /**
+         * 初始化ECharts图表
+         */
+        const initChart = () => {
+            console.log('🎨 初始化图表...');
+            console.log('chartContainer.value:', chartContainer.value);
+            console.log('weatherDetailData.value:', weatherDetailData.value);
+            
+            if (!chartContainer.value) {
+                console.error('❌ 图表容器不存在！');
+                return;
+            }
+            
+            if (!weatherDetailData.value) {
+                console.error('❌ 气象数据不存在！');
+                return;
+            }
+            
+            // 销毁旧图表
+            if (chartInstance) {
+                console.log('🗑️ 销毁旧图表');
+                chartInstance.dispose();
+            }
+            
+            // 创建新图表
+            console.log('✨ 创建新图表实例');
+            chartInstance = echarts.init(chartContainer.value);
+            
+            const data = weatherDetailData.value;
+            const timeSeries = data.timeSeries || [];
+            
+            console.log('📊 时间序列数据:', timeSeries);
+            console.log('📊 数据点数量:', timeSeries.length);
+            
+            if (timeSeries.length === 0) {
+                console.warn('⚠️ 没有时间序列数据');
+                return;
+            }
+            
+            // 提取时间和数据
+            const times = timeSeries.map(item => {
+                const date = new Date(item.time);
+                return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`;
+            });
+            
+            const windSpeeds = timeSeries.map(item => item.windSpeed);
+            const waveHeights = timeSeries.map(item => item.waveHeight);
+            const currentSpeeds = timeSeries.map(item => item.currentSpeed);
+            
+            // 阈值
+            const windThreshold = data.statistics.windSpeed.threshold;
+            const waveThreshold = data.statistics.waveHeight.threshold;
+            const currentThreshold = data.statistics.currentSpeed.threshold;
+            
+            const option = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    borderColor: '#22d3ee',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#fff'
+                    }
+                },
+                legend: {
+                    data: ['风速', '风速阈值', '浪高', '浪高阈值', '洋流', '洋流阈值'],
+                    textStyle: {
+                        color: '#94a3b8'
+                    },
+                    top: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: times,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#475569'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#94a3b8',
+                        rotate: 45
+                    }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '风速/浪高',
+                        position: 'left',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#475569'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8'
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: '#334155'
+                            }
+                        }
+                    },
+                    {
+                        type: 'value',
+                        name: '洋流',
+                        position: 'right',
+                        axisLine: {
+                            lineStyle: {
+                                color: '#475569'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#94a3b8'
+                        },
+                        splitLine: {
+                            show: false
+                        }
+                    }
+                ],
+                series: [
+                    {
+                        name: '风速',
+                        type: 'line',
+                        data: windSpeeds,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#22d3ee',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#22d3ee'
+                        },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 0,
+                                y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(34, 211, 238, 0.3)' },
+                                    { offset: 1, color: 'rgba(34, 211, 238, 0.05)' }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        name: '风速阈值',
+                        type: 'line',
+                        data: new Array(times.length).fill(windThreshold),
+                        lineStyle: {
+                            color: '#f59e0b',
+                            type: 'dashed',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#f59e0b'
+                        },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '浪高',
+                        type: 'line',
+                        data: waveHeights,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#06b6d4',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#06b6d4'
+                        }
+                    },
+                    {
+                        name: '浪高阈值',
+                        type: 'line',
+                        data: new Array(times.length).fill(waveThreshold),
+                        lineStyle: {
+                            color: '#f97316',
+                            type: 'dashed',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#f97316'
+                        },
+                        symbol: 'none'
+                    },
+                    {
+                        name: '洋流',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: currentSpeeds,
+                        smooth: true,
+                        lineStyle: {
+                            color: '#8b5cf6',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#8b5cf6'
+                        }
+                    },
+                    {
+                        name: '洋流阈值',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: new Array(times.length).fill(currentThreshold),
+                        lineStyle: {
+                            color: '#a855f7',
+                            type: 'dashed',
+                            width: 2
+                        },
+                        itemStyle: {
+                            color: '#a855f7'
+                        },
+                        symbol: 'none'
+                    }
+                ]
+            };
+            
+            console.log('📈 设置图表配置:', option);
+            chartInstance.setOption(option);
+            console.log('✅ 图表初始化完成！');
+        };
+        
+        /**
+         * 获取状态颜色
+         */
+        const getStatusColor = (current, threshold) => {
+            const ratio = current / threshold;
+            if (ratio >= 1) return 'text-red-400';
+            if (ratio >= 0.9) return 'text-orange-400';
+            if (ratio >= 0.7) return 'text-yellow-400';
+            return 'text-green-400';
+        };
+        
+        /**
+         * 获取状态徽章样式
+         */
+        const getStatusBadge = (current, threshold) => {
+            const ratio = current / threshold;
+            if (ratio >= 1) return 'bg-red-900/50 text-red-400 border border-red-500/50';
+            if (ratio >= 0.9) return 'bg-orange-900/50 text-orange-400 border border-orange-500/50';
+            if (ratio >= 0.7) return 'bg-yellow-900/50 text-yellow-400 border border-yellow-500/50';
+            return 'bg-green-900/50 text-green-400 border border-green-500/50';
+        };
+        
+        /**
+         * 获取状态文本
+         */
+        const getStatusText = (current, threshold) => {
+            const ratio = current / threshold;
+            if (ratio >= 1) return '🔴 超过阈值';
+            if (ratio >= 0.9) return '🟠 接近阈值';
+            if (ratio >= 0.7) return '🟡 需要关注';
+            return '🟢 正常';
+        };
+        
+        /**
+         * 格式化预警时间
+         */
+        const formatWarningTime = (timeStr) => {
+            if (!timeStr) return '-';
+            const date = new Date(timeStr);
+            return date.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         };
         
         /**
@@ -411,7 +890,13 @@ export default {
         const closeDetailDialog = () => {
             showDetailDialog.value = false;
             selectedAreaDetail.value = null;
-            weatherDetailData.value = [];
+            weatherDetailData.value = null;
+            
+            // 销毁图表
+            if (chartInstance) {
+                chartInstance.dispose();
+                chartInstance = null;
+            }
         };
         
         /**
@@ -469,6 +954,9 @@ export default {
         }, { deep: true });
         
         onMounted(() => {
+            // 加载监测列表
+            loadMonitoringList();
+            // 启动定时更新
             startUpdate();
         });
         
@@ -481,6 +969,12 @@ export default {
             monitoredAreas.value.forEach(area => {
                 weatherWarningService.stopMonitoring(area.id);
             });
+            
+            // 销毁图表
+            if (chartInstance) {
+                chartInstance.dispose();
+                chartInstance = null;
+            }
         });
         
         return {
@@ -494,7 +988,13 @@ export default {
             selectedAreaDetail,
             weatherDetailData,
             loadingWeatherDetail,
-            closeDetailDialog
+            closeDetailDialog,
+            loadMonitoringList,
+            chartContainer,
+            getStatusColor,
+            getStatusBadge,
+            getStatusText,
+            formatWarningTime
         };
     }
 };

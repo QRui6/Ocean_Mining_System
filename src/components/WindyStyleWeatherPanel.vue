@@ -149,6 +149,7 @@
 <script>
 import { ref, computed, watch, nextTick } from 'vue';
 import WeatherRow from './WeatherRow.vue';
+import { API_ENDPOINTS } from '../api/config.js';
 
 export default {
     components: {
@@ -184,6 +185,67 @@ export default {
         const timelineRef = ref(null);
         const currentTimeIndex = ref(0);
         
+        // ==================== 后端时间序列数据 ====================
+        const backendTimeSeriesData = ref(null);
+        const isLoadingBackendData = ref(false);
+        const backendError = ref(null);
+        
+        // 从后端获取时间序列数据
+        const fetchTimeSeriesFromBackend = async () => {
+            if (!props.lat || !props.lon || !props.timeSteps.length) {
+                console.log('⚠️ 缺少必要参数，跳过后端时间序列查询', {
+                    lat: props.lat,
+                    lon: props.lon,
+                    timeStepsLength: props.timeSteps.length
+                });
+                return;
+            }
+            
+            isLoadingBackendData.value = true;
+            backendError.value = null;
+            
+            try {
+                const url = `${API_ENDPOINTS.WEATHER.TIME_SERIES}?lat=${props.lat}&lon=${props.lon}&startIndex=0&count=${props.timeSteps.length}`;
+                console.log(`🌊 从后端查询时间序列: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(10000)
+                });
+                
+                console.log(`📡 后端响应状态: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('📦 后端返回数据:', result);
+                
+                if (result.success) {
+                    console.log('✅ 后端时间序列数据查询成功，数据点数:', result.data.timeSteps?.length);
+                    backendTimeSeriesData.value = result.data;
+                } else {
+                    throw new Error(result.error || '查询失败');
+                }
+            } catch (err) {
+                console.error('❌ 后端时间序列查询失败:', err);
+                console.log('⚠️ 将降级到前端计算');
+                backendError.value = err.message || '查询失败';
+                backendTimeSeriesData.value = null;
+            } finally {
+                isLoadingBackendData.value = false;
+            }
+        };
+        
+        // 监听显示状态和位置变化，自动加载时间序列数据
+        watch(() => [props.show, props.lat, props.lon], ([newShow]) => {
+            if (newShow) {
+                fetchTimeSeriesFromBackend();
+            }
+        }, { immediate: true });
+        
         // 按日期分组时间步骤
         const groupedByDate = computed(() => {
             const groups = {};
@@ -205,38 +267,68 @@ export default {
             return `${weekdays[date.getDay()]} ${parseInt(day)}`;
         };
         
-        // 检查是否有各类数据
+        // 检查是否有各类数据（优先使用后端数据，降级到前端数据）
         const hasWind = computed(() => {
+            // 优先检查后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                const hasBackendWind = backendTimeSeriesData.value.timeSteps.some(step => step.wind !== null);
+                if (hasBackendWind) {
+                    console.log('💨 使用后端风场数据');
+                    return true;
+                }
+            }
+            
+            // 降级到前端数据
             const result = props.weatherData.wind && props.weatherData.wind.u;
-            console.log('💨 检查风场数据:', {
-                hasWindData: !!props.weatherData.wind,
-                hasU: !!props.weatherData.wind?.u,
-                hasV: !!props.weatherData.wind?.v,
-                hasLandMask: !!props.weatherData.wind?.landMask,
-                bounds: props.weatherData.wind?.bounds,
-                width: props.weatherData.wind?.width,
-                height: props.weatherData.wind?.height,
-                result: result
-            });
+            if (result) {
+                console.log('💨 降级使用前端风场数据');
+            }
             return result;
         });
         
         const hasWave = computed(() => {
+            // 优先检查后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                const hasBackendWave = backendTimeSeriesData.value.timeSteps.some(step => step.wave !== null);
+                if (hasBackendWave) {
+                    console.log('🌊 使用后端波浪数据');
+                    return true;
+                }
+            }
+            
+            // 降级到前端数据
             return props.weatherData.wave && props.weatherData.wave.u;
         });
         
         const hasCurrent = computed(() => {
+            // 优先检查后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                const hasBackendCurrent = backendTimeSeriesData.value.timeSteps.some(step => step.current !== null);
+                if (hasBackendCurrent) {
+                    console.log('🌀 使用后端洋流数据');
+                    return true;
+                }
+            }
+            
+            // 降级到前端数据
             return props.weatherData.current && props.weatherData.current.u;
         });
         
         const hasInternalWave = computed(() => {
+            // 优先检查后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                const hasBackendInternalWave = backendTimeSeriesData.value.timeSteps.some(step => step.internalWave !== null);
+                if (hasBackendInternalWave) {
+                    console.log('〰️ 使用后端内波数据');
+                    return true;
+                }
+            }
+            
+            // 降级到前端数据
             const result = props.weatherData.internal_wave && props.weatherData.internal_wave.u;
-            console.log('🔍 检查内波数据:', {
-                hasInternalWaveData: !!props.weatherData.internal_wave,
-                hasU: props.weatherData.internal_wave?.u ? true : false,
-                hasV: props.weatherData.internal_wave?.v ? true : false,
-                result: result
-            });
+            if (result) {
+                console.log('〰️ 使用前端内波数据');
+            }
             return result;
         });
         
@@ -410,126 +502,188 @@ export default {
             };
         };
         
-        // 计算风速值（当前只有一帧数据）
+        // 计算风速值（优先使用后端数据，降级到前端计算）
         const windSpeedValues = computed(() => {
             if (!hasWind.value) {
-                console.log('❌ 没有风场数据');
                 return [];
             }
             
-            console.log('💨 计算风速值', {
-                lat: props.lat,
-                lon: props.lon,
-                hasData: !!props.weatherData.wind,
-                bounds: props.weatherData.wind?.bounds,
-                width: props.weatherData.wind?.width,
-                height: props.weatherData.wind?.height
-            });
-            
-            // 目前只有一帧数据，所以复制到所有时间点
-            const value = getValueAtPoint(props.weatherData.wind, props.lat, props.lon, 'wind');
-            console.log('💨 风速值结果:', value);
-            
-            if (value === null) {
-                console.log('⚠️ 风速值为 null，将显示 N/A');
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                console.log('💨 使用后端风速数据');
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.wind ? step.wind.speed : null;
+                });
             }
             
+            // 降级到前端计算
+            console.log('💨 降级到前端计算风速');
+            const value = getValueAtPoint(props.weatherData.wind, props.lat, props.lon, 'wind');
             return props.timeSteps.map(() => value);
         });
         
-        // 计算风向
+        // 计算风向（优先使用后端数据）
         const windDirections = computed(() => {
             if (!hasWind.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.wind ? step.wind.direction : null;
+                });
+            }
+            
+            // 降级到前端计算
             const { u, v } = getUVAtPoint(props.weatherData.wind, props.lat, props.lon);
             const direction = Math.atan2(u, v) * 180 / Math.PI;
             return props.timeSteps.map(() => direction);
         });
         
-        // 计算波高值（使用标量数据）
+        // 计算波高值（优先使用后端数据）
         const waveHeightValues = computed(() => {
             if (!hasWave.value) return [];
             
-            // 直接读取波高标量值
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                console.log('🌊 使用后端波高数据');
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.wave && step.wave.height !== null ? step.wave.height : null;
+                });
+            }
+            
+            // 降级到前端计算
+            console.log('🌊 降级到前端计算波高');
             const value = getScalarAtPoint(props.weatherData.wave, props.lat, props.lon, 'hs');
             return props.timeSteps.map(() => value);
         });
         
-        // 计算波浪方向（Stokes drift 方向）
+        // 计算波浪方向（优先使用后端数据）
         const waveDirections = computed(() => {
             if (!hasWave.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.wave ? step.wave.direction : null;
+                });
+            }
+            
+            // 降级到前端计算
             const { u, v } = getUVAtPoint(props.weatherData.wave, props.lat, props.lon);
             const direction = Math.atan2(u, v) * 180 / Math.PI;
             return props.timeSteps.map(() => direction);
         });
         
-        // 计算波浪漂移速度（Stokes drift 速度）
+        // 计算波浪漂移速度（优先使用后端数据）
         const waveDriftValues = computed(() => {
             if (!hasWave.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.wave ? step.wave.speed : null;
+                });
+            }
+            
+            // 降级到前端计算
             const { u, v } = getUVAtPoint(props.weatherData.wave, props.lat, props.lon);
             const speed = Math.sqrt(u * u + v * v);
             return props.timeSteps.map(() => speed);
         });
         
-        // 计算波峰传播速度（Phase Speed）
-        // 使用深水波公式：c = √(gλ/2π) ≈ 1.56 × T
-        // 或简化公式：c ≈ 1.25 × √H （H为波高，单位：米）
+        // 计算波峰传播速度（优先使用后端数据）
         const wavePhaseSpeedValues = computed(() => {
             if (!hasWave.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    if (!step.wave || !step.wave.height || step.wave.height <= 0) {
+                        return null;
+                    }
+                    // 使用经验公式：c ≈ 1.25 × √H （深水波近似）
+                    return 1.25 * Math.sqrt(step.wave.height);
+                });
+            }
+            
+            // 降级到前端计算
             const waveHeight = getScalarAtPoint(props.weatherData.wave, props.lat, props.lon, 'hs');
             if (waveHeight === null || waveHeight <= 0) {
                 return props.timeSteps.map(() => null);
             }
-            
-            // 使用经验公式：c ≈ 1.25 × √H （深水波近似）
             const phaseSpeed = 1.25 * Math.sqrt(waveHeight);
             return props.timeSteps.map(() => phaseSpeed);
         });
         
-        // 计算洋流值
+        // 计算洋流值（优先使用后端数据）
         const currentSpeedValues = computed(() => {
             if (!hasCurrent.value) {
-                console.log('❌ 没有洋流数据');
                 return [];
             }
             
-            console.log('🌊 计算洋流值', {
-                lat: props.lat,
-                lon: props.lon,
-                hasData: !!props.weatherData.current,
-                hasU: !!props.weatherData.current?.u,
-                hasV: !!props.weatherData.current?.v
-            });
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                console.log('🌀 使用后端洋流数据');
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.current ? step.current.speed : null;
+                });
+            }
             
+            // 降级到前端计算
+            console.log('🌀 降级到前端计算洋流');
             const value = getValueAtPoint(props.weatherData.current, props.lat, props.lon, 'current');
-            console.log('🌊 洋流值结果:', value);
             return props.timeSteps.map(() => value);
         });
         
-        // 计算洋流方向
+        // 计算洋流方向（优先使用后端数据）
         const currentDirections = computed(() => {
             if (!hasCurrent.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.current ? step.current.direction : null;
+                });
+            }
+            
+            // 降级到前端计算
             const { u, v } = getUVAtPoint(props.weatherData.current, props.lat, props.lon);
             const direction = Math.atan2(u, v) * 180 / Math.PI;
             return props.timeSteps.map(() => direction);
         });
         
-        // 计算内波值
+        // 计算内波值（优先使用后端数据）
         const internalWaveValues = computed(() => {
-            if (!hasInternalWave.value) return [];
+            if (!hasInternalWave.value) {
+                return [];
+            }
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                console.log('〰️ 使用后端内波数据');
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.internalWave ? step.internalWave.speed : null;
+                });
+            }
+            
+            // 降级到前端计算
+            console.log('〰️ 降级到前端计算内波');
             const value = getValueAtPoint(props.weatherData.internal_wave, props.lat, props.lon, 'internal_wave');
             return props.timeSteps.map(() => value);
         });
         
-        // 计算内波方向
+        // 计算内波方向（优先使用后端数据）
         const internalWaveDirections = computed(() => {
             if (!hasInternalWave.value) return [];
             
+            // 优先使用后端数据
+            if (backendTimeSeriesData.value && backendTimeSeriesData.value.timeSteps) {
+                return backendTimeSeriesData.value.timeSteps.map(step => {
+                    return step.internalWave ? step.internalWave.direction : null;
+                });
+            }
+            
+            // 降级到前端计算
             const { u, v } = getUVAtPoint(props.weatherData.internal_wave, props.lat, props.lon);
             const direction = Math.atan2(u, v) * 180 / Math.PI;
             return props.timeSteps.map(() => direction);

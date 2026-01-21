@@ -8,20 +8,26 @@ export default defineConfig(({ mode }) => {
     return {
       server: {
         port: 5173,
-        host: 'localhost',
+        host: '0.0.0.0',
         strictPort: false,
+        allowedHosts: [
+          '.trycloudflare.com',
+          '.ngrok-free.dev',
+          '.ngrok.io'
+        ],
         proxy: {
           '/api/shipxy': {
             target: 'https://api.shipxy.com',
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api\/shipxy/, ''),
             secure: false,
-            timeout: 30000  // 增加超时时间到30秒
+            timeout: 30000
           },
           // 代理后端API请求
-          '/api': {
-            target: 'http://localhost:5678',
+          '/api/backend': {
+            target: 'http://localhost:8081',
             changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api\/backend/, ''),
             secure: false
           }
         },
