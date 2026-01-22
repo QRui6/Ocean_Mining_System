@@ -104,7 +104,7 @@ export default {
                     emit('toggleShipList');
                 } else if (tool === '航线气象') {
                     emit('toggleRouteWeather');
-                } else if (tool === '航线演示') {
+                } else if (tool === '航线动态') {
                     emit('toggleRouteDemo');
                 } else {
                     console.log(`🚧 "${tool}" 功能开发中...`);
@@ -146,7 +146,7 @@ export default {
                 if (tool === '历史轨迹') return props.activePanels.historyTrack;
                 if (tool === '船舶列表') return props.activePanels.shipList;
                 if (tool === '航线气象') return props.activePanels.routeWeather;
-                if (tool === '航线演示') return props.activePanels.routeDemo;
+                if (tool === '航线动态') return props.activePanels.routeDemo;
             }
             
             return false;

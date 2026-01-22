@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航线生成测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00d4ff;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+        .section {
+            background: #16213e;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .info-item {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .info-label {
+            color: #00d4ff;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #0f3460;
+        }
+        th {
+            background: #0f3460;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        tr:hover {
+            background: #0f3460;
+        }
+        .risk-safe { color: #10b981; }
+        .risk-caution { color: #f59e0b; }
+        .risk-warning { color: #f97316; }
+        .risk-danger { color: #ef4444; }
+        button {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #00b8d4;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚢 航线生成测试 - CMMPMN1 矿区</h1>
+        
+        <div class="section">
+            <h2>矿区信息</h2>
+            <div class="info">
+                <div class="info-item">
+                    <div class="info-label">矿区ID</div>
+                    <div class="info-value" id="areaId">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">承包者</div>
+                    <div class="info-value" id="contractor">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">矿区中心经度</div>
+                    <div class="info-value" id="centerLng">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">矿区中心纬度</div>
+                    <div class="info-value" id="centerLat">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>航线信息</h2>
+            <div class="info">
+                <div class="info-item">
+                    <div class="info-label">航线名称</div>
+                    <div class="info-value" id="routeName">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">总距离</div>
+                    <div class="info-value" id="distance">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">预计天数</div>
+                    <div class="info-value" id="days">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">航点数量</div>
+                    <div class="info-value" id="waypointCount">-</div>
+                </div>
+            </div>
+            
+            <button onclick="generateRoute()">🔄 重新生成航线</button>
+            <button onclick="exportJSON()">💾 导出 JSON</button>
+        </div>
+        
+        <div class="section">
+            <h2>航点列表</h2>
+            <table id="waypointsTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>名称</th>
+                        <th>经度</th>
+                        <th>纬度</th>
+                        <th>风速</th>
+                        <th>浪高</th>
+                        <th>风险</th>
+                    </tr>
+                </thead>
+                <tbody id="waypointsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // CMMPMN1 矿区数据（从你提供的 GeoJSON 中提取）
+        const CMMPMN1_DATA = {
+            "type": "Feature",
+            "properties": {
+                "id": "CMMPMN1",
+                "category": "Exploration",
+                "mineral": "多金属结核 (PMN)",
+                "area_km2": 8661,
+                "location": "太平洋 (CCZ)",
+                "contractor": "中国五矿集团 (CMC)",
+                "sponsor": "中国",
+                "date_range": "2017/05/12 - 2032/05/11",
+                "status": "Active",
+                "color": "#FF6B6B"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-141.91669999990506, 12.59109999976522],
+                    [-141.63040000005992, 12.59109999976522],
+                    [-141.63040000005992, 12.426500000374745],
+                    [-141.5165999996902, 12.426500000374745],
+                    [-141.5165999996902, 12.276000000099998],
+                    [-141.67420000002994, 12.276000000099998],
+                    [-141.67420000002994, 11.97579999957037],
+                    [-141.62270000020482, 11.97579999957037],
+                    [-141.62270000020482, 11.775799999970047],
+                    [-142.00569999965523, 11.775799999970047],
+                    [-142.00569999965523, 11.682900000234895],
+                    [-142.2764999996752, 11.682900000234895],
+                    [-142.2764999996752, 11.861899999985042],
+                    [-142.83830000044463, 11.861899999985042],
+                    [-142.83830000044463, 12.193699999955072],
+                    [-142.03500000004993, 12.193699999955072],
+                    [-142.03500000004993, 12.543600000040044],
+                    [-142.43479999992002, 12.543600000040044],
+                    [-142.43479999992002, 12.702899999635349],
+                    [-141.91669999990506, 12.702899999635349],
+                    [-141.91669999990506, 12.59109999976522]
+                ]]
+            }
+        };
+
+        let routeData = null;
+
+        // 计算多边形中心点
+        function calculatePolygonCenter(coordinates) {
+            const polygon = coordinates[0];
+            let sumLng = 0, sumLat = 0;
+            let count = polygon.length - 1;
+            
+            for (let i = 0; i < count; i++) {
+                sumLng += polygon[i][0];
+                sumLat += polygon[i][1];
+            }
+            
+            return {
+                lng: sumLng / count,
+                lat: sumLat / count
+            };
+        }
+
+        // 球面线性插值
+        function interpolateGreatCircle(start, end, fraction) {
+            const startLat = start.lat * Math.PI / 180;
+            const startLng = start.lng * Math.PI / 180;
+            const endLat = end.lat * Math.PI / 180;
+            const endLng = end.lng * Math.PI / 180;
+            
+            const d = 2 * Math.asin(Math.sqrt(
+                Math.pow(Math.sin((startLat - endLat) / 2), 2) +
+                Math.cos(startLat) * Math.cos(endLat) *
+                Math.pow(Math.sin((startLng - endLng) / 2), 2)
+            ));
+            
+            if (d < 0.0001) {
+                return { lat: start.lat, lng: start.lng };
+            }
+            
+            const A = Math.sin((1 - fraction) * d) / Math.sin(d);
+            const B = Math.sin(fraction * d) / Math.sin(d);
+            
+            const x = A * Math.cos(startLat) * Math.cos(startLng) +
+                      B * Math.cos(endLat) * Math.cos(endLng);
+            const y = A * Math.cos(startLat) * Math.sin(startLng) +
+                      B * Math.cos(endLat) * Math.sin(endLng);
+            const z = A * Math.sin(startLat) + B * Math.sin(endLat);
+            
+            const lat = Math.atan2(z, Math.sqrt(x * x + y * y)) * 180 / Math.PI;
+            const lng = Math.atan2(y, x) * 180 / Math.PI;
+            
+            return { lat, lng };
+        }
+
+        // 计算距离
+        function calculateDistance(point1, point2) {
+            const R = 3440.065;
+            const lat1 = point1.lat * Math.PI / 180;
+            const lat2 = point2.lat * Math.PI / 180;
+            const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+            const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+            
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1) * Math.cos(lat2) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            
+            return R * c;
+        }
+
+        // 生成模拟气象
+        function generateMockWeather(fraction) {
+            let baseWindSpeed = 5 + Math.random() * 3;
+            let baseWaveHeight = 1 + Math.random() * 0.5;
+            
+            if (fraction > 0.3 && fraction < 0.5) {
+                baseWindSpeed = 12 + Math.random() * 5;
+                baseWaveHeight = 3 + Math.random() * 1.5;
+            }
+            
+            if (fraction > 0.6 && fraction < 0.7) {
+                baseWindSpeed = 8 + Math.random() * 4;
+                baseWaveHeight = 2 + Math.random() * 1;
+            }
+            
+            return {
+                windSpeed: parseFloat(baseWindSpeed.toFixed(1)),
+                waveHeight: parseFloat(baseWaveHeight.toFixed(1))
+            };
+        }
+
+        // 评估风险
+        function assessRisk(weather) {
+            if (weather.windSpeed > 15 || weather.waveHeight > 4) return 'danger';
+            if (weather.windSpeed > 12 || weather.waveHeight > 3) return 'warning';
+            if (weather.windSpeed > 8 || weather.waveHeight > 2) return 'caution';
+            return 'safe';
+        }
+
+        // 生成航线（添加途经点避开陆地）
+        function generateRoute() {
+            console.log('🚀 开始生成航线...');
+            
+            // 1. 计算矿区中心
+            const center = calculatePolygonCenter(CMMPMN1_DATA.geometry.coordinates);
+            console.log('📍 矿区中心:', center);
+            
+            // 更新UI
+            document.getElementById('areaId').textContent = CMMPMN1_DATA.properties.id;
+            document.getElementById('contractor').textContent = CMMPMN1_DATA.properties.contractor;
+            document.getElementById('centerLng').textContent = center.lng.toFixed(4) + '°';
+            document.getElementById('centerLat').textContent = center.lat.toFixed(4) + '°';
+            
+            // 2. 定义起点、途经点、终点
+            const start = { lng: 121.5, lat: 31.2, name: '上海港' };
+            const viaPoint = { lng: 135, lat: 20, name: '西太平洋' };  // 避开日本
+            const end = { lng: center.lng, lat: center.lat, name: CMMPMN1_DATA.properties.contractor };
+            
+            const waypoints = [];
+            const numWaypoints = 21;
+            
+            // 第一段：上海 -> 途经点
+            const segment1Points = Math.floor(numWaypoints / 3);
+            for (let i = 0; i <= segment1Points; i++) {
+                const fraction = i / segment1Points;
+                const point = interpolateGreatCircle(start, viaPoint, fraction);
+                const globalFraction = fraction * 0.33;
+                const weather = generateMockWeather(globalFraction);
+                const risk = assessRisk(weather);
+                
+                waypoints.push({
+                    id: waypoints.length + 1,
+                    lng: point.lng,
+                    lat: point.lat,
+                    name: i === 0 ? start.name : 
+                          i === segment1Points ? viaPoint.name : 
+                          `航点 ${waypoints.length + 1}`,
+                    weather: weather,
+                    risk: risk
+                });
+            }
+            
+            // 第二段：途经点 -> 矿区
+            const segment2Points = numWaypoints - segment1Points;
+            for (let i = 1; i <= segment2Points; i++) {
+                const fraction = i / segment2Points;
+                const point = interpolateGreatCircle(viaPoint, end, fraction);
+                const globalFraction = 0.33 + fraction * 0.67;
+                const weather = generateMockWeather(globalFraction);
+                const risk = assessRisk(weather);
+                
+                waypoints.push({
+                    id: waypoints.length + 1,
+                    lng: point.lng,
+                    lat: point.lat,
+                    name: i === segment2Points ? end.name : `航点 ${waypoints.length + 1}`,
+                    weather: weather,
+                    risk: risk
+                });
+            }
+            
+            // 3. 计算总距离
+            let totalDistance = 0;
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                totalDistance += calculateDistance(waypoints[i], waypoints[i + 1]);
+            }
+            
+            const estimatedDays = Math.ceil(totalDistance / (12 * 24));
+            
+            routeData = {
+                route: {
+                    name: `上海港 → ${end.name}`,
+                    distance: Math.round(totalDistance),
+                    estimatedDays: estimatedDays,
+                    waypoints: waypoints
+                }
+            };
+            
+            console.log('✅ 航线生成完成:', routeData);
+            console.log('   - 途经点: 西太平洋 (135°E, 20°N)');
+            
+            // 更新UI
+            document.getElementById('routeName').textContent = routeData.route.name;
+            document.getElementById('distance').textContent = routeData.route.distance + ' 海里';
+            document.getElementById('days').textContent = routeData.route.estimatedDays + ' 天';
+            document.getElementById('waypointCount').textContent = waypoints.length + ' 个';
+            
+            // 更新表格
+            const tbody = document.getElementById('waypointsBody');
+            tbody.innerHTML = '';
+            
+            waypoints.forEach(wp => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${wp.id}</td>
+                    <td>${wp.name}</td>
+                    <td>${wp.lng.toFixed(4)}°</td>
+                    <td>${wp.lat.toFixed(4)}°</td>
+                    <td>${wp.weather.windSpeed} m/s</td>
+                    <td>${wp.weather.waveHeight} m</td>
+                    <td class="risk-${wp.risk}">${wp.risk.toUpperCase()}</td>
+                `;
+            });
+        }
+
+        // 导出JSON
+        function exportJSON() {
+            if (!routeData) {
+                alert('请先生成航线！');
+                return;
+            }
+            
+            const json = JSON.stringify(routeData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'route-demo-data-CMMPMN1.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('💾 JSON已导出');
+        }
+
+        // 页面加载时自动生成
+        window.onload = () => {
+            generateRoute();
+        };
+    </script>
+</body>
+</html>

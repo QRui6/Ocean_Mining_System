@@ -59,6 +59,16 @@
                     <!-- 警告信息 -->
                     <div class="relative z-10 bg-current/10 border-2 border-current/30 p-3 rounded-sm">
                         <div class="text-sm leading-relaxed">{{ warningMessage }}</div>
+                        <!-- 如果有作业状态信息，显示 -->
+                        <div v-if="currentWarning.workable !== undefined" class="mt-2 pt-2 border-t border-current/20">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-white/60">作业状态</span>
+                                <span class="text-xs px-2 py-1 rounded font-bold"
+                                    :class="currentWarning.workable ? 'bg-green-900/50 text-green-400 border border-green-500/50' : 'bg-red-900/50 text-red-400 border border-red-500/50'">
+                                    {{ currentWarning.workable ? '可作业' : '不可作业' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -94,10 +104,23 @@ export default {
         const warningMessage = computed(() => {
             if (!currentWarning.value) return '';
             
-            if (currentWarning.value.risk === 'danger') {
-                return '前方航段存在危险气象条件，建议谨慎航行或考虑避让。请密切关注气象变化，做好应急准备。';
+            // 判断是否是到达后的警告（通过名称判断）
+            const isArrivalWarning = currentWarning.value.name && currentWarning.value.name.includes('到达后');
+            
+            if (isArrivalWarning) {
+                // 到达后的警告消息
+                if (currentWarning.value.risk === 'danger') {
+                    return '矿区作业条件恶劣，存在危险气象条件。建议暂停作业，做好设备防护和人员安全措施。';
+                } else {
+                    return '矿区作业条件需要注意，气象条件可能影响作业效率。建议加强监测，做好应急准备。';
+                }
             } else {
-                return '前方航段气象条件需要注意，建议加强观察，做好相应的航行准备措施。';
+                // 航行中的警告消息
+                if (currentWarning.value.risk === 'danger') {
+                    return '前方航段存在危险气象条件，建议谨慎航行或考虑避让。请密切关注气象变化，做好应急准备。';
+                } else {
+                    return '前方航段气象条件需要注意，建议加强观察，做好相应的航行准备措施。';
+                }
             }
         });
         

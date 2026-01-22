@@ -5,8 +5,9 @@
 import * as Cesium from 'cesium';
 
 export class RouteDemoLayer {
-    constructor(viewer) {
+    constructor(viewer, miningDataSource = null) {
         this.viewer = viewer;
+        this.miningDataSource = miningDataSource;  // 矿区数据源
         this.demoData = null;
         this.routeEntity = null;
         this.routeSegments = [];  // 存储每段航线（支持分段变色）
@@ -27,29 +28,467 @@ export class RouteDemoLayer {
         this.clickHandler = null;  // 点击事件处理器
         this.totalDistance = 0;
         this.currentDistance = 0;
+        
+        // 到达后演示相关
+        this.arrivalForecastData = null;  // 7天到达后预报数据
+        this.currentArrivalDay = 0;  // 当前演示的天数
+        this.arrivalDemoTimer = null;  // 到达后演示定时器
+        this.isArrivalDemoPlaying = false;  // 到达后演示是否正在播放
     }
 
     /**
-     * 加载演示数据
+     * 加载演示数据（动态生成航线）
      */
-    async loadDemoData() {
+    async loadDemoData(miningAreaId = 'CMMPMN1') {
         try {
-            console.log('📂 加载航线演示数据...');
-            const response = await fetch('/route-demo-data.json');
-            this.demoData = await response.json();
-            console.log('✅ 演示数据加载成功:', this.demoData);
+            console.log('📂 开始生成航线演示数据，目标矿区:', miningAreaId);
+            
+            // 1. 查找矿区数据
+            const miningArea = this.findMiningArea(miningAreaId);
+            if (!miningArea) {
+                console.error('❌ 未找到矿区:', miningAreaId);
+                // 降级：加载静态数据
+                return this.loadStaticDemoData();
+            }
+            
+            console.log('✅ 找到矿区:', miningArea.properties);
+            
+            // 2. 计算矿区中心点
+            const endPoint = this.calculatePolygonCenter(miningArea.geometry.coordinates);
+            console.log('📍 矿区中心坐标:', endPoint);
+            
+            // 3. 生成航线
+            const start = { lng: 121.5, lat: 31.2, name: '上海港' };
+            const end = {
+                lng: endPoint.lng,
+                lat: endPoint.lat,
+                name: miningArea.properties.contractor || '中国五矿CCZ多金属结核矿区'
+            };
+            
+            const waypoints = this.generateRoute(start, end, 21); // 生成22个航点
+            
+            // 4. 计算总距离
+            const distance = this.calculateTotalDistance(waypoints);
+            const estimatedDays = Math.ceil(distance / (12 * 24)); // 假设平均速度12节
+            
+            // 5. 构造演示数据
+            this.demoData = {
+                route: {
+                    name: `上海港 → ${end.name}`,
+                    description: `从上海港出发，经东海、西太平洋，最终到达${end.name}（${miningAreaId}）`,
+                    startPort: {
+                        name: '上海港',
+                        lng: 121.5,
+                        lat: 31.2
+                    },
+                    endArea: {
+                        name: end.name,
+                        lng: end.lng,
+                        lat: end.lat
+                    },
+                    distance: Math.round(distance),
+                    estimatedDays: estimatedDays,
+                    averageSpeed: 12,
+                    waypoints: waypoints
+                },
+                animation: {
+                    defaultSpeed: 1,
+                    speedOptions: [0.5, 1, 2, 5, 10, 20],
+                    updateInterval: 2000
+                }
+            };
+            
+            console.log('✅ 航线生成成功:', {
+                waypoints: waypoints.length,
+                distance: distance.toFixed(2) + ' 海里',
+                days: estimatedDays
+            });
+            
             return this.demoData;
         } catch (error) {
-            console.error('❌ 加载演示数据失败:', error);
+            console.error('❌ 生成航线数据失败:', error);
+            // 降级：加载静态数据
+            return this.loadStaticDemoData();
+        }
+    }
+    
+    /**
+     * 降级方案：加载静态演示数据
+     */
+    async loadStaticDemoData() {
+        try {
+            console.log('📂 降级：加载静态航线演示数据...');
+            const response = await fetch('/route-demo-data.json');
+            this.demoData = await response.json();
+            console.log('✅ 静态演示数据加载成功');
+            return this.demoData;
+        } catch (error) {
+            console.error('❌ 加载静态演示数据失败:', error);
             throw error;
         }
+    }
+    
+    /**
+     * 从矿区数据源中查找指定矿区
+     */
+    findMiningArea(miningAreaId) {
+        if (!this.miningDataSource) {
+            console.warn('⚠️ 矿区数据源未提供');
+            return null;
+        }
+        
+        const entities = this.miningDataSource.entities.values;
+        const area = entities.find(entity => {
+            const id = entity.properties?.id?.getValue();
+            return id === miningAreaId;
+        });
+        
+        if (!area) {
+            console.warn('⚠️ 未找到矿区:', miningAreaId);
+            return null;
+        }
+        
+        // 提取 GeoJSON 格式的数据
+        return {
+            properties: {
+                id: area.properties.id?.getValue(),
+                contractor: area.properties.contractor?.getValue(),
+                sponsor: area.properties.sponsor?.getValue(),
+                mineral: area.properties.mineral?.getValue(),
+                location: area.properties.location?.getValue()
+            },
+            geometry: {
+                coordinates: this.extractPolygonCoordinates(area)
+            }
+        };
+    }
+    
+    /**
+     * 从 Cesium Entity 中提取多边形坐标
+     */
+    extractPolygonCoordinates(entity) {
+        if (!entity.polygon || !entity.polygon.hierarchy) {
+            return null;
+        }
+        
+        const hierarchy = entity.polygon.hierarchy.getValue();
+        const positions = hierarchy.positions || [];
+        
+        // 转换为 [lng, lat] 格式
+        const coordinates = positions.map(position => {
+            const cartographic = Cesium.Cartographic.fromCartesian(position);
+            return [
+                Cesium.Math.toDegrees(cartographic.longitude),
+                Cesium.Math.toDegrees(cartographic.latitude)
+            ];
+        });
+        
+        // 确保多边形闭合
+        if (coordinates.length > 0) {
+            const first = coordinates[0];
+            const last = coordinates[coordinates.length - 1];
+            if (first[0] !== last[0] || first[1] !== last[1]) {
+                coordinates.push([...first]);
+            }
+        }
+        
+        return [coordinates]; // GeoJSON 格式需要嵌套数组
+    }
+    
+    /**
+     * 计算多边形中心点（质心）
+     */
+    calculatePolygonCenter(coordinates) {
+        if (!coordinates || coordinates.length === 0) {
+            throw new Error('无效的多边形坐标');
+        }
+        
+        const polygon = coordinates[0]; // 取外环
+        let sumLng = 0, sumLat = 0;
+        let count = polygon.length - 1; // 最后一个点是重复的起点
+        
+        for (let i = 0; i < count; i++) {
+            sumLng += polygon[i][0];
+            sumLat += polygon[i][1];
+        }
+        
+        return {
+            lng: sumLng / count,
+            lat: sumLat / count
+        };
+    }
+    
+    /**
+     * 生成大圆航线（球面线性插值，添加途经点避开陆地）
+     */
+    generateRoute(start, end, numWaypoints = 21) {
+        // 添加一个途经点避开日本陆地（日本南部外海）
+        const viaPoint = { lng: 135, lat: 20, name: '西太平洋' };
+        
+        // 分两段生成航线：上海 -> 途经点 -> 矿区
+        const waypoints = [];
+        
+        // 第一段：上海 -> 途经点（分配前半部分航点）
+        const segment1Points = Math.floor(numWaypoints / 3);  // 约1/3的航点
+        for (let i = 0; i <= segment1Points; i++) {
+            const fraction = i / segment1Points;
+            const point = this.interpolateGreatCircle(start, viaPoint, fraction);
+            const globalFraction = fraction * 0.33;  // 全局进度的前1/3
+            
+            // 生成模拟气象数据
+            const weather = this.generateMockWeather(globalFraction);
+            
+            // 评估风险等级
+            const risk = this.assessRisk(weather);
+            
+            // 计算到下一个航点的距离和时间
+            let segment = null;
+            if (i < segment1Points) {
+                const nextPoint = this.interpolateGreatCircle(start, viaPoint, (i + 1) / segment1Points);
+                const segmentDistance = this.calculateDistance(point, nextPoint);
+                const duration = Math.round(segmentDistance / 12);
+                
+                segment = {
+                    to: `航点 ${waypoints.length + 2}`,
+                    distance: Math.round(segmentDistance),
+                    duration: `${duration}小时`
+                };
+            }
+            
+            waypoints.push({
+                id: waypoints.length + 1,
+                lng: point.lng,
+                lat: point.lat,
+                name: i === 0 ? start.name : 
+                      i === segment1Points ? viaPoint.name :
+                      this.generateWaypointName(waypoints.length, globalFraction),
+                description: i === 0 ? '航程起点' : 
+                            this.generateWaypointDescription(globalFraction),
+                weather: weather,
+                risk: risk,
+                segment: segment
+            });
+        }
+        
+        // 第二段：途经点 -> 矿区（分配后半部分航点）
+        const segment2Points = numWaypoints - segment1Points;
+        for (let i = 1; i <= segment2Points; i++) {  // 从1开始，避免重复途经点
+            const fraction = i / segment2Points;
+            const point = this.interpolateGreatCircle(viaPoint, end, fraction);
+            const globalFraction = 0.33 + fraction * 0.67;  // 全局进度的后2/3
+            
+            // 生成模拟气象数据
+            const weather = this.generateMockWeather(globalFraction);
+            
+            // 评估风险等级
+            const risk = this.assessRisk(weather);
+            
+            // 计算到下一个航点的距离和时间
+            let segment = null;
+            if (i < segment2Points) {
+                const nextPoint = this.interpolateGreatCircle(viaPoint, end, (i + 1) / segment2Points);
+                const segmentDistance = this.calculateDistance(point, nextPoint);
+                const duration = Math.round(segmentDistance / 12);
+                
+                segment = {
+                    to: i === segment2Points - 1 ? end.name : `航点 ${waypoints.length + 2}`,
+                    distance: Math.round(segmentDistance),
+                    duration: `${duration}小时`
+                };
+            }
+            
+            waypoints.push({
+                id: waypoints.length + 1,
+                lng: point.lng,
+                lat: point.lat,
+                name: i === segment2Points ? end.name : 
+                      this.generateWaypointName(waypoints.length, globalFraction),
+                description: i === segment2Points ? `到达目的地（${end.name}），开始作业准备` :
+                            this.generateWaypointDescription(globalFraction),
+                weather: weather,
+                risk: risk,
+                segment: segment
+            });
+        }
+        
+        return waypoints;
+    }
+    
+    /**
+     * 球面线性插值（大圆航线）
+     */
+    interpolateGreatCircle(start, end, fraction) {
+        const startLat = start.lat * Math.PI / 180;
+        const startLng = start.lng * Math.PI / 180;
+        const endLat = end.lat * Math.PI / 180;
+        const endLng = end.lng * Math.PI / 180;
+        
+        // 计算球面距离
+        const d = 2 * Math.asin(Math.sqrt(
+            Math.pow(Math.sin((startLat - endLat) / 2), 2) +
+            Math.cos(startLat) * Math.cos(endLat) *
+            Math.pow(Math.sin((startLng - endLng) / 2), 2)
+        ));
+        
+        // 处理特殊情况
+        if (d < 0.0001) {
+            return { lat: start.lat, lng: start.lng };
+        }
+        
+        const A = Math.sin((1 - fraction) * d) / Math.sin(d);
+        const B = Math.sin(fraction * d) / Math.sin(d);
+        
+        const x = A * Math.cos(startLat) * Math.cos(startLng) +
+                  B * Math.cos(endLat) * Math.cos(endLng);
+        const y = A * Math.cos(startLat) * Math.sin(startLng) +
+                  B * Math.cos(endLat) * Math.sin(endLng);
+        const z = A * Math.sin(startLat) + B * Math.sin(endLat);
+        
+        const lat = Math.atan2(z, Math.sqrt(x * x + y * y)) * 180 / Math.PI;
+        const lng = Math.atan2(y, x) * 180 / Math.PI;
+        
+        return { lat, lng };
+    }
+    
+    /**
+     * 计算两点之间的距离（海里）
+     */
+    calculateDistance(point1, point2) {
+        const R = 3440.065; // 地球半径（海里）
+        const lat1 = point1.lat * Math.PI / 180;
+        const lat2 = point2.lat * Math.PI / 180;
+        const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+        const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+        
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return R * c;
+    }
+    
+    /**
+     * 计算总距离
+     */
+    calculateTotalDistance(waypoints) {
+        let total = 0;
+        for (let i = 0; i < waypoints.length - 1; i++) {
+            total += this.calculateDistance(waypoints[i], waypoints[i + 1]);
+        }
+        return total;
+    }
+    
+    /**
+     * 生成航点名称
+     */
+    generateWaypointName(index, fraction) {
+        const names = [
+            '东海海域', '琉球群岛附近', '西太平洋海域', '台风外围影响区',
+            '台风边缘区域', '避让航行区', '风浪减弱区', '中太平洋海域',
+            '热带辐合带', '强对流天气区', '天气转好区', '东太平洋海域',
+            '国际日期变更线', '东太平洋中部', '赤道无风带边缘', 'CCZ区外围',
+            'CCZ矿区边界', 'CCZ矿区中部', '矿区作业区', '接近目标矿区'
+        ];
+        
+        const nameIndex = Math.min(Math.floor(fraction * names.length), names.length - 1);
+        return names[nameIndex] || `航点 ${index}`;
+    }
+    
+    /**
+     * 生成航点描述
+     */
+    generateWaypointDescription(fraction) {
+        if (fraction < 0.15) return '进入东海';
+        if (fraction < 0.25) return '接近琉球海沟';
+        if (fraction < 0.35) return '进入开阔洋面';
+        if (fraction < 0.45) return '受台风外围环流影响';
+        if (fraction < 0.55) return '绕行台风，风浪依然较大';
+        if (fraction < 0.65) return '逐渐远离台风影响';
+        if (fraction < 0.75) return '海况好转';
+        if (fraction < 0.85) return '接近赤道';
+        if (fraction < 0.95) return '接近矿区';
+        return '最后航段';
+    }
+    
+    /**
+     * 生成模拟气象数据
+     */
+    generateMockWeather(fraction) {
+        // 根据航程位置生成不同的气象条件
+        let baseWindSpeed = 5 + Math.random() * 3;
+        let baseWaveHeight = 1 + Math.random() * 0.5;
+        
+        // 台风影响区域（fraction 0.3-0.5）
+        if (fraction > 0.3 && fraction < 0.5) {
+            baseWindSpeed = 12 + Math.random() * 5;
+            baseWaveHeight = 3 + Math.random() * 1.5;
+        }
+        
+        // 热带辐合带（fraction 0.6-0.7）
+        if (fraction > 0.6 && fraction < 0.7) {
+            baseWindSpeed = 8 + Math.random() * 4;
+            baseWaveHeight = 2 + Math.random() * 1;
+        }
+        
+        const windSpeed = parseFloat(baseWindSpeed.toFixed(1));
+        const windBeaufort = this.windSpeedToBeaufort(windSpeed);
+        const waveHeight = parseFloat(baseWaveHeight.toFixed(1));
+        
+        const windDirections = ['东北', '东', '东南', '南', '西南', '西', '西北', '北'];
+        const windDirection = windDirections[Math.floor(Math.random() * windDirections.length)];
+        
+        return {
+            windSpeed: windSpeed,
+            windBeaufort: windBeaufort,
+            windDirection: windDirection,
+            waveHeight: waveHeight,
+            visibility: Math.round(8000 + Math.random() * 10000),
+            temperature: Math.round(18 + fraction * 10 + Math.random() * 3),
+            pressure: Math.round(1008 + Math.random() * 10)
+        };
+    }
+    
+    /**
+     * 风速转蒲福风级
+     */
+    windSpeedToBeaufort(windSpeed) {
+        if (windSpeed < 0.3) return 0;
+        if (windSpeed < 1.6) return 1;
+        if (windSpeed < 3.4) return 2;
+        if (windSpeed < 5.5) return 3;
+        if (windSpeed < 8.0) return 4;
+        if (windSpeed < 10.8) return 5;
+        if (windSpeed < 13.9) return 6;
+        if (windSpeed < 17.2) return 7;
+        if (windSpeed < 20.8) return 8;
+        if (windSpeed < 24.5) return 9;
+        if (windSpeed < 28.5) return 10;
+        if (windSpeed < 32.7) return 11;
+        return 12;
+    }
+    
+    /**
+     * 评估风险等级
+     */
+    assessRisk(weather) {
+        if (weather.windSpeed > 15 || weather.waveHeight > 4) {
+            return 'danger';
+        }
+        if (weather.windSpeed > 12 || weather.waveHeight > 3) {
+            return 'warning';
+        }
+        if (weather.windSpeed > 8 || weather.waveHeight > 2) {
+            return 'caution';
+        }
+        return 'safe';
     }
 
     /**
      * 初始化演示
      */
-    async initialize() {
-        await this.loadDemoData();
+    async initialize(miningAreaId = 'CMMPMN1') {
+        await this.loadDemoData(miningAreaId);
         this.drawRoute();
         this.createWaypointMarkers();
         this.createShip();
@@ -66,9 +505,20 @@ export class RouteDemoLayer {
 
         const waypoints = this.demoData.route.waypoints;
         
-        // 分段绘制航线，每段可以独立变色
+        // 定义风险等级颜色
+        const riskColors = {
+            safe: Cesium.Color.GREEN.withAlpha(0.8),
+            caution: Cesium.Color.YELLOW.withAlpha(0.8),
+            warning: Cesium.Color.ORANGE.withAlpha(0.8),
+            danger: Cesium.Color.RED.withAlpha(0.8)
+        };
+        
+        // 分段绘制航线，每段根据风险等级显示对应颜色
         this.routeSegments = [];
         for (let i = 0; i < waypoints.length - 1; i++) {
+            const nextWaypointRisk = waypoints[i + 1].risk;
+            const segmentColor = riskColors[nextWaypointRisk] || Cesium.Color.CYAN.withAlpha(0.6);
+            
             const segment = this.viewer.entities.add({
                 name: `demo-route-segment-${i}`,
                 polyline: {
@@ -77,20 +527,20 @@ export class RouteDemoLayer {
                         Cesium.Cartesian3.fromDegrees(waypoints[i + 1].lng, waypoints[i + 1].lat, 0)
                     ],
                     width: 6,
-                    material: Cesium.Color.CYAN.withAlpha(0.6),  // 初始颜色：半透明青色
+                    material: segmentColor,  // 根据风险等级设置初始颜色
                     clampToGround: false
                 }
             });
             
             this.routeSegments.push({
                 entity: segment,
-                riskLevel: waypoints[i + 1].risk,  // 记录该段终点的风险等级
+                riskLevel: nextWaypointRisk,  // 记录该段终点的风险等级
                 startIndex: i,
                 endIndex: i + 1
             });
         }
 
-        console.log('✅ 航线绘制完成（分段），共', this.routeSegments.length, '段');
+        console.log('✅ 航线绘制完成（分段，已显示风险颜色），共', this.routeSegments.length, '段');
     }
 
     /**
@@ -297,6 +747,12 @@ export class RouteDemoLayer {
             clearTimeout(this.animationTimer);
             this.animationTimer = null;
         }
+        
+        // 暂停到达后演示
+        if (this.isArrivalDemoPlaying) {
+            this.pauseArrivalDemo();
+        }
+        
         console.log('⏸️ 暂停航线演示');
     }
 
@@ -306,8 +762,17 @@ export class RouteDemoLayer {
     resume() {
         if (!this.isPaused) return;
         this.isPaused = false;
-        this.startAnimation();
-        console.log('▶️ 继续航线演示');
+        
+        // 如果航线动画还在进行，继续航线动画
+        if (this.isPlaying) {
+            this.startAnimation();
+            console.log('▶️ 继续航线演示');
+        }
+        // 如果到达后演示在进行，继续到达后演示
+        else if (this.isArrivalDemoPlaying) {
+            this.resumeArrivalDemo();
+            console.log('▶️ 继续到达后演示');
+        }
     }
 
     /**
@@ -323,6 +788,12 @@ export class RouteDemoLayer {
             clearTimeout(this.animationTimer);
             this.animationTimer = null;
         }
+        
+        // 停止到达后演示
+        this.stopArrivalDemo();
+
+        // 恢复相机控制（解除 lookAt 锁定）
+        this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 
         // 重置船舶位置
         if (this.shipEntity && this.demoData) {
@@ -365,6 +836,15 @@ export class RouteDemoLayer {
             if (this.onAnimationComplete) {
                 this.onAnimationComplete();
             }
+            
+            // 启动到达后气象演示（延迟3秒开始）
+            if (this.arrivalForecastData && this.arrivalForecastData.length > 0) {
+                console.log('⏰ 3秒后开始到达后气象演示...');
+                setTimeout(() => {
+                    this.startArrivalDemo();
+                }, 3000);
+            }
+            
             return;
         }
 
@@ -532,8 +1012,8 @@ export class RouteDemoLayer {
                 hpr
             );
 
-            // 移除自动相机跟随，允许用户手动控制视野
-            // this.followShip(position);
+            // 相机跟随船舶（倾斜追踪视角）
+            this.followShip(position);
 
             // 实时更新进度（问题4修复）
             this.updateProgressInRealtime(progress);
@@ -562,28 +1042,20 @@ export class RouteDemoLayer {
     }
 
     /**
-     * 相机跟随船舶
+     * 相机跟随船舶（倾斜追踪视角）
      */
     followShip(position) {
         if (!this.viewer || !position) return;
 
-        // 使用 setView 而不是 lookAt，保持用户相机控制权
-        // 计算相机位置（在船舶后上方）
-        const cartographic = Cesium.Cartographic.fromCartesian(position);
-        const cameraPosition = Cesium.Cartesian3.fromRadians(
-            cartographic.longitude,
-            cartographic.latitude - 0.003,  // 优化：向南偏移约330米（后方）
-            3750000  // 优化：运动时高度3,750km（系统初始视野的1/4）
+        // 使用 lookAt 方法，相机自动计算位置并看向船舶
+        this.viewer.camera.lookAt(
+            position,  // 目标位置（船舶）
+            new Cesium.HeadingPitchRange(
+                Cesium.Math.toRadians(0),      // heading: 0度（从正北看船舶）
+                Cesium.Math.toRadians(-45),    // pitch: -45度俯角（倾斜视角）
+                3750000                        // range: 距离船舶3750km（系统初始高度15000km的1/4）
+            )
         );
-
-        this.viewer.camera.setView({
-            destination: cameraPosition,
-            orientation: {
-                heading: 0,
-                pitch: Cesium.Math.toRadians(-89),  // 修复：-89度俯角，几乎垂直向下看地球
-                roll: 0
-            }
-        });
     }
 
     /**
@@ -609,7 +1081,7 @@ export class RouteDemoLayer {
     }
 
     /**
-     * 飞行到指定航点（问题1修复：飞到船舶位置而不是航点）
+     * 飞行到指定航点（初始视角设置）
      */
     flyToWaypoint(index) {
         if (!this.demoData || !this.shipEntity) return;
@@ -617,21 +1089,27 @@ export class RouteDemoLayer {
         // 获取船舶当前位置
         const shipPosition = this.shipEntity.position.getValue(this.viewer.clock.currentTime);
         if (!shipPosition) return;
-
+        
+        // 使用 flyTo 飞到船舶附近，然后使用 lookAt 设置视角
         const cartographic = Cesium.Cartographic.fromCartesian(shipPosition);
         
-        // 飞到船舶位置（后上方视角）
         this.viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromRadians(
                 cartographic.longitude,
-                cartographic.latitude - 0.003,  // 优化：向南偏移约330米（后方）
-                7500000  // 优化：初始高度7,500km（系统初始视野的1/2）
+                cartographic.latitude - 0.01,  // 稍微偏移
+                3750000  // 临时高度（系统初始高度15000km的1/4）
             ),
             duration: 2,
-            orientation: {
-                heading: Cesium.Math.toRadians(0),
-                pitch: Cesium.Math.toRadians(-89),  // 修复：-89度俯角，几乎垂直向下看地球
-                roll: 0
+            complete: () => {
+                // 飞行完成后，使用 lookAt 锁定船舶
+                this.viewer.camera.lookAt(
+                    shipPosition,
+                    new Cesium.HeadingPitchRange(
+                        Cesium.Math.toRadians(0),
+                        Cesium.Math.toRadians(-45),
+                        3750000  // range: 距离船舶3750km（系统初始高度15000km的1/4）
+                    )
+                );
             }
         });
     }
@@ -641,6 +1119,9 @@ export class RouteDemoLayer {
      */
     clear() {
         this.stop();
+
+        // 恢复相机控制（解除 lookAt 锁定）
+        this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 
         // 不再需要销毁点击处理器（因为没有创建）
         // if (this.clickHandler) {
@@ -687,9 +1168,6 @@ export class RouteDemoLayer {
             this.weatherInfoEntity = null;
         }
 
-        // 恢复相机控制
-        this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
-
         console.log('🗑️ 航线演示已清除');
     }
 
@@ -708,5 +1186,133 @@ export class RouteDemoLayer {
     getCurrentWaypoint() {
         if (!this.demoData) return null;
         return this.demoData.route.waypoints[this.currentWaypointIndex];
+    }
+    
+    /**
+     * 设置到达后预报数据
+     */
+    setArrivalForecast(arrivalForecast) {
+        this.arrivalForecastData = arrivalForecast;
+        console.log('📊 已设置到达后预报数据，共', arrivalForecast.length, '天');
+    }
+    
+    /**
+     * 开始到达后气象演示
+     */
+    startArrivalDemo() {
+        if (!this.arrivalForecastData || this.arrivalForecastData.length === 0) {
+            console.log('⚠️ 没有到达后预报数据，跳过演示');
+            return;
+        }
+        
+        if (this.isArrivalDemoPlaying) {
+            console.log('⚠️ 到达后演示已在进行中');
+            return;
+        }
+        
+        this.isArrivalDemoPlaying = true;
+        this.currentArrivalDay = 0;
+        
+        console.log('🎬 开始到达后气象演示，共', this.arrivalForecastData.length, '天');
+        
+        // 开始演示第一天
+        this.showNextArrivalDay();
+    }
+    
+    /**
+     * 显示下一天的到达后气象
+     */
+    showNextArrivalDay() {
+        if (!this.isArrivalDemoPlaying) {
+            console.log('⏹️ 到达后演示已停止');
+            return;
+        }
+        
+        if (this.currentArrivalDay >= this.arrivalForecastData.length) {
+            console.log('✅ 到达后气象演示完成');
+            this.isArrivalDemoPlaying = false;
+            return;
+        }
+        
+        const dayData = this.arrivalForecastData[this.currentArrivalDay];
+        const dayNumber = this.currentArrivalDay + 1;
+        
+        console.log(`📅 显示到达后第${dayNumber}天气象 (${dayData.date})，风险等级: ${dayData.risk}`);
+        
+        // 只有 warning 或 danger 级别才弹警告
+        if (dayData.risk === 'warning' || dayData.risk === 'danger') {
+            // 构造类似航点的数据结构
+            const warningData = {
+                name: `到达后第${dayNumber}天 (${dayData.date})`,
+                weather: {
+                    windSpeed: dayData.windSpeed,
+                    windBeaufort: this.windSpeedToBeaufort(dayData.windSpeed),
+                    waveHeight: dayData.waveHeight,
+                    visibility: 10000,  // 默认能见度
+                    temperature: 26,  // 默认温度
+                    windDirection: '东北',  // 默认风向
+                    pressure: 1012  // 默认气压
+                },
+                risk: dayData.risk,
+                workable: dayData.workable
+            };
+            
+            // 触发警告回调
+            if (this.onHighRiskWarning) {
+                this.onHighRiskWarning(warningData);
+            }
+            
+            console.log(`⚠️ 触发到达后第${dayNumber}天警告`);
+        } else {
+            console.log(`✓ 到达后第${dayNumber}天气象良好，无需警告`);
+        }
+        
+        this.currentArrivalDay++;
+        
+        // 继续下一天（间隔3秒）
+        const interval = 3000 / this.animationSpeed;  // 根据动画速度调整
+        this.arrivalDemoTimer = setTimeout(() => {
+            this.showNextArrivalDay();
+        }, interval);
+    }
+    
+    /**
+     * 停止到达后演示
+     */
+    stopArrivalDemo() {
+        if (this.arrivalDemoTimer) {
+            clearTimeout(this.arrivalDemoTimer);
+            this.arrivalDemoTimer = null;
+        }
+        
+        this.isArrivalDemoPlaying = false;
+        this.currentArrivalDay = 0;
+        
+        console.log('⏹️ 停止到达后气象演示');
+    }
+    
+    /**
+     * 暂停到达后演示
+     */
+    pauseArrivalDemo() {
+        if (this.arrivalDemoTimer) {
+            clearTimeout(this.arrivalDemoTimer);
+            this.arrivalDemoTimer = null;
+        }
+        
+        console.log('⏸️ 暂停到达后气象演示');
+    }
+    
+    /**
+     * 继续到达后演示
+     */
+    resumeArrivalDemo() {
+        if (!this.isArrivalDemoPlaying) {
+            console.log('⚠️ 到达后演示未启动');
+            return;
+        }
+        
+        console.log('▶️ 继续到达后气象演示');
+        this.showNextArrivalDay();
     }
 }

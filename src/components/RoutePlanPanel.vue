@@ -152,7 +152,7 @@
                         :disabled="loading || !canPlan"
                         class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
                     >
-                        {{ loading ? '规划中...' : '规划路径' }}
+                        {{ loading ? '加载中...' : '🎬 查看演示航线' }}
                     </button>
                     <button 
                         v-if="routeResult"

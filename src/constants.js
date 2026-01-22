@@ -58,7 +58,7 @@ export const MINING_REGIONS = [
         id: 'pacific_ccz',
         label: '太平洋CCZ区',
         description: 'Clarion-Clipperton Zone',
-        active: true,
+        active: true,  // 默认打开
         count: 0, // 将在运行时计算
         // 筛选条件
         filter: {
@@ -71,7 +71,7 @@ export const MINING_REGIONS = [
         id: 'pacific_other',
         label: '太平洋其他区',
         description: '太平洋其他海域',
-        active: true,
+        active: false,  // 默认关闭
         count: 0,
         filter: {
             location: ['太平洋'], // 不包含CCZ的太平洋区域
@@ -83,7 +83,7 @@ export const MINING_REGIONS = [
         id: 'indian_ocean',
         label: '印度洋区',
         description: '印度洋矿区',
-        active: true,
+        active: false,  // 默认关闭
         count: 0,
         filter: {
             location: ['印度洋']
@@ -94,7 +94,7 @@ export const MINING_REGIONS = [
         id: 'atlantic_ocean',
         label: '大西洋区',
         description: '大西洋矿区',
-        active: true,
+        active: false,  // 默认关闭
         count: 0,
         filter: {
             location: ['大西洋']
@@ -105,7 +105,7 @@ export const MINING_REGIONS = [
         id: 'apei',
         label: '环境保护区',
         description: 'APEI区域',
-        active: true,
+        active: false,  // 默认关闭
         count: 0,
         filter: {
             category: ['APEI']
@@ -175,7 +175,7 @@ export const TAB_TOOLS_MAPPING = {
         '历史轨迹',
         '航线规划',
         '航线气象',
-        '航线演示',
+        '航线动态',
         '区域监控'
     ],
     '预警保障': [

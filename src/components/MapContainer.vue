@@ -519,9 +519,9 @@ export default {
             
             viewer._cesiumWidget._creditContainer.style.display = "none";
 
-            // 设置初始视角
+            // 设置初始视角（先看向上海）
             viewer.camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
+                destination: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 15000000),
                 orientation: {
                     heading: 0,
                     pitch: Cesium.Math.toRadians(-90),
@@ -644,6 +644,27 @@ export default {
                     miningData: miningData,
                     regionCounts: regionCounts
                 });
+
+                // 添加上海港标记（⚓ emoji）- 使用深红色/橙红色，始终醒目
+                viewer.entities.add({
+                    name: 'shanghai-port',
+                    position: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 0),
+                    label: {
+                        text: '⚓\n上海港',
+                        font: 'bold 40px sans-serif',
+                        fillColor: Cesium.Color.fromCssColorString('#FF4500'),  // 橙红色 (OrangeRed)
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 6,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        pixelOffset: new Cesium.Cartesian2(0, 0),
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                        scaleByDistance: new Cesium.NearFarScalar(1000000, 2.0, 10000000, 0.5),
+                        // 移除 translucencyByDistance，保持始终不透明
+                        disableDepthTestDistance: Number.POSITIVE_INFINITY
+                    }
+                });
+                console.log('⚓ 上海港标记已添加（橙红色，始终醒目）');
 
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
                 const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -1006,10 +1027,11 @@ export default {
                 
                 clickHandler = handler;
 
-                // 延迟1.5秒后，飞到太平洋矿区（适中高度，展示矿区全貌）
+                // 地球旋转动画：上海 → 太平洋矿区
+                // 第一段：延迟1秒后，缓慢飞到上海（3秒）
                 setTimeout(() => {
                     viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
+                        destination: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 8000000),
                         orientation: {
                             heading: 0,
                             pitch: Cesium.Math.toRadians(-90),
@@ -1018,7 +1040,21 @@ export default {
                         duration: 3,
                         easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
                     });
-                }, 1500);
+                }, 1000);
+                
+                // 第二段：延迟5秒后，从上海飞到太平洋矿区（4秒）
+                setTimeout(() => {
+                    viewer.camera.flyTo({
+                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
+                        orientation: {
+                            heading: 0,
+                            pitch: Cesium.Math.toRadians(-90),
+                            roll: 0
+                        },
+                        duration: 4,
+                        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
+                    });
+                }, 5000);
                 
             } catch (error) {
                 console.error('❌ 加载失败:', error);
@@ -2023,23 +2059,18 @@ export default {
         };
         
         // 处理路径规划结果
-        const handleRoutePlanned = (routeData) => {
-            if (routeLayer && routeData.route) {
-                routeLayer.drawRoute(routeData.route, {
-                    startPort: routeData.startPort,
-                    endPort: routeData.endPort,
-                    lineColor: Cesium.Color.PURPLE.withAlpha(0.8),
-                    lineWidth: 4,
-                    showArrows: true
-                });
-                
-                // 飞到航线视角
-                setTimeout(() => {
-                    routeLayer.flyToRoute();
-                }, 500);
-                
-                console.log('✅ 航线已绘制到地图');
-            }
+        const handleRoutePlanned = async (routeData) => {
+            // 不再绘制静态航线，改为初始化航线演示
+            console.log('🎬 路径规划触发 → 启动航线演示');
+            
+            // 初始化航线演示（上海 → CMMPMN1矿区）
+            await initRouteDemo();
+            
+            // 通知 App.vue 打开航线动态面板
+            // 通过全局事件通知
+            window.dispatchEvent(new CustomEvent('openRouteDemo'));
+            
+            console.log('✅ 航线演示已启动');
         };
         
         // 清除路径
@@ -3585,10 +3616,12 @@ export default {
                 console.log('🎬 初始化航线演示...');
                 
                 if (!routeDemoLayer) {
-                    routeDemoLayer = new RouteDemoLayer(viewer);
+                    // 传入矿区数据源
+                    routeDemoLayer = new RouteDemoLayer(viewer, dataSource);
                 }
                 
-                await routeDemoLayer.initialize();
+                // 初始化时传入矿区ID（CMMPMN1）
+                await routeDemoLayer.initialize('CMMPMN1');
                 
                 // 设置航点到达回调
                 routeDemoLayer.onWaypointReached = (waypoint, index) => {
@@ -3689,6 +3722,123 @@ export default {
                     // 设置初始航点信息
                     const firstWaypoint = routeDemoLayer.demoData.route.waypoints[0];
                     appRouteDemoRef.updateWeather(firstWaypoint);
+                }
+                
+                // 显示矿区气象信息卡片 - 使用事件系统
+                console.log('📊 准备发送显示气象卡片事件');
+                
+                if (routeDemoLayer.demoData) {
+                    // 生成航程预报数据（20天）
+                    const voyageForecast = [];
+                    const today = new Date();
+                    
+                    for (let i = 0; i < 20; i++) {
+                        const date = new Date(today);
+                        date.setDate(today.getDate() + i);
+                        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+                        
+                        let windSpeed, waveHeight, risk;
+                        
+                        // 前5天：平静海况
+                        if (i < 5) {
+                            windSpeed = 7 + Math.random() * 2;  // 7-9 m/s
+                            waveHeight = 1.5 + Math.random() * 0.8;  // 1.5-2.3 m
+                            risk = 'safe';
+                        }
+                        // 第6-10天：台风影响
+                        else if (i < 10) {
+                            windSpeed = 12 + Math.random() * 5;  // 12-17 m/s
+                            waveHeight = 3 + Math.random() * 1.5;  // 3-4.5 m
+                            risk = i < 8 ? 'warning' : 'danger';
+                        }
+                        // 第11-20天：逐渐好转
+                        else {
+                            windSpeed = 8 + Math.random() * 3;  // 8-11 m/s
+                            waveHeight = 2 + Math.random() * 1;  // 2-3 m
+                            risk = windSpeed > 10 ? 'caution' : 'safe';
+                        }
+                        
+                        voyageForecast.push({
+                            date: dateStr,
+                            windSpeed: parseFloat(windSpeed.toFixed(1)),
+                            waveHeight: parseFloat(waveHeight.toFixed(1)),
+                            risk: risk
+                        });
+                    }
+                    
+                    // 生成到达后预报数据（7天）
+                    const arrivalForecast = [];
+                    const arrivalDate = new Date(today);
+                    arrivalDate.setDate(today.getDate() + 20);  // 20天后到达
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const date = new Date(arrivalDate);
+                        date.setDate(arrivalDate.getDate() + i);
+                        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+                        
+                        // 模拟变化的作业条件
+                        const windSpeed = 6 + Math.random() * 8;  // 6-14 m/s
+                        const waveHeight = 1.5 + Math.random() * 2;  // 1.5-3.5 m
+                        const workable = windSpeed < 12 && waveHeight < 3;  // 作业条件：风速<12m/s 且 浪高<3m
+                        
+                        let risk;
+                        if (windSpeed > 12 || waveHeight > 3) {
+                            risk = 'warning';
+                        } else if (windSpeed > 10 || waveHeight > 2.5) {
+                            risk = 'caution';
+                        } else {
+                            risk = 'safe';
+                        }
+                        
+                        arrivalForecast.push({
+                            date: dateStr,
+                            windSpeed: parseFloat(windSpeed.toFixed(1)),
+                            waveHeight: parseFloat(waveHeight.toFixed(1)),
+                            workable: workable,
+                            risk: risk
+                        });
+                    }
+                    
+                    // 计算统计数据
+                    const voyageStats = {
+                        highRiskDays: voyageForecast.filter(d => d.risk === 'danger' || d.risk === 'warning').length,
+                        safeDays: voyageForecast.filter(d => d.risk === 'safe').length
+                    };
+                    
+                    const arrivalStats = {
+                        workableDays: arrivalForecast.filter(d => d.workable).length
+                    };
+                    
+                    // 设置到达后预报数据到 routeDemoLayer（在发送事件之前）
+                    if (arrivalForecast && arrivalForecast.length > 0) {
+                        routeDemoLayer.setArrivalForecast(arrivalForecast);
+                        console.log('✅ 已将到达后预报数据传递给 routeDemoLayer');
+                    }
+                    
+                    // 构造矿区气象数据
+                    const miningAreaWeather = {
+                        name: routeDemoLayer.demoData.route.endArea.name,
+                        contractor: '中国五矿集团',
+                        mineral: '多金属结核',
+                        current: {
+                            windSpeed: 8.5 + Math.random() * 2,  // 当前风速 8.5-10.5 m/s
+                            waveHeight: 2.2 + Math.random() * 0.5,  // 当前浪高 2.2-2.7 m
+                            temperature: 26,
+                            windDirection: '东北',
+                            windBeaufort: 5
+                        },
+                        voyageForecast: voyageForecast,
+                        voyageStats: voyageStats,
+                        arrivalForecast: arrivalForecast,
+                        arrivalStats: arrivalStats
+                    };
+                    
+                    // 通过全局事件发送
+                    window.dispatchEvent(new CustomEvent('showMiningWeatherCard', {
+                        detail: miningAreaWeather
+                    }));
+                    
+                    console.log('✅ 已发送显示气象卡片事件，包含航程和到达预报数据');
                 }
                 
                 console.log('✅ 航线演示初始化完成');

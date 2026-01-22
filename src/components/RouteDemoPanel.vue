@@ -10,7 +10,7 @@
                 <!-- 标题 -->
                 <div class="flex items-center mb-6 border-b-2 border-purple-500/30 pb-3">
                     <div class="w-1.5 h-6 bg-purple-400 mr-3 shadow-[0_0_10px_#a855f7]"></div>
-                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">航线演示</h3>
+                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">航线动态</h3>
                     <div class="text-xs font-['Orbitron'] text-purple-500 opacity-80 font-bold tracking-widest">ROUTE DEMO</div>
                 </div>
 

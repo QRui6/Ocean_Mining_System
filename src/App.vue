@@ -143,6 +143,9 @@
                 
                 <!-- 高风险警告组件 -->
                 <RouteRiskWarning ref="riskWarningRef" />
+                
+                <!-- 矿区气象信息卡片 -->
+                <MiningAreaWeatherCard ref="weatherCardRef" />
             </div>
 
             <!-- Decorative Overlay Effects -->
@@ -181,6 +184,7 @@ import WeatherListTable from './components/WeatherListTable.vue';
 import MiningAreaWeatherMonitor from './components/MiningAreaWeatherMonitor.vue';
 import RouteDemoPanel from './components/RouteDemoPanel.vue';
 import RouteRiskWarning from './components/RouteRiskWarning.vue';
+import MiningAreaWeatherCard from './components/MiningAreaWeatherCard.vue';
 
 export default {
     components: {
@@ -198,7 +202,8 @@ export default {
         WeatherListTable,
         MiningAreaWeatherMonitor,
         RouteDemoPanel,
-        RouteRiskWarning
+        RouteRiskWarning,
+        MiningAreaWeatherCard
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -470,6 +475,7 @@ export default {
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
+        const weatherCardRef = ref(null);  // 矿区气象信息卡片引用
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
         
@@ -825,11 +831,20 @@ export default {
          * @param {Object} routeData - 路径数据
          */
         const handleRoutePlanned = (routeData) => {
-            console.log('🗺️ 路径规划完成:', routeData);
-            // 保存当前航线数据
-            currentRouteData.value = routeData;
-            // 通知地图组件绘制路径
-            routeToDraw.value = { ...routeData, timestamp: Date.now(), action: 'draw' };
+            console.log('🗺️ 路径规划完成 → 启动航线演示');
+            
+            // 关闭路径规划面板
+            activePanels.value.routePlan = false;
+            
+            // 打开航线动态面板
+            activePanels.value.routeDemo = true;
+            
+            // 通知 MapContainer 初始化航线演示
+            if (mapContainerRef.value && mapContainerRef.value.initRouteDemo) {
+                mapContainerRef.value.initRouteDemo();
+            }
+            
+            console.log('✅ 航线动态面板已打开');
         };
         
         /**
@@ -1174,7 +1189,7 @@ export default {
                     shipSearch: false     // 关闭船舶搜索
                 };
             } else if (tab === '船舶追踪') {
-                // 船舶追踪：自动打开船舶搜索面板
+                // 船舶追踪：关闭船舶搜索面板（默认不打开）
                 showTimeline.value = false;
                 activePanels.value = {
                     list: false,
@@ -1182,7 +1197,7 @@ export default {
                     query: false,
                     layers: false,
                     weatherLayers: false,
-                    shipSearch: true,     // 自动打开船舶搜索
+                    shipSearch: false,    // 默认关闭船舶搜索
                     routePlan: false,
                     historyTrack: false
                 };
@@ -1207,12 +1222,22 @@ export default {
          * 1. 初始化屏幕缩放比例
          * 2. 监听窗口大小变化事件
          */
-        onMounted(() => {
+        onMounted(async () => {
             updateScale();
             window.addEventListener('resize', updateScale);
             
             // 连接 WebSocket
             connectWebSocket();
+            
+            // 监听来自 MapContainer 的打开航线演示事件
+            window.addEventListener('openRouteDemo', () => {
+                console.log('📡 收到打开航线演示事件');
+                activePanels.value.routePlan = false;
+                activePanels.value.routeDemo = true;
+            });
+            
+            // 等待所有组件完全挂载后再设置全局引用
+            await nextTick();
             
             // 暴露全局引用用于跨组件通信（在组件挂载后）
             if (typeof window !== 'undefined') {
@@ -1221,9 +1246,18 @@ export default {
                 };
                 window.appRouteDemoRef = routeDemoRef.value;
                 window.appRiskWarningRef = riskWarningRef.value;  // 添加警告组件引用
+                window.appWeatherCardRef = weatherCardRef.value;  // 添加气象卡片引用
                 console.log('🌐 window.app 已设置:', window.app);
-                console.log('🎬 window.appRouteDemoRef 已设置');
-                console.log('⚠️ window.appRiskWarningRef 已设置');
+                console.log('🎬 window.appRouteDemoRef 已设置:', window.appRouteDemoRef);
+                console.log('⚠️ window.appRiskWarningRef 已设置:', window.appRiskWarningRef);
+                console.log('📊 window.appWeatherCardRef 已设置:', window.appWeatherCardRef);
+                
+                // 验证 weatherCardRef
+                if (!window.appWeatherCardRef) {
+                    console.error('❌ weatherCardRef 为 null！');
+                } else {
+                    console.log('✅ weatherCardRef 方法:', Object.keys(window.appWeatherCardRef));
+                }
             }
         });
         

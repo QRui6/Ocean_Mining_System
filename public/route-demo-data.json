@@ -1,14 +1,14 @@
 {
   "route": {
-    "name": "上海港 → 太平洋CCZ矿区",
-    "description": "从上海港出发，经东海、西太平洋，最终到达中国五矿CCZ多金属结核矿区",
+    "name": "上海港 → 中国五矿CCZ矿区",
+    "description": "从上海港出发，经东海、西太平洋，最终到达中国五矿集团CCZ多金属结核矿区（CMMPMN1）",
     "startPort": {
       "name": "上海港",
       "lng": 121.5,
       "lat": 31.2
     },
     "endArea": {
-      "name": "中国五矿CCZ矿区",
+      "name": "中国五矿CCZ多金属结核矿区",
       "lng": -130.0,
       "lat": 12.0
     },
@@ -482,8 +482,8 @@
         "id": 22,
         "lng": -130.0,
         "lat": 12.0,
-        "name": "中国五矿CCZ矿区",
-        "description": "到达目的地，开始作业准备",
+        "name": "中国五矿CCZ多金属结核矿区",
+        "description": "到达目的地（CMMPMN1），开始作业准备",
         "weather": {
           "windSpeed": 11.2,
           "windBeaufort": 6,
