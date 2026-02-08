@@ -1,168 +1,147 @@
 <template>
-    <!-- 位置调整：右下角，与船舶列表类似的布局 - 添加 pointer-events-auto 使其可点击 -->
-    <div class="absolute bottom-2 left-[31rem] right-8 h-[25rem] z-30 animate-slideUp flex flex-col pointer-events-auto">
-        <!-- Top Decor -->
-        <div class="h-3 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none"></div>
+    <!-- 底部横向卡片布局 -->
+    <div class="absolute bottom-2 left-8 right-8 z-30 animate-slideUp pointer-events-auto">
+        <div v-if="weatherData.length === 0" class="text-center text-slate-500 bg-slate-950/95 backdrop-blur-lg border border-cyan-500/30 rounded p-4">
+            暂无气象数据
+        </div>
         
-        <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 flex flex-col relative overflow-hidden pointer-events-auto">
-            <!-- 简化的Header -->
-            <div class="h-12 flex items-center justify-between px-6 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
-                <div class="flex items-center gap-3">
-                    <div class="w-1 h-5 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
-                    <h3 class="text-lg font-bold text-cyan-50 tracking-wider">航线气象数据</h3>
-                    <span class="text-xs text-cyan-500/60 font-['Orbitron'] tracking-wider">{{ weatherData.length }} 个采样点</span>
-                </div>
-                <!-- 简化的工具栏 -->
-                <div class="flex gap-4 text-cyan-400 text-sm font-bold items-center">
-                    <div class="flex items-center gap-2 text-xs opacity-70">
-                        <svg class="w-3 h-3" v-if="refreshCountdown <= 10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span class="font-['Rajdhani']">{{ formatCountdown(refreshCountdown) }}</span>
+        <!-- 横向排列的卡片容器 -->
+        <div v-else class="flex gap-3 overflow-x-auto custom-scrollbar pb-2">
+            <!-- 当前气象卡片 -->
+            <div class="flex-shrink-0 w-64 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden">
+                <div class="h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1 h-3 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
+                        <h3 class="text-sm font-bold text-cyan-50">当前气象</h3>
                     </div>
-                    <button @click="handleManualRefresh" class="hover:text-white transition-colors">
-                        刷新
-                    </button>
-                    <button @click="$emit('clear')" class="hover:text-white transition-colors">
-                        清空
-                    </button>
+                </div>
+                <div class="p-3 space-y-2">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="text-center">
+                            <div class="text-xs text-cyan-400">风速</div>
+                            <div class="text-lg font-bold text-yellow-400">{{ (currentWeather.windspeed || 0).toFixed(1) }}</div>
+                            <div class="text-xs text-slate-400">m/s</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-cyan-400">浪高</div>
+                            <div class="text-lg font-bold text-yellow-400">{{ (currentWeather.waveheight || 0).toFixed(1) }}</div>
+                            <div class="text-xs text-slate-400">m</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-cyan-400">温度</div>
+                            <div class="text-lg font-bold text-cyan-400">{{ (currentWeather.temperature || 0).toFixed(0) }}</div>
+                            <div class="text-xs text-slate-400">°C</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        
-            <!-- 横向时间轴表格 -->
-            <div class="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar px-4 py-2 min-h-0">
-                <div v-if="weatherData.length === 0" class="flex items-center justify-center h-full">
-                    <div class="text-center text-slate-500">
-                        <div>暂无气象数据</div>
+
+            <!-- 航程预报卡片 -->
+            <div class="flex-shrink-0 w-[500px] h-40 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden relative">
+                <div class="absolute top-0 left-0 right-0 h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent z-10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1 h-3 bg-yellow-400 shadow-[0_0_8px_#facc15]"></div>
+                        <h3 class="text-sm font-bold text-cyan-50">航程预报 ({{ routeForecast.length }}天)</h3>
+                    </div>
+                    <div class="flex gap-2 text-xs">
+                        <button @click="handleManualRefresh" class="text-cyan-400 hover:text-white transition-colors">刷新</button>
+                        <button @click="$emit('clear')" class="text-cyan-400 hover:text-white transition-colors">清空</button>
                     </div>
                 </div>
-                
-                <table v-else class="w-full border-collapse text-xs">
-                    <thead class="bg-cyan-900/20 text-cyan-200 sticky top-0 backdrop-blur-md z-10">
-                        <tr>
-                            <th class="px-3 py-2 font-bold border-b-2 border-cyan-500/30 text-left sticky left-0 bg-cyan-900/40 backdrop-blur-md z-20 w-28">时间</th>
-                            <th v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 font-bold border-b-2 border-cyan-500/30 text-center min-w-[85px] cursor-pointer hover:bg-cyan-500/20 transition-colors"
+                <div class="absolute top-8 left-0 right-0 bottom-0 overflow-y-auto custom-scrollbar">
+                    <table class="w-full text-xs">
+                        <thead class="text-cyan-400 sticky top-0 bg-slate-950/95">
+                            <tr class="border-b border-cyan-500/20">
+                                <th class="px-2 py-3 text-left">日期</th>
+                                <th class="px-2 py-3 text-center">风速</th>
+                                <th class="px-2 py-3 text-center">浪高</th>
+                                <th class="px-2 py-3 text-center">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-300">
+                            <tr v-for="(item, index) in routeForecast" :key="index" 
+                                class="border-b border-slate-800/50 hover:bg-cyan-500/5 cursor-pointer"
                                 @click="handleRowClick(item, index)"
-                                :class="selectedRow === index ? 'bg-cyan-500/30' : ''"
-                            >
-                                <div class="text-xs whitespace-nowrap">{{ formatArrivalTime(item.arrivalTime) }}</div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-slate-300 font-['Rajdhani']">
-                        <!-- 节点 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">节点</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-cyan-500 font-bold text-xs"
                                 :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
                             >
-                                {{ index + 1 }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 综合风险 -->
-                        <tr class="border-b-2 border-slate-700 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">综合风险</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center font-bold text-xs"
-                                :class="[
-                                    getRiskTextClass(item.risk),
-                                    getRiskBgClass(item.risk),
-                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
-                                ]"
-                            >
-                                {{ getRiskLabel(item.risk) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 距离 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">距离(nm)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-white font-bold text-xs"
-                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
-                            >
-                                {{ formatDistance(item.distanceFromStart) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 风速 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">风速(m/s)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center font-bold text-xs"
-                                :class="[
-                                    getWindSpeedClass(item.weather.windspeed),
-                                    getWindSpeedBgClass(item.weather.windspeed),
-                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
-                                ]"
-                            >
-                                {{ (item.weather.windspeed || 0).toFixed(1) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 风向 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">风向(°)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-xs"
-                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
-                            >
-                                {{ item.weather.winddir || 'N/A' }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 浪高 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">浪高(m)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center font-bold text-xs"
-                                :class="[
-                                    getWaveHeightClass(item.weather.waveheight),
-                                    getWaveHeightBgClass(item.weather.waveheight),
-                                    selectedRow === index ? 'ring-2 ring-cyan-500' : ''
-                                ]"
-                            >
-                                {{ (item.weather.waveheight || 0).toFixed(1) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 涌浪 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">涌浪(m)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-xs"
-                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
-                            >
-                                {{ (item.weather.swellheight || 0).toFixed(1) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 能见度 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">能见度(m)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-xs"
-                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
-                            >
-                                {{ (item.weather.visibility || 0).toFixed(0) }}
-                            </td>
-                        </tr>
-                        
-                        <!-- 气温 -->
-                        <tr class="border-b border-slate-800 hover:bg-cyan-500/5">
-                            <td class="px-3 py-2 font-bold text-cyan-400 sticky left-0 bg-slate-950/95 backdrop-blur-md z-10 w-28">气温(°C)</td>
-                            <td v-for="(item, index) in weatherData" :key="index" 
-                                class="px-2 py-2 text-center text-xs"
-                                :class="selectedRow === index ? 'bg-cyan-500/10' : ''"
-                            >
-                                {{ (item.weather.temperature || 0).toFixed(1) }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <td class="px-2 py-4">{{ formatDate(item.arrivalTime) }}</td>
+                                <td class="px-2 py-4 text-center font-bold" :class="getWindSpeedClass(item.weather.windspeed)">
+                                    {{ (item.weather.windspeed || 0).toFixed(1) }} m/s
+                                </td>
+                                <td class="px-2 py-4 text-center font-bold" :class="getWaveHeightClass(item.weather.waveheight)">
+                                    {{ (item.weather.waveheight || 0).toFixed(1) }} m
+                                </td>
+                                <td class="px-2 py-4 text-center">
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold" :class="[getRiskTextClass(item.risk), getRiskBgClass(item.risk)]">
+                                        {{ getRiskLabel(item.risk) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 风险统计卡片 -->
+            <div class="flex-shrink-0 w-64 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden">
+                <div class="h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1 h-3 bg-green-400 shadow-[0_0_8px_#4ade80]"></div>
+                        <h3 class="text-sm font-bold text-cyan-50">风险统计</h3>
+                    </div>
+                </div>
+                <div class="p-3 space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-red-900/20 border border-red-500/30 rounded p-2 text-center">
+                            <div class="text-xs text-red-400">高风险天数</div>
+                            <div class="text-2xl font-bold text-red-400">{{ riskStats.danger }}</div>
+                            <div class="text-xs text-slate-400">天</div>
+                        </div>
+                        <div class="bg-green-900/20 border border-green-500/30 rounded p-2 text-center">
+                            <div class="text-xs text-green-400">适航天数</div>
+                            <div class="text-2xl font-bold text-green-400">{{ riskStats.safe }}</div>
+                            <div class="text-xs text-slate-400">天</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 到达后预报卡片 -->
+            <div v-if="afterArrivalForecast.length > 0" class="flex-shrink-0 w-[400px] h-40 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden relative">
+                <div class="absolute top-0 left-0 right-0 h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent z-10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1 h-3 bg-purple-400 shadow-[0_0_8px_#c084fc]"></div>
+                        <h3 class="text-sm font-bold text-cyan-50">到达后预报 ({{ afterArrivalForecast.length }}天)</h3>
+                    </div>
+                </div>
+                <div class="absolute top-8 left-0 right-0 bottom-0 overflow-y-auto custom-scrollbar">
+                    <table class="w-full text-xs">
+                        <thead class="text-cyan-400 sticky top-0 bg-slate-950/95">
+                            <tr class="border-b border-cyan-500/20">
+                                <th class="px-2 py-3 text-left">日期</th>
+                                <th class="px-2 py-3 text-center">风速</th>
+                                <th class="px-2 py-3 text-center">浪高</th>
+                                <th class="px-2 py-3 text-center">作业</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-300">
+                            <tr v-for="(item, index) in afterArrivalForecast" :key="index" class="border-b border-slate-800/50 hover:bg-cyan-500/5">
+                                <td class="px-2 py-4">{{ formatDate(item.arrivalTime) }}</td>
+                                <td class="px-2 py-4 text-center font-bold" :class="getWindSpeedClass(item.weather.windspeed)">
+                                    {{ (item.weather.windspeed || 0).toFixed(1) }} m/s
+                                </td>
+                                <td class="px-2 py-4 text-center font-bold" :class="getWaveHeightClass(item.weather.waveheight)">
+                                    {{ (item.weather.waveheight || 0).toFixed(1) }} m
+                                </td>
+                                <td class="px-2 py-4 text-center">
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold" :class="item.risk.level === 'safe' ? 'text-green-400 bg-green-900/30' : 'text-red-400 bg-red-900/30'">
+                                        {{ item.risk.level === 'safe' ? '可作业' : '不可作业' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -191,6 +170,43 @@ export default {
         const refreshCountdown = ref(300);
         let refreshTimer = null;
         
+        // 计算当前气象（第一个数据点）
+        const currentWeather = computed(() => {
+            if (props.weatherData.length === 0) return {};
+            return props.weatherData[0].weather || {};
+        });
+        
+        // 计算航程预报（前20天）
+        const routeForecast = computed(() => {
+            return props.weatherData.slice(0, 20);
+        });
+        
+        // 计算到达后预报（20天后的数据）
+        const afterArrivalForecast = computed(() => {
+            return props.weatherData.slice(20);
+        });
+        
+        // 计算风险统计
+        const riskStats = computed(() => {
+            const stats = {
+                safe: 0,
+                caution: 0,
+                warning: 0,
+                danger: 0
+            };
+            
+            props.weatherData.forEach(item => {
+                if (item.risk && item.risk.level) {
+                    if (item.risk.level === 'safe') stats.safe++;
+                    else if (item.risk.level === 'caution') stats.caution++;
+                    else if (item.risk.level === 'warning') stats.warning++;
+                    else if (item.risk.level === 'danger') stats.danger++;
+                }
+            });
+            
+            return stats;
+        });
+        
         // 处理行点击
         const handleRowClick = (item, index) => {
             selectedRow.value = index;
@@ -201,6 +217,16 @@ export default {
         const formatDistance = (distance) => {
             if (distance === undefined || distance === null) return '0';
             return distance.toFixed(1);
+        };
+        
+        // 格式化日期
+        const formatDate = (timestamp) => {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN', { 
+                month: '2-digit', 
+                day: '2-digit'
+            });
         };
         
         // 格式化到达时间
@@ -323,9 +349,13 @@ export default {
         return {
             selectedRow,
             refreshCountdown,
-            weatherData: computed(() => props.weatherData),
+            currentWeather,
+            routeForecast,
+            afterArrivalForecast,
+            riskStats,
             handleRowClick,
             formatDistance,
+            formatDate,
             formatArrivalTime,
             getWindSpeedClass,
             getWindSpeedBgClass,

@@ -221,41 +221,6 @@
             </div>
         </transition>
         
-        <!-- Weather Info Window Modal -->
-        <transition enter-active-class="animate-fadeIn" leave-active-class="transition-opacity duration-200 opacity-0">
-            <div v-if="selectedWeather" 
-                :style="{ 
-                    left: weatherInfoPosition.x + 'px', 
-                    top: weatherInfoPosition.y + 'px' 
-                }"
-                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
-                style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
-                <!-- Scanning Line -->
-                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
-
-                <!-- Header -->
-                <div class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-4 py-3 border-b border-cyan-500/30">
-                    <div class="flex items-center gap-3">
-                         <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
-                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">{{ selectedWeather.title }}</span>
-                    </div>
-                    <button @click="closeWeatherInfo" class="group p-1">
-                        <div class="w-6 h-6 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-sm">✕</div>
-                    </button>
-                </div>
-                
-                <!-- Content -->
-                <div class="p-4 space-y-3 relative">
-                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-                    
-                    <div v-for="item in selectedWeather.items" :key="item.label" class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
-                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">{{ item.label }}</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">{{ item.value }}</span>
-                    </div>
-                </div>
-            </div>
-        </transition>
-        
         <!-- 路径规划面板 -->
         <RoutePlanPanel 
             :show="showRoutePlan"
@@ -3625,7 +3590,7 @@ export default {
                 
                 // 设置航点到达回调
                 routeDemoLayer.onWaypointReached = (waypoint, index) => {
-                    console.log('📍 到达航点:', waypoint.name);
+                    console.log('📍 到达航点:', waypoint.name, '索引:', index);
                     
                     // 通知App.vue更新面板
                     const appRouteDemoRef = window.appRouteDemoRef;
@@ -3633,6 +3598,11 @@ export default {
                         appRouteDemoRef.updateWeather(waypoint);
                         appRouteDemoRef.updateProgress(index, routeDemoLayer.demoData.route.waypoints.length);
                     }
+                    
+                    // 通知气象卡片更新滚动进度
+                    window.dispatchEvent(new CustomEvent('updateWeatherCardProgress', {
+                        detail: { dayIndex: index }
+                    }));
                 };
                 
                 // 设置高风险警告回调
@@ -3712,7 +3682,31 @@ export default {
                 
                 // 设置动画完成回调
                 routeDemoLayer.onAnimationComplete = () => {
-                    console.log('✅ 演示完成');
+                    console.log('✅ 演示完成 - 船舶已到达目标矿区');
+                    
+                    // 自动触发到达逻辑
+                    console.log('🎯 自动切换到作业模式');
+                    
+                    // 显示到达提示
+                    window.dispatchEvent(new CustomEvent('showRouteRiskWarning', {
+                        detail: {
+                            type: 'arrival',
+                            name: '中国五矿集团 (CMC)',
+                            weather: {
+                                windSpeed: 8.5,
+                                windBeaufort: 5,
+                                waveHeight: 2.2,
+                                visibility: 15000
+                            }
+                        }
+                    }));
+                    
+                    // 切换气象面板到作业模式
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('switchWeatherCardMode', {
+                            detail: { mode: 'working' }
+                        }));
+                    }, 500);  // 延迟500ms，让提示先显示
                 };
                 
                 // 设置航线信息到面板
@@ -3833,12 +3827,15 @@ export default {
                         arrivalStats: arrivalStats
                     };
                     
-                    // 通过全局事件发送
+                    // 通过全局事件发送（初始为航行模式）
                     window.dispatchEvent(new CustomEvent('showMiningWeatherCard', {
-                        detail: miningAreaWeather
+                        detail: {
+                            data: miningAreaWeather,
+                            mode: 'voyage'  // 初始显示航行模式
+                        }
                     }));
                     
-                    console.log('✅ 已发送显示气象卡片事件，包含航程和到达预报数据');
+                    console.log('✅ 已发送显示气象卡片事件，包含航程和到达预报数据，模式：voyage');
                 }
                 
                 console.log('✅ 航线演示初始化完成');
@@ -3882,6 +3879,30 @@ export default {
             if (routeDemoLayer) {
                 routeDemoLayer.stop();
                 hideAnimationLayer('routeDemo');
+                
+                // 船舶到达矿区，切换到作业模式
+                console.log('🎯 船舶已到达矿区，切换气象面板到作业模式');
+                
+                // 显示到达提示
+                window.dispatchEvent(new CustomEvent('showRouteRiskWarning', {
+                    detail: {
+                        type: 'arrival',
+                        name: '中国五矿集团 (CMC)',
+                        weather: {
+                            windSpeed: 8.5,
+                            windBeaufort: 5,
+                            waveHeight: 2.2,
+                            visibility: 15000
+                        }
+                    }
+                }));
+                
+                // 切换气象面板到作业模式
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('switchWeatherCardMode', {
+                        detail: { mode: 'working' }
+                    }));
+                }, 500);  // 延迟500ms，让提示先显示
             }
         };
         

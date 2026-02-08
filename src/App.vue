@@ -146,6 +146,9 @@
                 
                 <!-- 矿区气象信息卡片 -->
                 <MiningAreaWeatherCard ref="weatherCardRef" />
+                
+                <!-- 航点气象弹窗 -->
+                <WaypointWeatherPopup ref="waypointWeatherPopupRef" />
             </div>
 
             <!-- Decorative Overlay Effects -->
@@ -185,6 +188,7 @@ import MiningAreaWeatherMonitor from './components/MiningAreaWeatherMonitor.vue'
 import RouteDemoPanel from './components/RouteDemoPanel.vue';
 import RouteRiskWarning from './components/RouteRiskWarning.vue';
 import MiningAreaWeatherCard from './components/MiningAreaWeatherCard.vue';
+import WaypointWeatherPopup from './components/WaypointWeatherPopup.vue';
 
 export default {
     components: {
@@ -203,7 +207,8 @@ export default {
         MiningAreaWeatherMonitor,
         RouteDemoPanel,
         RouteRiskWarning,
-        MiningAreaWeatherCard
+        MiningAreaWeatherCard,
+        WaypointWeatherPopup
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -476,6 +481,7 @@ export default {
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
         const weatherCardRef = ref(null);  // 矿区气象信息卡片引用
+        const waypointWeatherPopupRef = ref(null);  // 航点气象弹窗引用
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
         
@@ -1247,16 +1253,25 @@ export default {
                 window.appRouteDemoRef = routeDemoRef.value;
                 window.appRiskWarningRef = riskWarningRef.value;  // 添加警告组件引用
                 window.appWeatherCardRef = weatherCardRef.value;  // 添加气象卡片引用
+                window.appWaypointWeatherPopupRef = waypointWeatherPopupRef.value;  // 添加航点气象弹窗引用
                 console.log('🌐 window.app 已设置:', window.app);
                 console.log('🎬 window.appRouteDemoRef 已设置:', window.appRouteDemoRef);
                 console.log('⚠️ window.appRiskWarningRef 已设置:', window.appRiskWarningRef);
                 console.log('📊 window.appWeatherCardRef 已设置:', window.appWeatherCardRef);
+                console.log('📍 window.appWaypointWeatherPopupRef 已设置:', window.appWaypointWeatherPopupRef);
                 
                 // 验证 weatherCardRef
                 if (!window.appWeatherCardRef) {
                     console.error('❌ weatherCardRef 为 null！');
                 } else {
                     console.log('✅ weatherCardRef 方法:', Object.keys(window.appWeatherCardRef));
+                }
+                
+                // 验证 waypointWeatherPopupRef
+                if (!window.appWaypointWeatherPopupRef) {
+                    console.error('❌ waypointWeatherPopupRef 为 null！');
+                } else {
+                    console.log('✅ waypointWeatherPopupRef 方法:', Object.keys(window.appWaypointWeatherPopupRef));
                 }
             }
         });
@@ -1575,6 +1590,8 @@ export default {
             miningWeatherMonitorRef,
             routeDemoRef,
             riskWarningRef,
+            weatherCardRef,
+            waypointWeatherPopupRef,
             handleStartDrawing,
             handleCancelDrawing,
             handleAreaCreated,

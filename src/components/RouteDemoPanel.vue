@@ -104,7 +104,7 @@
                     </div>
                 </div>
 
-                <!-- 当前气象信息 -->
+                <!-- 当前航段气象 -->
                 <div v-if="currentWeather" class="space-y-2">
                     <div class="text-purple-400 text-sm font-bold flex items-center">
                         <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></div>
@@ -172,6 +172,75 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- 下一航段气象 -->
+                <div v-if="nextWeather" class="space-y-2 mt-4">
+                    <div class="text-cyan-400 text-sm font-bold flex items-center">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2"></div>
+                        下一航段气象
+                    </div>
+                    <div 
+                        :class="[
+                            'border-2 rounded-sm p-4 space-y-2',
+                            getRiskStyle(nextWeather.risk).border
+                        ]"
+                        :style="{ 
+                            backgroundColor: getRiskStyle(nextWeather.risk).bg,
+                            borderColor: getRiskStyle(nextWeather.risk).borderColor
+                        }"
+                    >
+                        <!-- 航点名称和风险等级 -->
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-white font-bold">{{ nextWeather.name }}</div>
+                            <div 
+                                :class="['px-3 py-1 rounded-sm text-sm font-bold']"
+                                :style="{ 
+                                    backgroundColor: getRiskStyle(nextWeather.risk).color,
+                                    color: '#fff'
+                                }"
+                            >
+                                {{ getRiskLabel(nextWeather.risk) }}
+                            </div>
+                        </div>
+
+                        <!-- 气象数据 -->
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">风速:</span>
+                                <span class="text-white font-bold">{{ nextWeather.weather.windSpeed }} m/s</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">风级:</span>
+                                <span class="text-white font-bold">{{ nextWeather.weather.windBeaufort }} 级</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">浪高:</span>
+                                <span class="text-white font-bold">{{ nextWeather.weather.waveHeight }} m</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">能见度:</span>
+                                <span class="text-white font-bold">{{ (nextWeather.weather.visibility / 1000).toFixed(1) }} km</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">风向:</span>
+                                <span class="text-white font-bold">{{ nextWeather.weather.windDirection }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-300">温度:</span>
+                                <span class="text-white font-bold">{{ nextWeather.weather.temperature }}°C</span>
+                            </div>
+                        </div>
+
+                        <!-- 航段信息 -->
+                        <div v-if="nextWeather.segment" class="pt-2 border-t border-white/20 text-xs text-slate-300">
+                            <div>到达: {{ nextWeather.segment.to }}</div>
+                            <div class="flex justify-between mt-1">
+                                <span>距离: {{ nextWeather.segment.distance }} 海里</span>
+                                <span>预计: {{ nextWeather.segment.duration }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </transition>
     </div>
@@ -199,6 +268,7 @@ export default {
         const currentWaypointIndex = ref(0);
         const totalWaypoints = ref(22);
         const currentWeather = ref(null);
+        const nextWeather = ref(null);  // 添加下一航段气象数据
         const routeInfo = ref(null);
 
         // 风险等级样式
@@ -230,10 +300,10 @@ export default {
         };
 
         const riskLabels = {
-            safe: '✓ 安全',
-            caution: '⚠ 注意',
-            warning: '⚠ 警告',
-            danger: '✕ 危险'
+            safe: '安全',
+            caution: '注意',
+            warning: '警告',
+            danger: '危险'
         };
 
         const getRiskStyle = (risk) => riskStyles[risk] || riskStyles.safe;
@@ -280,6 +350,11 @@ export default {
         const updateWeather = (waypoint) => {
             currentWeather.value = waypoint;
         };
+        
+        // 更新下一航段气象信息
+        const updateNextWeather = (waypoint) => {
+            nextWeather.value = waypoint;
+        };
 
         // 设置航线信息
         const setRouteInfo = (info) => {
@@ -295,6 +370,7 @@ export default {
             currentWaypointIndex,
             totalWaypoints,
             currentWeather,
+            nextWeather,
             routeInfo,
             getRiskStyle,
             getRiskLabel,
@@ -305,6 +381,7 @@ export default {
             handleSpeedChange,
             updateProgress,
             updateWeather,
+            updateNextWeather,
             setRouteInfo
         };
     }

@@ -829,9 +829,11 @@ export class RouteDemoLayer {
             console.log('🎯 到达终点');
             this.isPlaying = false;
             
-            // 显示最后一个航点的气象信息
-            const lastWaypoint = waypoints[waypoints.length - 1];
-            this.showWeatherPopup(lastWaypoint);
+            // 关闭航点气象弹窗
+            this.closeWaypointWeatherPopup();
+            
+            // 关闭风险警告
+            this.closeRiskWarning();
             
             if (this.onAnimationComplete) {
                 this.onAnimationComplete();
@@ -850,13 +852,50 @@ export class RouteDemoLayer {
 
         const currentWp = waypoints[this.currentWaypointIndex];
         const nextWp = waypoints[this.currentWaypointIndex + 1];
+        
+        // 检查是否还有下下个航点
+        const hasNextNextWp = this.currentWaypointIndex + 2 < waypoints.length;
+        const nextNextWp = hasNextNextWp ? waypoints[this.currentWaypointIndex + 2] : null;
 
-        // 修复：在开始移动前就显示下一个点的气象（而不是到达后显示）
-        this.showWeatherPopup(nextWp);
+        // 在nextWp航点上方显示下一个航段的气象信息（即到达nextWp后的下一段到nextNextWp）
+        // 弹窗位置：nextWp的上方
+        // 弹窗内容：nextNextWp的气象数据
+        if (nextNextWp) {
+            this.showWaypointWeatherPopup(nextNextWp, nextWp);
+            
+            // 检查下一个航段是否有高风险，如果有则触发右上角警告
+            if (nextNextWp.risk === 'warning' || nextNextWp.risk === 'danger') {
+                this.showRiskWarning(nextNextWp);
+            }
+        }
+        
+        // 更新面板：当前航段和下一航段气象
+        const appRouteDemoRef = window.appRouteDemoRef;
+        if (appRouteDemoRef) {
+            // 更新当前航段气象（正在行驶的航段）
+            appRouteDemoRef.updateWeather(nextWp);
+            
+            // 更新下一航段气象（到达nextWp后的下一段）
+            if (nextNextWp) {
+                appRouteDemoRef.updateNextWeather(nextNextWp);
+            } else {
+                // 如果没有下一航段了，清空下一航段显示
+                appRouteDemoRef.updateNextWeather(null);
+            }
+        }
 
         // 移动船舶到下一个航点
         this.moveShipToWaypoint(nextWp, () => {
-            // 到达航点 - 改变刚走过的航线段颜色
+            // 到达航点后的处理
+            
+            // 1. 关闭之前显示的风险警告（如果当前航段已经通过）
+            // 检查刚刚通过的航段（currentWp -> nextWp）是否有风险警告
+            if (nextWp.risk === 'warning' || nextWp.risk === 'danger') {
+                console.log('✅ 已通过风险区域，关闭警告:', nextWp.name);
+                this.closeRiskWarning();
+            }
+            
+            // 2. 改变刚走过的航线段颜色
             const segmentIndex = this.currentWaypointIndex;
             if (segmentIndex < this.routeSegments.length) {
                 const segment = this.routeSegments[segmentIndex];
@@ -878,9 +917,6 @@ export class RouteDemoLayer {
                 this.waypointMarkers[this.currentWaypointIndex].label.show = true;
             }
 
-            // 移除这里的 showWeatherPopup 调用（已经在移动前显示了）
-            // this.showWeatherPopup(nextWp);
-
             // 触发航点到达回调
             if (this.onWaypointReached) {
                 this.onWaypointReached(nextWp, this.currentWaypointIndex);
@@ -897,76 +933,20 @@ export class RouteDemoLayer {
     }
 
     /**
-     * 显示气象信息弹窗（科技风格，根据风险等级变色）
+     * 显示气象信息弹窗（已禁用）
      */
     showWeatherPopup(waypoint) {
+        // 功能已禁用 - 不再显示气象信息弹窗
+        console.log('🌦️ 气象弹窗已禁用:', waypoint.name);
+        return;
+        
+        /* 原始代码已注释
         // 移除旧的弹窗
         if (this.currentWeatherPopup) {
             this.viewer.entities.remove(this.currentWeatherPopup);
             this.currentWeatherPopup = null;
         }
-
-        // 风险等级颜色配置（科技风格）
-        const riskConfig = {
-            safe: {
-                color: Cesium.Color.fromCssColorString('#10b981'),      // 绿色
-                bgColor: Cesium.Color.fromCssColorString('rgba(16, 185, 129, 0.85)'),
-                label: '安全'
-            },
-            caution: {
-                color: Cesium.Color.fromCssColorString('#f59e0b'),      // 黄色
-                bgColor: Cesium.Color.fromCssColorString('rgba(245, 158, 11, 0.85)'),
-                label: '注意'
-            },
-            warning: {
-                color: Cesium.Color.fromCssColorString('#f97316'),      // 橙色
-                bgColor: Cesium.Color.fromCssColorString('rgba(249, 115, 22, 0.85)'),
-                label: '警告'
-            },
-            danger: {
-                color: Cesium.Color.fromCssColorString('#ef4444'),      // 红色
-                bgColor: Cesium.Color.fromCssColorString('rgba(239, 68, 68, 0.85)'),
-                label: '危险'
-            }
-        };
-
-        const config = riskConfig[waypoint.risk] || riskConfig.safe;
-
-        // 创建气象信息文本（科技风格，无emoji）
-        const weatherText = `━━━ ${waypoint.name} ━━━\n` +
-            `[ ${config.label} ]\n` +
-            `━━━━━━━━━━━━━━━━\n` +
-            `> 风速: ${waypoint.weather.windSpeed} m/s\n` +
-            `> 风级: ${waypoint.weather.windBeaufort} 级\n` +
-            `> 浪高: ${waypoint.weather.waveHeight} m\n` +
-            `> 能见度: ${(waypoint.weather.visibility / 1000).toFixed(1)} km\n` +
-            `> 温度: ${waypoint.weather.temperature} C`;
-
-        // 创建弹窗实体（根据风险等级变色）
-        this.currentWeatherPopup = this.viewer.entities.add({
-            name: 'weather-popup',
-            position: Cesium.Cartesian3.fromDegrees(waypoint.lng, waypoint.lat, 500000),
-            label: {
-                text: weatherText,
-                font: 'bold 16px monospace',
-                fillColor: Cesium.Color.WHITE,  // 白色文字
-                backgroundColor: config.bgColor,  // 根据风险等级变色的背景
-                backgroundPadding: new Cesium.Cartesian2(15, 12),
-                showBackground: true,
-                style: Cesium.LabelStyle.FILL,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                pixelOffset: new Cesium.Cartesian2(0, -30),
-                scaleByDistance: new Cesium.NearFarScalar(1000000, 2.5, 8000000, 0.8),
-                translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 10000000, 0.6)
-            }
-        });
-
-        // 触发高风险警告（warning或danger级别）
-        if ((waypoint.risk === 'warning' || waypoint.risk === 'danger') && this.onHighRiskWarning) {
-            this.onHighRiskWarning(waypoint);
-        }
-
-        console.log('🌦️ 显示气象弹窗:', waypoint.name, '风险等级:', waypoint.risk);
+        */
     }
 
     /**
@@ -1314,5 +1294,90 @@ export class RouteDemoLayer {
         
         console.log('▶️ 继续到达后气象演示');
         this.showNextArrivalDay();
+    }
+    
+    /**
+     * 在航点上方显示气象弹窗
+     * @param {Object} waypointData - 要显示的航点气象数据
+     * @param {Object} positionWaypoint - 弹窗显示位置的航点（可选，默认使用waypointData的位置）
+     */
+    showWaypointWeatherPopup(waypointData, positionWaypoint = null) {
+        if (!waypointData || !this.viewer) return;
+        
+        // 使用指定的位置航点，如果没有则使用数据航点的位置
+        const locationWp = positionWaypoint || waypointData;
+        
+        // 计算航点在屏幕上的位置
+        const position = Cesium.Cartesian3.fromDegrees(locationWp.lng, locationWp.lat, 0);
+        const canvasPosition = Cesium.SceneTransforms.wgs84ToWindowCoordinates(
+            this.viewer.scene,
+            position
+        );
+        
+        if (!canvasPosition) {
+            console.warn('⚠️ 无法计算航点屏幕位置');
+            return;
+        }
+        
+        // 调整坐标（考虑CSS缩放）
+        const baseWidth = 1920;
+        const baseHeight = 1080;
+        const scaleX = window.innerWidth / baseWidth;
+        const scaleY = window.innerHeight / baseHeight;
+        
+        const screenPosition = {
+            x: canvasPosition.x * scaleX,
+            y: canvasPosition.y * scaleY
+        };
+        
+        console.log('📍 弹窗位置航点:', locationWp.name, '显示数据航点:', waypointData.name, '屏幕位置:', screenPosition);
+        
+        // 通过全局引用调用弹窗组件
+        const waypointWeatherPopupRef = window.appWaypointWeatherPopupRef;
+        if (waypointWeatherPopupRef) {
+            waypointWeatherPopupRef.showWeather(waypointData, screenPosition);
+        } else {
+            console.warn('⚠️ 未找到航点气象弹窗组件引用');
+        }
+    }
+    
+    /**
+     * 显示右上角风险警告
+     * @param {Object} waypoint - 航点数据
+     */
+    showRiskWarning(waypoint) {
+        console.log('⚠️ 触发风险警告:', waypoint.name, '风险等级:', waypoint.risk);
+        
+        // 通过全局引用调用警告组件
+        const riskWarningRef = window.appRiskWarningRef;
+        if (riskWarningRef) {
+            riskWarningRef.showWarning(waypoint);
+        } else {
+            console.warn('⚠️ 未找到风险警告组件引用');
+        }
+    }
+    
+    /**
+     * 关闭右上角风险警告
+     */
+    closeRiskWarning() {
+        console.log('✅ 关闭风险警告');
+        
+        const riskWarningRef = window.appRiskWarningRef;
+        if (riskWarningRef) {
+            riskWarningRef.close();
+        }
+    }
+    
+    /**
+     * 关闭航点气象弹窗
+     */
+    closeWaypointWeatherPopup() {
+        console.log('✅ 关闭航点气象弹窗');
+        
+        const waypointWeatherPopupRef = window.appWaypointWeatherPopupRef;
+        if (waypointWeatherPopupRef) {
+            waypointWeatherPopupRef.hideWeather();
+        }
     }
 }
