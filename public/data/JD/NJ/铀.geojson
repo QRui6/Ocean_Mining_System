@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "坐标点 1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.173021457162477,
+          -70.2896668921519
+        ]
+      }
+    }
+  ]
+}

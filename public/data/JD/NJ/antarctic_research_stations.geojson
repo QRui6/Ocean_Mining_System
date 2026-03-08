@@ -1,0 +1,537 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "country": "中国",
+        "stationName": "长城站",
+        "establishedDate": "1985年2月20日",
+        "personnel": "80人/20人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.966667, -62.216667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "country": "中国",
+        "stationName": "中山站",
+        "establishedDate": "1989年2月26日",
+        "personnel": "80人/25人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [76.378333, -69.373333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "country": "中国",
+        "stationName": "昆仑站",
+        "establishedDate": "2009年1月27日",
+        "personnel": "26人/0人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [77.116667, -80.416667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "country": "中国",
+        "stationName": "泰山站",
+        "establishedDate": "2014年2月8日",
+        "personnel": "20人/0人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [76.975, -73.858333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "country": "中国",
+        "stationName": "秦岭站",
+        "establishedDate": "2024年2月7日",
+        "personnel": "80人/18人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [163.925, -74.907222]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "country": "美国",
+        "stationName": "麦克默多站",
+        "establishedDate": "1956年2月16日",
+        "personnel": "1200人/150人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [166.666667, -77.85]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "country": "美国",
+        "stationName": "阿蒙森-斯科特站",
+        "establishedDate": "1957年1月23日",
+        "personnel": "150人/30人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, -90]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "country": "美国",
+        "stationName": "帕尔默站",
+        "establishedDate": "1968年12月25日",
+        "personnel": "45人/10人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-64.05, -64.766667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "country": "美国",
+        "stationName": "伯德站",
+        "establishedDate": "1957年1月1日",
+        "personnel": "35人/0人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-119.516667, -80.016667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "country": "俄罗斯",
+        "stationName": "东方站",
+        "establishedDate": "1957年12月16日",
+        "personnel": "30人/15人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [106.8, -78.466667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "country": "俄罗斯",
+        "stationName": "米尔尼站（和平站）",
+        "establishedDate": "1956年2月13日",
+        "personnel": "50人/25人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [93.016667, -66.55]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 12,
+        "country": "俄罗斯",
+        "stationName": "别林斯高晋站",
+        "establishedDate": "1968年2月22日",
+        "personnel": "40人/15人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.966667, -62.183333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 13,
+        "country": "俄罗斯",
+        "stationName": "青年站",
+        "establishedDate": "1962年1月15日",
+        "personnel": "30人/0人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [45.833333, -67.666667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 14,
+        "country": "澳大利亚",
+        "stationName": "莫森站",
+        "establishedDate": "1954年2月13日",
+        "personnel": "60人/20人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [62.883333, -67.6]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 15,
+        "country": "澳大利亚",
+        "stationName": "戴维斯站",
+        "establishedDate": "1957年1月13日",
+        "personnel": "70人/20人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [77.966667, -68.583333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 16,
+        "country": "澳大利亚",
+        "stationName": "凯西站",
+        "establishedDate": "1957年1月19日",
+        "personnel": "50人/12人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [110.533333, -66.283333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 17,
+        "country": "阿根廷",
+        "stationName": "奥尔卡达斯站",
+        "establishedDate": "1904年1月1日",
+        "personnel": "45人/14人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-44.733333, -60.733333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 18,
+        "country": "阿根廷",
+        "stationName": "马兰比奥站",
+        "establishedDate": "1969年10月29日",
+        "personnel": "150人/60人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-56.616667, -64.233333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 19,
+        "country": "阿根廷",
+        "stationName": "埃斯佩兰萨站",
+        "establishedDate": "1952年12月17日",
+        "personnel": "55人/18人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-56.983333, -63.4]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 20,
+        "country": "阿根廷",
+        "stationName": "圣马丁站",
+        "establishedDate": "1951年3月8日",
+        "personnel": "30人/0人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-67.1, -68.1]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 21,
+        "country": "智利",
+        "stationName": "弗雷总统站",
+        "establishedDate": "1969年4月30日",
+        "personnel": "80人/30人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.95, -62.2]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 22,
+        "country": "智利",
+        "stationName": "奥希金斯站",
+        "establishedDate": "1948年2月18日",
+        "personnel": "40人/15人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-57.866667, -63.333333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 23,
+        "country": "日本",
+        "stationName": "昭和站",
+        "establishedDate": "1957年1月29日",
+        "personnel": "60人/20人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [39.583333, -69]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 24,
+        "country": "日本",
+        "stationName": "富士冰穹站",
+        "establishedDate": "1995年1月27日",
+        "personnel": "40人/10人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [39.7, -77.316667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 25,
+        "country": "法国",
+        "stationName": "迪蒙·迪维尔站",
+        "establishedDate": "1956年1月21日",
+        "personnel": "40人/15人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [140.016667, -66.666667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 26,
+        "country": "法国、意大利",
+        "stationName": "康科站（协和站）",
+        "establishedDate": "2005年1月25日",
+        "personnel": "30人/13人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.333333, -75.1]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 27,
+        "country": "德国",
+        "stationName": "诺伊迈尔3号站",
+        "establishedDate": "1992年1月20日",
+        "personnel": "40人/9人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.266667, -70.766667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 28,
+        "country": "韩国",
+        "stationName": "世宗科学基地",
+        "establishedDate": "1988年2月17日",
+        "personnel": "60人/15人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.783333, -62.216667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 29,
+        "country": "韩国",
+        "stationName": "张保皋站",
+        "establishedDate": "2014年2月12日",
+        "personnel": "40人/10人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [164.216667, -74.7]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 30,
+        "country": "印度",
+        "stationName": "迈特里站（迈特里基站）",
+        "establishedDate": "1989年3月18日",
+        "personnel": "25人/8人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.733333, -70.766667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 31,
+        "country": "印度",
+        "stationName": "巴拉提站",
+        "establishedDate": "2012年3月9日",
+        "personnel": "47人/25人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [76.183333, -69.4]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 32,
+        "country": "英国",
+        "stationName": "哈雷站",
+        "establishedDate": "1956年1月1日",
+        "personnel": "50人/16人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-25.666667, -75.616667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 33,
+        "country": "英国",
+        "stationName": "罗瑟拉站",
+        "establishedDate": "1975年1月25日",
+        "personnel": "50人/12人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-68.133333, -67.566667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 34,
+        "country": "乌克兰",
+        "stationName": "韦尔纳茨基站",
+        "establishedDate": "1996年2月6日",
+        "personnel": "25人/13人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-64.266667, -65.25]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 35,
+        "country": "新西兰",
+        "stationName": "斯科特站",
+        "establishedDate": "1957年1月20日",
+        "personnel": "85人/11人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [166.766667, -77.833333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 36,
+        "country": "挪威",
+        "stationName": "特罗尔站",
+        "establishedDate": "1990年1月17日",
+        "personnel": "30人/7人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [2.533333, -72.016667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 37,
+        "country": "乌拉圭",
+        "stationName": "阿蒂加斯站",
+        "establishedDate": "1984年12月22日",
+        "personnel": "36人/8人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.9, -62.183333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 38,
+        "country": "波兰",
+        "stationName": "亨里克·阿尔克托夫斯基站",
+        "establishedDate": "1977年2月1日",
+        "personnel": "20人/8人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-58.466667, -62.15]
+      }
+    }
+  ]
+}

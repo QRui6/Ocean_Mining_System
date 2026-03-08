@@ -1,0 +1,75 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "坐标点 1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.10931730568156,
+          -63.10913378305588
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "坐标点 2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -61.029626831281,
+          -66.76772422321517
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "坐标点 3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -62.951404984906205,
+          -74.58936880882364
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "坐标点 4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -64.28513508204735,
+          -75.16580362767682
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "坐标点 5"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -69.75410226805188,
+          -75.3540754313337
+        ]
+      }
+    }
+  ]
+}

@@ -1,10 +1,14 @@
 <template>
-    <div class="absolute inset-0 w-full h-full bg-[#020617] z-0">
+    <div class="absolute w-full z-0 map-container-wrapper" style="top: 110px; bottom: 0; height: calc(100% - 110px);">
+        <!-- 背景图层 -->
+        <div class="map-bg-layer"></div>
+        
         <!-- Cesium Container -->
-        <div ref="cesiumContainer" class="w-full h-full"></div>
+        <div ref="cesiumContainer" class="w-full h-full absolute inset-0"></div>
 
         <!-- Grid Overlay -->
-        <div class="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(6,182,212,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.2)_1px,transparent_1px)] bg-[size:100px_100px] z-10"></div>
+        <div class="absolute inset-0 pointer-events-none opacity-10 z-10" 
+             style="background: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 100px 100px;"></div>
 
         <!-- 自定义地图工具栏 -->
         <transition name="toolbar-slide">
@@ -221,6 +225,84 @@
             </div>
         </transition>
         
+        <!-- Drilling Info Window Modal -->
+        <transition enter-active-class="animate-fadeIn" leave-active-class="transition-opacity duration-200 opacity-0">
+            <div v-if="selectedDrilling" 
+                :style="{ 
+                    left: drillingInfoPosition.x + 'px', 
+                    top: drillingInfoPosition.y + 'px' 
+                }"
+                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
+                <!-- Scanning Line -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+
+                <!-- Header -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-4 py-3 border-b border-cyan-500/30">
+                    <div class="flex items-center gap-3">
+                         <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
+                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">🔍 钻孔信息</span>
+                    </div>
+                    <button @click="closeDrillingInfo" class="group p-1">
+                        <div class="w-6 h-6 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-sm">✕</div>
+                    </button>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-4 space-y-3 relative">
+                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    
+                    <!-- 钻孔编号 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">钻孔编号</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                            {{ selectedDrilling.code }}
+                        </span>
+                    </div>
+                    
+                    <!-- 航次 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">航次</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedDrilling.voyage }}
+                        </span>
+                    </div>
+                    
+                    <!-- 钻探平台 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">钻探平台</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedDrilling.platform }}
+                        </span>
+                    </div>
+                    
+                    <!-- 所属计划 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">所属计划</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedDrilling.program }}
+                        </span>
+                    </div>
+                    
+                    <!-- 经度 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">经度</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedDrilling.longitude }}°
+                        </span>
+                    </div>
+                    
+                    <!-- 纬度 -->
+                    <div class="flex justify-between items-center py-2 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">纬度</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedDrilling.latitude }}°
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </transition>
+        
         <!-- 路径规划面板 -->
         <RoutePlanPanel 
             :show="showRoutePlan"
@@ -240,6 +322,21 @@
             :currentTimeIndex="currentTimeIndex"
             @close="closeWeatherPicker"
         />
+        
+        <!-- 科考站信息弹窗 -->
+        <StationInfoPopup
+            :show="showStationInfo"
+            :stationInfo="selectedStation"
+            :position="stationInfoPosition"
+            @close="closeStationInfo"
+        />
+        
+        <!-- 科考站国家图例 -->
+        <StationCountryLegend
+            :show="showStationLegend"
+            :countries="stationCountries"
+            @close="showStationLegend = false"
+        />
     </div>
 </template>
 
@@ -249,6 +346,8 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { loadGeoJson } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
+import { ViewportGeoJsonManager } from '../utils/viewportGeoJsonManager.js';
+import { RARE_EARTH_ZONES, COUNTRY_ATTITUDES } from '../constants.js';
 // 动态加载气象数据加载器（支持API和本地文件两种模式）
 import { 
     getWindDataLoader, 
@@ -267,13 +366,22 @@ import { RouteWeatherLayer } from '../utils/routeWeatherLayer.js';
 import { RouteDemoLayer } from '../utils/routeDemoLayer.js';
 import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
+import { ExperimentalMiningLayer } from '../utils/experimentalMiningLayer.js';
+import { DrillingLayer } from '../utils/drillingLayer.js';
+import { ResourceLayer } from '../utils/resourceLayer.js';
+import { AntarcticResourceLoader } from '../utils/antarcticResourceLoader.js';
+import { PolarStationsLoader } from '../utils/polarStationsLoader.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 import WeatherPointPicker from './WeatherPointPicker.vue';
+import StationInfoPopup from './StationInfoPopup.vue';
+import StationCountryLegend from './StationCountryLegend.vue';
 
 export default {
     components: {
         RoutePlanPanel,
-        WeatherPointPicker
+        WeatherPointPicker,
+        StationInfoPopup,
+        StationCountryLegend
     },
     props: {
         showToolbar: {
@@ -327,6 +435,11 @@ export default {
         pickingPointType: {
             type: String,
             default: null
+        },
+        // 资源分布筛选（新增）
+        resourceFilters: {
+            type: Array,
+            default: () => []
         }
     },
     emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked'],
@@ -337,7 +450,7 @@ export default {
         let viewer = null;
         let dataSource = null; // GeoJSON 数据源
         let clickHandler = null; // 点击事件处理器
-        const is3D = ref(true);
+        const is3D = ref(false);  // 初始为2D模式
         let allEntities = []; // 存储所有实体
         let previousEntity = null; // 存储上一个选中的实体
         let windLayer = null; // 风场图层实例
@@ -356,11 +469,26 @@ export default {
         const shipInfoPosition = ref({ x: 0, y: 0 }); // 船舶信息窗口位置
         const selectedWeather = ref(null); // 选中的气象信息
         const weatherInfoPosition = ref({ x: 0, y: 0 }); // 气象信息窗口位置
+        const selectedDrilling = ref(null); // 选中的钻孔信息
+        const drillingInfoPosition = ref({ x: 0, y: 0 }); // 钻孔信息窗口位置
         let shipLayer = null; // 船舶图层实例
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
         let routeDemoLayer = null; // 航线演示图层实例
+        let experimentalMiningLayer = null; // 试验试采图层实例
+        const showExperimentalMining = ref(false); // 试验试采显示状态
+        let drillingLayer = null; // 大洋钻探图层实例
+        const showDrilling = ref(false); // 大洋钻探显示状态
+        let resourceLayer = null; // 资源分布图层实例
+        const showResources = ref([]); // 当前显示的资源类型列表
+        let antarcticResourceLoader = null; // 南极资源加载器实例
+        let polarStationsLoader = null; // 极地科考站加载器实例
+        const showStationInfo = ref(false); // 科考站信息弹窗显示状态
+        const selectedStation = ref(null); // 选中的科考站信息
+        const stationInfoPosition = ref({ x: 0, y: 0 }); // 科考站信息窗口位置
+        const showStationLegend = ref(false); // 科考站国家图例显示状态
+        const stationCountries = ref({ antarctic: [], arctic: [] }); // 科考站国家列表（分南极和北极）
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -395,7 +523,8 @@ export default {
             start: null, 
             end: null,
             avoid: [],      // 避让点标记数组
-            through: []     // 途经点标记数组
+            through: [],    // 途经点标记数组
+            collected: []   // 坐标采集标记数组
         }; // 选点标记
         
         // 气象点查询相关
@@ -408,6 +537,12 @@ export default {
         let windyLayerManager = null; // Windy 图层管理器
         // 天地图 Token
         const TDT_TOKEN = "2ddaabf906d4b5418aed0078e1657029";
+        
+        // 注释掉旧的深海稀土区域实体存储，现在使用 ResourceLayer
+        // let rareEarthEntities = [];
+        
+        // 各国态度渲染状态
+        let countryAttitudesActive = false;
 
         const initCesium = async () => {
             viewer = new Cesium.Viewer(cesiumContainer.value, {
@@ -423,10 +558,10 @@ export default {
                 infoBox: false,
                 selectionIndicator: false,
                 imageryProvider: false,  // 先不加载任何底图
-                sceneMode: Cesium.SceneMode.SCENE3D,
+                sceneMode: Cesium.SceneMode.SCENE2D,  // 初始为2D平面模式
                 contextOptions: {
                     webgl: {
-                        alpha: false,  // 禁用透明度以提升性能
+                        alpha: true,  // 启用透明度，让背景图可见
                         depth: true,
                         stencil: true,
                         antialias: true,
@@ -435,24 +570,49 @@ export default {
                 }
             });
             
+            // ========== 天地图底图（三层堆叠） ==========
             // 动态选择天地图服务器（0-7）
             const serverIndex = Math.floor(Math.random() * 8);
             
-            // 添加天地图影像图层
-            viewer.imageryLayers.addImageryProvider(
+            // 三层堆叠法：影像底图 + 边界 + 标注
+            // 第一层：遥感影像底图（提供真实地表影像）
+            const vecLayer = viewer.imageryLayers.addImageryProvider(
                 new Cesium.WebMapTileServiceImageryProvider({
                     url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "img",
                     style: "default",
                     format: "tiles",
                     tileMatrixSetID: "w",
-                    credit: new Cesium.Credit("天地图"),
+                    credit: new Cesium.Credit("天地图影像"),
                     maximumLevel: 18
                 })
             );
-
-            // 添加天地图注记图层
-            viewer.imageryLayers.addImageryProvider(
+            vecLayer.show = true;  // 显示影像底图
+            vecLayer.alpha = 1.0;  // 完全不透明
+            vecLayer.brightness = 1.2;  // 提高亮度
+            vecLayer.contrast = 1.2;  // 适当对比度
+            vecLayer.saturation = 1.0;  // 正常饱和度
+            
+            // 第二层：行政边界（强化国家边界线）
+            const boundaryLayer = viewer.imageryLayers.addImageryProvider(
+                new Cesium.WebMapTileServiceImageryProvider({
+                    url: `https://t${serverIndex}.tianditu.gov.cn/ibo_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=ibo&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+                    layer: "ibo",
+                    style: "default",
+                    format: "tiles",
+                    tileMatrixSetID: "w",
+                    credit: new Cesium.Credit("天地图行政区划"),
+                    maximumLevel: 18
+                })
+            );
+            boundaryLayer.show = true;  // 显示行政边界
+            boundaryLayer.alpha = 1.0;
+            boundaryLayer.brightness = 2.0;
+            boundaryLayer.contrast = 1.8;
+            boundaryLayer.saturation = 1.2;
+            
+            // 第三层：影像注记（国家名称、大洋名称）
+            const labelLayer = viewer.imageryLayers.addImageryProvider(
                 new Cesium.WebMapTileServiceImageryProvider({
                     url: `https://t${serverIndex}.tianditu.gov.cn/cia_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
                     layer: "cia",
@@ -463,17 +623,72 @@ export default {
                     maximumLevel: 18
                 })
             );
+            labelLayer.show = true;  // 显示注记
+            
+            // 保存图层引用，用于主题切换
+            viewer._vecLayer = vecLayer;
+            viewer._boundaryLayer = boundaryLayer;
+            viewer._labelLayer = labelLayer;
+            
+            // ========== 视野内动态 GeoJSON 管理（最优性能方案） - 已暂时注释 ==========
+            // 创建视野管理器：只加载和渲染当前视野内的国家
+            // const viewportGeoJsonManager = new ViewportGeoJsonManager(viewer);
+            // viewer._viewportGeoJsonManager = viewportGeoJsonManager;
+            
+            // 延迟初始化，避免阻塞主界面
+            // setTimeout(async () => {
+            //     try {
+            //         console.log('🚀 启动视野内 GeoJSON 动态管理...');
+            //         await viewportGeoJsonManager.initialize();
+            //         viewportGeoJsonManager.startMonitoring(500); // 500ms 节流
+            //         console.log('✅ 视野管理器启动成功');
+            //     } catch (error) {
+            //         console.error('❌ 视野管理器启动失败:', error);
+            //     }
+            // }, 1000);
+            
+            // ========== 其他底图选项（已注释） ==========
+            // // 如需使用影像底图，取消下面的注释
+            // viewer.imageryLayers.addImageryProvider(
+            //     new Cesium.WebMapTileServiceImageryProvider({
+            //         url: `https://t${serverIndex}.tianditu.gov.cn/img_w/wmts?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TDT_TOKEN}`,
+            //         layer: "img",
+            //         style: "default",
+            //         format: "tiles",
+            //         tileMatrixSetID: "w",
+            //         credit: new Cesium.Credit("天地图影像"),
+            //         maximumLevel: 18
+            //     })
+            // );
 
-            // 场景优化
-            viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#020617');
-            viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000000');
+            // 场景优化 - 深海主题（默认）
+            viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#001a33'); // 深海蓝色
+            viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000814'); // 深邃黑蓝
             viewer.scene.skyAtmosphere.show = true;
-            viewer.scene.skyAtmosphere.hueShift = -0.1;
+            viewer.scene.skyAtmosphere.hueShift = -0.2; // 偏冷色调
+            viewer.scene.skyAtmosphere.saturationShift = -0.1; // 降低饱和度
+            viewer.scene.skyAtmosphere.brightnessShift = -0.2; // 降低亮度，营造深海氛围
             viewer.scene.globe.enableLighting = false;
             viewer.scene.globe.showGroundAtmosphere = false;
             viewer.scene.fog.enabled = false;
             viewer.scene.sun.show = false;
             viewer.scene.moon.show = false;
+            
+            // 检查并应用当前主题
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            if (currentTheme === 'light') {
+                // 亮色主题：保持影像底图清晰
+                vecLayer.alpha = 1.0;  // 影像底图完全不透明
+                boundaryLayer.alpha = 0.8;  // 边界稍微透明
+                labelLayer.alpha = 1.0;  // 标注完全不透明
+                
+                // 使用背景图作为地球底色
+                viewer.scene.backgroundColor = Cesium.Color.TRANSPARENT;
+                viewer.scene.globe.baseColor = Cesium.Color.TRANSPARENT; // 地球透明
+                viewer.scene.skyAtmosphere.hueShift = 0;
+                viewer.scene.skyAtmosphere.saturationShift = -0.3;
+                viewer.scene.skyAtmosphere.brightnessShift = 0.2;
+            }
             viewer.scene.skyBox.show = true;
             
             // ⭐ 关键：禁用按需渲染，始终保持持续渲染
@@ -484,9 +699,49 @@ export default {
             
             viewer._cesiumWidget._creditContainer.style.display = "none";
 
-            // 设置初始视角（先看向上海）
+            // ========== 限制相机范围，防止露出背景 ==========
+            // 限制纬度范围（防止到达极地露出背景）
+            viewer.camera.moveEnd.addEventListener(() => {
+                const cameraPosition = viewer.camera.positionCartographic;
+                
+                let needsUpdate = false;
+                let newLongitude = cameraPosition.longitude;
+                let newLatitude = cameraPosition.latitude;
+                let newHeight = cameraPosition.height;
+                
+                // 限制纬度范围
+                const maxLat = Cesium.Math.toRadians(80);
+                const minLat = Cesium.Math.toRadians(-80);
+                
+                if (cameraPosition.latitude > maxLat) {
+                    newLatitude = maxLat;
+                    needsUpdate = true;
+                }
+                if (cameraPosition.latitude < minLat) {
+                    newLatitude = minLat;
+                    needsUpdate = true;
+                }
+                
+                // 如果需要更新相机位置
+                if (needsUpdate) {
+                    viewer.camera.setView({
+                        destination: Cesium.Cartesian3.fromRadians(
+                            newLongitude,
+                            newLatitude,
+                            newHeight
+                        ),
+                        orientation: {
+                            heading: viewer.camera.heading,
+                            pitch: viewer.camera.pitch,
+                            roll: viewer.camera.roll
+                        }
+                    });
+                }
+            });
+
+            // 设置初始视角（直接显示太平洋矿区）
             viewer.camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 15000000),
+                destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
                 orientation: {
                     heading: 0,
                     pitch: Cesium.Math.toRadians(-90),
@@ -516,6 +771,18 @@ export default {
             // 初始化 Windy 图层管理器
             windyLayerManager = new WindyLayerManager(viewer);
             console.log('🌪️ Windy 图层管理器初始化完成');
+            
+            // 初始化试验试采图层
+            experimentalMiningLayer = new ExperimentalMiningLayer(viewer);
+            console.log('🔴 试验试采图层初始化完成');
+            
+            // 初始化大洋钻探图层
+            drillingLayer = new DrillingLayer(viewer);
+            console.log('🔵 大洋钻探图层初始化完成');
+            
+            // 初始化资源分布图层
+            resourceLayer = new ResourceLayer(viewer);
+            console.log('💎 资源分布图层初始化完成');
 
             // 预加载已禁用 - 改为按需加载，不缓存数据
             // preloadWeatherData();
@@ -533,7 +800,7 @@ export default {
                 // 使用工具函数加载（推荐）
                 dataSource = await loadGeoJson(viewer, '/data/ocean_mining_final.geojson', {
                     strokeColor: Cesium.Color.WHITE,
-                    fillColor: Cesium.Color.RED.withAlpha(0.5),
+                    fillColor: Cesium.Color.RED.withAlpha(1),
                     strokeWidth: 2,
                     clampToGround: false
                 });
@@ -557,13 +824,13 @@ export default {
                         const colorHex = getContractorColor(contractor);
                         const color = Cesium.Color.fromCssColorString(colorHex);
                         
-                        // 设置颜色（降低透明度，避免遮挡粒子效果）
-                        entity.polygon.material = color.withAlpha(0.5);
+                        // 设置颜色（不透明，清晰显示矿区）
+                        entity.polygon.material = color.withAlpha(0.85);
                         
                         // 设置边框
                         entity.polygon.outline = true;
-                        entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
-                        entity.polygon.outlineWidth = 1;
+                        entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(1.0);
+                        entity.polygon.outlineWidth = 2;
                         
                         // ⭐ 关键：设置为贴地渲染，避免遮挡粒子效果
                         entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
@@ -609,27 +876,6 @@ export default {
                     miningData: miningData,
                     regionCounts: regionCounts
                 });
-
-                // 添加上海港标记（⚓ emoji）- 使用深红色/橙红色，始终醒目
-                viewer.entities.add({
-                    name: 'shanghai-port',
-                    position: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 0),
-                    label: {
-                        text: '⚓\n上海港',
-                        font: 'bold 40px sans-serif',
-                        fillColor: Cesium.Color.fromCssColorString('#FF4500'),  // 橙红色 (OrangeRed)
-                        outlineColor: Cesium.Color.BLACK,
-                        outlineWidth: 6,
-                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                        pixelOffset: new Cesium.Cartesian2(0, 0),
-                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                        scaleByDistance: new Cesium.NearFarScalar(1000000, 2.0, 10000000, 0.5),
-                        // 移除 translucencyByDistance，保持始终不透明
-                        disableDepthTestDistance: Number.POSITIVE_INFINITY
-                    }
-                });
-                console.log('⚓ 上海港标记已添加（橙红色，始终醒目）');
 
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
                 const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -717,6 +963,34 @@ export default {
                         console.log('   - 有 _waypointData:', !!entity._waypointData);
                         console.log('   - 有 _shipData:', !!entity._shipData);
                         
+                        // 检查是否点击了科考站
+                        if (entity.properties && (entity.properties.stationName || entity.properties.country)) {
+                            console.log('🏔️ 点击了科考站');
+                            const props = entity.properties;
+                            
+                            // 判断是南极还是北极站点
+                            const isAntarctic = props.establishedDate !== undefined;
+                            
+                            selectedStation.value = {
+                                type: isAntarctic ? 'antarctic' : 'arctic',
+                                name: props.stationName?.getValue() || '未知站点',
+                                country: props.country?.getValue() || '未知',
+                                location: props.location?.getValue(),
+                                establishedDate: props.establishedDate?.getValue(),
+                                stationType: props.stationType?.getValue(),
+                                personnel: props.personnel?.getValue()
+                            };
+                            
+                            stationInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            showStationInfo.value = true;
+                            console.log('✅ 显示科考站信息:', selectedStation.value);
+                            return;
+                        }
+                        
                         // 如果点击的是航线演示的航点
                         if (entity.name && entity.name.startsWith('waypoint-')) {
                             console.log('✅ 检测到航点实体:', entity.name);
@@ -799,6 +1073,40 @@ export default {
                             return;
                             } else {
                                 console.log('❌ 船舶没有 _shipData 属性');
+                            }
+                        }
+                        
+                        // 如果点击的是钻孔点
+                        if (entity.properties && entity.properties.type) {
+                            const type = entity.properties.type.getValue();
+                            if (type === 'drilling_hole') {
+                                console.log('🔵 点击了钻孔点:', entity.id);
+                                
+                                // 获取钻孔信息
+                                const props = entity.properties;
+                                const drillingInfo = {
+                                    code: props.ZK_JSRO_ed?.getValue() || 'N/A',
+                                    voyage: props.HangCi?.getValue() || 'N/A',
+                                    platform: props.ZTPT?.getValue() || 'N/A',
+                                    program: props.SSJD?.getValue() || 'N/A',
+                                    longitude: props.JD?.getValue()?.toFixed(4) || 'N/A',
+                                    latitude: props.WD?.getValue()?.toFixed(4) || 'N/A'
+                                };
+                                
+                                // 关闭其他信息窗口
+                                selectedArea.value = null;
+                                selectedShip.value = null;
+                                selectedWeather.value = null;
+                                
+                                // 显示钻孔信息
+                                selectedDrilling.value = drillingInfo;
+                                drillingInfoPosition.value = {
+                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                    y: Math.max(click.position.y - 100, 10)
+                                };
+                                
+                                console.log('✅ 显示钻孔详细信息:', drillingInfo);
+                                return;
                             }
                         }
                         
@@ -991,35 +1299,6 @@ export default {
                 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
                 
                 clickHandler = handler;
-
-                // 地球旋转动画：上海 → 太平洋矿区
-                // 第一段：延迟1秒后，缓慢飞到上海（3秒）
-                setTimeout(() => {
-                    viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 8000000),
-                        orientation: {
-                            heading: 0,
-                            pitch: Cesium.Math.toRadians(-90),
-                            roll: 0
-                        },
-                        duration: 3,
-                        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
-                    });
-                }, 1000);
-                
-                // 第二段：延迟5秒后，从上海飞到太平洋矿区（4秒）
-                setTimeout(() => {
-                    viewer.camera.flyTo({
-                        destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
-                        orientation: {
-                            heading: 0,
-                            pitch: Cesium.Math.toRadians(-90),
-                            roll: 0
-                        },
-                        duration: 4,
-                        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
-                    });
-                }, 5000);
                 
             } catch (error) {
                 console.error('❌ 加载失败:', error);
@@ -1229,6 +1508,545 @@ export default {
             } else {
                 document.exitFullscreen();
             }
+        };
+        
+        // 切换到2D模式（供外部调用）
+        const switchTo2D = () => {
+            if (!viewer || !is3D.value) return;
+            
+            // 如果风场或波浪正在显示，先隐藏
+            const windWasVisible = showWind.value;
+            const waveWasVisible = showWave.value;
+            
+            if (windWasVisible && windLayer) {
+                console.log('⚠️ 2D模式不支持风场显示，自动隐藏风场');
+                windLayer.show = false;
+                showWind.value = false;
+            }
+            
+            if (waveWasVisible && waveLayer) {
+                console.log('⚠️ 2D模式不支持波浪显示，自动隐藏波浪');
+                waveLayer.show = false;
+                showWave.value = false;
+                stopCameraHeightMonitoring();
+            }
+            
+            // 切换到2D平面视图
+            viewer.scene.morphTo2D(1);
+            is3D.value = false;
+            
+            // 切换到2D后，飞到理想视角
+            setTimeout(() => {
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 20000000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    },
+                    duration: 1.5
+                });
+            }, 1000);
+            
+            console.log('🗺️ 已切换到2D平面模式');
+        };
+        
+        // 切换到3D模式（供外部调用）
+        const switchTo3D = async (target = 'pacific') => {
+            if (!viewer) return;
+            
+            // 根据目标位置设置不同的飞行目的地
+            const targets = {
+                pacific: {
+                    // 太平洋矿区
+                    destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 15000000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    }
+                },
+                antarctic: {
+                    // 南极（俯视视角，能看到整个南极大陆）
+                    destination: Cesium.Cartesian3.fromDegrees(0.0, -75.0, 12000000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),  // 垂直俯视
+                        roll: 0
+                    }
+                }
+            };
+            
+            const targetConfig = targets[target] || targets.pacific;
+            
+            // 如果目标是南极，加载南极资源数据
+            if (target === 'antarctic') {
+                if (!antarcticResourceLoader) {
+                    console.log('🌍 初始化南极资源加载器...');
+                    antarcticResourceLoader = new AntarcticResourceLoader(viewer);
+                }
+                
+                // 异步加载资源数据（不阻塞飞行动画）
+                antarcticResourceLoader.loadAllResources().catch(error => {
+                    console.error('❌ 加载南极资源失败:', error);
+                });
+            }
+            
+            // 如果还不是3D模式，先切换到3D球体
+            if (!is3D.value) {
+                console.log('🔄 从2D切换到3D模式...');
+                viewer.scene.morphTo3D(1);
+                is3D.value = true;
+                
+                // 等待场景转换完成后再飞行（需要更长时间）
+                setTimeout(() => {
+                    console.log(`✈️ 飞往目标位置: ${target}`);
+                    viewer.camera.flyTo({
+                        destination: targetConfig.destination,
+                        orientation: targetConfig.orientation,
+                        duration: 1.5
+                    });
+                }, 2000);  // 增加到2秒，确保3D转换完成
+            } else {
+                // 已经是3D模式，直接飞行
+                console.log(`✈️ 已是3D模式，直接飞往: ${target}`);
+                setTimeout(() => {
+                    viewer.camera.flyTo({
+                        destination: targetConfig.destination,
+                        orientation: targetConfig.orientation,
+                        duration: 1.5
+                    });
+                }, 500);  // 已经是3D，只需短暂延迟
+            }
+            
+            console.log(`🌍 切换到3D球体模式，目标位置: ${target}`);
+        };
+
+        /**
+         * 加载极地科考站
+         */
+        const loadPolarStations = async () => {
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载科考站');
+                return;
+            }
+
+            if (!polarStationsLoader) {
+                console.log('🏔️ 初始化极地科考站加载器...');
+                polarStationsLoader = new PolarStationsLoader(viewer);
+            }
+
+            try {
+                await polarStationsLoader.loadAllStations();
+                
+                // 更新国家列表
+                stationCountries.value = polarStationsLoader.getCountryList();
+                
+                // 显示图例
+                showStationLegend.value = true;
+                
+                console.log('✅ 极地科考站加载完成');
+                console.log('   南极国家:', stationCountries.value.antarctic.length, '个');
+                console.log('   北极国家:', stationCountries.value.arctic.length, '个');
+            } catch (error) {
+                console.error('❌ 加载极地科考站失败:', error);
+            }
+        };
+
+        /**
+         * 切换极地科考站显示状态
+         */
+        const togglePolarStations = (show) => {
+            if (!polarStationsLoader) return;
+            
+            if (show) {
+                polarStationsLoader.showAll();
+                showStationLegend.value = true;
+            } else {
+                polarStationsLoader.hideAll();
+                showStationLegend.value = false;
+            }
+        };
+
+        /**
+         * 获取极地科考站国家列表
+         */
+        const getPolarStationCountries = () => {
+            if (!polarStationsLoader) return [];
+            return polarStationsLoader.getCountryList();
+        };
+
+        /**
+         * 关闭科考站信息弹窗
+         */
+        const closeStationInfo = () => {
+            showStationInfo.value = false;
+            selectedStation.value = null;
+        };
+
+        /**
+         * 按国家加载极地科考站（支持多选）
+         * @param {String} region - 区域 (antarctic, arctic)
+         * @param {Array|null} countries - 国家ID数组，null表示加载全部
+         */
+        const loadPolarStationsByCountries = async (region, countries) => {
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载科考站');
+                return;
+            }
+
+            // 初始化加载器
+            if (!polarStationsLoader) {
+                console.log('🏔️ 初始化极地科考站加载器...');
+                polarStationsLoader = new PolarStationsLoader(viewer);
+            }
+
+            const regionName = region === 'antarctic' ? '南极' : '北极';
+            
+            try {
+                // 加载对应区域的科考站数据
+                const dataFile = region === 'antarctic' 
+                    ? '/data/JD/NJ/antarctic_research_stations.geojson'
+                    : '/data/JD/BJ/arctic_research_stations.geojson';
+                
+                const response = await fetch(dataFile);
+                if (!response.ok) {
+                    console.error(`❌ 无法加载${regionName}科考站数据`);
+                    return;
+                }
+
+                const geojson = await response.json();
+                
+                // 清除之前的科考站标记
+                if (window.polarStationEntities) {
+                    window.polarStationEntities.forEach(entity => {
+                        viewer.entities.remove(entity);
+                    });
+                    window.polarStationEntities = [];
+                } else {
+                    window.polarStationEntities = [];
+                }
+
+                // 筛选科考站
+                let filteredStations = geojson.features;
+                
+                if (countries && countries.length > 0) {
+                    console.log(`📦 加载${regionName}科考站，筛选国家:`, countries);
+                    
+                    // 根据选中的国家筛选
+                    filteredStations = geojson.features.filter(feature => {
+                        const stationCountry = feature.properties.country;
+                        
+                        // 处理国家匹配（包括联合科考站）
+                        return countries.some(countryId => {
+                            const countryMap = {
+                                'china': '中国',
+                                'usa': '美国',
+                                'russia': '俄罗斯',
+                                'australia': '澳大利亚',
+                                'argentina': '阿根廷',
+                                'chile': '智利',
+                                'japan': '日本',
+                                'france': '法国',
+                                'germany': '德国',
+                                'korea': '韩国',
+                                'india': '印度',
+                                'uk': '英国',
+                                'ukraine': '乌克兰',
+                                'newzealand': '新西兰',
+                                'norway': '挪威',
+                                'uruguay': '乌拉圭',
+                                'poland': '波兰',
+                                'italy': '意大利',
+                                'denmark': '丹麦',
+                                'sweden': '瑞典',
+                                'finland': '芬兰',
+                                'canada': '加拿大',
+                                'france_italy': '法国、意大利',
+                                'france_germany_norway': '法国、德国、挪威'
+                            };
+                            
+                            const countryName = countryMap[countryId];
+                            return stationCountry && stationCountry.includes(countryName);
+                        });
+                    });
+                } else {
+                    console.log(`📦 加载${regionName}所有科考站`);
+                }
+
+                console.log(`✅ 筛选后的科考站数量: ${filteredStations.length}`);
+
+                // 在地图上添加科考站标记
+                filteredStations.forEach(feature => {
+                    const { country, stationName, establishedDate, personnel, location, stationType } = feature.properties;
+                    const [lng, lat] = feature.geometry.coordinates;
+
+                    // 判断是否显示标签：只有选择了国家时才显示
+                    const showLabel = countries && countries.length > 0;
+
+                    const entityConfig = {
+                        position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                        billboard: {
+                            image: '/icons/station-icon.png',
+                            width: 32,
+                            height: 32,
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
+                        },
+                        description: `
+                            <div style="padding: 10px;">
+                                <h3 style="margin: 0 0 10px 0; color: #3b82f6;">🏛️ ${stationName}</h3>
+                                <p style="margin: 5px 0;"><strong>国家:</strong> ${country}</p>
+                                <p style="margin: 5px 0;"><strong>建站时间:</strong> ${establishedDate || '未知'}</p>
+                                <p style="margin: 5px 0;"><strong>人员:</strong> ${personnel || '未知'}</p>
+                                ${location ? `<p style="margin: 5px 0;"><strong>位置:</strong> ${location}</p>` : ''}
+                                ${stationType ? `<p style="margin: 5px 0;"><strong>类型:</strong> ${stationType}</p>` : ''}
+                                <p style="margin: 5px 0;"><strong>坐标:</strong> ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</p>
+                            </div>
+                        `,
+                        properties: {
+                            type: 'polar_station',
+                            country,
+                            stationName,
+                            region: regionName
+                        }
+                    };
+
+                    // 只有选择了国家时才添加标签
+                    if (showLabel) {
+                        entityConfig.label = {
+                            text: stationName,
+                            font: '14px sans-serif',
+                            fillColor: Cesium.Color.WHITE,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 2,
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, -35),
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
+                        };
+                    }
+
+                    const entity = viewer.entities.add(entityConfig);
+                    window.polarStationEntities.push(entity);
+                });
+
+                console.log(`✅ ${regionName}科考站加载完成，共 ${window.polarStationEntities.length} 个`);
+
+                // 返回科考站列表数据
+                return filteredStations.map(feature => ({
+                    id: feature.properties.id,
+                    country: feature.properties.country,
+                    stationName: feature.properties.stationName,
+                    establishedDate: feature.properties.establishedDate,
+                    personnel: feature.properties.personnel,
+                    location: feature.properties.location,
+                    stationType: feature.properties.stationType,
+                    coordinates: feature.geometry.coordinates
+                }));
+
+            } catch (error) {
+                console.error(`❌ 加载${regionName}科考站失败:`, error);
+                return [];
+            }
+        };
+
+        /**
+         * 加载极地资源数据
+         * @param {String} categoryId - 资源分类ID (energy_minerals, metal_minerals, non_metal_special)
+         */
+        const loadPolarResources = async (categoryId) => {
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载极地资源');
+                return;
+            }
+
+            console.log('🗺️ 加载极地资源:', categoryId);
+            
+            // 导入资源分类配置
+            const { POLAR_RESOURCE_CATEGORIES } = await import('../constants.js');
+            const category = POLAR_RESOURCE_CATEGORIES[categoryId];
+            
+            if (!category) {
+                console.error('❌ 未找到资源分类:', categoryId);
+                return;
+            }
+
+            // 清除之前的资源标记
+            if (window.polarResourceEntities) {
+                window.polarResourceEntities.forEach(entity => {
+                    viewer.entities.remove(entity);
+                });
+                window.polarResourceEntities = [];
+            } else {
+                window.polarResourceEntities = [];
+            }
+
+            console.log(`📦 加载 ${category.label} 资源，共 ${category.resources.length} 种`);
+            console.log(`📋 包含的资源类型: ${category.resources.map(r => r.label).join('、')}`);
+
+            // 加载每种资源的数据
+            for (const resource of category.resources) {
+                try {
+                    const response = await fetch(resource.file);
+                    if (!response.ok) {
+                        console.warn(`⚠️ 无法加载 ${resource.label}:`, response.statusText);
+                        continue;
+                    }
+
+                    const geojson = await response.json();
+                    console.log(`✅ 加载 ${resource.label}:`, geojson.features.length, '个点');
+
+                    // 在地图上添加点标记（只显示高亮点，不显示文字标注）
+                    geojson.features.forEach((feature, index) => {
+                        const [lng, lat] = feature.geometry.coordinates;
+                        
+                        const entity = viewer.entities.add({
+                            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                            point: {
+                                pixelSize: 10,
+                                color: Cesium.Color.fromCssColorString(category.color),
+                                outlineColor: Cesium.Color.WHITE,
+                                outlineWidth: 2,
+                                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                            },
+                            description: `
+                                <div style="padding: 10px;">
+                                    <h3 style="margin: 0 0 10px 0; color: ${category.color};">${resource.icon} ${resource.label}</h3>
+                                    <p style="margin: 5px 0;"><strong>分类:</strong> ${category.label}</p>
+                                    <p style="margin: 5px 0;"><strong>位置:</strong> ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</p>
+                                </div>
+                            `,
+                            // 存储资源信息，用于后续查询
+                            properties: {
+                                resourceType: resource.label,
+                                resourceIcon: resource.icon,
+                                categoryLabel: category.label,
+                                categoryColor: category.color
+                            }
+                        });
+
+                        window.polarResourceEntities.push(entity);
+                    });
+
+                } catch (error) {
+                    console.error(`❌ 加载 ${resource.label} 失败:`, error);
+                }
+            }
+
+            // 飞到南极区域查看资源
+            if (window.polarResourceEntities.length > 0) {
+                // 不自动移动地球，保持当前视角
+                // viewer.camera.flyTo({
+                //     destination: Cesium.Cartesian3.fromDegrees(0, -75, 8000000),
+                //     duration: 2
+                // });
+            }
+
+            console.log(`✅ ${category.label} 加载完成，共 ${window.polarResourceEntities.length} 个标记`);
+        };
+
+        /**
+         * 按区域和资源类型加载极地资源
+         * @param {String} regionId - 区域ID (antarctic, arctic)
+         * @param {String} resourceType - 资源类型ID (energy_minerals, metal_minerals, non_metal_special)
+         */
+        const loadPolarResourcesByRegionAndType = async (regionId, resourceType) => {
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载极地资源');
+                return;
+            }
+
+            console.log('🗺️ 加载资源:', regionId, resourceType);
+            
+            // 导入资源分类配置
+            const { POLAR_RESOURCE_CATEGORIES } = await import('../constants.js');
+            const category = POLAR_RESOURCE_CATEGORIES[resourceType];
+            
+            if (!category) {
+                console.error('❌ 未找到资源分类:', resourceType);
+                return;
+            }
+
+            // 清除之前的资源标记
+            if (window.polarResourceEntities) {
+                window.polarResourceEntities.forEach(entity => {
+                    viewer.entities.remove(entity);
+                });
+                window.polarResourceEntities = [];
+            } else {
+                window.polarResourceEntities = [];
+            }
+
+            const regionName = regionId === 'antarctic' ? '南极' : '北极';
+            console.log(`📦 加载 ${regionName} - ${category.label}，共 ${category.resources.length} 种资源`);
+            console.log(`📋 包含的资源类型: ${category.resources.map(r => r.label).join('、')}`);
+
+            // 加载该分类下的每种资源
+            for (const resource of category.resources) {
+                try {
+                    const response = await fetch(resource.file);
+                    if (!response.ok) {
+                        console.warn(`⚠️ 无法加载 ${resource.label}:`, response.statusText);
+                        continue;
+                    }
+
+                    const geojson = await response.json();
+                    
+                    // 根据区域过滤数据点
+                    let filteredFeatures = geojson.features;
+                    if (regionId === 'antarctic') {
+                        // 南极：纬度 < -60
+                        filteredFeatures = geojson.features.filter(f => f.geometry.coordinates[1] < -60);
+                    } else if (regionId === 'arctic') {
+                        // 北极：纬度 > 60
+                        filteredFeatures = geojson.features.filter(f => f.geometry.coordinates[1] > 60);
+                    }
+
+                    if (filteredFeatures.length > 0) {
+                        console.log(`✅ ${resource.label}: ${filteredFeatures.length} 个点`);
+
+                        // 在地图上添加点标记
+                        filteredFeatures.forEach((feature) => {
+                            const [lng, lat] = feature.geometry.coordinates;
+                            
+                            const entity = viewer.entities.add({
+                                position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                                point: {
+                                    pixelSize: 10,
+                                    color: Cesium.Color.fromCssColorString(category.color),
+                                    outlineColor: Cesium.Color.WHITE,
+                                    outlineWidth: 2,
+                                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                                },
+                                description: `
+                                    <div style="padding: 10px;">
+                                        <h3 style="margin: 0 0 10px 0; color: ${category.color};">${resource.icon} ${resource.label}</h3>
+                                        <p style="margin: 5px 0;"><strong>分类:</strong> ${category.label}</p>
+                                        <p style="margin: 5px 0;"><strong>区域:</strong> ${regionName}</p>
+                                        <p style="margin: 5px 0;"><strong>位置:</strong> ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</p>
+                                    </div>
+                                `,
+                                properties: {
+                                    resourceType: resource.label,
+                                    resourceIcon: resource.icon,
+                                    categoryLabel: category.label,
+                                    categoryColor: category.color,
+                                    region: regionName
+                                }
+                            });
+
+                            window.polarResourceEntities.push(entity);
+                        });
+                    }
+
+                } catch (error) {
+                    console.error(`❌ 加载 ${resource.label} 失败:`, error);
+                }
+            }
+
+            console.log(`✅ ${regionName} - ${category.label} 加载完成，共 ${window.polarResourceEntities.length} 个标记`);
         };
 
         // 初始化风场图层
@@ -1836,6 +2654,11 @@ export default {
         // 关闭气象信息窗口
         const closeWeatherInfo = () => {
             selectedWeather.value = null;
+        };
+        
+        // 关闭钻孔信息窗口
+        const closeDrillingInfo = () => {
+            selectedDrilling.value = null;
         };
         
         // 关闭气象选择器
@@ -2562,10 +3385,256 @@ export default {
             }
         };
         
+        /**
+         * 显示深海稀土资源分布区域
+         */
+        // 注释掉旧的深海稀土区域显示函数，现在使用 ResourceLayer 来处理
+        // const showRareEarthZones = () => {
+        //     if (!viewer) return;
+        //     
+        //     console.log('🌊 显示深海稀土资源分布区域');
+        //     
+        //     // 清除已有的深海稀土区域
+        //     hideRareEarthZones();
+        //     
+        //     // 遍历每个区域并创建实体
+        //     RARE_EARTH_ZONES.forEach(zone => {
+        //         // 将坐标转换为Cesium格式
+        //         const positions = zone.coordinates.map(coord => 
+        //             Cesium.Cartesian3.fromDegrees(coord[0], coord[1])
+        //         );
+        //         
+        //         // 创建多边形实体
+        //         const entity = viewer.entities.add({
+        //             name: zone.name,
+        //             polygon: {
+        //                 hierarchy: new Cesium.PolygonHierarchy(positions),
+        //                 material: Cesium.Color.fromCssColorString(zone.color).withAlpha(0.3),
+        //                 outline: true,
+        //                 outlineColor: Cesium.Color.fromCssColorString(zone.color),
+        //                 outlineWidth: 3,
+        //                 height: 0,
+        //                 classificationType: Cesium.ClassificationType.TERRAIN
+        //             },
+        //             properties: {
+        //                 type: 'rare_earth_zone',
+        //                 zoneId: zone.id,
+        //                 zoneName: zone.name
+        //             }
+        //         });
+        //         
+        //         // 添加文字标签
+        //         const centerLng = zone.center.lng;
+        //         const centerLat = zone.center.lat;
+        //         
+        //         const labelEntity = viewer.entities.add({
+        //             name: `${zone.name}_label`,
+        //             position: Cesium.Cartesian3.fromDegrees(centerLng, centerLat),
+        //             label: {
+        //                 text: zone.name,
+        //                 font: '16px sans-serif',
+        //                 fillColor: Cesium.Color.WHITE,
+        //                 outlineColor: Cesium.Color.BLACK,
+        //                 outlineWidth: 2,
+        //                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        //                 verticalOrigin: Cesium.VerticalOrigin.CENTER,
+        //                 horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+        //                 pixelOffset: new Cesium.Cartesian2(0, 0),
+        //                 disableDepthTestDistance: Number.POSITIVE_INFINITY
+        //             },
+        //             properties: {
+        //                 type: 'rare_earth_zone_label',
+        //                 zoneId: zone.id
+        //             }
+        //         });
+        //         
+        //         rareEarthEntities.push(entity, labelEntity);
+        //     });
+        //     
+        //     console.log(`✅ 已显示 ${RARE_EARTH_ZONES.length} 个深海稀土区域`);
+        //     
+        //     // 强制渲染
+        //     if (viewer) {
+        //         viewer.scene.requestRender();
+        //     }
+        // };
+        
+        // /**
+        //  * 隐藏深海稀土资源分布区域
+        //  */
+        // const hideRareEarthZones = () => {
+        //     if (!viewer) return;
+        //     
+        //     console.log('🌊 隐藏深海稀土资源分布区域');
+        //     
+        //     // 移除所有深海稀土区域实体
+        //     rareEarthEntities.forEach(entity => {
+        //         viewer.entities.remove(entity);
+        //     });
+        //     
+        //     rareEarthEntities = [];
+        //     
+        //     // 强制渲染
+        //     if (viewer) {
+        //         viewer.scene.requestRender();
+        //     }
+        // };
+        
+        /**
+         * 根据国家态度渲染国家地理边界
+         */
+        const applyCountryAttitudes = async () => {
+            console.log('🌍 开始加载各国态度渲染');
+            
+            try {
+                // 加载世界国家GeoJSON数据
+                const response = await fetch('/data/World_countries_simply.geojson');
+                const geojsonData = await response.json();
+                
+                console.log('✅ 已加载世界国家GeoJSON数据');
+                
+                // 创建国家到态度的映射
+                const countryToAttitude = new Map();
+                Object.entries(COUNTRY_ATTITUDES).forEach(([attitudeKey, attitudeData]) => {
+                    attitudeData.countries.forEach(country => {
+                        countryToAttitude.set(country, {
+                            type: attitudeKey,
+                            label: attitudeData.label,
+                            color: attitudeData.color
+                        });
+                    });
+                });
+                
+                console.log('📊 国家态度映射:', countryToAttitude);
+                
+                // 创建一个新的DataSource用于国家边界
+                const countryDataSource = new Cesium.GeoJsonDataSource('country-attitudes');
+                
+                // 过滤出有态度数据的国家
+                const filteredFeatures = geojsonData.features.filter(feature => {
+                    const countryName = feature.properties.FCNAME || feature.properties.NAME;
+                    return countryToAttitude.has(countryName);
+                });
+                
+                console.log(`🔍 找到 ${filteredFeatures.length} 个有态度数据的国家`);
+                
+                // 创建过滤后的GeoJSON
+                const filteredGeoJson = {
+                    type: 'FeatureCollection',
+                    features: filteredFeatures
+                };
+                
+                // 加载到DataSource
+                await countryDataSource.load(filteredGeoJson);
+                
+                // 为每个国家设置对应的颜色
+                const entities = countryDataSource.entities.values;
+                entities.forEach(entity => {
+                    if (entity.polygon && entity.properties) {
+                        const countryName = entity.properties.FCNAME?.getValue() || 
+                                          entity.properties.NAME?.getValue();
+                        
+                        if (countryName && countryToAttitude.has(countryName)) {
+                            const attitude = countryToAttitude.get(countryName);
+                            const color = Cesium.Color.fromCssColorString(attitude.color);
+                            
+                            // 设置国家颜色（不透明）
+                            entity.polygon.material = color;
+                            entity.polygon.outline = true;
+                            entity.polygon.outlineColor = color;
+                            entity.polygon.outlineWidth = 2;
+                            entity.polygon.height = 0;
+                            entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
+                            
+                            // 存储态度信息（使用更安全的方式）
+                            try {
+                                if (!entity.properties.hasProperty('attitude')) {
+                                    entity.properties.addProperty('attitude', attitude.label);
+                                }
+                                if (!entity.properties.hasProperty('attitudeType')) {
+                                    entity.properties.addProperty('attitudeType', attitude.type);
+                                }
+                            } catch (e) {
+                                console.warn('添加属性失败:', e);
+                            }
+                            
+                            console.log(`  ✓ ${countryName} - ${attitude.label} (${attitude.color})`);
+                        }
+                    }
+                });
+                
+                // 添加到viewer
+                await viewer.dataSources.add(countryDataSource);
+                
+                // 保存引用以便后续清除
+                viewer._countryAttitudesDataSource = countryDataSource;
+                
+                console.log(`✅ 已渲染 ${entities.length} 个国家的态度`);
+                
+                // 强制渲染
+                if (viewer) {
+                    viewer.scene.requestRender();
+                }
+                
+            } catch (error) {
+                console.error('❌ 加载国家态度数据失败:', error);
+            }
+        };
+        
+        /**
+         * 清除国家态度渲染
+         */
+        const clearCountryAttitudes = () => {
+            if (!viewer) return;
+            
+            console.log('🗑️ 清除国家态度渲染');
+            
+            // 移除国家态度DataSource
+            if (viewer._countryAttitudesDataSource) {
+                viewer.dataSources.remove(viewer._countryAttitudesDataSource);
+                viewer._countryAttitudesDataSource = null;
+            }
+            
+            console.log('✅ 已清除国家态度渲染');
+            
+            // 强制渲染
+            if (viewer) {
+                viewer.scene.requestRender();
+            }
+        };
+        
+        /**
+         * 切换各国态度渲染
+         */
+        const toggleCountryAttitudes = (show) => {
+            console.log('🎯 toggleCountryAttitudes 被调用, show:', show);
+            console.log('🎯 viewer 存在:', !!viewer);
+            console.log('🎯 COUNTRY_ATTITUDES:', COUNTRY_ATTITUDES);
+            
+            countryAttitudesActive = show;
+            
+            if (show) {
+                applyCountryAttitudes();
+            } else {
+                clearCountryAttitudes();
+            }
+        };
+        
         // 监听筛选条件变化
         watch(() => props.filters, () => {
             applyFilters();
         }, { deep: true });
+        
+        // 注释掉旧的资源分布监听器，现在使用 ResourceLayer 来处理
+        // watch(() => props.resourceFilters, (newFilters) => {
+        //     console.log('🔍 资源分布筛选变化:', newFilters);
+        //     
+        //     if (newFilters && newFilters.includes('深海稀土')) {
+        //         showRareEarthZones();
+        //     } else {
+        //         hideRareEarthZones();
+        //     }
+        // }, { deep: true, immediate: true });
 
         // 监听图层控制变化（矿区地理分区控制）
         watch(() => props.layerState, (newRegions) => {
@@ -2824,6 +3893,9 @@ export default {
                     pickPointHandler.destroy();
                     pickPointHandler = null;
                 }
+                
+                // 注意：坐标采集的标记不清除，保留在地图上
+                
                 console.log('❌ 取消地图选点');
                 return;
             }
@@ -2894,6 +3966,11 @@ export default {
                             markerLabel = '途经点';
                             markerText = 'T'; // 使用 ASCII 字符
                             break;
+                        case 'coordinate_collect':
+                            markerColor = '#06b6d4'; // 青色
+                            markerLabel = '采集点';
+                            markerText = (pickPointMarkers.collected ? pickPointMarkers.collected.length + 1 : 1).toString();
+                            break;
                         default:
                             markerColor = '#6b7280'; // 灰色
                             markerLabel = '选点';
@@ -2942,14 +4019,22 @@ export default {
                     } else if (newType === 'through') {
                         // 途经点：添加到数组
                         pickPointMarkers.through.push(marker);
+                    } else if (newType === 'coordinate_collect') {
+                        // 坐标采集：添加到数组
+                        if (!pickPointMarkers.collected) {
+                            pickPointMarkers.collected = [];
+                        }
+                        pickPointMarkers.collected.push(marker);
                     }
                     
                     // 发送选点结果
                     emit('pointPicked', lng, lat);
                     
-                    // 清理处理器
-                    pickPointHandler.destroy();
-                    pickPointHandler = null;
+                    // 如果不是坐标采集模式，清理处理器
+                    if (newType !== 'coordinate_collect') {
+                        pickPointHandler.destroy();
+                        pickPointHandler = null;
+                    }
                 }
             }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
             
@@ -3185,6 +4270,12 @@ export default {
         onUnmounted(() => {
             // 停止相机高度监控
             stopCameraHeightMonitoring();
+            
+            // 清理视野 GeoJSON 管理器
+            if (viewer && viewer._viewportGeoJsonManager) {
+                viewer._viewportGeoJsonManager.destroy();
+                viewer._viewportGeoJsonManager = null;
+            }
             
             if (windLayer) {
                 windLayer.remove();
@@ -3926,6 +5017,217 @@ export default {
             }
         };
         
+        /**
+         * 更新主题（由App.vue调用）
+         */
+        const updateTheme = (theme) => {
+            if (!viewer) return;
+            
+            console.log('🎨 MapContainer 更新主题:', theme);
+            
+            if (theme === 'light') {
+                // 亮色主题 - 保持影像底图清晰
+                if (viewer._vecLayer) viewer._vecLayer.alpha = 1.0; // 影像底图完全不透明
+                if (viewer._boundaryLayer) viewer._boundaryLayer.alpha = 0.8; // 边界稍微透明
+                if (viewer._labelLayer) viewer._labelLayer.alpha = 1.0; // 标注完全不透明
+                
+                viewer.scene.backgroundColor = Cesium.Color.TRANSPARENT;
+                viewer.scene.globe.baseColor = Cesium.Color.TRANSPARENT; // 地球透明
+                viewer.scene.skyAtmosphere.show = true;
+                viewer.scene.skyAtmosphere.hueShift = 0;
+                viewer.scene.skyAtmosphere.saturationShift = -0.3;
+                viewer.scene.skyAtmosphere.brightnessShift = 0.2;
+                viewer.scene.skyBox.show = true;
+            } else {
+                // 暗色主题 - 恢复原始透明度
+                if (viewer._vecLayer) viewer._vecLayer.alpha = 1.0;  // 影像底图也保持清晰
+                if (viewer._boundaryLayer) viewer._boundaryLayer.alpha = 1.0;
+                if (viewer._labelLayer) viewer._labelLayer.alpha = 1.0;
+                
+                viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#001a33');
+                viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000814');
+                viewer.scene.skyAtmosphere.show = true;
+                viewer.scene.skyAtmosphere.hueShift = -0.2;
+                viewer.scene.skyAtmosphere.saturationShift = -0.1;
+                viewer.scene.skyAtmosphere.brightnessShift = -0.2;
+                viewer.scene.skyBox.show = true;
+            }
+            
+            // 强制刷新场景
+            viewer.scene.requestRender();
+        };
+        
+        /**
+         * 切换试验试采标记显示
+         * @param {Boolean} show - 是否显示
+         * @param {Object} panelRef - 试验试采信息弹窗引用
+         */
+        const toggleExperimentalMining = (show, panelRef) => {
+            if (!experimentalMiningLayer) {
+                console.error('❌ 试验试采图层未初始化');
+                return;
+            }
+            
+            console.log('🔴 切换试验试采标记:', show);
+            
+            if (show) {
+                experimentalMiningLayer.show();
+                showExperimentalMining.value = true;
+                
+                // 设置点击事件处理器
+                if (!viewer._experimentalMiningClickHandler) {
+                    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+                    handler.setInputAction((click) => {
+                        // 计算 CSS scale 缩放比例
+                        const baseWidth = 1920;
+                        const baseHeight = 1080;
+                        const scaleX = window.innerWidth / baseWidth;
+                        const scaleY = window.innerHeight / baseHeight;
+                        
+                        // 修正点击坐标
+                        const correctedPosition = new Cesium.Cartesian2(
+                            click.position.x / scaleX,
+                            click.position.y / scaleY
+                        );
+                        
+                        // 拾取实体
+                        const pickedObject = viewer.scene.pick(correctedPosition);
+                        
+                        if (Cesium.defined(pickedObject) && pickedObject.id) {
+                            const entity = pickedObject.id;
+                            
+                            // 检查是否点击了试验试采标记
+                            if (entity.properties && entity.properties.type) {
+                                const type = entity.properties.type.getValue();
+                                
+                                if (type === 'experimental_mining') {
+                                    const siteData = entity.properties.siteData.getValue();
+                                    console.log('🔴 点击了试验试采标记:', siteData.name);
+                                    
+                                    // 显示弹窗
+                                    if (panelRef && panelRef.show) {
+                                        panelRef.show(siteData, click.position);
+                                    }
+                                }
+                            }
+                        }
+                    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+                    
+                    viewer._experimentalMiningClickHandler = handler;
+                    viewer._experimentalMiningPanelRef = panelRef;
+                }
+            } else {
+                experimentalMiningLayer.hide();
+                showExperimentalMining.value = false;
+                
+                // 移除点击事件处理器
+                if (viewer._experimentalMiningClickHandler) {
+                    viewer._experimentalMiningClickHandler.destroy();
+                    viewer._experimentalMiningClickHandler = null;
+                    viewer._experimentalMiningPanelRef = null;
+                }
+            }
+        };
+        
+        /**
+         * 切换大洋钻探图层显示
+         * @param {Boolean} show - 是否显示
+         */
+        const toggleDrilling = async (show) => {
+            if (!drillingLayer) {
+                console.error('❌ 大洋钻探图层未初始化');
+                return;
+            }
+            
+            console.log('🔵 切换大洋钻探图层:', show);
+            
+            if (show) {
+                // 如果还没有加载数据，先加载
+                if (!drillingLayer.dataSource) {
+                    await drillingLayer.load();
+                }
+                drillingLayer.show();
+                showDrilling.value = true;
+            } else {
+                drillingLayer.hide();
+                showDrilling.value = false;
+            }
+        };
+        
+        /**
+         * 更新钻孔数据筛选
+         * @param {Object} filters - 筛选条件
+         */
+        const updateDrillingFilters = (filters) => {
+            if (!drillingLayer) {
+                console.error('❌ 大洋钻探图层未初始化');
+                return;
+            }
+            
+            console.log('🔍 更新钻孔筛选条件:', filters);
+            drillingLayer.updateFilters(filters);
+        };
+        
+        /**
+         * 切换资源分布图层显示
+         * @param {Array} resources - 要显示的资源类型列表
+         */
+        const toggleResources = async (resources) => {
+            if (!resourceLayer) {
+                console.error('❌ 资源分布图层未初始化');
+                return;
+            }
+            
+            console.log('💎 切换资源分布图层:', resources);
+            
+            // 资源类型与数据文件的映射
+            const resourceFiles = {
+                '深海稀土': '/data/SHXT.geojson',
+                '多金属结核': '/data/DJSJH.geojson',
+                '富钴铁锰结壳': '/data/FGJQ.geojson',
+                '多金属硫化物': '/data/DJSLHW.geojson'
+            };
+            
+            // 资源类型与颜色的映射
+            const resourceColors = {
+                '深海稀土': {
+                    stroke: Cesium.Color.fromCssColorString('#EC4899'),  // 粉色
+                    fill: Cesium.Color.fromCssColorString('#EC4899').withAlpha(0.3)
+                },
+                '多金属结核': {
+                    stroke: Cesium.Color.fromCssColorString('#3B82F6'),  // 蓝色
+                    fill: Cesium.Color.fromCssColorString('#3B82F6').withAlpha(0.3)
+                },
+                '富钴铁锰结壳': {
+                    stroke: Cesium.Color.fromCssColorString('#EAB308'),  // 黄色
+                    fill: Cesium.Color.fromCssColorString('#EAB308').withAlpha(0.3)
+                },
+                '多金属硫化物': {
+                    stroke: Cesium.Color.fromCssColorString('#EA580C'),  // 橙色
+                    fill: Cesium.Color.fromCssColorString('#EA580C').withAlpha(0.3)
+                }
+            };
+            
+            // 隐藏所有资源图层
+            resourceLayer.hideAll();
+            
+            // 显示选中的资源
+            for (const resource of resources) {
+                // 如果还没有加载，先加载
+                if (!resourceLayer.isLoaded(resource)) {
+                    const dataFile = resourceFiles[resource];
+                    const colors = resourceColors[resource];
+                    if (dataFile && colors) {
+                        await resourceLayer.load(resource, dataFile, colors);
+                    }
+                }
+                // 显示图层
+                resourceLayer.show(resource);
+            }
+            
+            showResources.value = resources;
+        };
+        
         return {
             cesiumContainer,
             selectedArea,
@@ -3941,6 +5243,9 @@ export default {
             selectedWeather,
             weatherInfoPosition,
             closeWeatherInfo,
+            selectedDrilling,
+            drillingInfoPosition,
+            closeDrillingInfo,
             getShipTypeName,
             getNavigationStatus,
             isEtaExpired,
@@ -3958,12 +5263,32 @@ export default {
             handlePickPoint,  // 暴露地图选点处理函数
             handleThresholdsChanged,  // 暴露阈值变化处理函数
             updateWeatherTime,  // 暴露时间更新函数
+            updateTheme,  // 暴露主题更新函数
             flyToRegion,  // 暴露区域定位函数
             flyToMiningArea,  // 暴露矿区定位函数
+            toggleCountryAttitudes,  // 暴露各国态度渲染切换函数
+            toggleExperimentalMining,  // 暴露试验试采标记切换函数
+            toggleDrilling,  // 暴露大洋钻探图层切换函数
+            updateDrillingFilters,  // 暴露钻孔筛选更新函数
+            toggleResources,  // 暴露资源分布图层切换函数
             zoomIn,
             zoomOut,
             resetView,
             toggle2D3D,
+            switchTo2D,  // 暴露切换到2D的方法
+            switchTo3D,  // 暴露切换到3D的方法
+            loadPolarStations,  // 暴露加载极地科考站的方法
+            togglePolarStations,  // 暴露切换科考站显示的方法
+            getPolarStationCountries,  // 暴露获取国家列表的方法
+            loadPolarStationsByCountries,  // 暴露按国家加载科考站的方法
+            loadPolarResources,  // 暴露加载极地资源的方法
+            loadPolarResourcesByRegionAndType,  // 暴露按区域和类型加载极地资源的方法
+            showStationInfo,  // 科考站信息弹窗显示状态
+            selectedStation,  // 选中的科考站
+            stationInfoPosition,  // 科考站信息窗口位置
+            showStationLegend,  // 科考站国家图例显示状态
+            stationCountries,  // 科考站国家列表
+            closeStationInfo,  // 关闭科考站信息弹窗
             toggleFullscreen,
             toggleTrajectory,
             viewer: getViewer,  // 暴露viewer
@@ -3980,7 +5305,7 @@ export default {
 </script>
 
 <style scoped>
-/* 自定义地图工具按钮 - 增强版 */
+/* 自定义地图工具按钮 - 增强版（支持主题） */
 .map-tool-btn {
     width: 3.5rem;
     height: 3.5rem;
@@ -3988,16 +5313,13 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
-    border: 2px solid rgba(6, 182, 212, 0.6);
-    color: #06b6d4;
+    background: linear-gradient(135deg, var(--panel-bg), var(--secondary-bg));
+    border: 2px solid var(--border-primary);
+    color: var(--accent-cyan);
     transition: all 0.3s ease;
-    backdrop-filter: blur(12px);
     clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%);
     cursor: pointer;
-    box-shadow: 
-        0 0 15px rgba(6, 182, 212, 0.3),
-        inset 0 0 10px rgba(6, 182, 212, 0.1);
+    box-shadow: var(--shadow-glow), var(--shadow-inset);
 }
 
 /* 按钮发光边框效果 */
@@ -4005,7 +5327,7 @@ export default {
     content: '';
     position: absolute;
     inset: -2px;
-    background: linear-gradient(45deg, transparent, rgba(6, 182, 212, 0.4), transparent);
+    background: linear-gradient(45deg, transparent, var(--accent-cyan-light), transparent);
     clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -4017,26 +5339,21 @@ export default {
 }
 
 .map-tool-btn:hover {
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.9), rgba(8, 145, 178, 0.95));
+    background: var(--btn-primary-hover);
     color: #000;
     border-color: rgba(255, 255, 255, 0.9);
-    box-shadow: 
-        0 0 30px rgba(6, 182, 212, 0.8),
-        0 0 20px rgba(255, 255, 255, 0.6),
-        inset 0 0 20px rgba(255, 255, 255, 0.3);
+    box-shadow: var(--shadow-glow-hover), 0 0 20px rgba(255, 255, 255, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
     transform: translateX(-6px) scale(1.05);
 }
 
 .map-tool-btn:active {
     transform: translateX(-6px) scale(0.98);
-    box-shadow: 
-        0 0 20px rgba(6, 182, 212, 0.6),
-        inset 0 0 15px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-glow), inset 0 0 15px rgba(0, 0, 0, 0.3);
 }
 
 /* 图标增强 */
 .map-tool-btn svg {
-    filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.5));
+    filter: drop-shadow(0 0 2px var(--accent-cyan-glow));
     transition: filter 0.3s ease;
 }
 
@@ -4090,5 +5407,34 @@ export default {
         opacity: 1;
         transform: translateX(0);
     }
+}
+
+/* 地图容器 */
+.map-container-wrapper {
+    position: relative;
+    background-color: var(--globe-bg);
+}
+
+/* 背景图层 - 铺满整个页面 */
+.map-bg-layer {
+    position: fixed;  /* 改为 fixed，相对于视口定位 */
+    inset: 0;
+    z-index: -1;  /* 改为 -1，确保在所有内容下面 */
+    pointer-events: none;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* 亮色主题背景图 */
+[data-theme="light"] .map-bg-layer {
+    /* background-image: url('/image/bg.jpg'); */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* 暗色主题无背景图 */
+[data-theme="dark"] .map-bg-layer {
+    background-image: none;
 }
 </style>

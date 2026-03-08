@@ -1,0 +1,20 @@
+/* LeftPanel 主题适配 */
+
+/* 暗色主题（默认） */
+:root,
+[data-theme="dark"] {
+  --left-panel-item-bg: rgba(30, 41, 59, 0.6);
+  --left-panel-item-hover: rgba(30, 41, 59, 0.3);
+  --left-panel-item-active: linear-gradient(to bottom right, #2563eb, #0891b2);
+  --left-panel-item-border: rgba(71, 85, 105, 1);
+  --left-panel-section-bg: rgba(15, 23, 42, 0.3);
+}
+
+/* 亮色主题 */
+[data-theme="light"] {
+  --left-panel-item-bg: rgba(255, 255, 255, 0.85);
+  --left-panel-item-hover: rgba(245, 245, 245, 0.9);
+  --left-panel-item-active: linear-gradient(to bottom right, rgba(240, 240, 240, 0.9), rgba(235, 235, 235, 0.9));
+  --left-panel-item-border: rgba(200, 200, 200, 0.9);
+  --left-panel-section-bg: rgba(250, 250, 250, 0.85);
+}

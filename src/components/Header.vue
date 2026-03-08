@@ -2,38 +2,46 @@
     <header class="absolute top-0 left-0 w-full h-32 z-50 flex items-start justify-between pointer-events-none select-none overflow-hidden">
         
         <!-- Top Decorative Bar -->
-        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-60 z-20"></div>
+        <div class="absolute top-0 left-0 w-full h-2 opacity-60 z-20" 
+             style="background: linear-gradient(to right, transparent, var(--accent-cyan), transparent);"></div>
 
-        <!-- Center Structure (Increased Width) -->
-        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1200px] h-[110px] z-10">
+        <!-- Center Structure (Reduced Width) -->
+        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1000px] h-[110px] z-10">
             <!-- Main Trapezoid -->
-            <div class="w-full h-full bg-slate-950/90 border-b-2 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
-                 style="clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%); backdrop-filter: blur(10px);">
+            <div class="w-full h-full border-b-2"
+                 style="background-color: var(--header-bg); border-color: var(--header-border); box-shadow: var(--shadow-glow); clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);">
                  
                  <!-- Inner Grid Texture -->
-                 <div class="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_50%,rgba(6,182,212,0.2)_50%)] bg-[size:6px_6px]"></div>
+                 <div class="absolute inset-0 opacity-20" 
+                      style="background: linear-gradient(90deg, transparent 50%, var(--grid-color) 50%); background-size: 6px 6px;"></div>
                  
                  <!-- Bottom Highlight Line -->
-                 <div class="absolute bottom-0 left-[15%] w-[70%] h-[3px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent shadow-[0_0_15px_#facc15]"></div>
+                 <div class="absolute bottom-0 left-[15%] w-[70%] h-[3px]" 
+                      style="background: linear-gradient(to right, transparent, var(--header-highlight), transparent); box-shadow: 0 0 15px var(--header-highlight);"></div>
             </div>
             
             <!-- Title (Adjusted Size) -->
             <div class="absolute top-5 w-full text-center">
-                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.15em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
+                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.15em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400" 
+                    style="filter: drop-shadow(0 0 15px var(--accent-cyan-glow));">
                     {{ APP_TITLE }}
                 </h1>
-                <div class="text-xs text-cyan-400 tracking-[0.5em] uppercase opacity-80 mt-2 font-['Orbitron'] font-bold">Deep Sea Mining Meteorological Support System</div>
+                <div class="text-xs tracking-[0.5em] uppercase opacity-80 mt-2 font-['Orbitron'] font-bold" 
+                     style="color: var(--accent-cyan);">Deep Sea Mining Meteorological Support System</div>
             </div>
         </div>
 
         <!-- Left Area: Logo + Nav -->
-        <div class="absolute top-0 left-0 h-full flex items-center pl-6 z-20 animate-slideInLeft w-[calc(50%-600px)]">
+        <div class="absolute top-0 left-0 h-full flex items-center pl-6 z-20 animate-slideInLeft w-[calc(50%-500px)]">
             <!-- Logo Block -->
-            <div class="flex items-center mr-6 pr-5 border-r-2 border-cyan-500/30 pointer-events-auto">
+            <div class="flex items-center mr-6 pr-5 border-r-2 pointer-events-auto" 
+                 style="border-color: var(--border-secondary);">
                 <!-- Logo 图标 - 纯图标，无背景 -->
                 <div class="w-20 h-20 flex items-center justify-center relative">
                     <!-- Logo 图标 - 海洋/地球主题 -->
-                    <svg class="w-16 h-16 text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.6)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-16 h-16" 
+                         style="color: var(--accent-cyan); filter: drop-shadow(0 0 10px var(--accent-cyan-glow));" 
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -43,12 +51,15 @@
             <nav class="flex gap-2.5 transform skew-x-[-15deg] pointer-events-auto">
                 <button v-for="item in leftTabs" :key="item" 
                     @click="selectTab(item)"
-                    :class="[
-                        'px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px]',
-                        activeTab === item 
-                            ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
-                            : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-                    ]"
+                    @mouseenter="hoveredTab = item"
+                    @mouseleave="hoveredTab = null"
+                    class="px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px] border-2"
+                    :style="{
+                        color: activeTab === item ? 'white' : 'var(--text-secondary)',
+                        backgroundColor: activeTab === item ? 'var(--header-tab-active-bg)' : (hoveredTab === item ? 'var(--header-tab-hover-bg)' : 'var(--header-tab-bg)'),
+                        borderColor: activeTab === item ? 'var(--header-highlight)' : 'var(--border-secondary)',
+                        boxShadow: activeTab === item ? '0 0 25px var(--accent-cyan-glow)' : 'none'
+                    }"
                 >
                     <span class="block transform skew-x-[15deg] drop-shadow-md">{{ item }}</span>
                 </button>
@@ -56,35 +67,43 @@
         </div>
 
         <!-- Right Area: Nav + Time (与左侧对称) -->
-        <div class="absolute top-0 right-0 h-full flex items-center justify-end pr-6 z-20 animate-slideInRight w-[calc(50%-600px)]">
+        <div class="absolute top-0 right-0 h-full flex items-center justify-end pr-6 z-20 animate-slideInRight w-[calc(50%-500px)]">
             <!-- Right Nav -->
             <nav class="flex gap-2.5 transform skew-x-[15deg] pointer-events-auto">
                  <button v-for="item in rightTabs" :key="item" 
                     @click="selectTab(item)"
-                    :class="[
-                        'px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px]',
-                        activeTab === item 
-                            ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
-                            : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-                    ]"
+                    @mouseenter="hoveredTab = item"
+                    @mouseleave="hoveredTab = null"
+                    class="px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px] border-2"
+                    :style="{
+                        color: activeTab === item ? 'white' : 'var(--text-secondary)',
+                        backgroundColor: activeTab === item ? 'var(--header-tab-active-bg)' : (hoveredTab === item ? 'var(--header-tab-hover-bg)' : 'var(--header-tab-bg)'),
+                        borderColor: activeTab === item ? 'var(--header-highlight)' : 'var(--border-secondary)',
+                        boxShadow: activeTab === item ? '0 0 25px var(--accent-cyan-glow)' : 'none'
+                    }"
                 >
                     <span class="block transform skew-x-[-15deg] drop-shadow-md">{{ item }}</span>
                 </button>
             </nav>
             
             <!-- Time Block - 与左侧 Logo 区域对称 -->
-            <div class="flex items-center gap-3 ml-6 pl-5 border-l-2 border-cyan-500/30 pointer-events-auto flex-shrink-0">
+            <div class="flex items-center gap-3 ml-6 pl-5 border-l-2 pointer-events-auto flex-shrink-0" 
+                 style="border-color: var(--border-secondary);">
                 <!-- Time Display -->
                 <div class="flex flex-col leading-tight text-right">
-                    <span class="text-base tracking-widest opacity-80 text-cyan-200 font-bold font-['Rajdhani']">{{ formatDate(time) }}</span>
-                    <span class="text-3xl font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] tabular-nums font-['Rajdhani']">{{ formatTime(time) }}</span>
+                    <span class="text-base tracking-widest opacity-80 font-bold font-['Rajdhani']" 
+                          style="color: var(--text-secondary);">{{ formatDate(time) }}</span>
+                    <span class="text-3xl font-bold text-white tracking-wider tabular-nums font-['Rajdhani']" 
+                          style="filter: drop-shadow(0 0 10px var(--accent-cyan-glow));">{{ formatTime(time) }}</span>
                 </div>
             </div>
         </div>
         
         <!-- Decoration Lines under Nav -->
-        <div class="absolute top-[100px] left-0 w-[30%] h-[1px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/50 to-cyan-500/0"></div>
-        <div class="absolute top-[100px] right-0 w-[30%] h-[1px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/50 to-cyan-500/0"></div>
+        <div class="absolute top-[100px] left-0 w-[30%] h-[1px]" 
+             style="background: linear-gradient(to right, transparent, var(--accent-cyan), transparent); opacity: 0.5;"></div>
+        <div class="absolute top-[100px] right-0 w-[30%] h-[1px]" 
+             style="background: linear-gradient(to right, transparent, var(--accent-cyan), transparent); opacity: 0.5;"></div>
     </header>
 </template>
 
@@ -103,11 +122,14 @@ export default {
         // 当前激活的选项卡（默认：矿区管理）
         const activeTab = ref(TOP_TABS[1]);
         
-        // 左侧选项卡列表（前3个）
-        const leftTabs = computed(() => TOP_TABS.slice(0, 3));
+        // 当前悬停的选项卡
+        const hoveredTab = ref(null);
         
-        // 右侧选项卡列表（后3个）
-        const rightTabs = computed(() => TOP_TABS.slice(3));
+        // 左侧选项卡列表（前4个）
+        const leftTabs = computed(() => TOP_TABS.slice(0, 4));
+        
+        // 右侧选项卡列表（后面的）
+        const rightTabs = computed(() => TOP_TABS.slice(4));
         
         // 定时器（用于更新时间）
         let timer = null;
@@ -178,6 +200,7 @@ export default {
             formatTime,
             APP_TITLE,
             activeTab,
+            hoveredTab,
             leftTabs,
             rightTabs,
             selectTab

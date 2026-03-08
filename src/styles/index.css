@@ -1,6 +1,8 @@
 /* 样式入口文件 */
 
 @import "tailwindcss";
+@import "./themes.css";
+@import "./left-panel-theme.css";
 @import "./base.css";
 @import "./animations.css";
 @import "./components.css";

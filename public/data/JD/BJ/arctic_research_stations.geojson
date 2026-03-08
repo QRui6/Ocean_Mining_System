@@ -1,0 +1,306 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "country": "中国",
+        "stationName": "北极黄河站",
+        "location": "挪威斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 20-25 人，越冬 2-3 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.933333, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "country": "中国",
+        "stationName": "中冰北极科考站",
+        "location": "冰岛北部凯库雷赫里",
+        "stationType": "常年科考站",
+        "personnel": "度夏 15-20 人，无常驻越冬"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-17.366667, 65.716667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "country": "挪威",
+        "stationName": "斯瓦尔巴全球种子库配套观测站",
+        "location": "斯瓦尔巴群岛伊尔萨克",
+        "stationType": "常年科考站",
+        "personnel": "度夏 30-40 人，越冬 10-15 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [15.55, 78.216667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "country": "挪威",
+        "stationName": "泽波极地观测站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 25-30 人，越冬 5-8 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.916667, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "country": "法国、德国、挪威",
+        "stationName": "AWIPEV 联合北极科考站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 35-40 人，越冬 8-10 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.966667, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "country": "英国",
+        "stationName": "英国北极观测站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 15-20 人，越冬 3-5 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.95, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "country": "日本",
+        "stationName": "日本北极科考站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 12-15 人，越冬 2-3 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.933333, 78.933333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "country": "意大利",
+        "stationName": "迪里吉比莱意大利北极站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 7-10 人，越冬 2 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.983333, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "country": "韩国",
+        "stationName": "韩国北极科考站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 10-12 人，越冬 2-3 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [12.0, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "country": "印度",
+        "stationName": "希马德里北极科考站",
+        "location": "斯瓦尔巴群岛新奥尔松",
+        "stationType": "常年科考站",
+        "personnel": "度夏 8-10 人，无常驻越冬"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [11.9, 78.916667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "country": "美国",
+        "stationName": "巴罗观测站",
+        "location": "阿拉斯加巴罗角",
+        "stationType": "常年科考站",
+        "personnel": "度夏 10-15 人，越冬 2-3 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-156.483333, 71.383333]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 12,
+        "country": "美国",
+        "stationName": "阿拉斯加北极科研中心",
+        "location": "阿拉斯加费尔班克斯",
+        "stationType": "常年科考站",
+        "personnel": "度夏 50-60 人，越冬 20-25 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-147.75, 64.85]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 13,
+        "country": "加拿大",
+        "stationName": "高北极科考站（CHARS）",
+        "location": "努纳武特剑湾",
+        "stationType": "常年科考站",
+        "personnel": "度夏 25-30 人，越冬 25-30 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-105.05, 69.116667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 14,
+        "country": "加拿大",
+        "stationName": "丘吉尔北方研究中心",
+        "location": "曼尼托巴丘吉尔",
+        "stationType": "常年科考站",
+        "personnel": "度夏 80-90 人，越冬 10-15 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-94.183333, 58.766667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 15,
+        "country": "俄罗斯",
+        "stationName": "浮冰漂流站（NP系列）",
+        "location": "北冰洋浮冰区（移动）",
+        "coordinates": "随冰移，北纬 75°-88°",
+        "stationType": "流动科考站",
+        "personnel": "度夏 15-20 人，越冬 10-12 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 81.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 16,
+        "country": "俄罗斯",
+        "stationName": "切柳斯金角水文气象站",
+        "location": "西伯利亚泰梅尔半岛",
+        "stationType": "常年科考站",
+        "personnel": "度夏 20-25 人，越冬 10-12 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [104.3, 77.716667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 17,
+        "country": "丹麦",
+        "stationName": "达内堡科考站",
+        "location": "格陵兰岛沃克拉斯顿前陆",
+        "stationType": "常年科考站",
+        "personnel": "度夏 15-20 人，越冬 12 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-20.466667, 74.3]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 18,
+        "country": "丹麦",
+        "stationName": "丹麦港科考站",
+        "location": "格陵兰岛高纬丁湾",
+        "stationType": "常年科考站",
+        "personnel": "度夏 10-12 人，越冬 6 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-18.666667, 76.766667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 19,
+        "country": "瑞典",
+        "stationName": "阿比斯库科研站",
+        "location": "瑞典北部阿比斯库",
+        "stationType": "常年科考站",
+        "personnel": "度夏 12 人，越冬 12 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [18.716667, 68.366667]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 20,
+        "country": "芬兰",
+        "stationName": "凯沃科考站",
+        "location": "芬兰北部凯沃",
+        "stationType": "常年科考站",
+        "personnel": "度夏 12 人，越冬 7 人"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [27.016667, 69.75]
+      }
+    }
+  ]
+}

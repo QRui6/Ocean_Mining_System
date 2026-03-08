@@ -14,7 +14,7 @@ import { fetchMiningAreasGeoJSON } from '../api/miningAreas.js';
 export async function loadGeoJson(viewer, url, options = {}) {
     const {
         strokeColor = Cesium.Color.CYAN,
-        fillColor = Cesium.Color.CYAN.withAlpha(0.5),
+        fillColor = Cesium.Color.CYAN.withAlpha(1.0),
         strokeWidth = 2,
         clampToGround = false
     } = options;
@@ -67,7 +67,7 @@ export function styleByProperty(dataSource, propertyName, colorFunction) {
                 const color = colorFunction(value);
                 entity.polygon.material = color;
                 entity.polygon.outline = true;
-                entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.8);
+                entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(1.0);
                 entity.polygon.outlineWidth = 2;
             }
         }
@@ -81,32 +81,32 @@ export const ColorSchemes = {
     // 矿种类型颜色
     mineralType: (type) => {
         const colors = {
-            '多金属结核': Cesium.Color.YELLOW.withAlpha(0.7),
-            '富钴结壳': Cesium.Color.ORANGE.withAlpha(0.7),
-            '多金属硫化物': Cesium.Color.RED.withAlpha(0.7),
-            '稀土': Cesium.Color.PURPLE.withAlpha(0.7)
+            '多金属结核': Cesium.Color.YELLOW.withAlpha(1.0),
+            '富钴结壳': Cesium.Color.ORANGE.withAlpha(1.0),
+            '多金属硫化物': Cesium.Color.RED.withAlpha(1.0),
+            '稀土': Cesium.Color.PURPLE.withAlpha(1.0)
         };
-        return colors[type] || Cesium.Color.CYAN.withAlpha(0.7);
+        return colors[type] || Cesium.Color.CYAN.withAlpha(1.0);
     },
 
     // 按数值分级着色
     byValue: (value) => {
-        if (value > 80) return Cesium.Color.RED.withAlpha(0.7);
-        if (value > 60) return Cesium.Color.ORANGE.withAlpha(0.7);
-        if (value > 40) return Cesium.Color.YELLOW.withAlpha(0.7);
-        if (value > 20) return Cesium.Color.LIGHTGREEN.withAlpha(0.7);
-        return Cesium.Color.GREEN.withAlpha(0.7);
+        if (value > 80) return Cesium.Color.RED.withAlpha(1.0);
+        if (value > 60) return Cesium.Color.ORANGE.withAlpha(1.0);
+        if (value > 40) return Cesium.Color.YELLOW.withAlpha(1.0);
+        if (value > 20) return Cesium.Color.LIGHTGREEN.withAlpha(1.0);
+        return Cesium.Color.GREEN.withAlpha(1.0);
     },
 
     // 按国家着色
     byCountry: (country) => {
         const colors = {
-            '中国': Cesium.Color.RED.withAlpha(0.7),
-            '日本': Cesium.Color.BLUE.withAlpha(0.7),
-            '韩国': Cesium.Color.GREEN.withAlpha(0.7),
-            '俄罗斯': Cesium.Color.PURPLE.withAlpha(0.7)
+            '中国': Cesium.Color.RED.withAlpha(1.0),
+            '日本': Cesium.Color.BLUE.withAlpha(1.0),
+            '韩国': Cesium.Color.GREEN.withAlpha(1.0),
+            '俄罗斯': Cesium.Color.PURPLE.withAlpha(1.0)
         };
-        return colors[country] || Cesium.Color.CYAN.withAlpha(0.7);
+        return colors[country] || Cesium.Color.CYAN.withAlpha(1.0);
     }
 };
 
@@ -154,7 +154,7 @@ export function setupClickHandler(viewer, callback) {
  * @param {Cesium.Entity} entity - 实体对象
  * @param {Cesium.Color} highlightColor - 高亮颜色
  */
-export function highlightEntity(entity, highlightColor = Cesium.Color.YELLOW.withAlpha(0.8)) {
+export function highlightEntity(entity, highlightColor = Cesium.Color.YELLOW.withAlpha(1.0)) {
     if (entity.polygon) {
         entity.polygon.material = highlightColor;
         entity.polygon.outlineColor = Cesium.Color.WHITE;

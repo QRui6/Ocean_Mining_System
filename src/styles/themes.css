@@ -1,0 +1,337 @@
+/* 主题系统 - 支持暗色和亮色两种主题 */
+
+/* ==================== 暗色主题（默认） ==================== */
+:root,
+[data-theme="dark"] {
+  /* 主色调 */
+  --primary-bg: #000510;
+  --secondary-bg: #0f172a;
+  --panel-bg: rgba(15, 23, 42, 0.92);
+  --panel-bg-hover: rgba(15, 23, 42, 0.95);
+  
+  /* 文字颜色 */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  
+  /* 强调色 */
+  --accent-cyan: #06b6d4;
+  --accent-cyan-light: rgba(6, 182, 212, 0.3);
+  --accent-cyan-glow: rgba(6, 182, 212, 0.15);
+  --accent-yellow: #facc15;
+  --accent-purple: #a855f7;
+  
+  /* 边框颜色 */
+  --border-primary: rgba(6, 182, 212, 0.4);
+  --border-secondary: rgba(6, 182, 212, 0.3);
+  --border-hover: rgba(6, 182, 212, 0.6);
+  
+  /* 阴影 */
+  --shadow-glow: 0 0 30px rgba(6, 182, 212, 0.15);
+  --shadow-glow-hover: 0 0 40px rgba(6, 182, 212, 0.25);
+  --shadow-inset: inset 0 0 30px rgba(6, 182, 212, 0.08);
+  
+  /* 背景装饰 */
+  --grid-color: rgba(6, 182, 212, 0.2);
+  --gradient-corner: rgba(6, 182, 212, 0.1);
+  
+  /* 地球/地图颜色 */
+  --globe-base: #001a33;
+  --globe-bg: #000814;
+  
+  /* 按钮颜色 */
+  --btn-primary-bg: linear-gradient(to right, #0891b2, #0e7490);
+  --btn-primary-hover: linear-gradient(to right, #06b6d4, #0891b2);
+  --btn-secondary-bg: rgba(15, 23, 42, 0.8);
+  --btn-secondary-hover: rgba(15, 23, 42, 1);
+  
+  /* Header专用颜色 */
+  --header-bg: rgba(15, 23, 42, 0.90);
+  --header-border: rgba(6, 182, 212, 0.5);
+  --header-highlight: #facc15;
+  --header-tab-active-bg: rgba(6, 182, 212, 0.7);
+  --header-tab-bg: rgba(15, 23, 42, 0.6);
+  --header-tab-hover-bg: rgba(6, 182, 212, 0.4);
+  
+  /* RightPanel专用颜色 */
+  --panel-btn-bg: rgba(15, 23, 42, 0.8);
+  --panel-btn-active-bg: linear-gradient(to left, rgba(6, 182, 212, 0.9), rgba(15, 23, 42, 0.8));
+  --panel-btn-border: rgba(6, 182, 212, 0.5);
+  --panel-btn-border-active: #facc15;
+}
+
+/* ==================== 亮色主题（新增） ==================== */
+[data-theme="light"] {
+  /* 主色调 - 使用更深的蓝色背景，参考科考船列表的效果 */
+  --primary-bg: rgba(15, 30, 60, 0.5);
+  --secondary-bg: rgba(20, 40, 80, 0.5);
+  --panel-bg: rgba(15, 30, 60, 0.7);
+  --panel-bg-hover: rgba(15, 30, 60, 0.85);
+  
+  /* 文字颜色 - 使用更亮的浅色文字，增强对比度 */
+  --text-primary: #ffffff;
+  --text-secondary: #e0f2fe;
+  --text-tertiary: #bae6fd;
+  
+  /* 强调色 - 使用亮蓝色系 */
+  --accent-cyan: rgba(56, 189, 248, 0.9);
+  --accent-cyan-light: rgba(125, 211, 252, 0.7);
+  --accent-cyan-glow: rgba(186, 230, 253, 0.5);
+  --accent-yellow: #fbbf24;
+  --accent-purple: #a78bfa;
+  
+  /* 边框颜色 - 使用亮蓝色 */
+  --border-primary: rgba(56, 189, 248, 0.6);
+  --border-secondary: rgba(125, 211, 252, 0.5);
+  --border-hover: rgba(14, 165, 233, 0.8);
+  
+  /* 阴影 - 使用深色阴影 */
+  --shadow-glow: 0 0 30px rgba(14, 165, 233, 0.3);
+  --shadow-glow-hover: 0 0 40px rgba(14, 165, 233, 0.4);
+  --shadow-inset: inset 0 0 30px rgba(3, 105, 161, 0.2);
+  
+  /* 背景装饰 */
+  --grid-color: rgba(56, 189, 248, 0.3);
+  --gradient-corner: rgba(125, 211, 252, 0.25);
+  
+  /* 地球/地图颜色 */
+  --globe-base: rgba(15, 30, 60, 0.4);
+  --globe-bg: rgba(12, 24, 48, 0.3);
+  
+  /* 按钮颜色 */
+  --btn-primary-bg: linear-gradient(to right, rgba(14, 165, 233, 0.6), rgba(56, 189, 248, 0.5));
+  --btn-primary-hover: linear-gradient(to right, rgba(2, 132, 199, 0.7), rgba(14, 165, 233, 0.6));
+  --btn-secondary-bg: rgba(15, 30, 60, 0.6);
+  --btn-secondary-hover: rgba(15, 30, 60, 0.75);
+  
+  /* Header专用颜色 - 深邃科技蓝渐变 */
+  --header-bg: linear-gradient(135deg, rgba(3, 105, 161, 0.92), rgba(14, 116, 144, 0.88), rgba(8, 145, 178, 0.85));
+  --header-border: rgba(56, 189, 248, 0.8);
+  --header-highlight: #fbbf24;
+  --header-tab-active-bg: linear-gradient(to bottom, rgba(2, 90, 140, 0.95), rgba(3, 70, 120, 0.95));
+  --header-tab-bg: rgba(3, 80, 130, 0.75);
+  --header-tab-hover-bg: rgba(2, 90, 140, 0.85);
+  
+  /* 文字颜色 - 选项卡使用白色 */
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  
+  /* RightPanel专用颜色 */
+  --panel-btn-bg: rgba(15, 30, 60, 0.7);
+  --panel-btn-active-bg: linear-gradient(to left, rgba(14, 165, 233, 0.7), rgba(15, 30, 60, 0.75));
+  --panel-btn-border: rgba(56, 189, 248, 0.6);
+  --panel-btn-border-active: #fbbf24;
+}
+
+/* ==================== 亮色主题下的 LeftPanel 样式覆盖 ==================== */
+[data-theme="light"] .bg-slate-800\/60,
+[data-theme="light"] .bg-slate-800 {
+  background-color: rgba(15, 30, 60, 0.7) !important;
+}
+
+[data-theme="light"] .bg-slate-900\/30,
+[data-theme="light"] .bg-slate-900\/50,
+[data-theme="light"] .bg-slate-900\/60 {
+  background-color: rgba(10, 20, 40, 0.65) !important;
+}
+
+[data-theme="light"] .bg-slate-700 {
+  background-color: rgba(20, 40, 80, 0.7) !important;
+}
+
+[data-theme="light"] .hover\:bg-slate-700:hover {
+  background-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+[data-theme="light"] .hover\:bg-slate-800\/30:hover {
+  background-color: rgba(20, 40, 80, 0.75) !important;
+}
+
+[data-theme="light"] .hover\:bg-slate-600:hover {
+  background-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+[data-theme="light"] .border-slate-700,
+[data-theme="light"] .border-slate-700\/30 {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+}
+
+[data-theme="light"] .border-slate-600 {
+  border-color: rgba(14, 165, 233, 0.7) !important;
+}
+
+[data-theme="light"] .text-slate-400 {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .text-slate-300 {
+  color: #ffffff !important;
+}
+
+/* 左侧面板所有文字强制白色 */
+[data-theme="light"] .absolute.top-36.left-8 .text-slate-400,
+[data-theme="light"] .absolute.top-36.left-8 .text-slate-300,
+[data-theme="light"] .absolute.top-36.left-8 .text-slate-500 {
+  color: #ffffff !important;
+}
+
+/* 左侧面板按钮内文字强制白色并放大 */
+[data-theme="light"] .absolute.top-36.left-8 .bg-slate-800\/60 span,
+[data-theme="light"] .absolute.top-36.left-8 .bg-slate-800 span,
+[data-theme="light"] .absolute.top-36.left-8 button span,
+[data-theme="light"] .absolute.top-36.left-8 div span {
+  color: #ffffff !important;
+  font-size: 1.0em !important;
+  font-weight: 500 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 矿区分布按钮特殊处理 - 缩小字体不换行 */
+[data-theme="light"] .absolute.top-36.left-8 .flex.gap-2 .flex-1 span {
+  font-size: 0.8em !important;
+  white-space: nowrap !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* 左侧面板整体字体放大 */
+[data-theme="light"] .absolute.top-36.left-8 {
+  font-size: 1.05em;
+}
+
+/* 左侧面板标题字体 */
+[data-theme="light"] .absolute.top-36.left-8 h3,
+[data-theme="light"] .absolute.top-36.left-8 h2 {
+  color: #ffffff !important;
+  font-size: 1.15em !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ==================== 亮色主题下的通用按钮和面板样式 ==================== */
+[data-theme="light"] .bg-slate-950,
+[data-theme="light"] .bg-slate-950\/90,
+[data-theme="light"] .bg-slate-950\/80 {
+  background-color: rgba(15, 30, 60, 0.7) !important;
+}
+
+[data-theme="light"] .bg-cyan-900\/70,
+[data-theme="light"] .bg-cyan-900\/60 {
+  background-color: rgba(20, 40, 80, 0.7) !important;
+}
+
+[data-theme="light"] .hover\:bg-cyan-900\/40:hover {
+  background-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+[data-theme="light"] .border-cyan-500\/30,
+[data-theme="light"] .border-cyan-500\/50 {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+}
+
+[data-theme="light"] .hover\:border-cyan-400:hover {
+  border-color: rgba(14, 165, 233, 0.8) !important;
+}
+
+[data-theme="light"] .text-cyan-100 {
+  color: #ffffff !important;
+}
+
+/* 增强文字可读性 - 添加文字阴影 */
+[data-theme="light"] .text-slate-300,
+[data-theme="light"] .text-slate-400,
+[data-theme="light"] .text-cyan-100,
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] .font-bold {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 按钮文字增强 */
+[data-theme="light"] button,
+[data-theme="light"] .btn,
+[data-theme="light"] a {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+/* Header选项卡特殊样式 - 白色加粗 */
+[data-theme="light"] header nav button {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="light"] header nav button span {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* 特殊文字颜色覆盖 - 确保高对比度 */
+[data-theme="light"] .text-cyan-400,
+[data-theme="light"] .text-cyan-300,
+[data-theme="light"] .text-cyan-200 {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] .text-yellow-400,
+[data-theme="light"] .text-yellow-300 {
+  color: #fbbf24 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  font-weight: 600;
+}
+
+/* 输入框和选择框文字 */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* 表格文字 */
+[data-theme="light"] table,
+[data-theme="light"] td,
+[data-theme="light"] th {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== 亮色主题下的 Header 标题优化 ==================== */
+[data-theme="light"] header h1 {
+  /* 使用白色渐变，但降低亮度 */
+  background: linear-gradient(to bottom, #e0e0e0, #f5f5f5, #ffffff) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  /* 添加深色阴影增强对比度 */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) 
+          drop-shadow(0 0 8px rgba(0, 0, 0, 0.3)) !important;
+}
+
+[data-theme="light"] header .text-xs {
+  /* 副标题使用白色 */
+  color: #ffffff !important;
+  text-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+}
+
+
+
+/* ==================== 主题切换动画 ==================== */
+* {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* 禁用某些元素的过渡效果 */
+.no-theme-transition,
+.no-theme-transition * {
+  transition: none !important;
+}

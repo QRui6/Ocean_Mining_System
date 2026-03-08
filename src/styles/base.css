@@ -1,16 +1,11 @@
 /* 基础样式和全局变量 */
 
-:root {
-  --color-cyan-glow: #06b6d4;
-  --color-blue-dark: #0f172a;
-}
-
 html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #000510;
-  color: #fff;
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   font-family: 'Noto Sans SC', 'Rajdhani', sans-serif;
