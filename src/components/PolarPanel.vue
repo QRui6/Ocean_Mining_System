@@ -34,13 +34,15 @@
                                 <div 
                                     v-for="region in POLAR_REGIONS" 
                                     :key="region.id"
-                                    @click="toggleRegion(region.id)"
-                                    class="flex-1 relative py-3 px-4 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center"
-                                    :class="activeRegions.includes(region.id) ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50'"
+                                    @click="jumpToRegion(region.id)"
+                                    class="flex-1 relative py-2.5 px-4 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center"
+                                    :class="selectedRegion === region.id 
+                                        ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.6)] border border-cyan-400' 
+                                        : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50'"
                                 >
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative">
-                                        <span class="font-bold text-sm">{{ region.label }}</span>
+                                        <span class="font-bold text-base">{{ region.label }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -84,7 +86,10 @@
                                                     v-for="item in RESOURCE_TYPES.filter(i => !i.fullWidth)" 
                                                     :key="item.id"
                                                     @click.stop="handleCategoryClick('resource_antarctic', item.id)"
-                                                    class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border border-slate-600 hover:border-green-500/50"
+                                                    class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                                    :class="activeAntarcticResources.includes(item.id) 
+                                                        ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+                                                        : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
                                                 >
                                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                                     <div class="relative">
@@ -98,7 +103,10 @@
                                                 v-for="item in RESOURCE_TYPES.filter(i => i.fullWidth)" 
                                                 :key="item.id"
                                                 @click.stop="handleCategoryClick('resource_antarctic', item.id)"
-                                                class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border border-slate-600 hover:border-green-500/50"
+                                                class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                                :class="activeAntarcticResources.includes(item.id) 
+                                                    ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+                                                    : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
                                             >
                                                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                                 <div class="relative">
@@ -133,7 +141,10 @@
                                                     v-for="item in RESOURCE_TYPES.filter(i => !i.fullWidth)" 
                                                     :key="item.id"
                                                     @click.stop="handleCategoryClick('resource_arctic', item.id)"
-                                                    class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border border-slate-600 hover:border-green-500/50"
+                                                    class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                                    :class="activeArcticResources.includes(item.id) 
+                                                        ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+                                                        : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
                                                 >
                                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                                     <div class="relative">
@@ -147,7 +158,10 @@
                                                 v-for="item in RESOURCE_TYPES.filter(i => i.fullWidth)" 
                                                 :key="item.id"
                                                 @click.stop="handleCategoryClick('resource_arctic', item.id)"
-                                                class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border border-slate-600 hover:border-green-500/50"
+                                                class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                                :class="activeArcticResources.includes(item.id) 
+                                                    ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+                                                    : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
                                             >
                                                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                                 <div class="relative">
@@ -156,6 +170,40 @@
                                             </div>
                                         </div>
                                     </transition>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
+
+                    <!-- 资源调查 -->
+                    <div class="space-y-2 pt-2 border-t-2 border-green-500/30">
+                        <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all" @click="showResourceSurveyPanel = !showResourceSurveyPanel">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                                <span class="text-green-400 text-base font-bold">资源调查</span>
+                                <span v-if="activeResourceSurveyCountries.length > 0" class="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">{{ activeResourceSurveyCountries.length }}</span>
+                            </div>
+                            <svg class="w-5 h-5 text-green-400 transition-transform duration-300" :class="{ 'rotate-180': showResourceSurveyPanel }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                        <transition name="slide-down">
+                            <div v-if="showResourceSurveyPanel" class="bg-slate-900/30 p-3 rounded">
+                                <div class="flex flex-wrap gap-2">
+                                    <div 
+                                        v-for="country in RESOURCE_SURVEY_COUNTRIES" 
+                                        :key="country.id"
+                                        @click.stop="handleResourceSurveyCountryClick(country.id)"
+                                        class="px-3 py-1.5 rounded cursor-pointer transition-all duration-300 text-sm font-medium border"
+                                        :style="activeResourceSurveyCountries.includes(country.id) 
+                                            ? `background-color: ${country.color}; border-color: ${country.color}; color: #fff; box-shadow: 0 0 10px ${country.color}80;` 
+                                            : ''"
+                                        :class="!activeResourceSurveyCountries.includes(country.id) 
+                                            ? 'bg-slate-700/60 text-slate-300 hover:bg-slate-600 border-slate-600 hover:border-slate-500' 
+                                            : ''"
+                                    >
+                                        {{ country.label }}
+                                    </div>
                                 </div>
                             </div>
                         </transition>
@@ -198,9 +246,12 @@
                                                     :key="country.id"
                                                     @click.stop="handleStationCountryClick('antarctic', country.id)"
                                                     class="px-3 py-1.5 rounded cursor-pointer transition-all duration-300 text-xs font-medium border"
-                                                    :class="activeAntarcticStationCountries.includes(country.id) 
-                                                        ? 'bg-blue-600/80 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
-                                                        : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600 hover:text-blue-300 border-slate-600 hover:border-blue-500/50'"
+                                                    :style="activeAntarcticStationCountries.includes(country.id) 
+                                                        ? `background-color: ${country.color}; border-color: ${country.color}; color: ${country.label === '德国' || country.label === '瑞典' ? '#000' : '#fff'}; box-shadow: 0 0 10px ${country.color}80;` 
+                                                        : ''"
+                                                    :class="!activeAntarcticStationCountries.includes(country.id) 
+                                                        ? 'bg-slate-700/60 text-slate-300 hover:bg-slate-600 border-slate-600 hover:border-slate-500' 
+                                                        : ''"
                                                 >
                                                     {{ country.label }}
                                                 </div>
@@ -233,9 +284,12 @@
                                                     :key="country.id"
                                                     @click.stop="handleStationCountryClick('arctic', country.id)"
                                                     class="px-3 py-1.5 rounded cursor-pointer transition-all duration-300 text-xs font-medium border"
-                                                    :class="activeArcticStationCountries.includes(country.id) 
-                                                        ? 'bg-blue-600/80 text-white border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
-                                                        : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600 hover:text-blue-300 border-slate-600 hover:border-blue-500/50'"
+                                                    :style="activeArcticStationCountries.includes(country.id) 
+                                                        ? `background-color: ${country.color}; border-color: ${country.color}; color: ${country.label === '德国' || country.label === '瑞典' ? '#000' : '#fff'}; box-shadow: 0 0 10px ${country.color}80;` 
+                                                        : ''"
+                                                    :class="!activeArcticStationCountries.includes(country.id) 
+                                                        ? 'bg-slate-700/60 text-slate-300 hover:bg-slate-600 border-slate-600 hover:border-slate-500' 
+                                                        : ''"
                                                 >
                                                     {{ country.label }}
                                                 </div>
@@ -340,6 +394,34 @@
 <script>
 import { ref } from 'vue';
 
+// 国家颜色配置（与地图保持一致）
+const COUNTRY_COLORS = {
+    '中国': '#FF0000',
+    '美国': '#0066FF',
+    '俄罗斯': '#FFD700',
+    '英国': '#00FFFF',
+    '日本': '#FF1493',
+    '澳大利亚': '#00FF00',
+    '阿根廷': '#87CEEB',
+    '智利': '#FF6600',
+    '法国': '#9370DB',
+    '德国': '#FFFFFF',
+    '韩国': '#FF00FF',
+    '印度': '#FFA500',
+    '挪威': '#DC143C',
+    '新西兰': '#00CED1',
+    '乌克兰': '#1E90FF',
+    '波兰': '#FF69B4',
+    '乌拉圭': '#4169E1',
+    '意大利': '#32CD32',
+    '法国、意大利': '#BA55D3',
+    '法国、德国、挪威': '#8B008B',
+    '丹麦': '#ADFF2F',
+    '瑞典': '#FFE4B5',
+    '芬兰': '#20B2AA',
+    '加拿大': '#FF4500'
+};
+
 // 极地区域配置
 const POLAR_REGIONS = [
     { id: 'antarctic', label: '南极' },
@@ -348,42 +430,42 @@ const POLAR_REGIONS = [
 
 // 南极科考站国家（从实际数据中提取）
 const ANTARCTIC_STATION_COUNTRIES = [
-    { id: 'china', label: '中国' },
-    { id: 'usa', label: '美国' },
-    { id: 'russia', label: '俄罗斯' },
-    { id: 'australia', label: '澳大利亚' },
-    { id: 'argentina', label: '阿根廷' },
-    { id: 'chile', label: '智利' },
-    { id: 'japan', label: '日本' },
-    { id: 'france', label: '法国' },
-    { id: 'germany', label: '德国' },
-    { id: 'korea', label: '韩国' },
-    { id: 'india', label: '印度' },
-    { id: 'uk', label: '英国' },
-    { id: 'ukraine', label: '乌克兰' },
-    { id: 'newzealand', label: '新西兰' },
-    { id: 'norway', label: '挪威' },
-    { id: 'uruguay', label: '乌拉圭' },
-    { id: 'poland', label: '波兰' },
-    { id: 'france_italy', label: '法国、意大利' }
+    { id: 'china', label: '中国', color: COUNTRY_COLORS['中国'] },
+    { id: 'usa', label: '美国', color: COUNTRY_COLORS['美国'] },
+    { id: 'russia', label: '俄罗斯', color: COUNTRY_COLORS['俄罗斯'] },
+    { id: 'australia', label: '澳大利亚', color: COUNTRY_COLORS['澳大利亚'] },
+    { id: 'argentina', label: '阿根廷', color: COUNTRY_COLORS['阿根廷'] },
+    { id: 'chile', label: '智利', color: COUNTRY_COLORS['智利'] },
+    { id: 'japan', label: '日本', color: COUNTRY_COLORS['日本'] },
+    { id: 'france', label: '法国', color: COUNTRY_COLORS['法国'] },
+    { id: 'germany', label: '德国', color: COUNTRY_COLORS['德国'] },
+    { id: 'korea', label: '韩国', color: COUNTRY_COLORS['韩国'] },
+    { id: 'india', label: '印度', color: COUNTRY_COLORS['印度'] },
+    { id: 'uk', label: '英国', color: COUNTRY_COLORS['英国'] },
+    { id: 'ukraine', label: '乌克兰', color: COUNTRY_COLORS['乌克兰'] },
+    { id: 'newzealand', label: '新西兰', color: COUNTRY_COLORS['新西兰'] },
+    { id: 'norway', label: '挪威', color: COUNTRY_COLORS['挪威'] },
+    { id: 'uruguay', label: '乌拉圭', color: COUNTRY_COLORS['乌拉圭'] },
+    { id: 'poland', label: '波兰', color: COUNTRY_COLORS['波兰'] },
+    { id: 'france_italy', label: '法国、意大利', color: COUNTRY_COLORS['法国、意大利'] }
 ];
 
 // 北极科考站国家（从实际数据中提取）
 const ARCTIC_STATION_COUNTRIES = [
-    { id: 'china', label: '中国' },
-    { id: 'norway', label: '挪威' },
-    { id: 'france_germany_norway', label: '法国、德国、挪威' },
-    { id: 'uk', label: '英国' },
-    { id: 'japan', label: '日本' },
-    { id: 'italy', label: '意大利' },
-    { id: 'korea', label: '韩国' },
-    { id: 'india', label: '印度' },
-    { id: 'usa', label: '美国' },
-    { id: 'canada', label: '加拿大' },
-    { id: 'russia', label: '俄罗斯' },
-    { id: 'denmark', label: '丹麦' },
-    { id: 'sweden', label: '瑞典' },
-    { id: 'finland', label: '芬兰' }
+    { id: 'china', label: '中国', color: COUNTRY_COLORS['中国'] },
+    { id: 'norway', label: '挪威', color: COUNTRY_COLORS['挪威'] },
+    { id: 'france_germany_norway', label: '法国、德国、挪威', color: COUNTRY_COLORS['法国、德国、挪威'] },
+    { id: 'uk', label: '英国', color: COUNTRY_COLORS['英国'] },
+    { id: 'japan', label: '日本', color: COUNTRY_COLORS['日本'] },
+    { id: 'italy', label: '意大利', color: COUNTRY_COLORS['意大利'] },
+    { id: 'korea', label: '韩国', color: COUNTRY_COLORS['韩国'] },
+    { id: 'india', label: '印度', color: COUNTRY_COLORS['印度'] },
+    { id: 'usa', label: '美国', color: COUNTRY_COLORS['美国'] },
+    { id: 'canada', label: '加拿大', color: COUNTRY_COLORS['加拿大'] },
+    { id: 'russia', label: '俄罗斯', color: COUNTRY_COLORS['俄罗斯'] },
+    { id: 'denmark', label: '丹麦', color: COUNTRY_COLORS['丹麦'] },
+    { id: 'sweden', label: '瑞典', color: COUNTRY_COLORS['瑞典'] },
+    { id: 'finland', label: '芬兰', color: COUNTRY_COLORS['芬兰'] }
 ];
 
 // 资源潜力二级菜单（区域）
@@ -397,6 +479,18 @@ const RESOURCE_TYPES = [
     { id: 'energy_minerals', label: '能源矿产' },
     { id: 'metal_minerals', label: '金属矿产' },
     { id: 'non_metal_special', label: '非金属矿产及特殊资源', fullWidth: true }
+];
+
+// 资源调查国家列表
+const RESOURCE_SURVEY_COUNTRIES = [
+    { id: 'usa', label: '美国', color: '#0066FF' },
+    { id: 'russia', label: '俄罗斯', color: '#FFD700' },
+    { id: 'japan', label: '日本', color: '#FF1493' },
+    { id: 'uk', label: '英国', color: '#00FFFF' },
+    { id: 'australia', label: '澳大利亚', color: '#00FF00' },
+    { id: 'china', label: '中国', color: '#FF0000' },
+    { id: 'argentina_chile', label: '阿根廷、智利', color: '#87CEEB' },
+    { id: 'germany_korea_india', label: '德国、韩国、印度', color: '#FFA500' }
 ];
 
 // 科考站点二级菜单（已废弃，改为国家按钮）
@@ -435,11 +529,13 @@ export default {
     emits: [
         'regionChange',
         'categoryClick',
-        'stationCountryClick'
+        'stationCountryClick',
+        'resourceSurveyCountryClick'
     ],
     setup(props, { emit }) {
         // 状态管理
         const activeRegions = ref([]);
+        const selectedRegion = ref('antarctic'); // 当前选中的区域（单选），默认选中南极
         
         // 资源类型选中状态（南极和北极分别管理）
         const activeAntarcticResources = ref([]);
@@ -449,9 +545,13 @@ export default {
         const activeAntarcticStationCountries = ref([]);
         const activeArcticStationCountries = ref([]);
         
+        // 资源调查国家选中状态（多选）
+        const activeResourceSurveyCountries = ref([]);
+        
         // 面板展开状态
-        const showRegionPanel = ref(true);
-        const showResourcePanel = ref(false);
+        const showRegionPanel = ref(true);  // 默认展开
+        const showResourceSurveyPanel = ref(true);  // 默认展开
+        const showResourcePanel = ref(true);  // 默认展开
         const showAntarcticResourcePanel = ref(false);
         const showArcticResourcePanel = ref(false);
         const showStationPanel = ref(false);
@@ -461,7 +561,44 @@ export default {
         const showSovereigntyPanel = ref(false);
         const showFrameworkPanel = ref(false);
         
-        // 切换极地区域
+        // 极地区域坐标配置
+        const REGION_COORDINATES = {
+            antarctic: { longitude: 0, latitude: -90, zoom: 3 },
+            arctic: { longitude: 0, latitude: 90, zoom: 3 }
+        };
+        
+        // 跳转到极地区域
+        const jumpToRegion = (regionId) => {
+            console.log('🔵 PolarPanel: jumpToRegion 被调用，regionId =', regionId);
+            
+            // 单选逻辑：如果点击已选中的，则取消选中；否则选中新的
+            if (selectedRegion.value === regionId) {
+                console.log('🔵 取消选中区域:', regionId);
+                selectedRegion.value = null;
+            } else {
+                selectedRegion.value = regionId;
+                console.log('🔵 选中新区域:', regionId);
+                
+                // 获取跳转坐标
+                const coords = REGION_COORDINATES[regionId];
+                console.log('🔵 获取坐标:', coords);
+                
+                if (coords) {
+                    const payload = {
+                        regionId,
+                        ...coords
+                    };
+                    console.log('🔵 准备触发 regionChange 事件，payload =', payload);
+                    
+                    // 触发跳转事件，传递坐标信息
+                    emit('regionChange', payload);
+                    
+                    console.log('🔵 regionChange 事件已触发');
+                }
+            }
+        };
+        
+        // 切换极地区域（保留用于其他功能）
         const toggleRegion = (regionId) => {
             const index = activeRegions.value.indexOf(regionId);
             if (index > -1) {
@@ -503,6 +640,24 @@ export default {
                     selectedCountries: activeArcticStationCountries.value 
                 });
             }
+        };
+        
+        // 处理资源调查国家点击（多选）
+        const handleResourceSurveyCountryClick = (countryId) => {
+            console.log('点击资源调查国家:', countryId);
+            
+            // 多选逻辑
+            const index = activeResourceSurveyCountries.value.indexOf(countryId);
+            if (index > -1) {
+                activeResourceSurveyCountries.value.splice(index, 1);
+            } else {
+                activeResourceSurveyCountries.value.push(countryId);
+            }
+            
+            // 触发资源调查事件
+            emit('resourceSurveyCountryClick', { 
+                selectedCountries: activeResourceSurveyCountries.value 
+            });
         };
         
         // 处理分类点击
@@ -550,6 +705,7 @@ export default {
             POLAR_REGIONS,
             RESOURCE_REGIONS,
             RESOURCE_TYPES,
+            RESOURCE_SURVEY_COUNTRIES,
             ANTARCTIC_STATION_COUNTRIES,
             ARCTIC_STATION_COUNTRIES,
             STATION_ITEMS,
@@ -557,11 +713,14 @@ export default {
             SOVEREIGNTY_ITEMS,
             FRAMEWORK_ITEMS,
             activeRegions,
+            selectedRegion,
             activeAntarcticResources,
             activeArcticResources,
             activeAntarcticStationCountries,
             activeArcticStationCountries,
+            activeResourceSurveyCountries,
             showRegionPanel,
+            showResourceSurveyPanel,
             showResourcePanel,
             showAntarcticResourcePanel,
             showArcticResourcePanel,
@@ -571,9 +730,11 @@ export default {
             showEquipmentPanel,
             showSovereigntyPanel,
             showFrameworkPanel,
+            jumpToRegion,
             toggleRegion,
             handleCategoryClick,
-            handleStationCountryClick
+            handleStationCountryClick,
+            handleResourceSurveyCountryClick
         };
     }
 };

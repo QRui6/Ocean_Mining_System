@@ -19,6 +19,7 @@
                 :weatherFilter="weatherFilter"
                 :pickingPointType="pickingPointType"
                 :resourceFilters="filters.resources || []"
+                :showUSCooperation="showPolicyDynamicsTimeline"
                 @dataLoaded="handleDataLoaded"
                 @cableDataLoaded="handleCableDataLoaded"
                 @arcticRouteDataLoaded="handleArcticRouteDataLoaded"
@@ -53,6 +54,9 @@
                     @showEnvironmentalMonitoring="handleShowEnvironmentalMonitoring"
                     @showLiftingSystem="handleShowLiftingSystem"
                     @showEnterprise="handleShowEnterprise"
+                    @showModelComparison="handleShowModelComparison"
+                    @showEvaluationFormula="handleShowEvaluationFormula"
+                    @showFeasibilityAnalysis="handleShowFeasibilityAnalysis"
                 />
                 
                 <!-- 态势总览面板 -->
@@ -103,6 +107,7 @@
                     :showPanel="activePanels.drillingPanel"
                     @filterChange="handleDrillingFilterChange"
                     @showManagementFramework="handleShowManagementFramework"
+                    @selectCoreRepository="handleSelectCoreRepository"
                 />
                 
                 <!-- 钻探统计面板 -->
@@ -134,6 +139,7 @@
                     @regionChange="handlePolarRegionChange"
                     @categoryClick="handlePolarCategoryClick"
                     @stationCountryClick="handleStationCountryClick"
+                    @resourceSurveyCountryClick="handleResourceSurveyCountryClick"
                 />
                 
                 <!-- 极地资源潜力面板 -->
@@ -142,12 +148,12 @@
                     @close="toggleResourcePotential"
                 />
                 
-                <!-- 科考站国家图例 - 与科考站点按钮绑定 -->
-                <StationCountryLegend 
+                <!-- 科考站国家图例 - 与科考站点按钮绑定 - 暂时隐藏 -->
+                <!-- <StationCountryLegend 
                     :show="activePanels.polarStations"
                     :countries="polarStationCountries || { antarctic: [], arctic: [] }"
                     @close="togglePolarStations"
-                />
+                /> -->
                 
                 <!-- 科考站统计面板 - 与科考站点按钮绑定 -->
                 <PolarStationStatistics 
@@ -300,6 +306,22 @@
                     @stationClick="handleStationClick"
                 />
                 
+                <!-- 南极资源列表面板 -->
+                <AntarcticResourceListPanel 
+                    :show="antarcticResourceListVisible"
+                    :resources="antarcticResourceList"
+                    :selectedCategories="selectedResourceCategories"
+                    @close="antarcticResourceListVisible = false"
+                    @resourceClick="handleResourceClick"
+                />
+                
+                <!-- 资源调查面板 -->
+                <ResourceSurveyPanel 
+                    :show="resourceSurveyPanelVisible"
+                    :selectedCountries="selectedResourceSurveyCountries"
+                    @close="resourceSurveyPanelVisible = false"
+                />
+                
                 <!-- 航线演示面板 -->
                 <RouteDemoPanel 
                     ref="routeDemoRef"
@@ -326,12 +348,21 @@
                     @close="handleCloseTimeline"
                 />
                 
-                <!-- 政策动态时间线 -->
-                <PolicyDynamicsTimeline 
+                <!-- 政策动态时间线 - 旧版（已注释） -->
+                <!-- <PolicyDynamicsTimeline 
                     :show="showPolicyDynamicsTimeline"
                     :country="policyDynamicsCountry"
                     @close="handleClosePolicyDynamics"
+                /> -->
+                
+                <!-- 美国政策动态时间线 - 新版（横向底部） -->
+                <USPolicyTimeline 
+                    :show="showPolicyDynamicsTimeline"
+                    @close="handleClosePolicyDynamics"
                 />
+                
+                <!-- 美国合作关系信息弹窗 -->
+                <USCooperationPopup ref="usCooperationPopupRef" />
                 
                 <!-- 各国态度统计表格 -->
                 <CountryAttitudesTable 
@@ -420,6 +451,24 @@
             :area="selectedAreaForDetail"
             @close="closeAreaDetailDialog"
         />
+        
+        <!-- 模型对比面板 -->
+        <ModelComparisonPanel 
+            :show="showModelComparison"
+            @close="handleCloseModelComparison"
+        />
+        
+        <!-- 经济评价公式面板 -->
+        <EvaluationFormulaPanel 
+            :show="showEvaluationFormula"
+            @close="handleCloseEvaluationFormula"
+        />
+        
+        <!-- 可行性分析面板 -->
+        <FeasibilityAnalysisPanel 
+            :show="showFeasibilityAnalysis"
+            @close="handleCloseFeasibilityAnalysis"
+        />
     </div>
 </template>
 
@@ -456,7 +505,9 @@ import GeologicalSurveyPanel from './components/GeologicalSurveyPanel.vue';
 import MiningDataPanel from './components/MiningDataPanel.vue';
 import ResearchVesselList from './components/ResearchVesselList.vue';
 import DevelopmentTimeline from './components/DevelopmentTimeline.vue';
-import PolicyDynamicsTimeline from './components/PolicyDynamicsTimeline.vue';
+// import PolicyDynamicsTimeline from './components/PolicyDynamicsTimeline.vue'; // 旧版已注释
+import USPolicyTimeline from './components/USPolicyTimeline.vue'; // 新版横向时间轴
+import USCooperationPopup from './components/USCooperationPopup.vue'; // 美国合作关系弹窗
 import CountryAttitudesTable from './components/CountryAttitudesTable.vue';
 import MiningVehiclePanel from './components/MiningVehiclePanel.vue';
 import TechnologyMaturityPanel from './components/TechnologyMaturityPanel.vue';
@@ -472,12 +523,18 @@ import ManagementFrameworkPanel from './components/ManagementFrameworkPanel.vue'
 import CoordinateCollectorPanel from './components/CoordinateCollectorPanel.vue';
 import PolarPanel from './components/PolarPanel.vue';
 import PolarStationListPanel from './components/PolarStationListPanel.vue';
+import AntarcticResourceListPanel from './components/AntarcticResourceListPanel.vue';
+import ResourceSurveyPanel from './components/ResourceSurveyPanel.vue';
 import PolarResourcePotentialPanel from './components/PolarResourcePotentialPanel.vue';
 import StationCountryLegend from './components/StationCountryLegend.vue';
 import PolarStationStatistics from './components/PolarStationStatistics.vue';
 import PolarSovereigntyPanel from './components/PolarSovereigntyPanel.vue';
 import AntarcticSovereigntyDetail from './components/AntarcticSovereigntyDetail.vue';
 import SituationOverviewPanel from './components/SituationOverviewPanel.vue';
+import CoreRepositoryCharts from './components/CoreRepositoryCharts.vue';
+import ModelComparisonPanel from './components/ModelComparisonPanel.vue';
+import EvaluationFormulaPanel from './components/EvaluationFormulaPanel.vue';
+import FeasibilityAnalysisPanel from './components/FeasibilityAnalysisPanel.vue';
 import { PolarStationsLoader } from './utils/polarStationsLoader.js';
 import { EnterpriseMarkerManager } from './utils/enterpriseMarkers.js';
 import { CHINA_ENTERPRISES } from './constants.js';
@@ -515,7 +572,9 @@ export default {
         MiningDataPanel,
         ResearchVesselList,
         DevelopmentTimeline,
-        PolicyDynamicsTimeline,
+        // PolicyDynamicsTimeline, // 旧版已注释
+        USPolicyTimeline, // 新版横向时间轴
+        USCooperationPopup, // 美国合作关系弹窗
         CountryAttitudesTable,
         MiningVehiclePanel,
         TechnologyMaturityPanel,
@@ -532,11 +591,17 @@ export default {
         PolarPanel,
         PolarResourcePotentialPanel,
         PolarStationListPanel,
+        AntarcticResourceListPanel,
+        ResourceSurveyPanel,
         StationCountryLegend,
         PolarStationStatistics,
         PolarSovereigntyPanel,
         AntarcticSovereigntyDetail,
-        SituationOverviewPanel
+        SituationOverviewPanel,
+        CoreRepositoryCharts,
+        ModelComparisonPanel,
+        EvaluationFormulaPanel,
+        FeasibilityAnalysisPanel
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -606,6 +671,11 @@ export default {
         
         // 时间轴显示状态（当切换到气象监测选项卡时自动显示）
         const showTimeline = ref(false);
+        
+        // 经济评价面板状态
+        const showModelComparison = ref(false);
+        const showEvaluationFormula = ref(false);
+        const showFeasibilityAnalysis = ref(false);
         
         // 屏幕缩放比例（用于响应式适配）
         const scale = ref({ x: 1, y: 1 });
@@ -683,6 +753,15 @@ export default {
         const polarStationListVisible = ref(false);
         const polarStationList = ref([]);
         const currentPolarRegion = ref('antarctic');
+        
+        // 南极资源列表状态
+        const antarcticResourceListVisible = ref(false);
+        const antarcticResourceList = ref([]);
+        const selectedResourceCategories = ref([]);
+        
+        // 资源调查面板状态
+        const resourceSurveyPanelVisible = ref(false);
+        const selectedResourceSurveyCountries = ref([]);
         
         // 管理框架面板显示状态
         const showManagementFramework = ref(false);
@@ -830,6 +909,56 @@ export default {
          */
         const toggleDrillingStatistics = () => {
             activePanels.value.drillingStatistics = !activePanels.value.drillingStatistics;
+        };
+        
+        /**
+         * 处理钻探筛选条件变化
+         * @param {Object} filters - 筛选条件对象
+         */
+        const handleDrillingFilterChange = (filters) => {
+            console.log('🔍 钻探筛选条件变化:', filters);
+            
+            // 处理钻孔站位和依托平台筛选
+            if (filters.drillingSites || filters.platforms) {
+                if (mapContainerRef.value && mapContainerRef.value.updateDrillingFilters) {
+                    mapContainerRef.value.updateDrillingFilters({
+                        drillingSites: filters.drillingSites || [],
+                        platforms: filters.platforms || []
+                    });
+                }
+            }
+        };
+        
+        /**
+         * 处理岩心库选择
+         * @param {string|null} countryId - 国家ID (usa, germany, japan) 或 null
+         */
+        const handleSelectCoreRepository = (countryId) => {
+            console.log('📱 App.vue: 收到岩心库选择事件', countryId);
+            if (mapContainerRef.value && mapContainerRef.value.selectCoreRepository) {
+                console.log('📱 App.vue: 调用MapContainer.selectCoreRepository');
+                mapContainerRef.value.selectCoreRepository(countryId);
+            } else {
+                console.error('❌ App.vue: mapContainerRef或selectCoreRepository方法不存在');
+            }
+        };
+        
+        /**
+         * 显示管理框架面板
+         * @param {string} frameworkId - 管理框架ID
+         */
+        const handleShowManagementFramework = (frameworkId) => {
+            console.log('📋 显示管理框架:', frameworkId);
+            selectedManagementFramework.value = frameworkId;
+            showManagementFramework.value = true;
+        };
+        
+        /**
+         * 关闭管理框架面板
+         */
+        const handleCloseManagementFramework = () => {
+            showManagementFramework.value = false;
+            selectedManagementFramework.value = null;
         };
         
         /**
@@ -1120,36 +1249,132 @@ export default {
         
         /**
          * 处理极地区域变化
-         * @param {Array} regions - 选中的极地区域ID列表
+         * @param {Object} regionData - 包含regionId、longitude、latitude、zoom的对象
          */
-        const handlePolarRegionChange = (regions) => {
-            console.log('🌍 选中的极地区域:', regions);
-            // TODO: 根据选中的区域显示/隐藏科考站等
+        const handlePolarRegionChange = (regionData) => {
+            console.log('🟢 App.vue: handlePolarRegionChange 被调用');
+            console.log('🟢 接收到的数据:', regionData);
+            console.log('🟢 数据类型:', typeof regionData);
+            
+            // 如果传入的是对象（包含坐标信息），执行跳转
+            if (regionData && typeof regionData === 'object' && regionData.longitude !== undefined) {
+                const { longitude, latitude, zoom, regionId } = regionData;
+                console.log('🟢 解析坐标:', { longitude, latitude, zoom, regionId });
+                
+                // 调用地图跳转方法
+                if (mapContainerRef.value && mapContainerRef.value.viewer) {
+                    console.log('🟢 MapContainer 和 viewer 存在，准备跳转...');
+                    
+                    // viewer 是一个 getter 函数，需要调用它
+                    const viewerGetter = mapContainerRef.value.viewer;
+                    const viewer = typeof viewerGetter === 'function' ? viewerGetter() : viewerGetter;
+                    
+                    console.log('🟢 viewer对象:', viewer);
+                    console.log('🟢 viewer.camera:', viewer?.camera);
+                    
+                    if (viewer && viewer.camera) {
+                        try {
+                            viewer.camera.flyTo({
+                                destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 10000000),
+                                duration: 2,
+                                orientation: {
+                                    heading: Cesium.Math.toRadians(0),
+                                    pitch: Cesium.Math.toRadians(-90),
+                                    roll: 0.0
+                                }
+                            });
+                            console.log(`✅ 正在飞往${regionId === 'antarctic' ? '南极' : '北极'}...`);
+                        } catch (error) {
+                            console.error('❌ 跳转失败:', error);
+                        }
+                    } else {
+                        console.error('❌ viewer 或 camera 不存在');
+                    }
+                } else {
+                    console.error('❌ MapContainer 或 viewer 不存在');
+                }
+            } else {
+                console.warn('⚠️ 接收到的数据格式不正确或缺少坐标信息');
+            }
         };
         
         /**
          * 处理极地分类点击
-         * @param {Object} payload - 包含category和itemId的对象
+         * @param {Object} payload - 包含category、itemId和selectedTypes的对象
          */
-        const handlePolarCategoryClick = (payload) => {
-            const { category, itemId } = payload;
-            console.log('📂 点击的分类:', category, itemId);
+        const handlePolarCategoryClick = async (payload) => {
+            const { category, itemId, selectedTypes } = payload;
+            console.log('📂 点击的分类:', category, itemId, '已选择:', selectedTypes);
             
-            // 处理南极资源
+            // 处理南极资源筛选
             if (category === 'resource_antarctic') {
-                console.log('🗺️ 加载南极资源:', itemId);
-                if (mapContainerRef.value && mapContainerRef.value.loadPolarResourcesByRegionAndType) {
-                    mapContainerRef.value.loadPolarResourcesByRegionAndType('antarctic', itemId);
+                console.log('🌍 南极资源筛选:', selectedTypes);
+                
+                // 保存选中的分类
+                selectedResourceCategories.value = selectedTypes;
+                
+                try {
+                    // 确保资源加载器已初始化并加载完成
+                    if (mapContainerRef.value && mapContainerRef.value.loadAntarcticResources) {
+                        console.log('⏳ 正在加载南极资源数据...');
+                        await mapContainerRef.value.loadAntarcticResources();
+                        console.log('✅ 南极资源数据加载完成');
+                    } else {
+                        console.error('❌ MapContainer 引用不存在或 loadAntarcticResources 方法未定义');
+                        return;
+                    }
+                    
+                    // 应用筛选
+                    if (mapContainerRef.value && mapContainerRef.value.filterAntarcticResourcesByType) {
+                        // 将资源分类ID映射为具体的资源类型名称
+                        const resourceCategoryMap = {
+                            'energy_minerals': ['石油天然气', '天然气', '煤炭'],  // 能源矿产
+                            'metal_minerals': ['铁', '铜', '金', '银', '铅', '锡', '钼', '铀', '白金', '锡钴铬'],  // 金属矿产
+                            'non_metal_special': ['磷', '硫黄']  // 非金属矿产及特殊资源
+                        };
+                        
+                        // 收集所有选中分类对应的资源类型
+                        let resourceNames = [];
+                        selectedTypes.forEach(categoryId => {
+                            const resources = resourceCategoryMap[categoryId];
+                            if (resources) {
+                                resourceNames = resourceNames.concat(resources);
+                            }
+                        });
+                        
+                        console.log('🔍 筛选资源类型:', resourceNames);
+                        console.log('📊 资源类型数量:', resourceNames.length);
+                        
+                        mapContainerRef.value.filterAntarcticResourcesByType(resourceNames);
+                        console.log('✅ 筛选命令已发送');
+                        
+                        // 只有选择了具体资源类型时才显示列表
+                        // 如果没有选择任何类型（显示全部资源），则不显示列表
+                        if (selectedTypes.length > 0 && mapContainerRef.value.getAntarcticResourceList) {
+                            const resourceList = mapContainerRef.value.getAntarcticResourceList(resourceNames);
+                            antarcticResourceList.value = resourceList;
+                            antarcticResourceListVisible.value = resourceList.length > 0;
+                            console.log('📋 资源列表已更新:', resourceList.length, '条');
+                        } else {
+                            // 没有选择任何类型，隐藏列表
+                            antarcticResourceListVisible.value = false;
+                            antarcticResourceList.value = [];
+                            console.log('💡 未选择具体类型，隐藏列表面板');
+                        }
+                    } else {
+                        console.error('❌ filterAntarcticResourcesByType 方法未定义');
+                    }
+                } catch (error) {
+                    console.error('❌ 南极资源筛选失败:', error);
                 }
                 return;
             }
             
-            // 处理北极资源
+            // 处理北极资源筛选
             if (category === 'resource_arctic') {
-                console.log('🗺️ 加载北极资源:', itemId);
-                if (mapContainerRef.value && mapContainerRef.value.loadPolarResourcesByRegionAndType) {
-                    mapContainerRef.value.loadPolarResourcesByRegionAndType('arctic', itemId);
-                }
+                console.log('🌍 北极资源筛选:', selectedTypes);
+                // TODO: 实现北极资源筛选
+                console.log('⚠️ 北极资源筛选功能开发中...');
                 return;
             }
             
@@ -1162,7 +1387,17 @@ export default {
                     console.log('🔬 科考装备功能开发中...');
                     break;
                 case 'sovereignty_claims':
-                    togglePolarSovereignty();
+                    // 如果点击的是南极，直接显示南极主权详情面板
+                    if (itemId === 'antarctic') {
+                        console.log('🇦🇶 显示南极主权详情面板');
+                        activePanels.value.antarcticSovereigntyDetail = true;
+                    } else if (itemId === 'arctic') {
+                        // 北极暂无数据，不显示面板
+                        console.log('🌊 北极主权数据开发中...');
+                    } else {
+                        // 其他情况显示主权主张选择面板
+                        togglePolarSovereignty();
+                    }
                     break;
                 case 'institutional_framework':
                     console.log('⚖️ 制度框架功能开发中...');
@@ -1218,6 +1453,39 @@ export default {
         };
         
         /**
+         * 处理资源点击（从列表点击）
+         */
+        const handleResourceClick = (resource) => {
+            console.log('💎 点击资源:', resource);
+            // 飞到资源位置
+            if (mapContainerRef.value && mapContainerRef.value.viewer) {
+                const viewer = mapContainerRef.value.viewer();
+                if (viewer && resource.coordinates) {
+                    const [lng, lat] = resource.coordinates;
+                    viewer.camera.flyTo({
+                        destination: Cesium.Cartesian3.fromDegrees(lng, lat, 100000),
+                        duration: 2
+                    });
+                }
+            }
+        };
+        
+        /**
+         * 处理资源调查国家点击
+         * @param {Object} payload - 包含selectedCountries的对象
+         */
+        const handleResourceSurveyCountryClick = (payload) => {
+            const { selectedCountries } = payload;
+            console.log('🌍 选中的资源调查国家:', selectedCountries);
+            
+            // 更新选中的国家列表
+            selectedResourceSurveyCountries.value = selectedCountries;
+            
+            // 只有选择了国家时才显示面板
+            resourceSurveyPanelVisible.value = selectedCountries.length > 0;
+        };
+        
+        /**
          * 显示南极主权详情面板
          */
         const handleShowAntarcticDetail = () => {
@@ -1250,36 +1518,6 @@ export default {
          */
         const handleGeologicalLayerToggle = (layer) => {
             console.log('🗺️ 地质图层切换:', layer);
-        };
-        
-        /**
-         * 处理钻孔面板筛选条件变化
-         * @param {Object} filters - 筛选条件
-         */
-        const handleDrillingFilterChange = (filters) => {
-            console.log('🔵 钻孔面板筛选条件变化:', filters);
-            // 通知 MapContainer 更新钻孔数据显示
-            if (mapContainerRef.value && mapContainerRef.value.updateDrillingFilters) {
-                mapContainerRef.value.updateDrillingFilters(filters);
-            }
-        };
-        
-        /**
-         * 显示管理框架面板
-         * @param {String} frameworkId - 管理框架ID
-         */
-        const handleShowManagementFramework = (frameworkId) => {
-            console.log('📋 显示管理框架:', frameworkId);
-            selectedManagementFramework.value = frameworkId;
-            showManagementFramework.value = true;
-        };
-        
-        /**
-         * 关闭管理框架面板
-         */
-        const handleCloseManagementFramework = () => {
-            showManagementFramework.value = false;
-            selectedManagementFramework.value = null;
         };
         
         /**
@@ -2472,22 +2710,33 @@ export default {
                     drillingPanel: false,
                     drillingStatistics: false,
                     coordinateCollector: false,
-                    resourcePotential: true,  // 自动打开资源潜力面板
-                    polarStations: true,      // 自动打开科考站点面板
-                    polarSovereignty: true    // 自动打开主权主张面板
+                    polarPanel: true,         // 自动打开极地面板
+                    resourcePotential: false, // 资源潜力面板默认关闭
+                    polarStations: true,      // 科考站点默认打开
+                    polarSovereignty: false,  // 主权主张默认关闭（通过极地面板控制）
+                    antarcticSovereigntyDetail: false
                 };
                 
-                // 加载并显示极地资源
+                // 加载南极资源（但不显示，等待用户在极地面板中选择）
                 if (mapContainerRef.value && mapContainerRef.value.loadAntarcticResources) {
-                    console.log('🌍 加载南极资源...');
+                    console.log('🌍 预加载南极资源...');
                     mapContainerRef.value.loadAntarcticResources();
-                    mapContainerRef.value.toggleAntarcticResources(true);
                 }
                 
-                // 加载并显示科考站
+                // 加载极地科考站
                 if (mapContainerRef.value && mapContainerRef.value.loadPolarStations) {
                     console.log('🏔️ 加载极地科考站...');
-                    mapContainerRef.value.loadPolarStations();
+                    mapContainerRef.value.loadPolarStations().then(() => {
+                        // 获取国家列表用于图例显示
+                        if (mapContainerRef.value.getPolarStationCountries) {
+                            polarStationCountries.value = mapContainerRef.value.getPolarStationCountries();
+                            console.log('🗺️ 获取科考站国家列表:', polarStationCountries.value);
+                        }
+                    });
+                }
+                
+                // 显示极地科考站图层
+                if (mapContainerRef.value && mapContainerRef.value.togglePolarStations) {
                     mapContainerRef.value.togglePolarStations(true);
                 }
                 
@@ -3106,6 +3355,54 @@ export default {
             handleShowEnterprise(!activePanels.value.enterprise);
         };
 
+        /**
+         * 显示模型对比面板
+         */
+        const handleShowModelComparison = () => {
+            console.log('💰 显示模型对比面板');
+            showModelComparison.value = true;
+        };
+
+        /**
+         * 关闭模型对比面板
+         */
+        const handleCloseModelComparison = () => {
+            console.log('💰 关闭模型对比面板');
+            showModelComparison.value = false;
+        };
+
+        /**
+         * 显示经济评价公式面板
+         */
+        const handleShowEvaluationFormula = () => {
+            console.log('📊 显示经济评价公式面板');
+            showEvaluationFormula.value = true;
+        };
+
+        /**
+         * 关闭经济评价公式面板
+         */
+        const handleCloseEvaluationFormula = () => {
+            console.log('📊 关闭经济评价公式面板');
+            showEvaluationFormula.value = false;
+        };
+
+        /**
+         * 显示可行性分析面板
+         */
+        const handleShowFeasibilityAnalysis = () => {
+            console.log('📈 显示可行性分析面板');
+            showFeasibilityAnalysis.value = true;
+        };
+
+        /**
+         * 关闭可行性分析面板
+         */
+        const handleCloseFeasibilityAnalysis = () => {
+            console.log('📈 关闭可行性分析面板');
+            showFeasibilityAnalysis.value = false;
+        };
+
         return {
             currentTheme,
             handleThemeChange,
@@ -3127,6 +3424,7 @@ export default {
             handleVesselSelect,
             handleGeologicalLayerToggle,
             handleDrillingFilterChange,
+            handleSelectCoreRepository,
             showManagementFramework,
             selectedManagementFramework,
             handleShowManagementFramework,
@@ -3189,10 +3487,18 @@ export default {
             handlePolarRegionChange,
             handlePolarCategoryClick,
             handleStationCountryClick,
+            handleResourceSurveyCountryClick,
             handleStationClick,
+            handleResourceClick,
             polarStationListVisible,
             polarStationList,
+            polarStationCountries,
             currentPolarRegion,
+            antarcticResourceListVisible,
+            antarcticResourceList,
+            selectedResourceCategories,
+            resourceSurveyPanelVisible,
+            selectedResourceSurveyCountries,
             toggleResourcePotential,
             togglePolarStations,
             togglePolarSovereignty,
@@ -3246,6 +3552,15 @@ export default {
             toggleLatestProgress,
             handleShowEnterprise,
             toggleEnterprise,
+            showModelComparison,
+            handleShowModelComparison,
+            handleCloseModelComparison,
+            showEvaluationFormula,
+            handleShowEvaluationFormula,
+            handleCloseEvaluationFormula,
+            showFeasibilityAnalysis,
+            handleShowFeasibilityAnalysis,
+            handleCloseFeasibilityAnalysis,
             showPolicyDynamicsTimeline,
             policyDynamicsCountry,
             handleShowPolicyDynamics,

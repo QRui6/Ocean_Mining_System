@@ -27,7 +27,7 @@
                 </div>
 
                 <!-- 表头 -->
-                <div class="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-800/40 border-b border-slate-700/50 text-xs text-slate-400">
+                <div class="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-700/50 border-b border-slate-600/50 text-xs text-slate-300">
                     <div class="col-span-1 text-center">序号</div>
                     <div class="col-span-3">站点名称</div>
                     <div class="col-span-2">国家</div>
@@ -42,11 +42,15 @@
                         v-for="(station, index) in stations" 
                         :key="station.id"
                         @click="$emit('stationClick', station)"
-                        class="grid grid-cols-12 gap-2 px-3 py-2.5 border-b border-slate-700/30 hover:bg-blue-500/10 cursor-pointer transition-all duration-200 group"
+                        class="grid grid-cols-12 gap-2 px-3 py-2.5 border-b border-slate-600/40 hover:bg-blue-500/15 cursor-pointer transition-all duration-200 group relative"
+                        :style="`border-left: 4px solid ${getCountryColor(station.country)};`"
                     >
                         <!-- 序号 -->
                         <div class="col-span-1 flex items-center justify-center">
-                            <div class="w-5 h-5 rounded-full bg-slate-700/50 group-hover:bg-blue-500/30 flex items-center justify-center text-xs text-slate-400 group-hover:text-blue-300 transition-colors">
+                            <div 
+                                class="w-5 h-5 rounded-full flex items-center justify-center text-xs transition-colors"
+                                :style="`background-color: ${getCountryColor(station.country)}40; color: ${getTextColor(station.country)};`"
+                            >
                                 {{ index + 1 }}
                             </div>
                         </div>
@@ -55,7 +59,7 @@
                         <div class="col-span-3 flex items-center">
                             <div class="flex items-center gap-2">
                                 <span class="text-base">🏛️</span>
-                                <span class="text-white text-sm group-hover:text-blue-300 transition-colors">
+                                <span class="text-white text-sm group-hover:text-blue-200 transition-colors">
                                     {{ station.stationName }}
                                 </span>
                             </div>
@@ -63,29 +67,34 @@
                         
                         <!-- 国家 -->
                         <div class="col-span-2 flex items-center">
-                            <span class="text-slate-300 text-sm">{{ station.country }}</span>
+                            <span 
+                                class="text-sm px-2 py-0.5 rounded"
+                                :style="`background-color: ${getCountryColor(station.country)}30; color: ${getCountryColor(station.country)};`"
+                            >
+                                {{ station.country }}
+                            </span>
                         </div>
                         
                         <!-- 建站时间 -->
                         <div class="col-span-2 flex items-center">
-                            <span class="text-slate-400 text-sm">
+                            <span class="text-slate-300 text-sm">
                                 {{ station.establishedDate || '-' }}
                             </span>
                         </div>
                         
                         <!-- 人员规模 -->
                         <div class="col-span-2 flex items-center">
-                            <span class="text-slate-400 text-sm">
+                            <span class="text-slate-300 text-sm">
                                 {{ station.personnel || '-' }}
                             </span>
                         </div>
                         
                         <!-- 坐标位置 -->
                         <div class="col-span-2 flex items-center">
-                            <span class="text-slate-400 text-sm" v-if="station.coordinates">
+                            <span class="text-slate-300 text-sm" v-if="station.coordinates">
                                 {{ formatCoordinates(station.coordinates) }}
                             </span>
-                            <span class="text-slate-500 text-sm" v-else>-</span>
+                            <span class="text-slate-400 text-sm" v-else>-</span>
                         </div>
                     </div>
                 </div>
@@ -95,6 +104,34 @@
 </template>
 
 <script>
+// 国家颜色配置（与地图保持一致）
+const COUNTRY_COLORS = {
+    '中国': '#FF0000',
+    '美国': '#0066FF',
+    '俄罗斯': '#FFD700',
+    '英国': '#00FFFF',
+    '日本': '#FF1493',
+    '澳大利亚': '#00FF00',
+    '阿根廷': '#87CEEB',
+    '智利': '#FF6600',
+    '法国': '#9370DB',
+    '德国': '#FFFFFF',
+    '韩国': '#FF00FF',
+    '印度': '#FFA500',
+    '挪威': '#DC143C',
+    '新西兰': '#00CED1',
+    '乌克兰': '#1E90FF',
+    '波兰': '#FF69B4',
+    '乌拉圭': '#4169E1',
+    '意大利': '#32CD32',
+    '法国、意大利': '#BA55D3',
+    '法国、德国、挪威': '#8B008B',
+    '丹麦': '#ADFF2F',
+    '瑞典': '#FFE4B5',
+    '芬兰': '#20B2AA',
+    '加拿大': '#FF4500'
+};
+
 export default {
     name: 'PolarStationListPanel',
     props: {
@@ -122,6 +159,13 @@ export default {
             if (!coords || coords.length < 2) return '-';
             const [lng, lat] = coords;
             return `${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
+        },
+        getCountryColor(country) {
+            return COUNTRY_COLORS[country] || '#808080';
+        },
+        getTextColor(country) {
+            // 德国和瑞典用黑色文字，其他用白色
+            return (country === '德国' || country === '瑞典') ? '#000' : '#fff';
         }
     }
 };
@@ -130,10 +174,10 @@ export default {
 <style scoped>
 /* 科技面板样式 */
 .tech-panel-enhanced {
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.92) 0%, rgba(51, 65, 85, 0.92) 100%);
     backdrop-filter: blur(20px);
-    border: 2px solid rgba(59, 130, 246, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* 角落装饰 */
@@ -164,17 +208,17 @@ export default {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.3);
+    background: rgba(30, 41, 59, 0.3);
     border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.6);
     border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.7);
+    background: rgba(59, 130, 246, 0.8);
 }
 
 /* 滑入动画 */

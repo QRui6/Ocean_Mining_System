@@ -193,6 +193,46 @@
                     </transition>
                 </div>
 
+                <!-- Level 4.5: 经济评价 - 竖向列表 -->
+                <div class="space-y-2 pt-2 border-t-2 border-teal-500/30">
+                    <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all" @click="toggleEconomicEvaluationPanel">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 bg-teal-400 rounded-full"></div>
+                            <span class="text-teal-400 text-base font-bold">经济评价</span>
+                            <span v-if="activeEconomicEvaluation.length > 0" class="px-2 py-0.5 bg-teal-500 text-black text-xs font-bold rounded-full">{{ activeEconomicEvaluation.length }}</span>
+                        </div>
+                        <svg 
+                            class="w-5 h-5 text-teal-400 transition-transform duration-300" 
+                            :class="{ 'rotate-180': showEconomicEvaluationPanel }"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    
+                    <transition name="slide-down">
+                        <div v-if="showEconomicEvaluationPanel" class="space-y-2 bg-slate-900/30 p-2 rounded">
+                            <div 
+                                v-for="e in ECONOMIC_EVALUATION" 
+                                :key="e"
+                                @click="toggleEconomicEvaluation(e)"
+                                class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
+                                :class="activeEconomicEvaluation.includes(e) ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white border-l-4 border-teal-300' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-teal-500/50'"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full" :class="activeEconomicEvaluation.includes(e) ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-teal-400'"></div>
+                                    <span class="font-medium">{{ e }}</span>
+                                </div>
+                                <svg v-if="activeEconomicEvaluation.includes(e)" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </transition>
+                </div>
+
                 <!-- Level 5: 政策法规 - 竖向列表 -->
                 <div class="space-y-2 pt-2 border-t-2 border-orange-500/30">
                     <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all" @click="togglePolicyRegulationsPanel">
@@ -392,7 +432,7 @@
 
 <script>
 import { ref, watch, computed } from 'vue';
-import { RESOURCE_TYPES, MINERAL_TYPES, OCEANS, TECH_PROGRESS, POLICY_REGULATIONS, CHINA_PROGRESS, getLayersByOcean, WEATHER_LAYER_GROUPS, MINING_REGIONS } from '../constants.js';
+import { RESOURCE_TYPES, MINERAL_TYPES, OCEANS, TECH_PROGRESS, ECONOMIC_EVALUATION, POLICY_REGULATIONS, CHINA_PROGRESS, getLayersByOcean, WEATHER_LAYER_GROUPS, MINING_REGIONS } from '../constants.js';
 
 export default {
     props: {
@@ -413,7 +453,7 @@ export default {
             default: false
         }
     },
-    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate', 'showTimeline', 'showPolicyDynamics', 'showCountryAttitudes', 'showMiningVehicle', 'showTechnologyMaturity', 'showMiningPlatform', 'showExperimentalMining', 'showEnvironmentalMonitoring', 'showLiftingSystem'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位 & 显示时间线 & 显示政策动态 & 显示各国态度 & 显示采矿车面板 & 显示技术成熟度面板 & 显示采矿平台面板 & 显示试验试采 & 显示环境监测 & 显示提升系统
+    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate', 'showTimeline', 'showPolicyDynamics', 'showCountryAttitudes', 'showMiningVehicle', 'showTechnologyMaturity', 'showMiningPlatform', 'showExperimentalMining', 'showEnvironmentalMonitoring', 'showLiftingSystem', 'showModelComparison', 'showEvaluationFormula', 'showFeasibilityAnalysis'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位 & 显示时间线 & 显示政策动态 & 显示各国态度 & 显示采矿车面板 & 显示技术成熟度面板 & 显示采矿平台面板 & 显示试验试采 & 显示环境监测 & 显示提升系统 & 显示模型对比 & 显示评价公式 & 显示可行性分析
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -431,6 +471,9 @@ export default {
         
         // 选中的科技进展列表（新增，支持多选）
         const activeTechProgress = ref([]);
+        
+        // 选中的经济评价列表（新增，支持多选）
+        const activeEconomicEvaluation = ref([]);
         
         // 选中的政策法规列表（新增，支持多选）
         const activePolicyRegulations = ref([]);
@@ -455,6 +498,7 @@ export default {
         const showOceanPanel = ref(true);     // 默认展开所属大洋
         const showCountryPanel = ref(false);
         const showTechProgressPanel = ref(false);
+        const showEconomicEvaluationPanel = ref(false);
         const showPolicyRegulationsPanel = ref(false);
         const showChinaProgressPanel = ref(false);
         
@@ -506,6 +550,7 @@ export default {
                 oceans: activeOceans.value,
                 countries: activeCountries.value,
                 techProgress: activeTechProgress.value,
+                economicEvaluation: activeEconomicEvaluation.value,
                 policyRegulations: activePolicyRegulations.value,
                 chinaProgress: activeChinaProgress.value
             });
@@ -716,6 +761,54 @@ export default {
          */
         const clearTechProgress = () => {
             activeTechProgress.value = [];
+            emitFilter();
+        };
+
+        /**
+         * 切换经济评价面板的展开/收起状态（新增）
+         */
+        const toggleEconomicEvaluationPanel = () => {
+            showEconomicEvaluationPanel.value = !showEconomicEvaluationPanel.value;
+        };
+
+        /**
+         * 切换经济评价选择状态（新增，支持多选）
+         */
+        const toggleEconomicEvaluation = (item) => {
+            console.log('💰 LeftPanel toggleEconomicEvaluation 被调用, item:', item);
+            
+            // 如果点击的是"模型对比"，显示模型对比面板
+            if (item === '模型对比') {
+                emit('showModelComparison');
+                return;
+            }
+            
+            // 如果点击的是"评价公式"，显示评价公式面板
+            if (item === '评价公式') {
+                emit('showEvaluationFormula');
+                return;
+            }
+            
+            // 如果点击的是"可行性分析"，显示可行性分析面板
+            if (item === '可行性分析') {
+                emit('showFeasibilityAnalysis');
+                return;
+            }
+            
+            const index = activeEconomicEvaluation.value.indexOf(item);
+            if (index > -1) {
+                activeEconomicEvaluation.value.splice(index, 1);
+            } else {
+                activeEconomicEvaluation.value.push(item);
+            }
+            emitFilter();
+        };
+
+        /**
+         * 清除所有经济评价筛选（新增）
+         */
+        const clearEconomicEvaluation = () => {
+            activeEconomicEvaluation.value = [];
             emitFilter();
         };
 
@@ -933,6 +1026,7 @@ export default {
             activeOceans,
             activeCountries,
             activeTechProgress,
+            activeEconomicEvaluation,
             activePolicyRegulations,
             activeChinaProgress,
             currentCountries,
@@ -940,6 +1034,7 @@ export default {
             activeOcean,
             showCountryPanel,
             showTechProgressPanel,
+            showEconomicEvaluationPanel,
             showPolicyRegulationsPanel,
             showResourcePanel,
             showMineralPanel,
@@ -960,6 +1055,9 @@ export default {
             toggleTechProgressPanel,
             toggleTechProgress,
             clearTechProgress,
+            toggleEconomicEvaluationPanel,
+            toggleEconomicEvaluation,
+            clearEconomicEvaluation,
             togglePolicyRegulationsPanel,
             togglePolicyRegulation,
             clearPolicyRegulations,
@@ -975,6 +1073,7 @@ export default {
             MINERAL_TYPES,
             OCEANS,
             TECH_PROGRESS,
+            ECONOMIC_EVALUATION,
             POLICY_REGULATIONS,
             CHINA_PROGRESS
         };

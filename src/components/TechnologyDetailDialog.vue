@@ -4,10 +4,18 @@
             <!-- 遮罩层 -->
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto" @click="$emit('close')"></div>
             
-            <!-- 详情面板 -->
-            <div class="relative w-[1500px] max-h-[85vh] tech-panel-enhanced pointer-events-auto overflow-hidden rounded-xl">
-                <!-- 顶部装饰线 -->
-                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+            <!-- 详情面板 - 浅色背景 + 毛玻璃效果 -->
+            <div 
+                class="relative w-[1500px] max-h-[85vh] pointer-events-auto overflow-hidden rounded-xl"
+                style="background: rgba(30, 50, 80, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);"
+            >
+                <!-- 顶部装饰线 - 使用技术颜色 -->
+                <div 
+                    class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent to-transparent"
+                    :style="{ 
+                        background: `linear-gradient(to right, transparent, ${technology?.color || '#06b6d4'}, transparent)` 
+                    }"
+                ></div>
                 
                 <!-- 关闭按钮 -->
                 <button 
@@ -19,19 +27,41 @@
                     </svg>
                 </button>
                 
-                <!-- 标题栏 -->
-                <div class="flex items-center px-6 pt-4 pb-3 border-b-2 border-cyan-500/30">
-                    <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
+                <!-- 标题栏 - 使用技术颜色 -->
+                <div 
+                    class="flex items-center px-6 pt-4 pb-3 border-b-2"
+                    :style="{ borderBottomColor: `${technology?.color || '#06b6d4'}30` }"
+                >
+                    <div 
+                        class="w-1.5 h-6 mr-3"
+                        :style="{ 
+                            backgroundColor: technology?.color || '#06b6d4',
+                            boxShadow: `0 0 10px ${technology?.color || '#06b6d4'}`
+                        }"
+                    ></div>
                     <h3 class="text-2xl font-bold text-white tracking-wider flex-1">{{ technology.name }}</h3>
-                    <div class="text-xs font-['Orbitron'] text-cyan-500 opacity-80 font-bold tracking-widest">TECHNOLOGY DETAIL</div>
+                    <div 
+                        class="text-xs font-['Orbitron'] opacity-80 font-bold tracking-widest"
+                        :style="{ color: technology?.color || '#06b6d4' }"
+                    >TECHNOLOGY DETAIL</div>
                 </div>
                 
                 <!-- 内容区域 -->
                 <div class="flex h-[calc(85vh-80px)]">
                     <!-- 左侧：成熟度图表 50% -->
                     <div class="w-[50%] p-4 border-r border-slate-700/50">
-                        <div class="bg-slate-900/50 rounded-lg border border-cyan-500/20 h-full">
-                            <div class="text-center text-cyan-400 text-sm font-bold py-2 border-b border-cyan-500/20">技术成熟度路线图</div>
+                        <div 
+                            class="rounded-lg border h-full"
+                            style="background: rgba(255, 255, 255, 0.05);"
+                            :style="{ borderColor: `${technology?.color || '#06b6d4'}20` }"
+                        >
+                            <div 
+                                class="text-center text-sm font-bold py-2 border-b"
+                                :style="{ 
+                                    color: technology?.color || '#06b6d4',
+                                    borderBottomColor: `${technology?.color || '#06b6d4'}20`
+                                }"
+                            >技术成熟度路线图</div>
                             <div ref="chartRef" class="w-full h-[calc(100%-40px)]"></div>
                         </div>
                     </div>
@@ -39,16 +69,37 @@
                     <!-- 右侧：风险优先度图表和文字 50% -->
                     <div class="w-[50%] p-4 flex flex-col gap-4">
                         <!-- 风险优先度图表区域 -->
-                        <div class="flex-1 bg-slate-900/50 rounded-lg border border-cyan-500/20 overflow-hidden">
-                            <div class="text-center text-cyan-400 text-sm font-bold py-2 border-b border-cyan-500/20">技术风险与研发优先度</div>
+                        <div 
+                            class="flex-1 rounded-lg border overflow-hidden"
+                            style="background: rgba(255, 255, 255, 0.05);"
+                            :style="{ borderColor: `${technology?.color || '#06b6d4'}20` }"
+                        >
+                            <div 
+                                class="text-center text-sm font-bold py-2 border-b"
+                                :style="{ 
+                                    color: technology?.color || '#06b6d4',
+                                    borderBottomColor: `${technology?.color || '#06b6d4'}20`
+                                }"
+                            >技术风险与研发优先度</div>
                             <div ref="riskChartRef" class="w-full h-[calc(100%-40px)]"></div>
                         </div>
                         
                         <!-- 可折叠的详细介绍 -->
-                        <div class="bg-slate-900/50 rounded-lg border border-cyan-500/20 overflow-hidden transition-all" :class="isExpanded ? 'flex-1' : 'h-auto'">
+                        <div 
+                            class="rounded-lg border overflow-hidden transition-all" 
+                            style="background: rgba(255, 255, 255, 0.05);"
+                            :class="isExpanded ? 'flex-1' : 'h-auto'"
+                            :style="{ borderColor: `${technology?.color || '#06b6d4'}20` }"
+                        >
                             <button 
                                 @click="isExpanded = !isExpanded"
-                                class="w-full flex items-center justify-between px-4 py-2 text-cyan-400 hover:bg-cyan-500/10 transition-colors border-b border-cyan-500/20"
+                                class="w-full flex items-center justify-between px-4 py-2 transition-colors border-b"
+                                :style="{ 
+                                    color: technology?.color || '#06b6d4',
+                                    borderBottomColor: `${technology?.color || '#06b6d4'}20`
+                                }"
+                                @mouseenter="$event.currentTarget.style.backgroundColor = `${technology?.color || '#06b6d4'}10`"
+                                @mouseleave="$event.currentTarget.style.backgroundColor = 'transparent'"
                             >
                                 <h4 class="text-sm font-bold">详细介绍</h4>
                                 <svg 

@@ -269,18 +269,17 @@ export class ExperimentalMiningLayer {
             const colorHex = PERIOD_COLORS[site.period];
             const color = Cesium.Color.fromCssColorString(colorHex);
             
-            // 创建圆圈标记（可点击）
-            const circleEntity = this.viewer.entities.add({
-                id: `experimental_circle_${site.id}`,
+            // 创建点标记（可点击）
+            const pointEntity = this.viewer.entities.add({
+                id: `experimental_point_${site.id}`,
                 position: Cesium.Cartesian3.fromDegrees(site.position.lng, site.position.lat),
-                ellipse: {
-                    semiMinorAxis: 300000, // 300km半径
-                    semiMajorAxis: 300000,
-                    height: 0,
-                    material: color.withAlpha(0.3),
-                    outline: true,
-                    outlineColor: color,
-                    outlineWidth: 3
+                point: {
+                    pixelSize: 12,
+                    color: color,
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2,
+                    heightReference: Cesium.HeightReference.NONE,
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
                 },
                 properties: {
                     type: 'experimental_mining',
@@ -288,7 +287,7 @@ export class ExperimentalMiningLayer {
                 }
             });
 
-            this.entities.push(circleEntity);
+            this.entities.push(pointEntity);
         });
 
         this.isActive = true;

@@ -117,24 +117,42 @@
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"/>
                                 </svg>
                                 <span class="text-green-400 text-base font-bold">岩芯库</span>
-                                <span v-if="activeCoreRepositories.length > 0" class="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">{{ activeCoreRepositories.length }}</span>
+                                <span v-if="selectedCoreRepository" class="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">1</span>
                             </div>
                             <svg class="w-5 h-5 text-green-400 transition-transform duration-300" :class="{ 'rotate-180': showCoreRepositoriesPanel }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
                         <transition name="slide-down">
-                            <div v-if="showCoreRepositoriesPanel" class="grid grid-cols-2 gap-2 p-2 bg-slate-900/30 rounded">
+                            <div v-if="showCoreRepositoriesPanel" class="flex gap-2 p-2 bg-slate-900/30 rounded">
                                 <div 
-                                    v-for="repo in DRILLING_CATEGORIES.CORE_REPOSITORIES.items" 
-                                    :key="repo.id"
-                                    @click="toggleCoreRepository(repo.id)"
-                                    class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
-                                    :class="activeCoreRepositories.includes(repo.id) ? 'bg-gradient-to-br from-green-600 to-green-800 text-white shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-green-500/50'"
+                                    @click="selectCoreRepository('usa')"
+                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                    :class="selectedCoreRepository === 'usa' ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-blue-500/50'"
                                 >
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative text-center">
-                                        <span class="font-medium text-sm">{{ repo.label }}</span>
+                                        <span class="font-medium text-sm">美国</span>
+                                    </div>
+                                </div>
+                                <div 
+                                    @click="selectCoreRepository('germany')"
+                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                    :class="selectedCoreRepository === 'germany' ? 'bg-gradient-to-br from-yellow-600 to-yellow-800 text-white shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-yellow-500/50'"
+                                >
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                    <div class="relative text-center">
+                                        <span class="font-medium text-sm">德国</span>
+                                    </div>
+                                </div>
+                                <div 
+                                    @click="selectCoreRepository('japan')"
+                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                    :class="selectedCoreRepository === 'japan' ? 'bg-gradient-to-br from-red-600 to-red-800 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-red-500/50'"
+                                >
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                    <div class="relative text-center">
+                                        <span class="font-medium text-sm">日本</span>
                                     </div>
                                 </div>
                             </div>
@@ -199,7 +217,7 @@ export default {
             default: true
         }
     },
-    emits: ['filterChange', 'showManagementFramework'],
+    emits: ['filterChange', 'showManagementFramework', 'selectCoreRepository'],
     setup(props, { emit }) {
         // 状态管理
         const activeDrillingSites = ref([]);
@@ -271,15 +289,25 @@ export default {
             return colorMap[color] || 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white border-l-4 border-cyan-300';
         };
         
-        // 切换岩芯库
-        const toggleCoreRepository = (repoId) => {
-            const index = activeCoreRepositories.value.indexOf(repoId);
-            if (index > -1) {
-                activeCoreRepositories.value.splice(index, 1);
+        // 岩心库选中状态（单选）
+        const selectedCoreRepository = ref(null);
+        
+        // 选择岩心库
+        const selectCoreRepository = (countryId) => {
+            console.log('🖱️ DrillingPanel: 点击岩心库按钮', countryId);
+            // 如果点击已选中的，则取消选择
+            if (selectedCoreRepository.value === countryId) {
+                selectedCoreRepository.value = null;
+                console.log('🖱️ DrillingPanel: 取消选择，发送null');
+                // 通知父组件隐藏岩心库
+                emit('selectCoreRepository', null);
             } else {
-                activeCoreRepositories.value.push(repoId);
+                // 选择新的国家
+                selectedCoreRepository.value = countryId;
+                console.log('🖱️ DrillingPanel: 选择新国家，发送', countryId);
+                // 通知父组件加载岩心库并飞到对应点位
+                emit('selectCoreRepository', countryId);
             }
-            emitFilter();
         };
         
         // 切换管理框架
@@ -292,7 +320,7 @@ export default {
             DRILLING_CATEGORIES,
             activeDrillingSites,
             activePlatforms,
-            activeCoreRepositories,
+            selectedCoreRepository,
             activeManagement,
             showDrillingSitesPanel,
             showPlatformsPanel,
@@ -303,7 +331,7 @@ export default {
             getDrillingSiteClass,
             togglePlatform,
             getPlatformClass,
-            toggleCoreRepository,
+            selectCoreRepository,
             toggleManagement
         };
     }

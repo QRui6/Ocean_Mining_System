@@ -413,12 +413,25 @@
             @close="closeStationInfo"
         />
         
-        <!-- 科考站国家图例 -->
-        <StationCountryLegend
+        <!-- 岩心库信息弹窗 -->
+        <CoreRepositoryPopup
+            :show="showCoreRepositoryPopup"
+            :repositoryData="selectedCoreRepository || {}"
+            @close="closeCoreRepositoryPopup"
+        />
+        
+        <!-- 岩心库图表 -->
+        <CoreRepositoryCharts
+            :show="true"
+            :selectedCountry="currentSelectedCountry"
+        />
+        
+        <!-- 科考站国家图例 - 暂时隐藏 -->
+        <!-- <StationCountryLegend
             :show="showStationLegend"
             :countries="stationCountries"
             @close="showStationLegend = false"
-        />
+        /> -->
     </div>
 </template>
 
@@ -450,23 +463,29 @@ import { OpenWeatherMapLayerManager } from '../utils/openWeatherMapLayer.js';
 import { WindyLayerManager } from '../utils/windyLayer.js';
 import { ExperimentalMiningLayer } from '../utils/experimentalMiningLayer.js';
 import { DrillingLayer } from '../utils/drillingLayer.js';
+import { CoreRepositoryLayer } from '../utils/coreRepositoryLayer.js';
 import { ResourceLayer } from '../utils/resourceLayer.js';
 import { SubmarineCableLayer } from '../utils/submarineCableLayer.js';
 import { ArcticRouteLayer } from '../utils/arcticRouteLayer.js';
 import { AntarcticResourceLoader } from '../utils/antarcticResourceLoader.js';
 import { PolarStationsLoader } from '../utils/polarStationsLoader.js';
 import { PortMarkerManager } from '../utils/portMarkerManager.js';
+import { USCooperationLinesManager } from '../utils/usCooperationLines.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 import WeatherPointPicker from './WeatherPointPicker.vue';
 import StationInfoPopup from './StationInfoPopup.vue';
 import StationCountryLegend from './StationCountryLegend.vue';
+import CoreRepositoryPopup from './CoreRepositoryPopup.vue';
+import CoreRepositoryCharts from './CoreRepositoryCharts.vue';
 
 export default {
     components: {
         RoutePlanPanel,
         WeatherPointPicker,
         StationInfoPopup,
-        StationCountryLegend
+        StationCountryLegend,
+        CoreRepositoryPopup,
+        CoreRepositoryCharts
     },
     props: {
         showToolbar: {
@@ -525,6 +544,11 @@ export default {
         resourceFilters: {
             type: Array,
             default: () => []
+        },
+        // 美国合作关系线显示控制
+        showUSCooperation: {
+            type: Boolean,
+            default: false
         }
     },
     emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked', 'cableDataLoaded', 'arcticRouteDataLoaded'],
@@ -567,6 +591,10 @@ export default {
         const showExperimentalMining = ref(false); // 试验试采显示状态
         let drillingLayer = null; // 大洋钻探图层实例
         const showDrilling = ref(false); // 大洋钻探显示状态
+        let coreRepositoryLayer = null; // 岩心库图层实例
+        const showCoreRepositoryPopup = ref(false); // 岩心库弹窗显示状态
+        const selectedCoreRepository = ref(null); // 选中的岩心库信息
+        const currentSelectedCountry = ref(null); // 当前选中的国家
         let resourceLayer = null; // 资源分布图层实例
         const showResources = ref([]); // 当前显示的资源类型列表
         let submarineCableLayer = null; // 海底光缆图层实例
@@ -582,6 +610,9 @@ export default {
         const stationInfoPosition = ref({ x: 0, y: 0 }); // 科考站信息窗口位置
         const showStationLegend = ref(false); // 科考站国家图例显示状态
         const stationCountries = ref({ antarctic: [], arctic: [] }); // 科考站国家列表（分南极和北极）
+        
+        // 美国合作关系线管理器
+        let usCooperationManager = null;
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -870,6 +901,10 @@ export default {
             drillingLayer = new DrillingLayer(viewer);
             console.log('� 大洋钻探图层初始化完成');
             
+            // 初始化岩心库图层
+            coreRepositoryLayer = new CoreRepositoryLayer(viewer);
+            console.log('🏛️ 岩心库图层初始化完成');
+            
             // 初始化资源分布图层
             resourceLayer = new ResourceLayer(viewer);
             console.log('💎 资源分布图层初始化完成');
@@ -1073,6 +1108,33 @@ export default {
                         console.log('   - 有 model:', !!entity.model);
                         console.log('   - 有 _waypointData:', !!entity._waypointData);
                         console.log('   - 有 _shipData:', !!entity._shipData);
+                        
+                        // 优先检查是否点击了美国合作关系线或标记
+                        if (entity.properties && entity.properties.type) {
+                            const entityType = entity.properties.type.getValue ? entity.properties.type.getValue() : entity.properties.type;
+                            if (entityType === 'us-cooperation' || entityType === 'us-cooperation-marker') {
+                                console.log('🇺🇸 点击了美国合作关系线/标记，显示合作信息');
+                                
+                                // 获取合作信息
+                                const cooperationData = {
+                                    country: entity.properties.country.getValue ? entity.properties.country.getValue() : entity.properties.country,
+                                    cooperationType: entity.properties.cooperationType.getValue ? entity.properties.cooperationType.getValue() : entity.properties.cooperationType,
+                                    mainAreas: entity.properties.mainAreas.getValue ? entity.properties.mainAreas.getValue() : entity.properties.mainAreas,
+                                    details: entity.properties.details.getValue ? entity.properties.details.getValue() : entity.properties.details
+                                };
+                                
+                                // 通知App.vue显示弹窗
+                                window.dispatchEvent(new CustomEvent('showUSCooperationPopup', {
+                                    detail: {
+                                        data: cooperationData,
+                                        x: click.position.x,
+                                        y: click.position.y
+                                    }
+                                }));
+                                
+                                return;
+                            }
+                        }
                         
                         // 检查是否点击了科考站
                         if (entity.properties && (entity.properties.stationName || entity.properties.country)) {
@@ -2025,6 +2087,173 @@ export default {
         };
 
         /**
+         * 加载南极资源数据
+         */
+        const loadAntarcticResources = async () => {
+            console.log('🎯 loadAntarcticResources 被调用');
+            console.log('   - viewer 存在:', !!viewer);
+            console.log('   - antarcticResourceLoader 存在:', !!antarcticResourceLoader);
+            
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载南极资源');
+                return;
+            }
+
+            if (!antarcticResourceLoader) {
+                console.log('🌍 初始化南极资源加载器...');
+                antarcticResourceLoader = new AntarcticResourceLoader(viewer);
+                console.log('✅ 南极资源加载器已创建');
+            }
+
+            try {
+                console.log('⏳ 开始加载资源数据...');
+                await antarcticResourceLoader.loadAllResources();
+                console.log('✅ 南极资源数据加载完成');
+                console.log('   - dataSources 数量:', antarcticResourceLoader.dataSources.size);
+                
+                // 加载完成后，默认显示所有资源
+                console.log('💡 默认显示所有资源');
+                antarcticResourceLoader.showAll();
+                
+                // 强制刷新场景
+                if (viewer) {
+                    viewer.scene.requestRender();
+                    console.log('🔄 已请求场景刷新');
+                }
+            } catch (error) {
+                console.error('❌ 加载南极资源失败:', error);
+                console.error('   - 错误堆栈:', error.stack);
+            }
+        };
+
+        /**
+         * 切换南极资源显示状态
+         * @param {Boolean} show - 是否显示
+         */
+        const toggleAntarcticResources = (show) => {
+            if (!antarcticResourceLoader) {
+                console.warn('⚠️ 南极资源加载器未初始化');
+                return;
+            }
+            
+            if (show) {
+                antarcticResourceLoader.showAll();
+                console.log('✅ 显示所有南极资源');
+            } else {
+                antarcticResourceLoader.hideAll();
+                console.log('✅ 隐藏所有南极资源');
+            }
+        };
+
+        /**
+         * 按类型筛选南极资源（支持多选）
+         * @param {Array} resourceTypes - 资源类型数组，如 ['石油天然气', '铁', '铜']
+         */
+        const filterAntarcticResourcesByType = (resourceTypes) => {
+            console.log('🎯 filterAntarcticResourcesByType 被调用');
+            console.log('   - antarcticResourceLoader 存在:', !!antarcticResourceLoader);
+            console.log('   - 传入的资源类型:', resourceTypes);
+            
+            if (!antarcticResourceLoader) {
+                console.warn('⚠️ 南极资源加载器未初始化');
+                return;
+            }
+
+            console.log('🔍 筛选南极资源:', resourceTypes);
+            console.log('   - 当前已加载的资源数量:', antarcticResourceLoader.dataSources.size);
+            console.log('   - 已加载的资源类型:', Array.from(antarcticResourceLoader.dataSources.keys()));
+
+            // 先隐藏所有资源
+            antarcticResourceLoader.hideAll();
+            console.log('✅ 已隐藏所有资源');
+
+            // 如果没有选中任何类型，则显示所有资源
+            if (!resourceTypes || resourceTypes.length === 0) {
+                console.log('💡 未选择任何资源类型，显示所有资源');
+                antarcticResourceLoader.showAll();
+                console.log('✅ 已显示所有资源类型');
+                
+                // 强制刷新场景
+                if (viewer) {
+                    viewer.scene.requestRender();
+                    console.log('🔄 已请求场景刷新');
+                }
+                return;
+            }
+
+            // 显示选中的资源类型
+            let showCount = 0;
+            resourceTypes.forEach(resourceType => {
+                const dataSource = antarcticResourceLoader.dataSources.get(resourceType);
+                console.log(`   - 尝试显示 "${resourceType}":`, dataSource ? '存在' : '不存在');
+                if (dataSource) {
+                    antarcticResourceLoader.showResourceType(resourceType);
+                    console.log(`     ✓ 已设置 ${resourceType} 为可见`);
+                    showCount++;
+                } else {
+                    console.warn(`     ✗ 资源类型 "${resourceType}" 未加载`);
+                }
+            });
+
+            console.log(`✅ 已显示 ${showCount}/${resourceTypes.length} 种资源类型`);
+        };
+
+        /**
+         * 获取南极资源列表数据
+         * @param {Array} resourceTypes - 资源类型数组
+         * @returns {Array} 资源列表数据
+         */
+        const getAntarcticResourceList = (resourceTypes) => {
+            if (!antarcticResourceLoader) {
+                console.warn('⚠️ 南极资源加载器未初始化');
+                return [];
+            }
+
+            const resourceList = [];
+            let id = 1;
+
+            // 如果没有指定资源类型，返回所有资源
+            const typesToShow = resourceTypes && resourceTypes.length > 0 
+                ? resourceTypes 
+                : Array.from(antarcticResourceLoader.dataSources.keys());
+
+            typesToShow.forEach(resourceType => {
+                const dataSource = antarcticResourceLoader.dataSources.get(resourceType);
+                if (dataSource) {
+                    const entities = dataSource.entities.values;
+                    entities.forEach(entity => {
+                        if (entity.position) {
+                            const cartographic = Cesium.Cartographic.fromCartesian(entity.position.getValue(Cesium.JulianDate.now()));
+                            const lng = Cesium.Math.toDegrees(cartographic.longitude);
+                            const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                            
+                            // 获取资源详细信息
+                            const resourceInfo = antarcticResourceLoader.getResourceInfo ? 
+                                antarcticResourceLoader.getResourceInfo(resourceType) : 
+                                {
+                                    area: '南极地区',
+                                    value: '储量待评估',
+                                    feature: '待勘探'
+                                };
+                            
+                            resourceList.push({
+                                id: id++,
+                                type: resourceType,
+                                area: resourceInfo.area || '南极地区',
+                                value: resourceInfo.value || '储量待评估',
+                                feature: resourceInfo.feature || '待勘探',
+                                coordinates: [lng, lat]
+                            });
+                        }
+                    });
+                }
+            });
+
+            console.log(`📋 生成资源列表: ${resourceList.length} 条记录`);
+            return resourceList;
+        };
+
+        /**
          * 按国家加载极地科考站（支持多选）
          * @param {String} region - 区域 (antarctic, arctic)
          * @param {Array|null} countries - 国家ID数组，null表示加载全部
@@ -2285,6 +2514,124 @@ export default {
             }
 
             console.log(`✅ ${category.label} 加载完成，共 ${window.polarResourceEntities.length} 个标记`);
+        };
+
+        /**
+         * 按区域和资源类型数组加载极地资源（支持多选）
+         * @param {String} regionId - 区域ID (antarctic, arctic)
+         * @param {Array} resourceTypes - 资源类型ID数组 (例如: ['energy_minerals', 'metal_minerals'])
+         */
+        const loadPolarResourcesByTypes = async (regionId, resourceTypes) => {
+            console.log('🎯 loadPolarResourcesByTypes被调用');
+            console.log('   - regionId:', regionId);
+            console.log('   - resourceTypes:', resourceTypes);
+            console.log('   - viewer存在:', !!viewer);
+            
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载极地资源');
+                return;
+            }
+
+            const regionName = regionId === 'antarctic' ? '南极' : '北极';
+            
+            // 清除之前的资源标记
+            if (window.polarResourceEntities) {
+                console.log('🗑️ 清除之前的资源标记，数量:', window.polarResourceEntities.length);
+                window.polarResourceEntities.forEach(entity => {
+                    viewer.entities.remove(entity);
+                });
+                window.polarResourceEntities = [];
+            } else {
+                window.polarResourceEntities = [];
+            }
+
+            // 如果没有选择任何类型，不显示任何资源
+            if (!resourceTypes || resourceTypes.length === 0) {
+                console.log(`📦 未选择资源类型，清空${regionName}资源显示`);
+                return;
+            }
+
+            console.log(`📦 加载${regionName}选中的资源类型:`, resourceTypes);
+
+            // 导入资源分类配置
+            const { POLAR_RESOURCE_CATEGORIES } = await import('../constants.js');
+
+            // 加载每个选中的资源类型
+            for (const resourceType of resourceTypes) {
+                const category = POLAR_RESOURCE_CATEGORIES[resourceType];
+                
+                if (!category) {
+                    console.error('❌ 未找到资源分类:', resourceType);
+                    continue;
+                }
+
+                console.log(`📋 加载 ${regionName} - ${category.label}，共 ${category.resources.length} 种资源`);
+
+                // 加载该分类下的每种资源
+                for (const resource of category.resources) {
+                    try {
+                        const response = await fetch(resource.file);
+                        if (!response.ok) {
+                            console.warn(`⚠️ 无法加载 ${resource.label}:`, response.statusText);
+                            continue;
+                        }
+
+                        const geojson = await response.json();
+                        
+                        // 根据区域过滤数据点
+                        let filteredFeatures = geojson.features;
+                        if (regionId === 'antarctic') {
+                            // 南极：纬度 < -60
+                            filteredFeatures = geojson.features.filter(f => f.geometry.coordinates[1] < -60);
+                        } else if (regionId === 'arctic') {
+                            // 北极：纬度 > 60
+                            filteredFeatures = geojson.features.filter(f => f.geometry.coordinates[1] > 60);
+                        }
+
+                        if (filteredFeatures.length > 0) {
+                            console.log(`  ✅ ${resource.label}: ${filteredFeatures.length} 个点`);
+
+                            // 在地图上添加点标记
+                            filteredFeatures.forEach((feature) => {
+                                const [lng, lat] = feature.geometry.coordinates;
+                                
+                                const entity = viewer.entities.add({
+                                    position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                                    point: {
+                                        pixelSize: 10,
+                                        color: Cesium.Color.fromCssColorString(category.color),
+                                        outlineColor: Cesium.Color.WHITE,
+                                        outlineWidth: 2,
+                                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                                    },
+                                    description: `
+                                        <div style="padding: 10px;">
+                                            <h3 style="margin: 0 0 10px 0; color: ${category.color};">${resource.icon} ${resource.label}</h3>
+                                            <p style="margin: 5px 0;"><strong>分类:</strong> ${category.label}</p>
+                                            <p style="margin: 5px 0;"><strong>区域:</strong> ${regionName}</p>
+                                            <p style="margin: 5px 0;"><strong>位置:</strong> ${lat.toFixed(4)}°, ${lng.toFixed(4)}°</p>
+                                        </div>
+                                    `,
+                                    properties: {
+                                        resourceType: resource.label,
+                                        resourceIcon: resource.icon,
+                                        categoryLabel: category.label,
+                                        categoryColor: category.color,
+                                        region: regionName
+                                    }
+                                });
+
+                                window.polarResourceEntities.push(entity);
+                            });
+                        }
+
+                    } catch (error) {
+                        console.error(`❌ 加载 ${resource.label} 失败:`, error);
+                    }
+                }
+            }
+
+            console.log(`✅ ${regionName}资源加载完成，共 ${window.polarResourceEntities.length} 个标记`);
         };
 
         /**
@@ -5588,6 +5935,38 @@ export default {
         };
         
         /**
+         * 选择岩心库并飞到对应点位
+         * @param {string|null} countryId - 国家ID (usa, germany, japan) 或 null
+         */
+        const selectCoreRepository = async (countryId) => {
+            console.log('🗺️ MapContainer: 收到岩心库选择', countryId);
+            if (!coreRepositoryLayer) {
+                console.error('❌ 岩心库图层未初始化');
+                return;
+            }
+            
+            // 更新当前选中的国家
+            currentSelectedCountry.value = countryId;
+            
+            // 设置点击回调
+            coreRepositoryLayer.setClickCallback((config, area) => {
+                console.log('🖱️ 岩心库被点击:', config);
+                selectedCoreRepository.value = config;
+                showCoreRepositoryPopup.value = true;
+            });
+            
+            console.log('🗺️ MapContainer: 调用coreRepositoryLayer.select');
+            await coreRepositoryLayer.select(countryId);
+        };
+        
+        /**
+         * 关闭岩心库弹窗
+         */
+        const closeCoreRepositoryPopup = () => {
+            showCoreRepositoryPopup.value = false;
+        };
+        
+        /**
          * 切换资源分布图层显示
          * @param {Array} resources - 要显示的资源类型列表
          */
@@ -5647,6 +6026,37 @@ export default {
             showResources.value = resources;
         };
         
+        // ==================== 美国合作关系线监听 ====================
+        
+        /**
+         * 监听showUSCooperation prop变化
+         */
+        watch(() => props.showUSCooperation, (newVal) => {
+            console.log('🇺🇸 美国合作关系线显示状态变化:', newVal);
+            
+            if (!viewer) {
+                console.warn('⚠️ Viewer未初始化，无法显示合作关系线');
+                return;
+            }
+            
+            if (newVal) {
+                // 显示合作关系线
+                if (!usCooperationManager) {
+                    usCooperationManager = new USCooperationLinesManager(viewer);
+                }
+                usCooperationManager.show();
+                console.log('✅ 美国合作关系线已显示');
+            } else {
+                // 隐藏合作关系线
+                if (usCooperationManager) {
+                    usCooperationManager.hide();
+                    console.log('❌ 美国合作关系线已隐藏');
+                }
+            }
+        });
+        
+        // ==================== 返回暴露的方法和状态 ====================
+        
         return {
             cesiumContainer,
             selectedArea,
@@ -5692,6 +6102,7 @@ export default {
             toggleExperimentalMining,  // 暴露试验试采标记切换函数
             toggleDrilling,  // 暴露大洋钻探图层切换函数
             updateDrillingFilters,  // 暴露钻孔筛选更新函数
+            selectCoreRepository,  // 暴露岩心库选择函数
             toggleResources,  // 暴露资源分布图层切换函数
             toggleSubmarineCables,  // 暴露海底光缆图层切换函数
             toggleArcticRoutes,  // 暴露北极航线图层切换函数
@@ -5712,12 +6123,20 @@ export default {
             loadPolarResources,  // 暴露加载极地资源的方法
             loadPolarResourcesByRegionAndType,  // 暴露按区域和类型加载极地资源的方法
             loadMarineProtectedAreas,  // 暴露加载海洋保护区的方法
+            loadAntarcticResources,  // 暴露加载南极资源的方法
+            toggleAntarcticResources,  // 暴露切换南极资源显示的方法
+            filterAntarcticResourcesByType,  // 暴露按类型筛选南极资源的方法
+            getAntarcticResourceList,  // 暴露获取南极资源列表的方法
             showStationInfo,  // 科考站信息弹窗显示状态
             selectedStation,  // 选中的科考站
             stationInfoPosition,  // 科考站信息窗口位置
             showStationLegend,  // 科考站国家图例显示状态
             stationCountries,  // 科考站国家列表
             closeStationInfo,  // 关闭科考站信息弹窗
+            showCoreRepositoryPopup,  // 岩心库弹窗显示状态
+            selectedCoreRepository,  // 选中的岩心库
+            currentSelectedCountry,  // 当前选中的国家
+            closeCoreRepositoryPopup,  // 关闭岩心库弹窗
             toggleFullscreen,
             toggleTrajectory,
             viewer: getViewer,  // 暴露viewer

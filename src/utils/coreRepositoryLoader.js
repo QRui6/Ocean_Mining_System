@@ -19,10 +19,10 @@ export class CoreRepositoryLoader {
         try {
             // 根据国家ID确定数据文件路径
             const dataFiles = {
-                'usa': '/data/YanXinKu/GCR.geojson',
-                'germany': '/data/YanXinKu/BCR.json',
-                'japan': '/data/YanXinKu/KCC.json',
-                'china': '/data/YanXinKu/core.json'
+                'usa': '/data/YanXinKu_new/GCR.geojson',
+                'germany': '/data/YanXinKu_new/BCR.json',
+                'japan': '/data/YanXinKu_new/KCC.json',
+                'china': '/data/YanXinKu_new/core.json'
             };
 
             const filePath = dataFiles[countryId];

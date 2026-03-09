@@ -402,12 +402,20 @@ export default {
         
         // 航次统计图表
         const createExpeditionsChart = () => {
+            // 使用青色系渐变色，与整体风格协调
+            const colors = [
+                ['#22d3ee', '#06b6d4'],  // 亮青色 - DSDP
+                ['#0ea5e9', '#0284c7'],  // 蓝色 - ODP
+                ['#8b5cf6', '#7c3aed'],  // 紫色 - IODP
+                ['#ec4899', '#db2777']   // 粉色 - IODP2
+            ];
+            
             const option = {
                 backgroundColor: 'transparent',
                 tooltip: {
                     trigger: 'item',
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
-                    borderColor: '#10b981',
+                    borderColor: '#06b6d4',
                     borderWidth: 1,
                     textStyle: {
                         color: '#fff',
@@ -443,28 +451,33 @@ export default {
                         borderColor: 'rgba(0, 20, 40, 0.8)',
                         borderWidth: 1,
                         shadowBlur: 8,
-                        shadowColor: 'rgba(16, 185, 129, 0.3)'
+                        shadowColor: 'rgba(6, 182, 212, 0.3)'
                     },
                     label: {
                         show: true,
                         position: 'inside',
                         formatter: '{c}',
                         color: '#fff',
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: 'bold',
                         textShadowColor: 'rgba(0, 0, 0, 1)',
                         textShadowBlur: 6,
                         textShadowOffsetX: 2,
                         textShadowOffsetY: 2
                     },
+                    labelLine: {
+                        show: false
+                    },
                     data: statisticsData.value.expeditions.stages.map((stage, index) => ({
                         name: stage,
                         value: statisticsData.value.expeditions.data[index],
                         itemStyle: {
                             color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                                { offset: 0, color: ['#10b981', '#059669', '#047857', '#065f46'][index] },
-                                { offset: 1, color: ['#059669', '#047857', '#065f46', '#064e3b'][index] }
-                            ])
+                                { offset: 0, color: colors[index][0] },
+                                { offset: 1, color: colors[index][1] }
+                            ]),
+                            shadowBlur: 10,
+                            shadowColor: `${colors[index][0]}60`
                         }
                     }))
                 }]

@@ -111,11 +111,11 @@ export default {
                 },
                 legend: {
                     orient: 'horizontal',
-                    bottom: 5,
+                    bottom: 0,
                     left: 'center',
                     textStyle: { 
                         color: '#ffffff', 
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 600,
                         textShadowColor: 'rgba(0, 0, 0, 1)',
                         textShadowBlur: 6,
@@ -126,17 +126,74 @@ export default {
                     itemHeight: 10,
                     itemGap: 8,
                     width: '95%',
+                    formatter: function(name) {
+                        const data = [
+                            { name: '中国', value: 5 },
+                            { name: '俄罗斯', value: 4 },
+                            { name: '韩国', value: 4 },
+                            { name: '日本', value: 3 },
+                            { name: '法国', value: 2 },
+                            { name: '德国', value: 2 },
+                            { name: '印度', value: 2 },
+                            { name: '英国', value: 2 },
+                            { name: '波兰', value: 1 },
+                            { name: '新加坡', value: 1 },
+                            { name: '比利时', value: 1 },
+                            { name: '古巴', value: 1 },
+                            { name: '巴西', value: 1 },
+                            { name: '库克群岛', value: 1 },
+                            { name: '汤加', value: 1 },
+                            { name: '瑙鲁', value: 1 },
+                            { name: '基里巴斯', value: 1 }
+                        ];
+                        const item = data.find(d => d.name === name);
+                        return item ? `${name} (${item.value})` : name;
+                    },
                     data: [
                         '中国', '俄罗斯', '韩国', '日本', '法国', '德国', '印度', '英国', '波兰',
                         '新加坡', '比利时', '古巴', '巴西', '库克群岛', '汤加', '瑙鲁', '基里巴斯'
                     ]
                 },
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '32%',
+                        style: {
+                            text: '总计',
+                            textAlign: 'center',
+                            fill: '#06b6d4',
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
+                        }
+                    },
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '38%',
+                        style: {
+                            text: '32',
+                            textAlign: 'center',
+                            fill: '#ffffff',
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
+                        }
+                    }
+                ],
                 series: [
                     {
                         name: '国别分布',
                         type: 'pie',
                         radius: ['30%', '60%'],
-                        center: ['50%', '42%'],
+                        center: ['50%', '35%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
                             borderRadius: 3,
@@ -146,6 +203,21 @@ export default {
                             shadowColor: 'rgba(6, 182, 212, 0.3)'
                         },
                         label: {
+                            show: true,
+                            position: 'inside',
+                            formatter: function(params) {
+                                // 只显示数量大于1的数字，避免太拥挤
+                                return params.value > 1 ? params.value : '';
+                            },
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            color: '#ffffff',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
+                        },
+                        labelLine: {
                             show: false
                         },
                         emphasis: {
@@ -224,14 +296,57 @@ export default {
                     },
                     itemWidth: 14,
                     itemHeight: 14,
-                    itemGap: 20
+                    itemGap: 20,
+                    formatter: function(name) {
+                        const data = [
+                            { name: '多金属结核', value: 19 },
+                            { name: '多金属硫化物', value: 8 },
+                            { name: '富钴结壳', value: 5 }
+                        ];
+                        const item = data.find(d => d.name === name);
+                        return item ? `${name} (${item.value})` : name;
+                    }
                 },
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '32%',
+                        style: {
+                            text: '总计',
+                            textAlign: 'center',
+                            fill: '#06b6d4',
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
+                        }
+                    },
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: '38%',
+                        style: {
+                            text: '32',
+                            textAlign: 'center',
+                            fill: '#ffffff',
+                            fontSize: 24,
+                            fontWeight: 'bold',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
+                        }
+                    }
+                ],
                 series: [
                     {
                         name: '矿产类型',
                         type: 'pie',
                         radius: ['35%', '65%'],
-                        center: ['50%', '42%'],
+                        center: ['50%', '35%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
                             borderRadius: 4,

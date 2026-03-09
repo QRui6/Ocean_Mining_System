@@ -37,6 +37,8 @@ export class AntarcticResourceLoader {
     async loadAllResources() {
         if (this.isLoaded) {
             console.log('📦 南极资源已加载，跳过');
+            console.log('   - 已加载的资源数量:', this.dataSources.size);
+            console.log('   - 已加载的资源类型:', Array.from(this.dataSources.keys()));
             return;
         }
 
@@ -51,14 +53,17 @@ export class AntarcticResourceLoader {
             try {
                 await this.loadResourceType(resourceType);
                 successCount++;
+                console.log(`   ✓ ${resourceType} 加载成功 (${successCount}/${resourceTypes.length})`);
             } catch (error) {
-                console.warn(`⚠️ 加载 ${resourceType} 数据失败:`, error);
+                console.warn(`   ✗ 加载 ${resourceType} 数据失败:`, error.message);
                 failCount++;
             }
         }
 
         this.isLoaded = true;
         console.log(`✅ 南极资源数据加载完成: 成功 ${successCount}/${resourceTypes.length}, 失败 ${failCount}`);
+        console.log('   - dataSources.size:', this.dataSources.size);
+        console.log('   - 已加载的资源:', Array.from(this.dataSources.keys()));
     }
 
     /**
@@ -109,11 +114,12 @@ export class AntarcticResourceLoader {
                 }
             });
             
-            // 添加到场景
+            // 添加到场景（默认隐藏，等待用户选择）
+            dataSource.show = false;  // 🔑 关键修复：默认隐藏
             await this.viewer.dataSources.add(dataSource);
             this.dataSources.set(resourceType, dataSource);
             
-            console.log(`✅ 加载 ${resourceType}: ${entities.length} 个点`);
+            console.log(`✅ 加载 ${resourceType}: ${entities.length} 个点（默认隐藏）`);
         } catch (error) {
             console.error(`❌ 加载 ${resourceType} 失败:`, error);
             throw error;
@@ -300,18 +306,29 @@ export class AntarcticResourceLoader {
      * 显示所有资源
      */
     showAll() {
-        this.dataSources.forEach(dataSource => {
+        let shownCount = 0;
+        let totalEntities = 0;
+        this.dataSources.forEach((dataSource, resourceType) => {
             dataSource.show = true;
+            const entityCount = dataSource.entities.values.length;
+            totalEntities += entityCount;
+            shownCount++;
         });
+        console.log(`   🔓 已显示 ${shownCount} 种资源，共 ${totalEntities} 个资源点`);
     }
 
     /**
      * 隐藏所有资源
      */
     hideAll() {
-        this.dataSources.forEach(dataSource => {
-            dataSource.show = false;
+        let hiddenCount = 0;
+        this.dataSources.forEach((dataSource, resourceType) => {
+            if (dataSource.show) {
+                dataSource.show = false;
+                hiddenCount++;
+            }
         });
+        console.log(`   🔒 已隐藏 ${hiddenCount} 种资源`);
     }
 
     /**
@@ -321,6 +338,9 @@ export class AntarcticResourceLoader {
         const dataSource = this.dataSources.get(resourceType);
         if (dataSource) {
             dataSource.show = true;
+            console.log(`   ✓ 显示资源: ${resourceType}, entities: ${dataSource.entities.values.length}`);
+        } else {
+            console.warn(`   ✗ 资源类型 "${resourceType}" 不存在于 dataSources 中`);
         }
     }
 
@@ -350,5 +370,94 @@ export class AntarcticResourceLoader {
      */
     getResourceConfig() {
         return RESOURCE_CONFIG;
+    }
+
+    /**
+     * 获取资源详细信息
+     */
+    getResourceInfo(resourceType) {
+        const RESOURCE_INFO = {
+            '煤炭': {
+                area: '横贯南极山脉',
+                value: '总储量超5000亿吨',
+                feature: '多为优质无烟煤，易于探测'
+            },
+            '石油天然气': {
+                area: '罗斯海、威德尔海',
+                value: '预估储量500-1000亿桶',
+                feature: '深海油气，理藏深，勘探难度大'
+            },
+            '天然气': {
+                area: '南极周边大陆架深海区',
+                value: '预估储量30000-50000亿立方米',
+                feature: '储量可观'
+            },
+            '铁': {
+                area: '东南极查尔斯王子山',
+                value: '总储量超千亿吨，品位高',
+                feature: '全球最大铁矿带之一'
+            },
+            '铜': {
+                area: '南极半岛、乔治五世海岸',
+                value: '预估储量1200-2500万吨',
+                feature: '多金属共生，潜在价值高'
+            },
+            '金': {
+                area: '毛德皇后地、维多利亚地',
+                value: '深部矿产，潜在储量可观',
+                feature: '多伴生于其他矿床'
+            },
+            '银': {
+                area: '毛德皇后地、维多利亚地',
+                value: '战略价值高',
+                feature: '多伴生于其他矿床'
+            },
+            '铅': {
+                area: '南极半岛、乔治五世海岸',
+                value: '储量可观',
+                feature: '多金属共生'
+            },
+            '锡': {
+                area: '毛德皇后地、维多利亚地',
+                value: '储量可观',
+                feature: '战略储备资源'
+            },
+            '钼': {
+                area: '南极半岛',
+                value: '储量可观',
+                feature: '重要战略金属'
+            },
+            '铀': {
+                area: '东南极',
+                value: '储量可观',
+                feature: '核能资源'
+            },
+            '白金': {
+                area: '毛德皇后地',
+                value: '战略价值极高',
+                feature: '稀有贵金属'
+            },
+            '磷': {
+                area: '南极半岛火山带',
+                value: '储量可观',
+                feature: '农业资源'
+            },
+            '硫黄': {
+                area: '南极半岛火山带',
+                value: '储量可观',
+                feature: '化工原料'
+            },
+            '锡钴铬': {
+                area: '南极半岛',
+                value: '储量可观',
+                feature: '战略金属组合'
+            }
+        };
+        
+        return RESOURCE_INFO[resourceType] || {
+            area: '南极地区',
+            value: '储量待评估',
+            feature: '待勘探'
+        };
     }
 }
