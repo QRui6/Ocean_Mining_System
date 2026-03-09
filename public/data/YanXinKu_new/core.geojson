@@ -1,0 +1,5 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Point","coordinates":[-95.65068989415325,32.34912109374993]},"properties":{"Id":0,"area":"GCR"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[9.792543472782212,53.437767767137025]},"properties":{"Id":0,"area":"BCR"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[134.6029013356854,32.77950163810477]},"properties":{"Id":0,"area":"KCC"}}
+]}
