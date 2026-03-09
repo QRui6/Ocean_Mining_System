@@ -83,7 +83,7 @@ export default {
             default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel'],
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel', 'toggleCableList', 'toggleCableStatistics', 'toggleArcticRouteList', 'toggleArcticRouteStatistics'],
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -122,8 +122,22 @@ export default {
                 return;
             }
             
+            // 态势总览选项卡的功能
+            if (props.currentTab === '态势总览') {
+                if (tool === '光缆列表') {
+                    emit('toggleCableList');
+                } else if (tool === '光缆统计') {
+                    emit('toggleCableStatistics');
+                } else if (tool === '北极航线列表') {
+                    emit('toggleArcticRouteList');
+                } else if (tool === '北极航线统计') {
+                    emit('toggleArcticRouteStatistics');
+                } else {
+                    console.log(`🚧 "${tool}" 功能开发中...`);
+                }
+            }
             // 矿区管理选项卡的功能
-            if (props.currentTab === '矿区管理') {
+            else if (props.currentTab === '矿区管理') {
                 if (tool === '矿区列表') {
                     emit('toggleList');
                 } else if (tool === '矿区查询') {
@@ -216,6 +230,14 @@ export default {
         const isActive = (tool) => {
             // 通用功能：在所有选项卡中都显示激活状态
             if (tool === '地图工具') return props.activePanels.mapTools;
+            
+            // 态势总览选项卡的功能
+            if (props.currentTab === '态势总览') {
+                if (tool === '光缆列表') return props.activePanels.cableList;
+                if (tool === '光缆统计') return props.activePanels.cableStatistics;
+                if (tool === '北极航线列表') return props.activePanels.arcticRouteList;
+                if (tool === '北极航线统计') return props.activePanels.arcticRouteStatistics;
+            }
             
             // 矿区管理选项卡的功能
             if (props.currentTab === '矿区管理') {

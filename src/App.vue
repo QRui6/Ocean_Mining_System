@@ -20,6 +20,8 @@
                 :pickingPointType="pickingPointType"
                 :resourceFilters="filters.resources || []"
                 @dataLoaded="handleDataLoaded"
+                @cableDataLoaded="handleCableDataLoaded"
+                @arcticRouteDataLoaded="handleArcticRouteDataLoaded"
                 @weatherDataLoaded="handleWeatherDataLoaded"
                 @pointPicked="handlePointPicked"
             />
@@ -51,6 +53,12 @@
                     @showEnvironmentalMonitoring="handleShowEnvironmentalMonitoring"
                     @showLiftingSystem="handleShowLiftingSystem"
                     @showEnterprise="handleShowEnterprise"
+                />
+                
+                <!-- 态势总览面板 -->
+                <SituationOverviewPanel 
+                    :show="activePanels.situationOverview"
+                    @itemClick="handleSituationOverviewItemClick"
                 />
                 
                 <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
@@ -198,6 +206,10 @@
                     @toggleResourcePotential="toggleResourcePotential"
                     @togglePolarStations="togglePolarStations"
                     @togglePolarSovereignty="togglePolarSovereignty"
+                    @toggleCableList="toggleCableList"
+                    @toggleCableStatistics="toggleCableStatistics"
+                    @toggleArcticRouteList="toggleArcticRouteList"
+                    @toggleArcticRouteStatistics="toggleArcticRouteStatistics"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -211,6 +223,38 @@
                         :shipData="shipListData" 
                         @rowClick="handleShipListRowClick"
                         @clear="handleClearShipList"
+                    />
+                </div>
+                
+                <!-- 光缆列表 -->
+                <div v-if="activePanels.cableList" class="pointer-events-auto">
+                    <CableListTable :cableData="allCableData" />
+                </div>
+                
+                <!-- 北极航线列表 -->
+                <div v-if="activePanels.arcticRouteList" class="pointer-events-auto">
+                    <ArcticRouteListTable 
+                        :routeData="allArcticRouteData"
+                        @rowClick="handleArcticRouteRowClick"
+                        @resetSelection="handleArcticRouteResetSelection"
+                    />
+                </div>
+                
+                <!-- 主要港口列表 -->
+                <div v-if="activePanels.portList" class="pointer-events-auto">
+                    <PortListTable 
+                        :portData="allPortData"
+                        @rowClick="handlePortRowClick"
+                        @resetSelection="handlePortResetSelection"
+                    />
+                </div>
+                
+                <!-- 主要航线列表 -->
+                <div v-if="activePanels.routeList" class="pointer-events-auto">
+                    <RouteListTable 
+                        :routeData="allRouteData"
+                        @rowClick="handleRouteRowClick"
+                        @resetSelection="handleRouteResetSelection"
                     />
                 </div>
                 
@@ -339,6 +383,34 @@
                     :show="activePanels.latestProgress"
                     @close="toggleLatestProgress"
                 />
+                
+                <!-- 光缆统计面板 -->
+                <CableStatisticsPanel
+                    v-if="activePanels.cableStatistics"
+                    :statistics="cableStatistics"
+                    @close="toggleCableStatistics"
+                />
+                
+                <!-- 北极航线统计面板 -->
+                <ArcticRouteStatisticsPanel
+                    v-if="activePanels.arcticRouteStatistics"
+                    :statistics="arcticRouteStatistics"
+                    @close="toggleArcticRouteStatistics"
+                />
+                
+                <!-- 主要港口统计面板 -->
+                <PortStatisticsPanel
+                    v-if="activePanels.portStatistics"
+                    :statistics="portStatistics"
+                    @close="togglePortStatistics"
+                />
+                
+                <!-- 主要航线统计面板 -->
+                <RouteStatisticsPanel
+                    v-if="activePanels.routeStatistics"
+                    :statistics="routeStatistics"
+                    @close="toggleRouteStatistics"
+                />
             </div>
         </div>
         
@@ -359,6 +431,14 @@ import LeftPanel from './components/LeftPanel.vue';
 import RightPanel from './components/RightPanel.vue';
 import MapContainer from './components/MapContainer.vue';
 import BottomTable from './components/BottomTable.vue';
+import CableListTable from './components/CableListTable.vue';
+import CableStatisticsPanel from './components/CableStatisticsPanel.vue';
+import ArcticRouteListTable from './components/ArcticRouteListTable.vue';
+import ArcticRouteStatisticsPanel from './components/ArcticRouteStatisticsPanel.vue';
+import PortListTable from './components/PortListTable.vue';
+import PortStatisticsPanel from './components/PortStatisticsPanel.vue';
+import RouteListTable from './components/RouteListTable.vue';
+import RouteStatisticsPanel from './components/RouteStatisticsPanel.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -397,9 +477,11 @@ import StationCountryLegend from './components/StationCountryLegend.vue';
 import PolarStationStatistics from './components/PolarStationStatistics.vue';
 import PolarSovereigntyPanel from './components/PolarSovereigntyPanel.vue';
 import AntarcticSovereigntyDetail from './components/AntarcticSovereigntyDetail.vue';
+import SituationOverviewPanel from './components/SituationOverviewPanel.vue';
 import { PolarStationsLoader } from './utils/polarStationsLoader.js';
 import { EnterpriseMarkerManager } from './utils/enterpriseMarkers.js';
 import { CHINA_ENTERPRISES } from './constants.js';
+import { RouteManager } from './utils/routeManager.js';
 
 export default {
     components: {
@@ -408,6 +490,14 @@ export default {
         RightPanel,
         MapContainer,
         BottomTable,
+        CableListTable,
+        CableStatisticsPanel,
+        ArcticRouteListTable,
+        ArcticRouteStatisticsPanel,
+        PortListTable,
+        PortStatisticsPanel,
+        RouteListTable,
+        RouteStatisticsPanel,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -445,7 +535,8 @@ export default {
         StationCountryLegend,
         PolarStationStatistics,
         PolarSovereigntyPanel,
-        AntarcticSovereigntyDetail
+        AntarcticSovereigntyDetail,
+        SituationOverviewPanel
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -458,6 +549,9 @@ export default {
         
         // 企业标记管理器
         let enterpriseMarkerManager = null;
+        
+        // 航线管理器
+        let routeManager = null;
         
         // 当前选中的顶部选项卡（默认：矿区管理）
         const currentTab = ref('矿区管理');
@@ -494,7 +588,16 @@ export default {
             polarStations: false,  // 极地科考站（地图图层）
             polarSovereignty: false,  // 极地主权主张面板（左侧）
             antarcticSovereigntyDetail: false,  // 南极主权详情面板（中间）
-            environmentalMonitoring: false  // 环境监测面板（中间）
+            environmentalMonitoring: false,  // 环境监测面板（中间）
+            situationOverview: false,  // 态势总览面板（左侧）
+            cableList: false,     // 光缆列表（底部表格）
+            cableStatistics: false,  // 光缆统计面板（右侧）
+            arcticRouteList: false,  // 北极航线列表（底部表格）
+            arcticRouteStatistics: false,  // 北极航线统计面板（右侧）
+            portList: false,  // 主要港口列表（底部表格）
+            portStatistics: false,  // 主要港口统计面板（右侧）
+            routeList: false,  // 主要航线列表（底部表格）
+            routeStatistics: false  // 主要航线统计面板（右侧）
         });
         
         // 区域详情对话框状态
@@ -519,6 +622,22 @@ export default {
         
         // 所有矿区数据（从 GeoJSON 加载）
         const allMiningData = ref([]);
+        
+        // 所有海底光缆数据（从 ArcGIS 服务加载）
+        const allCableData = ref([]);
+        const cableStatistics = ref(null);
+        
+        // 所有北极航线数据（从本地 GeoJSON 加载）
+        const allArcticRouteData = ref([]);
+        const arcticRouteStatistics = ref(null);
+        
+        // 主要港口数据
+        const allPortData = ref([]);
+        const portStatistics = ref(null);
+        
+        // 主要航线数据
+        const allRouteData = ref([]);
+        const routeStatistics = ref(null);
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
@@ -571,6 +690,12 @@ export default {
         
         // 极地科考站国家列表（用于图例显示）
         const polarStationCountries = ref(null);
+        
+        // 海上丝绸之路状态
+        const maritimeSilkRoadState = ref({
+            portsVisible: false,
+            routesVisible: false
+        });
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -715,6 +840,48 @@ export default {
         };
         
         /**
+         * 切换光缆列表的显示状态
+         */
+        const toggleCableList = () => {
+            activePanels.value.cableList = !activePanels.value.cableList;
+        };
+        
+        /**
+         * 切换光缆统计面板的显示状态
+         */
+        const toggleCableStatistics = () => {
+            activePanels.value.cableStatistics = !activePanels.value.cableStatistics;
+        };
+        
+        /**
+         * 切换北极航线列表的显示状态
+         */
+        const toggleArcticRouteList = () => {
+            activePanels.value.arcticRouteList = !activePanels.value.arcticRouteList;
+        };
+        
+        /**
+         * 切换北极航线统计面板的显示状态
+         */
+        const toggleArcticRouteStatistics = () => {
+            activePanels.value.arcticRouteStatistics = !activePanels.value.arcticRouteStatistics;
+        };
+        
+        /**
+         * 切换主要港口统计面板的显示状态
+         */
+        const togglePortStatistics = () => {
+            activePanels.value.portStatistics = !activePanels.value.portStatistics;
+        };
+        
+        /**
+         * 切换主要航线统计面板的显示状态
+         */
+        const toggleRouteStatistics = () => {
+            activePanels.value.routeStatistics = !activePanels.value.routeStatistics;
+        };
+        
+        /**
          * 切换科考船列表面板的显示状态
          */
         const toggleResearchVesselList = () => {
@@ -817,6 +984,130 @@ export default {
         const togglePolarSovereignty = () => {
             activePanels.value.polarSovereignty = !activePanels.value.polarSovereignty;
             console.log('🌐 切换极地主权主张面板:', activePanels.value.polarSovereignty);
+        };
+        
+        /**
+         * 切换态势总览面板的显示状态
+         */
+        const toggleSituationOverview = () => {
+            activePanels.value.situationOverview = !activePanels.value.situationOverview;
+            console.log('🌍 切换态势总览面板:', activePanels.value.situationOverview);
+        };
+        
+        /**
+         * 处理态势总览项目点击
+         * @param {Object} data - 包含 category, itemId, active 的对象
+         */
+        const handleSituationOverviewItemClick = async (data) => {
+            console.log('🔘 态势总览项目点击:', data);
+            
+            // 处理海上丝绸之路 - 主要港口
+            if (data.category === 'maritime_silk_road' && data.itemId === 'major_ports') {
+                console.log('⚓ 切换主要港口显示');
+                maritimeSilkRoadState.value.portsVisible = data.active;
+                if (mapContainerRef.value && mapContainerRef.value.togglePorts) {
+                    mapContainerRef.value.togglePorts(data.active);
+                }
+                
+                // 自动打开/关闭港口列表和统计面板
+                if (data.active) {
+                    // 确保数据已加载
+                    await loadPortAndRouteData();
+                    activePanels.value.portList = true;
+                    activePanels.value.portStatistics = true;
+                } else {
+                    activePanels.value.portList = false;
+                    activePanels.value.portStatistics = false;
+                }
+                return;
+            }
+            
+            // 处理海上丝绸之路 - 主要航线
+            if (data.category === 'maritime_silk_road' && data.itemId === 'major_routes') {
+                console.log('🛤️ 切换主要航线显示');
+                maritimeSilkRoadState.value.routesVisible = data.active;
+                if (routeManager) {
+                    if (data.active) {
+                        routeManager.show();
+                    } else {
+                        routeManager.hide();
+                    }
+                } else {
+                    console.warn('⚠️ RouteManager 未初始化');
+                }
+                
+                // 自动打开/关闭航线列表和统计面板
+                if (data.active) {
+                    // 确保数据已加载
+                    await loadPortAndRouteData();
+                    activePanels.value.routeList = true;
+                    activePanels.value.routeStatistics = true;
+                } else {
+                    activePanels.value.routeList = false;
+                    activePanels.value.routeStatistics = false;
+                }
+                return;
+            }
+            
+            // 处理海上丝绸之路 - 北极航线
+            if (data.category === 'maritime_silk_road' && data.itemId === 'arctic_routes') {
+                console.log('🧊 切换北极航线显示');
+                if (mapContainerRef.value && mapContainerRef.value.toggleArcticRoutes) {
+                    mapContainerRef.value.toggleArcticRoutes(data.active);
+                }
+                
+                // 自动打开/关闭北极航线列表和统计面板
+                if (data.active) {
+                    activePanels.value.arcticRouteList = true;
+                    activePanels.value.arcticRouteStatistics = true;
+                } else {
+                    activePanels.value.arcticRouteList = false;
+                    activePanels.value.arcticRouteStatistics = false;
+                }
+                return;
+            }
+            
+            // 处理海洋保护区
+            if (data.category === 'marine_protected_areas') {
+                console.log('🗺️ 加载海洋保护区');
+                if (mapContainerRef.value && mapContainerRef.value.loadMarineProtectedAreas) {
+                    mapContainerRef.value.loadMarineProtectedAreas(data.active);
+                }
+                return;
+            }
+            
+            // 处理海底光缆
+            if (data.category === 'submarine_cables') {
+                console.log('🌐 切换海底光缆显示');
+                if (mapContainerRef.value && mapContainerRef.value.toggleSubmarineCables) {
+                    mapContainerRef.value.toggleSubmarineCables(data.active);
+                }
+                
+                // 自动打开/关闭光缆列表和统计面板
+                if (data.active) {
+                    activePanels.value.cableList = true;
+                    activePanels.value.cableStatistics = true;
+                } else {
+                    activePanels.value.cableList = false;
+                    activePanels.value.cableStatistics = false;
+                }
+                return;
+            }
+            
+            // TODO: 处理其他态势总览项目
+        };
+        
+        /**
+         * 处理港口点击事件（用于航线联动高亮）
+         * @param {String} portId - 港口ID
+         */
+        const handlePortClick = (portId) => {
+            console.log('⚓ 港口点击:', portId);
+            
+            // 如果航线可见，高亮显示连接该港口的航线
+            if (maritimeSilkRoadState.value.routesVisible && routeManager) {
+                routeManager.highlightRoutesForPort(portId);
+            }
         };
         
         /**
@@ -1660,6 +1951,149 @@ export default {
         };
 
         /**
+         * 处理海底光缆数据加载完成事件
+         * @param {Object} data - 包含光缆数据和统计信息的对象
+         */
+        const handleCableDataLoaded = (data) => {
+            allCableData.value = data.cableData;
+            cableStatistics.value = data.statistics;
+            console.log('📡 App.vue 接收到光缆数据:', {
+                cableCount: data.cableData?.length,
+                statistics: data.statistics
+            });
+        };
+        
+        /**
+         * 处理北极航线数据加载完成事件
+         * @param {Object} data - 包含航线数据和统计信息的对象
+         */
+        const handleArcticRouteDataLoaded = (data) => {
+            allArcticRouteData.value = data.routeData;
+            arcticRouteStatistics.value = data.statistics;
+            console.log('🧊 App.vue 接收到北极航线数据:', {
+                routeCount: data.routeData?.length,
+                statistics: data.statistics
+            });
+        };
+        
+        /**
+         * 处理北极航线行点击事件
+         */
+        const handleArcticRouteRowClick = (route) => {
+            console.log('🧊 点击北极航线:', route);
+            // 通知地图组件高亮该航线
+            if (mapContainerRef.value) {
+                mapContainerRef.value.highlightArcticRoute(route.id);
+                mapContainerRef.value.flyToArcticRoute(route.id);
+            }
+        };
+        
+        /**
+         * 处理北极航线重置选择事件
+         */
+        const handleArcticRouteResetSelection = () => {
+            console.log('🧊 重置北极航线选择');
+            // 通知地图组件重置高亮
+            if (mapContainerRef.value) {
+                mapContainerRef.value.resetArcticRouteHighlight();
+            }
+        };
+        
+        /**
+         * 加载港口和航线数据
+         */
+        const loadPortAndRouteData = async () => {
+            try {
+                console.log('🔄 开始加载港口和航线数据...');
+                console.log('   - routeManager 存在:', !!routeManager);
+                console.log('   - routeManager.allRoutes 长度:', routeManager?.allRoutes?.length || 0);
+                
+                // 加载港口数据
+                const { getProcessedPortData, calculatePortStatistics } = await import('./utils/portDataProcessor.js');
+                const portData = getProcessedPortData();
+                allPortData.value = portData;
+                portStatistics.value = calculatePortStatistics(portData);
+                console.log('⚓ 港口数据加载完成:', {
+                    portCount: portData.length,
+                    statistics: portStatistics.value
+                });
+                
+                // 加载航线数据（从 RouteManager）
+                const { processRouteData, calculateRouteStatistics } = await import('./utils/routeDataProcessor.js');
+                
+                // 如果 routeManager 未初始化或数据未加载，尝试初始化
+                if (!routeManager || !routeManager.allRoutes || routeManager.allRoutes.length === 0) {
+                    console.warn('⚠️ RouteManager 数据未就绪，尝试初始化...');
+                    const viewer = mapContainerRef.value?.viewer?.();
+                    if (viewer) {
+                        if (!routeManager) {
+                            routeManager = new RouteManager(viewer);
+                        }
+                        await routeManager.loadAndFilterRoutes();
+                        console.log('✅ RouteManager 初始化成功');
+                    } else {
+                        console.error('❌ Viewer 未就绪，无法初始化 RouteManager');
+                        allRouteData.value = [];
+                        routeStatistics.value = calculateRouteStatistics([]);
+                        return;
+                    }
+                }
+                
+                if (routeManager && routeManager.allRoutes && routeManager.allRoutes.length > 0) {
+                    const routeData = processRouteData(routeManager.allRoutes);
+                    allRouteData.value = routeData;
+                    routeStatistics.value = calculateRouteStatistics(routeData);
+                    console.log('🛤️ 航线数据加载完成:', {
+                        routeCount: routeData.length,
+                        statistics: routeStatistics.value
+                    });
+                } else {
+                    console.warn('⚠️ RouteManager 数据仍然为空');
+                    allRouteData.value = [];
+                    routeStatistics.value = calculateRouteStatistics([]);
+                }
+            } catch (error) {
+                console.error('❌ 港口和航线数据加载失败:', error);
+                // 设置空数据以避免界面错误
+                allRouteData.value = [];
+                routeStatistics.value = { totalCount: 0, totalLength: 0, avgLength: 0, longestRoute: null, regionDistribution: {}, trafficLevelDistribution: {}, routes: [] };
+            }
+        };
+        
+        /**
+         * 处理港口行点击事件
+         */
+        const handlePortRowClick = (port) => {
+            console.log('⚓ 点击港口:', port);
+            // 通知地图组件定位到该港口
+            if (mapContainerRef.value && mapContainerRef.value.flyToPort) {
+                mapContainerRef.value.flyToPort(port.id);
+            }
+        };
+        
+        /**
+         * 处理港口重置选择事件
+         */
+        const handlePortResetSelection = () => {
+            console.log('⚓ 重置港口选择');
+        };
+        
+        /**
+         * 处理航线行点击事件
+         */
+        const handleRouteRowClick = (route) => {
+            console.log('🛤️ 点击航线:', route);
+            // 可以添加航线高亮逻辑
+        };
+        
+        /**
+         * 处理航线重置选择事件
+         */
+        const handleRouteResetSelection = () => {
+            console.log('🛤️ 重置航线选择');
+        };
+
+        /**
          * 处理筛选条件变化事件
          * @param {Object} newFilters - 新的筛选条件
          * @param {Array} newFilters.minerals - 选中的矿种列表
@@ -1831,7 +2265,7 @@ export default {
                     mapContainerRef.value.toggleAntarcticResources(false);
                 }
             } else if (tab === '态势总览') {
-                // 态势总览：关闭所有面板
+                // 态势总览：自动打开态势总览面板
                 showTimeline.value = false;
                 activePanels.value = {
                     list: false,
@@ -1854,8 +2288,11 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    situationOverview: true  // 自动打开态势总览面板
                 };
+                
+                console.log('✅ 态势总览面板已打开');
                 
                 // 隐藏大洋钻探图层
                 if (mapContainerRef.value && mapContainerRef.value.toggleDrilling) {
@@ -2106,6 +2543,7 @@ export default {
          * 组件挂载时：
          * 1. 初始化屏幕缩放比例
          * 2. 监听窗口大小变化事件
+         * 3. 初始化 RouteManager
          */
         onMounted(async () => {
             updateScale();
@@ -2123,6 +2561,41 @@ export default {
             
             // 等待所有组件完全挂载后再设置全局引用
             await nextTick();
+            
+            // 初始化 RouteManager
+            const viewer = mapContainerRef.value?.viewer?.();
+            if (viewer) {
+                try {
+                    console.log('🛤️ 初始化 RouteManager...');
+                    routeManager = new RouteManager(viewer);
+                    await routeManager.loadAndFilterRoutes();
+                    console.log('✅ RouteManager 初始化成功');
+                    
+                    // 加载港口和航线数据
+                    await loadPortAndRouteData();
+                } catch (error) {
+                    console.error('❌ RouteManager 初始化失败:', error);
+                }
+            } else {
+                console.warn('⚠️ Viewer 未就绪，RouteManager 初始化延迟');
+                // 如果 viewer 还未就绪，等待一段时间后重试
+                setTimeout(async () => {
+                    const viewer = mapContainerRef.value?.viewer?.();
+                    if (viewer) {
+                        try {
+                            console.log('🛤️ 延迟初始化 RouteManager...');
+                            routeManager = new RouteManager(viewer);
+                            await routeManager.loadAndFilterRoutes();
+                            console.log('✅ RouteManager 延迟初始化成功');
+                            
+                            // 加载港口和航线数据
+                            await loadPortAndRouteData();
+                        } catch (error) {
+                            console.error('❌ RouteManager 延迟初始化失败:', error);
+                        }
+                    }
+                }, 2000);
+            }
             
             // 暴露全局引用用于跨组件通信（在组件挂载后）
             if (typeof window !== 'undefined') {
@@ -2386,6 +2859,7 @@ export default {
          * 组件卸载时：
          * 移除窗口大小变化监听器
          * 关闭 WebSocket 连接
+         * 清理 RouteManager 资源
          */
         onUnmounted(() => {
             window.removeEventListener('resize', updateScale);
@@ -2394,6 +2868,13 @@ export default {
             if (ws) {
                 ws.close();
                 console.log('🔌 WebSocket 已关闭');
+            }
+            
+            // 清理 RouteManager
+            if (routeManager) {
+                routeManager.destroy();
+                routeManager = null;
+                console.log('🛤️ RouteManager 已清理');
             }
             
             // 清理调试对象
@@ -2715,6 +3196,10 @@ export default {
             toggleResourcePotential,
             togglePolarStations,
             togglePolarSovereignty,
+            polarStationCountries,
+            toggleSituationOverview,
+            handleSituationOverviewItemClick,
+            handlePortClick,
             handleShowAntarcticDetail,
             handleCloseAntarcticDetail,
             handleStartDrawing,
@@ -2767,7 +3252,30 @@ export default {
             handleClosePolicyDynamics,
             showCountryAttitudes,
             handleShowCountryAttitudes,
-            handleCloseCountryAttitudes
+            handleCloseCountryAttitudes,
+            allCableData,
+            cableStatistics,
+            handleCableDataLoaded,
+            toggleCableList,
+            toggleCableStatistics,
+            allArcticRouteData,
+            arcticRouteStatistics,
+            handleArcticRouteDataLoaded,
+            toggleArcticRouteList,
+            toggleArcticRouteStatistics,
+            handleArcticRouteRowClick,
+            handleArcticRouteResetSelection,
+            // 港口和航线相关
+            allPortData,
+            portStatistics,
+            handlePortRowClick,
+            handlePortResetSelection,
+            togglePortStatistics,
+            allRouteData,
+            routeStatistics,
+            handleRouteRowClick,
+            handleRouteResetSelection,
+            toggleRouteStatistics
         };
     }
 };
