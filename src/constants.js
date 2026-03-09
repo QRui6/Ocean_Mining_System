@@ -452,6 +452,10 @@ export const TAB_ICONS = {
 export const TAB_TOOLS_MAPPING = {
     '态势总览': [
         '地图工具',
+        '光缆列表',
+        '光缆统计',
+        '北极航线列表',
+        '北极航线统计',
         '海洋装备',
         '海洋机构',
     ],
@@ -597,3 +601,128 @@ export const WEATHER_LAYER_GROUPS = [
         ]
     }
 ];
+
+// ==================== 态势总览配置 ====================
+
+// 态势总览 - 海上丝绸之路
+export const MARITIME_SILK_ROAD = {
+    label: '海上丝绸之路',
+    items: [
+        { id: 'major_ports', label: '主要港口' },
+        { id: 'major_routes', label: '主要航线' },
+        { id: 'arctic_routes', label: '北极航线' }
+    ]
+};
+
+// 航线可视化配置
+export const ROUTE_CONFIG = {
+    // 航线颜色
+    colors: {
+        normal: '#FFD700',      // 金色 - 普通航线
+        highlighted: '#FF4444', // 红色 - 高亮航线
+        alternative: '#FF8C00'  // 橙色 - 备选颜色
+    },
+    
+    // 航线宽度（像素）
+    width: {
+        normal: 3,
+        highlighted: 5
+    },
+    
+    // 发光效果强度
+    glowPower: {
+        normal: 0.2,
+        highlighted: 0.4
+    },
+    
+    // 航线筛选地理边界
+    regions: {
+        // 中国段
+        china: {
+            minLng: 100,
+            maxLng: 130,
+            minLat: 15,
+            maxLat: 40
+        },
+        // 东南亚段
+        southeastAsia: {
+            minLng: 95,
+            maxLng: 125,
+            minLat: -10,
+            maxLat: 25
+        },
+        // 南亚段
+        southAsia: {
+            minLng: 60,
+            maxLng: 100,
+            minLat: -5,
+            maxLat: 30
+        },
+        // 中东段
+        middleEast: {
+            minLng: 35,
+            maxLng: 65,
+            minLat: 10,
+            maxLat: 30
+        },
+        // 非洲段
+        africa: {
+            minLng: 30,
+            maxLng: 55,
+            minLat: -30,
+            maxLat: 15
+        },
+        // 欧洲段
+        europe: {
+            minLng: -10,
+            maxLng: 40,
+            minLat: 30,
+            maxLat: 60
+        }
+    },
+    
+    // 港口附近航线判定阈值（度）
+    portProximityThreshold: 2.0
+};
+
+// 态势总览 - 海洋保护区
+export const MARINE_PROTECTED_AREAS = {
+    label: '海洋保护区',
+    description: '全球海洋保护区分布'
+};
+
+// 态势总览 - 海底观测网
+export const SEAFLOOR_OBSERVATION = {
+    label: '海底观测网',
+    countries: [
+        { id: 'usa', label: '美国', color: '#0052B4' },
+        { id: 'eu', label: '欧盟', color: '#003399' },
+        { id: 'canada', label: '加拿大', color: '#FF0000' },
+        { id: 'japan', label: '日本', color: '#BC002D' },
+        { id: 'china', label: '中国', color: '#FF0000' }
+    ]
+};
+
+// 态势总览 - 海底光缆
+export const SUBMARINE_CABLES = {
+    label: '海底光缆',
+    description: '全球海底光缆网络'
+};
+
+// 态势总览 - 主要研究机构
+export const RESEARCH_INSTITUTIONS = {
+    label: '主要研究机构',
+    categories: [
+        { id: 'ocean_survey', label: '海洋调查' },
+        { id: 'ocean_research', label: '海洋科研' }
+    ]
+};
+
+// 态势总览 - 海洋装备
+export const MARINE_EQUIPMENT = {
+    label: '海洋装备',
+    categories: [
+        { id: 'manned_submersible', label: '载人潜水器' },
+        { id: 'unmanned_submersible', label: '无人潜航器' }
+    ]
+};

@@ -303,6 +303,88 @@
             </div>
         </transition>
         
+        <!-- Cable Info Window Modal -->
+        <transition enter-active-class="animate-fadeIn" leave-active-class="transition-opacity duration-200 opacity-0">
+            <div v-if="selectedCable" 
+                :style="{ 
+                    left: cableInfoPosition.x + 'px', 
+                    top: cableInfoPosition.y + 'px' 
+                }"
+                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
+                <!-- Scanning Line -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+
+                <!-- Header -->
+                <div class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-4 py-3 border-b border-cyan-500/30">
+                    <div class="flex items-center gap-3">
+                         <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
+                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">🌐 光缆信息</span>
+                    </div>
+                    <button @click="closeCableInfo" class="group p-1">
+                        <div class="w-6 h-6 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-sm">✕</div>
+                    </button>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-4 space-y-3 relative">
+                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    
+                    <!-- 光缆名称 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">光缆名称</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                            {{ selectedCable.name }}
+                        </span>
+                    </div>
+                    
+                    <!-- 容量 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">容量</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedCable.capacity }} Gbps
+                        </span>
+                    </div>
+                    
+                    <!-- 长度 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">长度</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedCable.distance.toLocaleString() }} km
+                        </span>
+                    </div>
+                    
+                    <!-- 投入使用 -->
+                    <div class="flex justify-between items-center py-2 border-b border-cyan-500/20 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">投入使用</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            {{ selectedCable.inService }}
+                        </span>
+                    </div>
+                    
+                    <!-- 状态 -->
+                    <div class="flex justify-between items-center py-2 relative z-10">
+                        <span class="text-cyan-400/80 font-['Rajdhani'] text-sm tracking-wider">状态</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide"
+                              :class="selectedCable.status === '运营中' ? 'text-green-400' : 'text-gray-400'">
+                            {{ selectedCable.status }}
+                        </span>
+                    </div>
+                    
+                    <!-- 官网链接 -->
+                    <div v-if="selectedCable.url" class="pt-3 border-t border-cyan-500/30 relative z-10">
+                        <a :href="selectedCable.url" target="_blank"
+                           class="w-full px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-sm transition-all shadow-lg hover:shadow-cyan-500/50 flex items-center justify-center gap-2 pointer-events-auto cursor-pointer block text-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            <span>查看详情</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </transition>
+        
         <!-- 路径规划面板 -->
         <RoutePlanPanel 
             :show="showRoutePlan"
@@ -369,8 +451,11 @@ import { WindyLayerManager } from '../utils/windyLayer.js';
 import { ExperimentalMiningLayer } from '../utils/experimentalMiningLayer.js';
 import { DrillingLayer } from '../utils/drillingLayer.js';
 import { ResourceLayer } from '../utils/resourceLayer.js';
+import { SubmarineCableLayer } from '../utils/submarineCableLayer.js';
+import { ArcticRouteLayer } from '../utils/arcticRouteLayer.js';
 import { AntarcticResourceLoader } from '../utils/antarcticResourceLoader.js';
 import { PolarStationsLoader } from '../utils/polarStationsLoader.js';
+import { PortMarkerManager } from '../utils/portMarkerManager.js';
 import RoutePlanPanel from './RoutePlanPanel.vue';
 import WeatherPointPicker from './WeatherPointPicker.vue';
 import StationInfoPopup from './StationInfoPopup.vue';
@@ -442,7 +527,7 @@ export default {
             default: () => []
         }
     },
-    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked'],
+    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked', 'cableDataLoaded', 'arcticRouteDataLoaded'],
     setup(props, { emit }) {
         const cesiumContainer = ref(null);
         const selectedArea = ref(null);
@@ -471,6 +556,8 @@ export default {
         const weatherInfoPosition = ref({ x: 0, y: 0 }); // 气象信息窗口位置
         const selectedDrilling = ref(null); // 选中的钻孔信息
         const drillingInfoPosition = ref({ x: 0, y: 0 }); // 钻孔信息窗口位置
+        const selectedCable = ref(null); // 选中的光缆信息
+        const cableInfoPosition = ref({ x: 0, y: 0 }); // 光缆信息窗口位置
         let shipLayer = null; // 船舶图层实例
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
@@ -482,8 +569,14 @@ export default {
         const showDrilling = ref(false); // 大洋钻探显示状态
         let resourceLayer = null; // 资源分布图层实例
         const showResources = ref([]); // 当前显示的资源类型列表
+        let submarineCableLayer = null; // 海底光缆图层实例
+        const showSubmarineCables = ref(false); // 海底光缆显示状态
+        let arcticRouteLayer = null; // 北极航线图层实例
+        const showArcticRoutes = ref(false); // 北极航线显示状态
         let antarcticResourceLoader = null; // 南极资源加载器实例
         let polarStationsLoader = null; // 极地科考站加载器实例
+        let portMarkerManager = null; // 港口标记管理器实例
+        const showPorts = ref(false); // 港口显示状态
         const showStationInfo = ref(false); // 科考站信息弹窗显示状态
         const selectedStation = ref(null); // 选中的科考站信息
         const stationInfoPosition = ref({ x: 0, y: 0 }); // 科考站信息窗口位置
@@ -749,16 +842,13 @@ export default {
                 }
             });
 
-            // 加载 GeoJSON 数据
-            loadMiningData();
-            
             // 初始化船舶图层
             shipLayer = new ShipLayer(viewer);
             console.log('🚢 船舶图层初始化完成');
             
             // 初始化航线图层
             routeLayer = new RouteLayer(viewer);
-            console.log('🗺️ 航线图层初始化完成');
+            console.log('�️ 航线图层初始化完成');
             
             // 初始化航线气象图层
             routeWeatherLayer = new RouteWeatherLayer(viewer);
@@ -766,11 +856,11 @@ export default {
             
             // 初始化 OpenWeatherMap 图层管理器
             owmLayerManager = new OpenWeatherMapLayerManager(viewer);
-            console.log('🌍 OpenWeatherMap 图层管理器初始化完成');
+            console.log('� OpenWeatherMap 图层管理器初始化完成');
             
             // 初始化 Windy 图层管理器
             windyLayerManager = new WindyLayerManager(viewer);
-            console.log('🌪️ Windy 图层管理器初始化完成');
+            console.log('�️ Windy 图层管理器初始化完成');
             
             // 初始化试验试采图层
             experimentalMiningLayer = new ExperimentalMiningLayer(viewer);
@@ -778,11 +868,32 @@ export default {
             
             // 初始化大洋钻探图层
             drillingLayer = new DrillingLayer(viewer);
-            console.log('🔵 大洋钻探图层初始化完成');
+            console.log('� 大洋钻探图层初始化完成');
             
             // 初始化资源分布图层
             resourceLayer = new ResourceLayer(viewer);
             console.log('💎 资源分布图层初始化完成');
+            
+            // 初始化海底光缆图层
+            submarineCableLayer = new SubmarineCableLayer(viewer);
+            console.log('🌐 海底光缆图层初始化完成');
+            
+            // 初始化北极航线图层
+            arcticRouteLayer = new ArcticRouteLayer(viewer);
+            console.log('🧊 北极航线图层初始化完成');
+            
+            // 初始化港口标记管理器
+            portMarkerManager = new PortMarkerManager(viewer);
+            console.log('⚓ 港口标记管理器初始化完成');
+            
+            // 加载 GeoJSON 数据
+            loadMiningData();
+            
+            // 加载海底光缆数据（在图层初始化之后）
+            loadSubmarineCableData();
+            
+            // 加载北极航线数据（在图层初始化之后）
+            loadArcticRouteData();
 
             // 预加载已禁用 - 改为按需加载，不缓存数据
             // preloadWeatherData();
@@ -1108,6 +1219,38 @@ export default {
                                 console.log('✅ 显示钻孔详细信息:', drillingInfo);
                                 return;
                             }
+                            
+                            // 如果点击的是海底光缆
+                            if (type === 'submarine_cable') {
+                                console.log('🌐 点击了海底光缆:', entity.id);
+                                
+                                // 获取光缆信息
+                                const props = entity.properties;
+                                const cableInfo = {
+                                    name: props.Name?.getValue() || '未知光缆',
+                                    capacity: props.Capacity_G?.getValue() || 0,
+                                    distance: props.Distance_K?.getValue() || 0,
+                                    inService: props.InService?.getValue() || 'N/A',
+                                    status: props.NotLive?.getValue() === 1 ? '未启用' : '运营中',
+                                    url: props.URL1?.getValue() || ''
+                                };
+                                
+                                // 关闭其他信息窗口
+                                selectedArea.value = null;
+                                selectedShip.value = null;
+                                selectedWeather.value = null;
+                                selectedDrilling.value = null;
+                                
+                                // 显示光缆信息（复用 selectedDrilling，或创建新的 selectedCable）
+                                selectedCable.value = cableInfo;
+                                cableInfoPosition.value = {
+                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                    y: Math.max(click.position.y - 100, 10)
+                                };
+                                
+                                console.log('✅ 显示光缆详细信息:', cableInfo);
+                                return;
+                            }
                         }
                         
                         // 如果点击的是气象标记
@@ -1302,6 +1445,203 @@ export default {
                 
             } catch (error) {
                 console.error('❌ 加载失败:', error);
+            }
+        };
+
+        // 加载海底光缆数据
+        const loadSubmarineCableData = async () => {
+            try {
+                console.log('🌐 开始加载海底光缆数据...');
+                
+                // 加载光缆数据
+                const entities = await submarineCableLayer.load();
+                
+                // 提取光缆数据用于列表和统计
+                const cableData = submarineCableLayer.getCableData();
+                
+                console.log(`✅ 加载了 ${cableData.length} 条海底光缆`);
+                
+                // 计算统计数据
+                const statistics = calculateCableStatistics(cableData);
+                
+                // 发送数据给父组件
+                emit('cableDataLoaded', {
+                    cableData: cableData,
+                    statistics: statistics
+                });
+                
+                console.log('📊 海底光缆统计:', statistics);
+            } catch (error) {
+                console.error('❌ 加载海底光缆失败:', error);
+            }
+        };
+        
+        // 计算海底光缆统计数据
+        const calculateCableStatistics = (cableData) => {
+            const stats = {
+                totalCount: cableData.length,
+                totalLength: 0,
+                totalCapacity: 0,
+                byDecade: {},
+                byCapacity: { low: 0, medium: 0, high: 0 },
+                byStatus: { active: 0, inactive: 0 },
+                byRegion: {}
+            };
+            
+            cableData.forEach(cable => {
+                // 总长度和容量
+                stats.totalLength += cable.distance || 0;
+                stats.totalCapacity += cable.capacity || 0;
+                
+                // 按年代分组
+                if (cable.inService) {
+                    const decade = Math.floor(cable.inService / 10) * 10;
+                    const decadeKey = `${decade}s`;
+                    stats.byDecade[decadeKey] = (stats.byDecade[decadeKey] || 0) + 1;
+                }
+                
+                // 按容量分组
+                const capacity = cable.capacity || 0;
+                if (capacity < 500) {
+                    stats.byCapacity.low++;
+                } else if (capacity < 2000) {
+                    stats.byCapacity.medium++;
+                } else {
+                    stats.byCapacity.high++;
+                }
+                
+                // 按状态分组
+                if (cable.notLive === 1) {
+                    stats.byStatus.inactive++;
+                } else {
+                    stats.byStatus.active++;
+                }
+            });
+            
+            return stats;
+        };
+        
+        // 切换海底光缆显示
+        const toggleSubmarineCables = (active) => {
+            if (!submarineCableLayer) return;
+            
+            if (active) {
+                submarineCableLayer.show();
+                showSubmarineCables.value = true;
+            } else {
+                submarineCableLayer.hide();
+                showSubmarineCables.value = false;
+            }
+        };
+        
+        // 加载北极航线数据
+        const loadArcticRouteData = async () => {
+            try {
+                console.log('🧊 开始加载北极航线数据...');
+                
+                // 加载航线数据
+                const entities = await arcticRouteLayer.load();
+                
+                // 提取航线数据用于列表和统计
+                const routeData = arcticRouteLayer.getRouteData();
+                
+                console.log(`✅ 加载了 ${routeData.length} 条北极航线`);
+                
+                // 计算统计数据
+                const statistics = calculateArcticRouteStatistics(routeData);
+                
+                // 发送数据给父组件
+                emit('arcticRouteDataLoaded', {
+                    routeData: routeData,
+                    statistics: statistics
+                });
+                
+                console.log('📊 北极航线统计:', statistics);
+            } catch (error) {
+                console.error('❌ 加载北极航线失败:', error);
+            }
+        };
+        
+        // 计算北极航线统计数据
+        const calculateArcticRouteStatistics = (routeData) => {
+            const stats = {
+                totalCount: routeData.length,
+                totalLength: 0,
+                avgLength: 0,
+                longestRoute: null,
+                shortestRoute: null,
+                routes: routeData
+            };
+            
+            let maxDistance = 0;
+            let minDistance = Infinity;
+            
+            routeData.forEach(route => {
+                const distance = route.distance || 0;
+                stats.totalLength += distance;
+                
+                // 找出最长和最短航线
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    stats.longestRoute = route;
+                }
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    stats.shortestRoute = route;
+                }
+            });
+            
+            // 计算平均长度
+            if (stats.totalCount > 0) {
+                stats.avgLength = stats.totalLength / stats.totalCount;
+            }
+            
+            return stats;
+        };
+        
+        // 切换北极航线显示
+        const toggleArcticRoutes = (active) => {
+            if (!arcticRouteLayer) return;
+            
+            if (active) {
+                arcticRouteLayer.show();
+                showArcticRoutes.value = true;
+            } else {
+                arcticRouteLayer.hide();
+                showArcticRoutes.value = false;
+            }
+        };
+        
+        // 高亮北极航线
+        const highlightArcticRoute = (routeId) => {
+            if (!arcticRouteLayer) return;
+            arcticRouteLayer.highlightRoute(routeId);
+        };
+        
+        // 重置北极航线高亮
+        const resetArcticRouteHighlight = () => {
+            if (!arcticRouteLayer) return;
+            arcticRouteLayer.resetHighlight();
+        };
+        
+        // 飞行到北极航线
+        const flyToArcticRoute = (routeId) => {
+            if (!arcticRouteLayer) return;
+            arcticRouteLayer.flyToRoute(routeId);
+        };
+        
+        // 切换港口标记显示
+        const togglePorts = (active) => {
+            if (!portMarkerManager) return;
+            
+            console.log('⚓ 切换港口标记显示:', active);
+            
+            if (active) {
+                portMarkerManager.show();
+                showPorts.value = true;
+            } else {
+                portMarkerManager.hide();
+                showPorts.value = false;
             }
         };
 
@@ -2049,6 +2389,80 @@ export default {
             console.log(`✅ ${regionName} - ${category.label} 加载完成，共 ${window.polarResourceEntities.length} 个标记`);
         };
 
+        // 海洋保护区数据源
+        let marineProtectedAreasDataSource = null;
+
+        /**
+         * 加载海洋保护区（使用 Cesium.GeoJsonDataSource，与矿区数据一致）
+         * @param {Boolean} active - 是否激活显示
+         */
+        const loadMarineProtectedAreas = async (active) => {
+            if (!viewer) {
+                console.warn('⚠️ viewer 不存在，无法加载海洋保护区');
+                return;
+            }
+
+            console.log('🗺️ 海洋保护区:', active ? '显示' : '隐藏');
+
+            // 如果是隐藏，移除数据源
+            if (!active) {
+                if (marineProtectedAreasDataSource) {
+                    viewer.dataSources.remove(marineProtectedAreasDataSource);
+                    marineProtectedAreasDataSource = null;
+                    console.log('✅ 已隐藏海洋保护区');
+                }
+                return;
+            }
+
+            // 如果已经加载过，先移除再重新加载（确保应用最新样式）
+            if (marineProtectedAreasDataSource) {
+                console.log('🔄 移除旧的海洋保护区数据源，准备重新加载');
+                viewer.dataSources.remove(marineProtectedAreasDataSource);
+                marineProtectedAreasDataSource = null;
+            }
+
+            try {
+                console.log('⏳ 开始加载海洋保护区数据...');
+                
+                // 使用 Cesium.GeoJsonDataSource.load() 加载（与矿区数据一致的方式）
+                marineProtectedAreasDataSource = await Cesium.GeoJsonDataSource.load(
+                    '/src/data/Export_Output5000_simple1.json',
+                    {
+                        stroke: Cesium.Color.WHITE,
+                        fill: Cesium.Color.fromCssColorString('#00aa00').withAlpha(0.85),
+                        strokeWidth: 2,
+                        clampToGround: false
+                    }
+                );
+
+                // 添加到 viewer
+                await viewer.dataSources.add(marineProtectedAreasDataSource);
+
+                const entities = marineProtectedAreasDataSource.entities.values;
+                console.log('✅ 海洋保护区加载完成');
+                console.log(`   - 实体数量: ${entities.length}`);
+                
+                // 完全按照矿区的方式设置样式
+                entities.forEach(entity => {
+                    if (entity.polygon) {
+                        // 深绿色填充，85% 不透明度（与矿区一致）
+                        entity.polygon.material = Cesium.Color.fromCssColorString('#00aa00').withAlpha(0.85);
+                        
+                        // 设置边框（与矿区完全一致）
+                        entity.polygon.outline = true;
+                        entity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(1.0);
+                        entity.polygon.outlineWidth = 2;
+                        
+                        // ⭐ 关键：设置为贴地渲染（与矿区一致）
+                        entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
+                    }
+                });
+
+            } catch (error) {
+                console.error('❌ 加载海洋保护区失败:', error);
+            }
+        };
+
         // 初始化风场图层
         const initWindLayer = async (timeIndex = 0) => {
             console.log('🔧 initWindLayer 被调用, timeIndex:', timeIndex);
@@ -2659,6 +3073,11 @@ export default {
         // 关闭钻孔信息窗口
         const closeDrillingInfo = () => {
             selectedDrilling.value = null;
+        };
+        
+        // 关闭光缆信息窗口
+        const closeCableInfo = () => {
+            selectedCable.value = null;
         };
         
         // 关闭气象选择器
@@ -5246,6 +5665,9 @@ export default {
             selectedDrilling,
             drillingInfoPosition,
             closeDrillingInfo,
+            selectedCable,
+            cableInfoPosition,
+            closeCableInfo,
             getShipTypeName,
             getNavigationStatus,
             isEtaExpired,
@@ -5271,6 +5693,12 @@ export default {
             toggleDrilling,  // 暴露大洋钻探图层切换函数
             updateDrillingFilters,  // 暴露钻孔筛选更新函数
             toggleResources,  // 暴露资源分布图层切换函数
+            toggleSubmarineCables,  // 暴露海底光缆图层切换函数
+            toggleArcticRoutes,  // 暴露北极航线图层切换函数
+            highlightArcticRoute,  // 暴露北极航线高亮函数
+            resetArcticRouteHighlight,  // 暴露北极航线重置高亮函数
+            flyToArcticRoute,  // 暴露北极航线定位函数
+            togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,
             resetView,
@@ -5283,6 +5711,7 @@ export default {
             loadPolarStationsByCountries,  // 暴露按国家加载科考站的方法
             loadPolarResources,  // 暴露加载极地资源的方法
             loadPolarResourcesByRegionAndType,  // 暴露按区域和类型加载极地资源的方法
+            loadMarineProtectedAreas,  // 暴露加载海洋保护区的方法
             showStationInfo,  // 科考站信息弹窗显示状态
             selectedStation,  // 选中的科考站
             stationInfoPosition,  // 科考站信息窗口位置
