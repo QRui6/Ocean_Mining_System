@@ -25,10 +25,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all" 
                              @click="showMaritimeSilkRoad = !showMaritimeSilkRoad">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-blue-400 rotate-45 shadow-[0_0_6px_#60a5fa]"></div>
                                 <span class="text-blue-400 text-base font-bold">海上丝绸之路</span>
                                 <span v-if="getActiveCount('maritime_silk_road') > 0" class="px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full">{{ getActiveCount('maritime_silk_road') }}</span>
                             </div>
@@ -62,9 +59,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
                              @click="handleItemClick('marine_protected_areas', 'toggle')">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-green-400 rotate-45 shadow-[0_0_6px_#4ade80]"></div>
                                 <span class="text-green-400 text-base font-bold">海洋保护区</span>
                             </div>
                         </div>
@@ -75,9 +70,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
                              @click="showSeafloorObservation = !showSeafloorObservation">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-purple-400 rotate-45 shadow-[0_0_6px_#c084fc]"></div>
                                 <span class="text-purple-400 text-base font-bold">海底观测网</span>
                                 <span v-if="getActiveCount('seafloor_observation') > 0" class="px-2 py-0.5 bg-purple-500 text-white text-xs font-bold rounded-full">{{ getActiveCount('seafloor_observation') }}</span>
                             </div>
@@ -107,9 +100,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
                              @click="handleItemClick('submarine_cables', 'toggle')">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
                                 <span class="text-cyan-400 text-base font-bold">海底光缆</span>
                             </div>
                         </div>
@@ -120,9 +111,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
                              @click="showResearchInstitutions = !showResearchInstitutions">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-orange-400 rotate-45 shadow-[0_0_6px_#fb923c]"></div>
                                 <span class="text-orange-400 text-base font-bold">主要研究机构</span>
                                 <span v-if="getActiveCount('research_institutions') > 0" class="px-2 py-0.5 bg-orange-500 text-black text-xs font-bold rounded-full">{{ getActiveCount('research_institutions') }}</span>
                             </div>
@@ -156,9 +145,7 @@
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
                              @click="showMarineEquipment = !showMarineEquipment">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z"/>
-                                </svg>
+                                <div class="w-2 h-2 bg-red-400 rotate-45 shadow-[0_0_6px_#f87171]"></div>
                                 <span class="text-red-400 text-base font-bold">海洋装备</span>
                                 <span v-if="getActiveCount('marine_equipment') > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{{ getActiveCount('marine_equipment') }}</span>
                             </div>
