@@ -265,7 +265,7 @@ const params = ref({
     feasibility: 405,
     miningSystem: 1942,
     transportSystem: 143,
-    smeltingSystem: 1538
+    smeltingSystem: 1558  // 修正：文档中是1558，不是1538
   },
   operatingCost: {
     mining: 540,
@@ -277,6 +277,13 @@ const params = ref({
     nickel: 20000,
     copper: 9000,
     cobalt: 60000
+  },
+  // 金属含量（根据文档）
+  metalContent: {
+    manganese: 0.284,  // 28.4%
+    nickel: 0.013,     // 1.3%
+    copper: 0.011,     // 1.1%
+    cobalt: 0.002      // 0.2%
   }
 });
 
@@ -427,11 +434,13 @@ const results = computed(() => {
   const operationEndYear = operationStartYear + params.value.operationYears;
   
   // 年收入（CI_t 现金流入）
-  const annualRevenue = params.value.annualCapacity * 1000 * 
-    (params.value.metalPrices.manganese * 0.3 + 
-     params.value.metalPrices.nickel * 0.015 + 
-     params.value.metalPrices.copper * 0.012 + 
-     params.value.metalPrices.cobalt * 0.002) / 1000000;
+  // 修正：annualCapacity单位是百万吨，金属价格单位是美元/吨
+  // 年收入(百万美元) = 产能(百万吨) × 单吨价值(美元/吨)
+  const annualRevenue = params.value.annualCapacity * 
+    (params.value.metalPrices.manganese * params.value.metalContent.manganese + 
+     params.value.metalPrices.nickel * params.value.metalContent.nickel + 
+     params.value.metalPrices.copper * params.value.metalContent.copper + 
+     params.value.metalPrices.cobalt * params.value.metalContent.cobalt);
   
   // 年运营成本
   const annualOperatingCost = params.value.operatingCost.mining + 
@@ -611,11 +620,13 @@ const calculateIRRWithChange = (paramType, changePercent) => {
       break;
   }
   
-  const annualRevenue = annualCapacity * 1000 * 
-    (metalPrices.manganese * 0.3 + 
-     metalPrices.nickel * 0.015 + 
-     metalPrices.copper * 0.012 + 
-     metalPrices.cobalt * 0.002) / 1000000;
+  // 修正：使用正确的金属含量和单位换算
+  const metalContent = params.value.metalContent;
+  const annualRevenue = annualCapacity * 
+    (metalPrices.manganese * metalContent.manganese + 
+     metalPrices.nickel * metalContent.nickel + 
+     metalPrices.copper * metalContent.copper + 
+     metalPrices.cobalt * metalContent.cobalt);
   
   const annualOperatingCostValue = operatingCost.mining + operatingCost.smelting + operatingCost.maintenance;
   
