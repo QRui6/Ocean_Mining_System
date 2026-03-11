@@ -121,13 +121,18 @@ export class ArcticRouteLayer {
     }
 
     /**
-     * 隐藏航线图层
+     * 隐藏航线图层（完全清除数据以释放内存）
      */
     hide() {
         if (this.dataSource) {
-            this.dataSource.show = false;
+            console.log('🗑️ 清除北极航线数据以释放内存...');
+            // 从 viewer 中移除 dataSource
+            this.viewer.dataSources.remove(this.dataSource);
+            // 清空引用
+            this.dataSource = null;
+            this.routeEntities = [];
             this.isVisible = false;
-            console.log('✅ 隐藏北极航线图层');
+            console.log('✅ 北极航线数据已清除');
         }
     }
 

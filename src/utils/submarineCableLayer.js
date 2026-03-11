@@ -112,13 +112,18 @@ export class SubmarineCableLayer {
     }
 
     /**
-     * 隐藏光缆图层
+     * 隐藏光缆图层（完全清除数据以释放内存）
      */
     hide() {
         if (this.dataSource) {
-            this.dataSource.show = false;
+            console.log('🗑️ 清除海底光缆数据以释放内存...');
+            // 从 viewer 中移除 dataSource
+            this.viewer.dataSources.remove(this.dataSource);
+            // 清空引用
+            this.dataSource = null;
+            this.cableEntities = [];
             this.isVisible = false;
-            console.log('✅ 隐藏海底光缆图层');
+            console.log('✅ 海底光缆数据已清除');
         }
     }
 

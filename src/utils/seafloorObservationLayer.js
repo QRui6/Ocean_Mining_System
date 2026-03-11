@@ -193,12 +193,18 @@ export class SeafloorObservationLayer {
     }
 
     /**
-     * 隐藏所有观测网
+     * 隐藏所有观测网（完全清除数据以释放内存）
      */
     hide() {
         if (this.dataSource) {
-            this.dataSource.show = false;
+            console.log('🗑️ 清除海底观测网数据以释放内存...');
+            // 从 viewer 中移除 dataSource
+            this.viewer.dataSources.remove(this.dataSource);
+            // 清空引用
+            this.dataSource = null;
+            this.observationData = [];
             this.activeCountries.clear();
+            console.log('✅ 海底观测网数据已清除');
         }
     }
 
