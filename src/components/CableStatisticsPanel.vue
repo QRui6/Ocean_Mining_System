@@ -1,8 +1,8 @@
 <template>
-    <div class="fixed top-32 right-8 z-30 w-[560px] pointer-events-auto font-['Noto_Sans_SC']">
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 w-[900px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -144,7 +144,7 @@ export default {
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
                     borderColor: '#06b6d4',
                     borderWidth: 1,
-                    textStyle: { color: '#fff', fontSize: 11 },
+                    textStyle: { color: '#fff', fontSize: 13 },
                     formatter: '{b}<br/>数量: {c} ({d}%)'
                 },
                 legend: {
@@ -153,12 +153,12 @@ export default {
                     left: 'center',
                     textStyle: { 
                         color: '#ffffff', 
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 600
                     },
-                    itemWidth: 10,
-                    itemHeight: 10,
-                    itemGap: 8
+                    itemWidth: 12,
+                    itemHeight: 12,
+                    itemGap: 10
                 },
                 series: [
                     {
@@ -176,7 +176,7 @@ export default {
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 11,
+                                fontSize: 13,
                                 fontWeight: 'bold',
                                 color: '#fff'
                             }
@@ -206,7 +206,7 @@ export default {
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
                     borderColor: '#06b6d4',
                     borderWidth: 1,
-                    textStyle: { color: '#fff', fontSize: 11 },
+                    textStyle: { color: '#fff', fontSize: 13 },
                     formatter: '{b}<br/>{c} 条 ({d}%)'
                 },
                 legend: {
@@ -215,12 +215,12 @@ export default {
                     left: 'center',
                     textStyle: { 
                         color: '#ffffff', 
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 600
                     },
-                    itemWidth: 10,
-                    itemHeight: 10,
-                    itemGap: 8
+                    itemWidth: 12,
+                    itemHeight: 12,
+                    itemGap: 10
                 },
                 series: [
                     {
@@ -237,7 +237,7 @@ export default {
                         label: {
                             show: true,
                             position: 'inside',
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: 'bold',
                             color: '#ffffff',
                             formatter: '{c}'
@@ -245,7 +245,7 @@ export default {
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 13,
+                                fontSize: 15,
                                 fontWeight: 'bold'
                             }
                         }
@@ -312,13 +312,14 @@ export default {
 }
 
 .stat-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     color: #22d3ee;
     font-family: 'Rajdhani', sans-serif;
@@ -326,9 +327,10 @@ export default {
 }
 
 .stat-unit {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
     margin-top: 4px;
+    font-weight: 500;
 }
 
 /* 图表容器 */
@@ -363,7 +365,7 @@ export default {
 }
 
 .chart-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: #f1f5f9;
     letter-spacing: 0.5px;

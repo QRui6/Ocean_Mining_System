@@ -1,8 +1,8 @@
 <template>
-    <div class="fixed top-32 right-8 z-30 w-[560px] pointer-events-auto font-['Noto_Sans_SC']">
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 w-[900px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -392,13 +392,14 @@ export default {
 }
 
 .stat-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     color: #60a5fa;
     font-family: 'Rajdhani', sans-serif;
@@ -406,9 +407,10 @@ export default {
 }
 
 .stat-unit {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
     margin-top: 4px;
+    font-weight: 500;
 }
 
 /* 图表容器 */
@@ -443,7 +445,7 @@ export default {
 }
 
 .chart-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: #f1f5f9;
     letter-spacing: 0.5px;
