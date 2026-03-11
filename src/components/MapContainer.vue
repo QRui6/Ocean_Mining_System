@@ -467,6 +467,7 @@ import { CoreRepositoryLayer } from '../utils/coreRepositoryLayer.js';
 import { ResourceLayer } from '../utils/resourceLayer.js';
 import { SubmarineCableLayer } from '../utils/submarineCableLayer.js';
 import { ArcticRouteLayer } from '../utils/arcticRouteLayer.js';
+import { SeafloorObservationLayer } from '../utils/seafloorObservationLayer.js';
 import { AntarcticResourceLoader } from '../utils/antarcticResourceLoader.js';
 import { PolarStationsLoader } from '../utils/polarStationsLoader.js';
 import { PortMarkerManager } from '../utils/portMarkerManager.js';
@@ -601,6 +602,8 @@ export default {
         const showSubmarineCables = ref(false); // 海底光缆显示状态
         let arcticRouteLayer = null; // 北极航线图层实例
         const showArcticRoutes = ref(false); // 北极航线显示状态
+        let seafloorObservationLayer = null; // 海底观测网图层实例
+        const showSeafloorObservation = ref(false); // 海底观测网显示状态
         let antarcticResourceLoader = null; // 南极资源加载器实例
         let polarStationsLoader = null; // 极地科考站加载器实例
         let portMarkerManager = null; // 港口标记管理器实例
@@ -917,6 +920,10 @@ export default {
             arcticRouteLayer = new ArcticRouteLayer(viewer);
             console.log('🧊 北极航线图层初始化完成');
             
+            // 初始化海底观测网图层
+            seafloorObservationLayer = new SeafloorObservationLayer(viewer);
+            console.log('🔬 海底观测网图层初始化完成');
+            
             // 初始化港口标记管理器
             portMarkerManager = new PortMarkerManager(viewer);
             console.log('⚓ 港口标记管理器初始化完成');
@@ -924,11 +931,11 @@ export default {
             // 加载 GeoJSON 数据
             loadMiningData();
             
-            // 加载海底光缆数据（在图层初始化之后）
-            loadSubmarineCableData();
-            
-            // 加载北极航线数据（在图层初始化之后）
-            loadArcticRouteData();
+            // ⚠️ 性能优化：海底光缆、北极航线和海底观测网改为按需加载，不在初始化时加载
+            // 只在用户点击显示时才加载数据，避免页面初始化卡顿
+            // loadSubmarineCableData();  // 已改为按需加载
+            // loadArcticRouteData();     // 已改为按需加载
+            // loadSeafloorObservationData();  // 已改为按需加载
 
             // 预加载已禁用 - 改为按需加载，不缓存数据
             // preloadWeatherData();
@@ -1583,11 +1590,16 @@ export default {
             return stats;
         };
         
-        // 切换海底光缆显示
-        const toggleSubmarineCables = (active) => {
+        // 切换海底光缆显示（优化：首次显示时才加载数据）
+        const toggleSubmarineCables = async (active) => {
             if (!submarineCableLayer) return;
             
             if (active) {
+                // 如果数据还没加载，先加载数据
+                if (!submarineCableLayer.dataSource) {
+                    console.log('🌐 首次显示海底光缆，开始加载数据...');
+                    await loadSubmarineCableData();
+                }
                 submarineCableLayer.show();
                 showSubmarineCables.value = true;
             } else {
@@ -1661,11 +1673,16 @@ export default {
             return stats;
         };
         
-        // 切换北极航线显示
-        const toggleArcticRoutes = (active) => {
+        // 切换北极航线显示（优化：首次显示时才加载数据）
+        const toggleArcticRoutes = async (active) => {
             if (!arcticRouteLayer) return;
             
             if (active) {
+                // 如果数据还没加载，先加载数据
+                if (!arcticRouteLayer.dataSource) {
+                    console.log('🧊 首次显示北极航线，开始加载数据...');
+                    await loadArcticRouteData();
+                }
                 arcticRouteLayer.show();
                 showArcticRoutes.value = true;
             } else {
@@ -1689,7 +1706,124 @@ export default {
         // 飞行到北极航线
         const flyToArcticRoute = (routeId) => {
             if (!arcticRouteLayer) return;
-            arcticRouteLayer.flyToRoute(routeId);
+            
+            // 如果传入的是 'all'，飞行到所有航线（北极视角）
+            if (routeId === 'all') {
+                arcticRouteLayer.flyToAll();
+            } else {
+                arcticRouteLayer.flyToRoute(routeId);
+            }
+        };
+        
+        // 加载海底观测网数据
+        const loadSeafloorObservationData = async () => {
+            try {
+                console.log('🔬 开始加载海底观测网数据...');
+                
+                // 加载观测网数据
+                const entities = await seafloorObservationLayer.load();
+                
+                // 提取观测网数据用于列表和统计
+                const observationData = seafloorObservationLayer.getObservationData();
+                
+                console.log(`✅ 加载了 ${observationData.length} 个海底观测网`);
+                
+                // 计算统计数据
+                const statistics = calculateObservationStatistics(observationData);
+                
+                // 发送数据给父组件
+                emit('observationDataLoaded', {
+                    observationData: observationData,
+                    statistics: statistics
+                });
+                
+                console.log('📊 海底观测网统计:', statistics);
+            } catch (error) {
+                console.error('❌ 加载海底观测网失败:', error);
+            }
+        };
+        
+        // 计算海底观测网统计数据
+        const calculateObservationStatistics = (observationData) => {
+            const stats = {
+                totalCount: observationData.length,
+                countryDistribution: {},
+                regionDistribution: {},
+                countryCount: 0,
+                regionCount: 0,
+                topCountry: { name: '', count: 0 }
+            };
+            
+            // 按国家统计
+            observationData.forEach(obs => {
+                const country = obs.country;
+                stats.countryDistribution[country] = (stats.countryDistribution[country] || 0) + 1;
+            });
+            
+            stats.countryCount = Object.keys(stats.countryDistribution).length;
+            
+            // 找出观测网最多的国家
+            let maxCount = 0;
+            for (const [country, count] of Object.entries(stats.countryDistribution)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    stats.topCountry = { name: country, count: count };
+                }
+            }
+            
+            // 按区域统计
+            const regionMap = {
+                '美国': '北美',
+                '加拿大': '北美',
+                '欧洲': '欧洲',
+                '日本': '亚洲',
+                '中国': '亚洲'
+            };
+            
+            observationData.forEach(obs => {
+                const region = regionMap[obs.country] || '其他';
+                stats.regionDistribution[region] = (stats.regionDistribution[region] || 0) + 1;
+            });
+            
+            stats.regionCount = Object.keys(stats.regionDistribution).length;
+            
+            return stats;
+        };
+        
+        // 切换海底观测网显示（按国家）
+        const toggleSeafloorObservation = async (active, country) => {
+            if (!seafloorObservationLayer) return;
+            
+            // 首次显示时加载数据
+            if (active && !seafloorObservationLayer.dataSource) {
+                console.log('🔬 首次显示海底观测网，开始加载数据...');
+                await loadSeafloorObservationData();
+            }
+            
+            // 切换指定国家的观测网
+            if (country) {
+                seafloorObservationLayer.toggleCountry(country, active);
+            }
+            
+            showSeafloorObservation.value = active;
+        };
+        
+        // 高亮海底观测网
+        const highlightObservation = (observationId) => {
+            if (!seafloorObservationLayer) return;
+            seafloorObservationLayer.highlightObservation(observationId);
+        };
+        
+        // 重置海底观测网高亮
+        const resetObservationHighlight = () => {
+            if (!seafloorObservationLayer) return;
+            seafloorObservationLayer.resetHighlight();
+        };
+        
+        // 飞行到海底观测网
+        const flyToObservation = (observation) => {
+            if (!seafloorObservationLayer) return;
+            seafloorObservationLayer.flyTo(observation);
         };
         
         // 切换港口标记显示
@@ -6109,6 +6243,10 @@ export default {
             highlightArcticRoute,  // 暴露北极航线高亮函数
             resetArcticRouteHighlight,  // 暴露北极航线重置高亮函数
             flyToArcticRoute,  // 暴露北极航线定位函数
+            toggleSeafloorObservation,  // 暴露海底观测网图层切换函数
+            highlightObservation,  // 暴露海底观测网高亮函数
+            resetObservationHighlight,  // 暴露海底观测网重置高亮函数
+            flyToObservation,  // 暴露海底观测网定位函数
             togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,

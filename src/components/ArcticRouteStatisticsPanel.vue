@@ -1,8 +1,8 @@
 <template>
-    <div class="fixed top-32 right-8 z-30 w-[560px] pointer-events-auto font-['Noto_Sans_SC']">
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 w-[900px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -27,12 +27,22 @@
                         北极航线统计
                     </h3>
                 </div>
-                <button @click="$emit('close')" 
-                        class="text-blue-400 hover:text-white transition-all duration-300 hover:rotate-90">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <div class="flex items-center gap-3">
+                    <button @click="$emit('viewAll')" 
+                            class="text-blue-400 hover:text-white transition-all duration-300 flex items-center gap-1 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        查看全部
+                    </button>
+                    <button @click="$emit('close')" 
+                            class="text-blue-400 hover:text-white transition-all duration-300 hover:rotate-90">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- 统计卡片区域 -->
@@ -114,7 +124,7 @@ export default {
             default: null
         }
     },
-    emits: ['close'],
+    emits: ['close', 'viewAll'],
     setup(props) {
         const pieChart = ref(null);
         const barChart = ref(null);
@@ -440,13 +450,14 @@ export default {
 }
 
 .stat-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .stat-value {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     color: #60a5fa;
     font-family: 'Rajdhani', sans-serif;
@@ -454,9 +465,10 @@ export default {
 }
 
 .stat-unit {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
     margin-top: 4px;
+    font-weight: 500;
 }
 
 /* 图表容器 */
@@ -491,7 +503,7 @@ export default {
 }
 
 .chart-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: #f1f5f9;
     letter-spacing: 0.5px;

@@ -23,6 +23,7 @@
                 @dataLoaded="handleDataLoaded"
                 @cableDataLoaded="handleCableDataLoaded"
                 @arcticRouteDataLoaded="handleArcticRouteDataLoaded"
+                @observationDataLoaded="handleObservationDataLoaded"
                 @weatherDataLoaded="handleWeatherDataLoaded"
                 @pointPicked="handlePointPicked"
             />
@@ -234,7 +235,10 @@
                 
                 <!-- 光缆列表 -->
                 <div v-if="activePanels.cableList" class="pointer-events-auto">
-                    <CableListTable :cableData="allCableData" />
+                    <CableListTable 
+                        :cableData="allCableData"
+                        @toggleStatistics="toggleCableStatistics"
+                    />
                 </div>
                 
                 <!-- 北极航线列表 -->
@@ -243,6 +247,8 @@
                         :routeData="allArcticRouteData"
                         @rowClick="handleArcticRouteRowClick"
                         @resetSelection="handleArcticRouteResetSelection"
+                        @viewAll="handleArcticRouteViewAll"
+                        @toggleStatistics="toggleArcticRouteStatistics"
                     />
                 </div>
                 
@@ -252,6 +258,7 @@
                         :portData="allPortData"
                         @rowClick="handlePortRowClick"
                         @resetSelection="handlePortResetSelection"
+                        @toggleStatistics="togglePortStatistics"
                     />
                 </div>
                 
@@ -261,6 +268,17 @@
                         :routeData="allRouteData"
                         @rowClick="handleRouteRowClick"
                         @resetSelection="handleRouteResetSelection"
+                        @toggleStatistics="toggleRouteStatistics"
+                    />
+                </div>
+                
+                <!-- 海底观测网列表 -->
+                <div v-if="activePanels.observationList" class="pointer-events-auto">
+                    <ObservationListTable 
+                        :observationData="allObservationData"
+                        @rowClick="handleObservationRowClick"
+                        @resetSelection="handleObservationResetSelection"
+                        @toggleStatistics="toggleObservationStatistics"
                     />
                 </div>
                 
@@ -427,6 +445,7 @@
                     v-if="activePanels.arcticRouteStatistics"
                     :statistics="arcticRouteStatistics"
                     @close="toggleArcticRouteStatistics"
+                    @viewAll="handleArcticRouteViewAll"
                 />
                 
                 <!-- 主要港口统计面板 -->
@@ -441,6 +460,13 @@
                     v-if="activePanels.routeStatistics"
                     :statistics="routeStatistics"
                     @close="toggleRouteStatistics"
+                />
+                
+                <!-- 海底观测网统计面板 -->
+                <ObservationStatisticsPanel
+                    v-if="activePanels.observationStatistics"
+                    :statistics="observationStatistics"
+                    @close="toggleObservationStatistics"
                 />
             </div>
         </div>
@@ -488,6 +514,8 @@ import PortListTable from './components/PortListTable.vue';
 import PortStatisticsPanel from './components/PortStatisticsPanel.vue';
 import RouteListTable from './components/RouteListTable.vue';
 import RouteStatisticsPanel from './components/RouteStatisticsPanel.vue';
+import ObservationListTable from './components/ObservationListTable.vue';
+import ObservationStatisticsPanel from './components/ObservationStatisticsPanel.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -555,6 +583,8 @@ export default {
         PortStatisticsPanel,
         RouteListTable,
         RouteStatisticsPanel,
+        ObservationListTable,
+        ObservationStatisticsPanel,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -662,7 +692,9 @@ export default {
             portList: false,  // 主要港口列表（底部表格）
             portStatistics: false,  // 主要港口统计面板（右侧）
             routeList: false,  // 主要航线列表（底部表格）
-            routeStatistics: false  // 主要航线统计面板（右侧）
+            routeStatistics: false,  // 主要航线统计面板（右侧）
+            observationList: false,  // 海底观测网列表（底部表格）
+            observationStatistics: false  // 海底观测网统计面板（右侧）
         });
         
         // 区域详情对话框状态
@@ -708,6 +740,10 @@ export default {
         // 主要航线数据
         const allRouteData = ref([]);
         const routeStatistics = ref(null);
+        
+        // 海底观测网数据
+        const allObservationData = ref([]);
+        const observationStatistics = ref(null);
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
@@ -973,6 +1009,10 @@ export default {
          */
         const toggleCableList = () => {
             activePanels.value.cableList = !activePanels.value.cableList;
+            // 如果打开列表，关闭统计面板
+            if (activePanels.value.cableList) {
+                activePanels.value.cableStatistics = false;
+            }
         };
         
         /**
@@ -980,6 +1020,10 @@ export default {
          */
         const toggleCableStatistics = () => {
             activePanels.value.cableStatistics = !activePanels.value.cableStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.cableStatistics) {
+                activePanels.value.cableList = false;
+            }
         };
         
         /**
@@ -987,6 +1031,10 @@ export default {
          */
         const toggleArcticRouteList = () => {
             activePanels.value.arcticRouteList = !activePanels.value.arcticRouteList;
+            // 如果打开列表，关闭统计面板
+            if (activePanels.value.arcticRouteList) {
+                activePanels.value.arcticRouteStatistics = false;
+            }
         };
         
         /**
@@ -994,6 +1042,10 @@ export default {
          */
         const toggleArcticRouteStatistics = () => {
             activePanels.value.arcticRouteStatistics = !activePanels.value.arcticRouteStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.arcticRouteStatistics) {
+                activePanels.value.arcticRouteList = false;
+            }
         };
         
         /**
@@ -1001,6 +1053,10 @@ export default {
          */
         const togglePortStatistics = () => {
             activePanels.value.portStatistics = !activePanels.value.portStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.portStatistics) {
+                activePanels.value.portList = false;
+            }
         };
         
         /**
@@ -1008,6 +1064,32 @@ export default {
          */
         const toggleRouteStatistics = () => {
             activePanels.value.routeStatistics = !activePanels.value.routeStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.routeStatistics) {
+                activePanels.value.routeList = false;
+            }
+        };
+        
+        /**
+         * 切换海底观测网列表的显示状态
+         */
+        const toggleObservationList = () => {
+            activePanels.value.observationList = !activePanels.value.observationList;
+            // 如果打开列表，关闭统计面板
+            if (activePanels.value.observationList) {
+                activePanels.value.observationStatistics = false;
+            }
+        };
+        
+        /**
+         * 切换海底观测网统计面板的显示状态
+         */
+        const toggleObservationStatistics = () => {
+            activePanels.value.observationStatistics = !activePanels.value.observationStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.observationStatistics) {
+                activePanels.value.observationList = false;
+            }
         };
         
         /**
@@ -1138,12 +1220,13 @@ export default {
                     mapContainerRef.value.togglePorts(data.active);
                 }
                 
-                // 自动打开/关闭港口列表和统计面板
+                // 只打开/关闭港口列表，统计面板由用户手动切换
                 if (data.active) {
                     // 确保数据已加载
                     await loadPortAndRouteData();
                     activePanels.value.portList = true;
-                    activePanels.value.portStatistics = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.portStatistics = false;
                 } else {
                     activePanels.value.portList = false;
                     activePanels.value.portStatistics = false;
@@ -1165,12 +1248,13 @@ export default {
                     console.warn('⚠️ RouteManager 未初始化');
                 }
                 
-                // 自动打开/关闭航线列表和统计面板
+                // 只打开/关闭航线列表，统计面板由用户手动切换
                 if (data.active) {
                     // 确保数据已加载
                     await loadPortAndRouteData();
                     activePanels.value.routeList = true;
-                    activePanels.value.routeStatistics = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.routeStatistics = false;
                 } else {
                     activePanels.value.routeList = false;
                     activePanels.value.routeStatistics = false;
@@ -1185,10 +1269,9 @@ export default {
                     mapContainerRef.value.toggleArcticRoutes(data.active);
                 }
                 
-                // 自动打开/关闭北极航线列表和统计面板
+                // 只打开/关闭北极航线列表，统计面板由用户手动切换
                 if (data.active) {
                     activePanels.value.arcticRouteList = true;
-                    activePanels.value.arcticRouteStatistics = true;
                 } else {
                     activePanels.value.arcticRouteList = false;
                     activePanels.value.arcticRouteStatistics = false;
@@ -1212,13 +1295,49 @@ export default {
                     mapContainerRef.value.toggleSubmarineCables(data.active);
                 }
                 
-                // 自动打开/关闭光缆列表和统计面板
+                // 只打开/关闭光缆列表，统计面板由用户手动切换
                 if (data.active) {
                     activePanels.value.cableList = true;
-                    activePanels.value.cableStatistics = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.cableStatistics = false;
                 } else {
                     activePanels.value.cableList = false;
                     activePanels.value.cableStatistics = false;
+                }
+                return;
+            }
+            
+            // 处理海底观测网（按国家切换）
+            if (data.category === 'seafloor_observation') {
+                console.log('🔬 切换海底观测网显示:', data.itemId);
+                
+                // 映射国家ID到中文名称
+                const countryMap = {
+                    'usa': '美国',
+                    'eu': '欧洲',
+                    'canada': '加拿大',
+                    'japan': '日本',
+                    'china': '中国'
+                };
+                
+                const country = countryMap[data.itemId];
+                
+                if (mapContainerRef.value && mapContainerRef.value.toggleSeafloorObservation) {
+                    mapContainerRef.value.toggleSeafloorObservation(data.active, country);
+                }
+                
+                // 只打开/关闭观测网列表，统计面板由用户手动切换
+                if (data.active) {
+                    activePanels.value.observationList = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.observationStatistics = false;
+                } else {
+                    // 检查是否所有国家都已关闭
+                    const allInactive = !data.active;
+                    if (allInactive) {
+                        activePanels.value.observationList = false;
+                        activePanels.value.observationStatistics = false;
+                    }
                 }
                 return;
             }
@@ -2215,6 +2334,19 @@ export default {
         };
         
         /**
+         * 处理海底观测网数据加载完成事件
+         * @param {Object} data - 包含观测网数据和统计信息的对象
+         */
+        const handleObservationDataLoaded = (data) => {
+            allObservationData.value = data.observationData;
+            observationStatistics.value = data.statistics;
+            console.log('🔬 App.vue 接收到海底观测网数据:', {
+                observationCount: data.observationData?.length,
+                statistics: data.statistics
+            });
+        };
+        
+        /**
          * 处理北极航线行点击事件
          */
         const handleArcticRouteRowClick = (route) => {
@@ -2234,6 +2366,41 @@ export default {
             // 通知地图组件重置高亮
             if (mapContainerRef.value) {
                 mapContainerRef.value.resetArcticRouteHighlight();
+            }
+        };
+        
+        /**
+         * 处理北极航线"查看全部"事件
+         */
+        const handleArcticRouteViewAll = () => {
+            console.log('🧊 查看全部北极航线，飞行到北极视角');
+            // 通知地图组件飞行到北极视角
+            if (mapContainerRef.value) {
+                mapContainerRef.value.resetArcticRouteHighlight();
+                mapContainerRef.value.flyToArcticRoute('all');
+            }
+        };
+        
+        /**
+         * 处理海底观测网行点击事件
+         */
+        const handleObservationRowClick = (observation) => {
+            console.log('🔬 点击海底观测网:', observation);
+            // 通知地图组件高亮该观测网
+            if (mapContainerRef.value) {
+                mapContainerRef.value.highlightObservation(observation.id);
+                mapContainerRef.value.flyToObservation(observation);
+            }
+        };
+        
+        /**
+         * 处理海底观测网重置选择事件
+         */
+        const handleObservationResetSelection = () => {
+            console.log('🔬 重置海底观测网选择');
+            // 通知地图组件重置高亮
+            if (mapContainerRef.value) {
+                mapContainerRef.value.resetObservationHighlight();
             }
         };
         
@@ -3590,7 +3757,15 @@ export default {
             routeStatistics,
             handleRouteRowClick,
             handleRouteResetSelection,
-            toggleRouteStatistics
+            toggleRouteStatistics,
+            // 海底观测网相关
+            allObservationData,
+            observationStatistics,
+            handleObservationDataLoaded,
+            handleObservationRowClick,
+            handleObservationResetSelection,
+            toggleObservationList,
+            toggleObservationStatistics
         };
     }
 };
