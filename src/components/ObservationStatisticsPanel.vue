@@ -2,7 +2,7 @@
     <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 w-[900px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(147, 51, 234, 0.3); box-shadow: 0 0 40px rgba(147, 51, 234, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(147, 51, 234, 0.3); box-shadow: 0 0 40px rgba(147, 51, 234, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -70,30 +70,30 @@
             <div class="p-4 space-y-4 overflow-hidden">
                 <!-- 第一行：饼图和柱状图 -->
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- 国家分布 -->
+                    <!-- 各国观测网数量占比 -->
                     <div class="chart-container">
                         <div class="chart-header">
                             <div class="chart-title-line"></div>
-                            <h4 class="chart-title">国家分布</h4>
+                            <h4 class="chart-title">各国观测网数量占比</h4>
                         </div>
                         <div ref="pieChart" class="w-full h-56"></div>
                     </div>
 
-                    <!-- 区域分布 -->
+                    <!-- 各国观测网数量对比 -->
                     <div class="chart-container">
                         <div class="chart-header">
                             <div class="chart-title-line"></div>
-                            <h4 class="chart-title">区域分布</h4>
+                            <h4 class="chart-title">各国观测网数量对比</h4>
                         </div>
                         <div ref="barChart" class="w-full h-56"></div>
                     </div>
                 </div>
 
-                <!-- 第二行：国家详细对比 -->
+                <!-- 第二行：区域分布对比 -->
                 <div class="chart-container">
                     <div class="chart-header">
                         <div class="chart-title-line"></div>
-                        <h4 class="chart-title">各国观测网数量对比</h4>
+                        <h4 class="chart-title">各国在不同区域的观测网分布</h4>
                     </div>
                     <div ref="countryChart" class="w-full h-48"></div>
                 </div>
@@ -124,16 +124,25 @@ export default {
         let barChartInstance = null;
         let countryChartInstance = null;
 
-        // 初始化饼图 - 国家分布
+        // 初始化饼图 - 各国观测网数量占比
         const initPieChart = () => {
             if (!pieChart.value || !props.statistics) return;
             
             pieChartInstance = echarts.init(pieChart.value);
             
             const countryData = props.statistics.countryDistribution || {};
+            const countryColors = {
+                '美国': '#1E90FF',  // 道奇蓝
+                '欧洲': '#FFD700',  // 金色
+                '加拿大': '#FF0000', // 纯红
+                '日本': '#FF1493',  // 深粉红
+                '中国': '#00FF7F'   // 春绿色
+            };
+            
             const data = Object.entries(countryData).map(([name, value]) => ({
                 name,
-                value
+                value,
+                itemStyle: { color: countryColors[name] || '#9333EA' }
             }));
             
             const option = {
@@ -141,9 +150,17 @@ export default {
                 tooltip: {
                     trigger: 'item',
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
-                    borderColor: '#9333EA',
+                    borderColor: '#06b6d4',
                     borderWidth: 1,
-                    textStyle: { color: '#fff', fontSize: 13 },
+                    textStyle: { 
+                        color: '#fff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
                     formatter: '{b}<br/>数量: {c} 个 ({d}%)'
                 },
                 legend: {
@@ -153,11 +170,15 @@ export default {
                     textStyle: { 
                         color: '#ffffff', 
                         fontSize: 12,
-                        fontWeight: 600
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
                     },
                     itemWidth: 12,
                     itemHeight: 12,
-                    itemGap: 10
+                    itemGap: 15
                 },
                 series: [
                     {
@@ -169,21 +190,31 @@ export default {
                         itemStyle: {
                             borderRadius: 3,
                             borderColor: 'rgba(0, 20, 40, 0.8)',
-                            borderWidth: 2
+                            borderWidth: 2,
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(6, 182, 212, 0.3)'
                         },
                         label: {
                             show: true,
                             position: 'outside',
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: 'bold',
                             color: '#ffffff',
-                            formatter: '{d}%'
+                            formatter: '{d}%',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
                         },
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: 'bold'
+                            },
+                            itemStyle: {
+                                shadowBlur: 20,
+                                shadowColor: 'rgba(6, 182, 212, 0.6)'
                             }
                         }
                     }
@@ -192,25 +223,39 @@ export default {
             pieChartInstance.setOption(option);
         };
 
-        // 初始化柱状图 - 区域分布
+        // 初始化柱状图 - 各国观测网数量对比
         const initBarChart = () => {
             if (!barChart.value || !props.statistics) return;
             
             barChartInstance = echarts.init(barChart.value);
             
-            const regionData = props.statistics.regionDistribution || {};
-            const regions = Object.keys(regionData);
-            const values = Object.values(regionData);
-            const colors = ['#60a5fa', '#34d399', '#fbbf24'];
+            const countryData = props.statistics.countryDistribution || {};
+            const countries = Object.keys(countryData);
+            const values = Object.values(countryData);
+            const countryColors = {
+                '美国': '#1E90FF',  // 道奇蓝
+                '欧洲': '#FFD700',  // 金色
+                '加拿大': '#FF0000', // 纯红
+                '日本': '#FF1493',  // 深粉红
+                '中国': '#00FF7F'   // 春绿色
+            };
             
             const option = {
                 backgroundColor: 'transparent',
                 tooltip: {
                     trigger: 'axis',
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
-                    borderColor: '#9333EA',
+                    borderColor: '#06b6d4',
                     borderWidth: 1,
-                    textStyle: { color: '#fff', fontSize: 13 },
+                    textStyle: { 
+                        color: '#fff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
                     formatter: '{b}<br/>数量: {c} 个'
                 },
                 grid: {
@@ -222,20 +267,42 @@ export default {
                 },
                 xAxis: {
                     type: 'category',
-                    data: regions,
-                    axisLine: { lineStyle: { color: '#9333EA' } },
+                    data: countries,
+                    axisLine: { lineStyle: { color: '#334155', width: 1 } },
                     axisLabel: { 
                         color: '#ffffff',
-                        fontSize: 12
-                    }
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    axisTick: { show: false }
                 },
                 yAxis: {
                     type: 'value',
                     name: '数量(个)',
-                    nameTextStyle: { color: '#ffffff', fontSize: 12 },
-                    axisLine: { lineStyle: { color: '#9333EA' } },
-                    axisLabel: { color: '#ffffff', fontSize: 12 },
-                    splitLine: { lineStyle: { color: '#9333EA', opacity: 0.2 } }
+                    nameTextStyle: { 
+                        color: '#ffffff', 
+                        fontSize: 13,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    axisLine: { show: false },
+                    axisLabel: { 
+                        color: '#ffffff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', width: 1 } }
                 },
                 series: [
                     {
@@ -243,7 +310,12 @@ export default {
                         type: 'bar',
                         data: values.map((value, index) => ({
                             value,
-                            itemStyle: { color: colors[index] }
+                            itemStyle: { 
+                                color: countryColors[countries[index]] || '#9333EA',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(6, 182, 212, 0.3)',
+                                shadowOffsetY: 5
+                            }
                         })),
                         barWidth: '50%',
                         label: {
@@ -252,7 +324,11 @@ export default {
                             color: '#ffffff',
                             fontSize: 13,
                             fontWeight: 'bold',
-                            formatter: '{c}'
+                            formatter: '{c}',
+                            textShadowColor: 'rgba(0, 0, 0, 1)',
+                            textShadowBlur: 6,
+                            textShadowOffsetX: 2,
+                            textShadowOffsetY: 2
                         }
                     }
                 ]
@@ -260,72 +336,147 @@ export default {
             barChartInstance.setOption(option);
         };
 
-        // 初始化国家对比图
+        // 初始化国家区域分布对比图
         const initCountryChart = () => {
             if (!countryChart.value || !props.statistics) return;
             
             countryChartInstance = echarts.init(countryChart.value);
             
-            const countryData = props.statistics.countryDistribution || {};
-            const countries = Object.keys(countryData);
-            const values = Object.values(countryData);
+            // 按国家和区域统计
+            const countryRegionData = {};
+            const regions = new Set();
+            
+            if (props.statistics.observations) {
+                props.statistics.observations.forEach(obs => {
+                    const country = obs.country || '未知';
+                    const region = obs.region || '未知';
+                    
+                    if (!countryRegionData[country]) {
+                        countryRegionData[country] = {};
+                    }
+                    if (!countryRegionData[country][region]) {
+                        countryRegionData[country][region] = 0;
+                    }
+                    countryRegionData[country][region]++;
+                    regions.add(region);
+                });
+            }
+            
+            const countries = Object.keys(countryRegionData);
+            const regionArray = Array.from(regions);
+            const countryColors = {
+                '美国': '#1E90FF',  // 道奇蓝
+                '欧洲': '#FFD700',  // 金色
+                '加拿大': '#FF0000', // 纯红
+                '日本': '#FF1493',  // 深粉红
+                '中国': '#00FF7F'   // 春绿色
+            };
+            
+            // 构建系列数据
+            const series = regionArray.map(region => ({
+                name: region,
+                type: 'bar',
+                stack: 'total',
+                data: countries.map(country => countryRegionData[country][region] || 0),
+                label: {
+                    show: true,
+                    position: 'inside',
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    formatter: (params) => params.value > 0 ? params.value : '',
+                    textShadowColor: 'rgba(0, 0, 0, 1)',
+                    textShadowBlur: 6,
+                    textShadowOffsetX: 2,
+                    textShadowOffsetY: 2
+                }
+            }));
             
             const option = {
                 backgroundColor: 'transparent',
                 tooltip: {
                     trigger: 'axis',
                     backgroundColor: 'rgba(0, 20, 40, 0.95)',
-                    borderColor: '#9333EA',
+                    borderColor: '#06b6d4',
                     borderWidth: 1,
-                    textStyle: { color: '#fff', fontSize: 13 },
-                    formatter: '{b}<br/>数量: {c} 个'
+                    textStyle: { 
+                        color: '#fff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    axisPointer: {
+                        type: 'shadow',
+                        shadowStyle: { color: 'rgba(6, 182, 212, 0.15)' }
+                    }
+                },
+                legend: {
+                    data: regionArray,
+                    bottom: 5,
+                    left: 'center',
+                    textStyle: { 
+                        color: '#ffffff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    itemWidth: 12,
+                    itemHeight: 12,
+                    itemGap: 15
                 },
                 grid: {
                     left: '5%',
                     right: '5%',
-                    bottom: '5%',
-                    top: '10%',
+                    bottom: '15%',
+                    top: '5%',
                     containLabel: true
                 },
                 xAxis: {
                     type: 'category',
                     data: countries,
-                    axisLine: { lineStyle: { color: '#9333EA' } },
+                    axisLine: { lineStyle: { color: '#334155', width: 1 } },
                     axisLabel: { 
                         color: '#ffffff',
-                        fontSize: 12
-                    }
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    axisTick: { show: false }
                 },
                 yAxis: {
                     type: 'value',
                     name: '数量(个)',
-                    nameTextStyle: { color: '#ffffff', fontSize: 12 },
-                    axisLine: { lineStyle: { color: '#9333EA' } },
-                    axisLabel: { color: '#ffffff', fontSize: 12 },
-                    splitLine: { lineStyle: { color: '#9333EA', opacity: 0.2 } }
+                    nameTextStyle: { 
+                        color: '#ffffff', 
+                        fontSize: 13,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    axisLine: { show: false },
+                    axisLabel: { 
+                        color: '#ffffff', 
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textShadowColor: 'rgba(0, 0, 0, 1)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 2,
+                        textShadowOffsetY: 2
+                    },
+                    splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', width: 1 } }
                 },
-                series: [
-                    {
-                        name: '数量',
-                        type: 'bar',
-                        data: values,
-                        barWidth: '60%',
-                        itemStyle: {
-                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                { offset: 0, color: '#a78bfa' },
-                                { offset: 1, color: '#9333EA' }
-                            ])
-                        },
-                        label: {
-                            show: true,
-                            position: 'top',
-                            color: '#ffffff',
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            formatter: '{c}'
-                        }
-                    }
-                ]
+                series: series
             };
             countryChartInstance.setOption(option);
         };
@@ -399,9 +550,9 @@ export default {
 .stat-value {
     font-size: 32px;
     font-weight: bold;
-    color: #a78bfa;
+    color: #c084fc;
     font-family: 'Rajdhani', sans-serif;
-    text-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
+    text-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
 }
 
 .stat-unit {
@@ -443,10 +594,48 @@ export default {
 }
 
 .chart-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #f1f5f9;
     letter-spacing: 0.5px;
-    text-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+    text-shadow: 
+        0 0 10px rgba(192, 132, 252, 0.6),
+        1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* 角落装饰动画 */
+@keyframes corner-glow {
+    0%, 100% {
+        opacity: 0.8;
+        box-shadow: 0 0 5px rgba(147, 51, 234, 0.5);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 15px rgba(147, 51, 234, 0.8);
+    }
+}
+
+.chart-container::before,
+.chart-container::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 1px solid #9333EA;
+    animation: corner-glow 2s ease-in-out infinite;
+}
+
+.chart-container::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.chart-container::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
 }
 </style>

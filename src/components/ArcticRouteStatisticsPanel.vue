@@ -2,34 +2,34 @@
     <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 w-[900px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
-                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-70"></div>
-                <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-70"></div>
-                <div class="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-70"></div>
-                <div class="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-70"></div>
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                <div class="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                <div class="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"></div>
             </div>
             
             <!-- 角落装饰 -->
-            <div class="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-blue-400/80"></div>
-            <div class="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-blue-400/80"></div>
-            <div class="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-blue-400/80"></div>
-            <div class="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-blue-400/80"></div>
+            <div class="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-cyan-400/80"></div>
+            <div class="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-cyan-400/80"></div>
+            <div class="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-cyan-400/80"></div>
+            <div class="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-cyan-400/80"></div>
             
             <!-- 标题栏 -->
-            <div class="relative flex items-center justify-between px-5 py-3 border-b border-blue-500/30"
-                 style="background: rgba(59, 130, 246, 0.08);">
+            <div class="relative flex items-center justify-between px-5 py-3 border-b border-cyan-500/30"
+                 style="background: rgba(6, 182, 212, 0.08);">
                 <div class="flex items-center gap-3">
-                    <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-blue-600 shadow-lg shadow-blue-500/50"></div>
-                    <h3 class="text-lg font-bold text-white tracking-wider" style="text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
+                    <div class="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 shadow-lg shadow-cyan-500/50"></div>
+                    <h3 class="text-lg font-bold text-white tracking-wider" style="text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);">
                         北极航线统计
                     </h3>
                 </div>
                 <div class="flex items-center gap-3">
                     <button @click="$emit('viewAll')" 
-                            class="text-blue-400 hover:text-white transition-all duration-300 flex items-center gap-1 text-sm">
+                            class="text-cyan-400 hover:text-white transition-all duration-300 flex items-center gap-1 text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -37,7 +37,7 @@
                         查看全部
                     </button>
                     <button @click="$emit('close')" 
-                            class="text-blue-400 hover:text-white transition-all duration-300 hover:rotate-90">
+                            class="text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -435,8 +435,8 @@ export default {
 /* 统计卡片 */
 .stat-card {
     position: relative;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.1));
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(34, 211, 238, 0.1));
+    border: 1px solid rgba(6, 182, 212, 0.3);
     border-radius: 8px;
     padding: 12px;
     text-align: center;
@@ -444,8 +444,8 @@ export default {
 }
 
 .stat-card:hover {
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
     transform: translateY(-2px);
 }
 
@@ -459,9 +459,9 @@ export default {
 .stat-value {
     font-size: 32px;
     font-weight: bold;
-    color: #60a5fa;
+    color: #22d3ee;
     font-family: 'Rajdhani', sans-serif;
-    text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 
 .stat-unit {
@@ -477,14 +477,14 @@ export default {
     background: transparent;
     padding: 12px;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
     transition: all 0.3s ease;
 }
 
 .chart-container:hover {
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+    border-color: rgba(6, 182, 212, 0.6);
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.3);
 }
 
 /* 图表标题区域 */
@@ -498,15 +498,53 @@ export default {
 .chart-title-line {
     width: 3px;
     height: 16px;
-    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
 }
 
 .chart-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #f1f5f9;
     letter-spacing: 0.5px;
-    text-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
+    text-shadow: 
+        0 0 10px rgba(34, 211, 238, 0.6),
+        1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* 角落装饰动画 */
+@keyframes corner-glow {
+    0%, 100% {
+        opacity: 0.8;
+        box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
+    }
+}
+
+.chart-container::before,
+.chart-container::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 1px solid #06b6d4;
+    animation: corner-glow 2s ease-in-out infinite;
+}
+
+.chart-container::before {
+    top: -1px;
+    left: -1px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.chart-container::after {
+    bottom: -1px;
+    right: -1px;
+    border-left: none;
+    border-top: none;
 }
 </style>

@@ -2,7 +2,7 @@
     <div class="absolute bottom-2 left-[31rem] right-8 h-[25rem] z-30 pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 -->
         <div class="relative h-full overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.85), rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.85)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(147, 51, 234, 0.3); box-shadow: 0 0 40px rgba(147, 51, 234, 0.2);">
+             style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(147, 51, 234, 0.3); box-shadow: 0 0 40px rgba(147, 51, 234, 0.2);">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -51,20 +51,56 @@
                         <tr v-for="(obs, index) in observationData" 
                             :key="obs.id"
                             @click="handleRowClick(obs)"
-                            class="text-white hover:bg-purple-600/20 cursor-pointer transition-all duration-200 border-b border-purple-500/10"
-                            :class="{ 'bg-purple-600/30': selectedId === obs.id }">
-                            <td class="py-3 px-4 text-sm">{{ index + 1 }}</td>
-                            <td class="py-3 px-4 text-sm font-medium">{{ obs.name }}</td>
-                            <td class="py-3 px-4 text-sm">
-                                <span class="px-2 py-1 rounded text-xs font-bold"
-                                      :style="{ backgroundColor: getCountryColor(obs.country) + '40', color: getCountryColor(obs.country) }">
+                            class="hover:bg-purple-600/20 cursor-pointer transition-all duration-200 border-b border-purple-500/10 relative"
+                            :class="{ 'bg-purple-600/30': selectedId === obs.id }"
+                            :style="{ 
+                                borderLeft: `4px solid ${getCountryColor(obs.country)}`,
+                                background: selectedId === obs.id ? `linear-gradient(to right, ${getCountryColor(obs.country)}20, transparent)` : ''
+                            }">
+                            <td class="py-3 px-4 font-bold" 
+                                :style="{ 
+                                    color: `${getCountryColor(obs.country)} !important`,
+                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
+                                    fontSize: '0.875rem'
+                                }">
+                                {{ index + 1 }}
+                            </td>
+                            <td class="py-3 px-4 font-medium"
+                                :style="{ 
+                                    color: `${getCountryColor(obs.country)} !important`,
+                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
+                                    fontSize: '0.875rem'
+                                }">
+                                {{ obs.name }}
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-1 rounded font-bold"
+                                      :style="{ 
+                                          backgroundColor: getCountryColor(obs.country) + '40', 
+                                          color: `${getCountryColor(obs.country)} !important`,
+                                          border: `1px solid ${getCountryColor(obs.country)}80`,
+                                          fontSize: '0.75rem'
+                                      }">
                                     {{ obs.country }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 text-sm text-purple-200">{{ obs.unit || '-' }}</td>
+                            <td class="py-3 px-4"
+                                :style="{ 
+                                    color: `${getCountryColor(obs.country)} !important`,
+                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
+                                    fontSize: '0.875rem'
+                                }">
+                                {{ obs.unit || '-' }}
+                            </td>
                             <td class="py-3 px-4 text-center">
                                 <button @click.stop="handleLocate(obs)"
-                                        class="px-2 py-1 bg-purple-600/40 hover:bg-purple-600/60 text-white rounded text-xs transition-all duration-200">
+                                        class="px-2 py-1 rounded transition-all duration-200"
+                                        :style="{ 
+                                            backgroundColor: getCountryColor(obs.country) + '40',
+                                            color: `${getCountryColor(obs.country)} !important`,
+                                            border: `1px solid ${getCountryColor(obs.country)}80`,
+                                            fontSize: '0.75rem'
+                                        }">
                                     定位
                                 </button>
                             </td>
@@ -108,11 +144,11 @@ export default {
 
         const getCountryColor = (country) => {
             const colorMap = {
-                '美国': '#0052B4',
-                '欧洲': '#003399',
-                '加拿大': '#FF0000',
-                '日本': '#BC002D',
-                '中国': '#DE2910'
+                '美国': '#1E90FF',  // 道奇蓝 - 明亮的蓝色
+                '欧洲': '#FFD700',  // 金色 - 欧盟星星
+                '加拿大': '#FF0000', // 纯红 - 加拿大枫叶
+                '日本': '#FF1493',  // 深粉红 - 樱花色
+                '中国': '#00FF7F'   // 春绿色 - 完全不同的色系
             };
             return colorMap[country] || '#9333EA';
         };

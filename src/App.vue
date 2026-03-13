@@ -468,6 +468,15 @@
                     :statistics="observationStatistics"
                     @close="toggleObservationStatistics"
                 />
+                
+                <!-- 海底观测网图片弹窗 -->
+                <ObservationImagePopup
+                    :show="showObservationImage"
+                    :title="observationImageData.title"
+                    :imagePath="observationImageData.imagePath"
+                    :position="observationImageData.position"
+                    @close="closeObservationImage"
+                />
             </div>
         </div>
         
@@ -516,6 +525,7 @@ import RouteListTable from './components/RouteListTable.vue';
 import RouteStatisticsPanel from './components/RouteStatisticsPanel.vue';
 import ObservationListTable from './components/ObservationListTable.vue';
 import ObservationStatisticsPanel from './components/ObservationStatisticsPanel.vue';
+import ObservationImagePopup from './components/ObservationImagePopup.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -585,6 +595,7 @@ export default {
         RouteStatisticsPanel,
         ObservationListTable,
         ObservationStatisticsPanel,
+        ObservationImagePopup,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -744,6 +755,14 @@ export default {
         // 海底观测网数据
         const allObservationData = ref([]);
         const observationStatistics = ref(null);
+        
+        // 海底观测网图片弹窗状态
+        const showObservationImage = ref(false);
+        const observationImageData = ref({
+            title: '',
+            imagePath: '',
+            position: { x: 0, y: 0 }
+        });
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
@@ -2386,11 +2405,35 @@ export default {
          */
         const handleObservationRowClick = (observation) => {
             console.log('🔬 点击海底观测网:', observation);
+            
+            // 如果是日本的海底观测网，显示图片弹窗
+            if (observation.country === '日本') {
+                // 获取点击位置（这里使用屏幕中心位置，实际应该从地图获取）
+                const screenCenter = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2
+                };
+                
+                observationImageData.value = {
+                    title: observation.name,
+                    imagePath: '/src/data/日本_海底观测网.png',
+                    position: screenCenter
+                };
+                showObservationImage.value = true;
+            }
+            
             // 通知地图组件高亮该观测网
             if (mapContainerRef.value) {
                 mapContainerRef.value.highlightObservation(observation.id);
                 mapContainerRef.value.flyToObservation(observation);
             }
+        };
+        
+        /**
+         * 关闭海底观测网图片弹窗
+         */
+        const closeObservationImage = () => {
+            showObservationImage.value = false;
         };
         
         /**
@@ -3761,9 +3804,12 @@ export default {
             // 海底观测网相关
             allObservationData,
             observationStatistics,
+            showObservationImage,
+            observationImageData,
             handleObservationDataLoaded,
             handleObservationRowClick,
             handleObservationResetSelection,
+            closeObservationImage,
             toggleObservationList,
             toggleObservationStatistics
         };
