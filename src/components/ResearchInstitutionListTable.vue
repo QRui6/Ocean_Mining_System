@@ -16,9 +16,9 @@
                 <div class="flex items-center gap-3">
                     <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-blue-600 shadow-lg shadow-blue-500/50"></div>
                     <h3 class="text-lg font-bold text-white tracking-wider" style="text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);">
-                        海底观测网列表
+                        研究机构列表
                     </h3>
-                    <span class="text-blue-300 text-sm">共 {{ observationData.length }} 个</span>
+                    <span class="text-blue-300 text-sm">共 {{ institutionData.length }} 个</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <button @click="$emit('toggleStatistics')" 
@@ -41,25 +41,26 @@
                     <thead class="sticky top-0 z-10" style="background: rgba(59, 130, 246, 0.15);">
                         <tr class="text-blue-300 text-sm">
                             <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">序号</th>
-                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">观测网名称</th>
-                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">国家/地区</th>
-                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">所属单位</th>
+                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">机构名称</th>
+                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">国家</th>
+                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">成立时间</th>
+                            <th class="py-3 px-4 text-left font-bold border-b border-blue-500/30">所在城市</th>
                             <th class="py-3 px-4 text-center font-bold border-b border-blue-500/30">操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(obs, index) in observationData" 
-                            :key="obs.id"
-                            @click="handleRowClick(obs)"
+                        <tr v-for="(inst, index) in institutionData" 
+                            :key="inst.id"
+                            @click="handleRowClick(inst)"
                             class="hover:bg-blue-600/20 cursor-pointer transition-all duration-200 border-b border-blue-500/10 relative"
-                            :class="{ 'bg-blue-600/30': selectedId === obs.id }"
+                            :class="{ 'bg-blue-600/30': selectedId === inst.id }"
                             :style="{ 
-                                borderLeft: `4px solid ${getCountryColor(obs.country)}`,
-                                background: selectedId === obs.id ? `linear-gradient(to right, ${getCountryColor(obs.country)}20, transparent)` : ''
+                                borderLeft: `4px solid ${getCountryColor(inst.countryId)}`,
+                                background: selectedId === inst.id ? `linear-gradient(to right, ${getCountryColor(inst.countryId)}20, transparent)` : ''
                             }">
                             <td class="py-3 px-4 font-bold" 
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
+                                    color: `${getCountryColor(inst.countryId)} !important`,
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -67,39 +68,45 @@
                             </td>
                             <td class="py-3 px-4 font-medium"
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
+                                    color: `${getCountryColor(inst.countryId)} !important`,
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
-                                {{ obs.name }}
+                                {{ inst.name }}
+                                <span v-if="inst.isRegional" class="ml-2 text-xs opacity-60">(区域)</span>
                             </td>
                             <td class="py-3 px-4">
                                 <span class="px-2 py-1 rounded font-bold"
                                       :style="{ 
-                                          backgroundColor: getCountryColor(obs.country) + '40', 
-                                          color: `${getCountryColor(obs.country)} !important`,
-                                          border: `1px solid ${getCountryColor(obs.country)}80`,
+                                          backgroundColor: getCountryColor(inst.countryId) + '40', 
+                                          color: `${getCountryColor(inst.countryId)} !important`,
+                                          border: `1px solid ${getCountryColor(inst.countryId)}80`,
                                           fontSize: '0.75rem'
                                       }">
-                                    {{ obs.country }}
+                                    {{ inst.country }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4"
+                            <td class="py-3 px-4 text-sm"
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
-                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
-                                    fontSize: '0.875rem'
+                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)'
                                 }">
-                                {{ obs.unit || '-' }}
+                                {{ inst.founded || '-' }}
+                            </td>
+                            <td class="py-3 px-4 text-sm"
+                                :style="{ 
+                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    textShadow: '0 0 10px rgba(0, 0, 0, 0.8)'
+                                }">
+                                {{ inst.city || '-' }}
                             </td>
                             <td class="py-3 px-4 text-center">
-                                <button @click.stop="handleLocate(obs)"
-                                        class="px-2 py-1 rounded transition-all duration-200"
+                                <button @click.stop="handleLocate(inst)"
+                                        class="px-2 py-1 rounded transition-all duration-200 text-xs"
                                         :style="{ 
-                                            backgroundColor: getCountryColor(obs.country) + '40',
-                                            color: `${getCountryColor(obs.country)} !important`,
-                                            border: `1px solid ${getCountryColor(obs.country)}80`,
-                                            fontSize: '0.75rem'
+                                            backgroundColor: getCountryColor(inst.countryId) + '40',
+                                            color: `${getCountryColor(inst.countryId)} !important`,
+                                            border: `1px solid ${getCountryColor(inst.countryId)}80`
                                         }">
                                     定位
                                 </button>
@@ -113,13 +120,12 @@
 </template>
 
 <script>
-import { ref } from 'vue';
-import { SEAFLOOR_OBSERVATION_COLORS } from '../constants.js';
+import { ref, watch } from 'vue';
 
 export default {
-    name: 'ObservationListTable',
+    name: 'ResearchInstitutionListTable',
     props: {
-        observationData: {
+        institutionData: {
             type: Array,
             default: () => []
         }
@@ -127,15 +133,34 @@ export default {
     emits: ['rowClick', 'resetSelection', 'toggleStatistics'],
     setup(props, { emit }) {
         const selectedId = ref(null);
+        
+        // 监听数据变化
+        watch(() => props.institutionData, (newData) => {
+            console.log('🏛️ ResearchInstitutionListTable - institutionData 变化:', newData);
+            console.log('🏛️ ResearchInstitutionListTable - 数据长度:', newData?.length);
+        }, { immediate: true });
 
-        const handleRowClick = (observation) => {
-            selectedId.value = observation.id;
-            emit('rowClick', observation);
+        const getCountryColor = (countryId) => {
+            const colorMap = {
+                'usa': '#0052B4',
+                'uk': '#C8102E',
+                'france': '#0055A4',
+                'germany': '#FFCE00',
+                'canada': '#FF0000',
+                'australia': '#00008B',
+                'russia': '#0039A6',
+                'japan': '#BC002D'
+            };
+            return colorMap[countryId] || '#fb923c';
         };
 
-        const handleLocate = (observation) => {
-            selectedId.value = observation.id;
-            emit('rowClick', observation);
+        const handleRowClick = (institution) => {
+            selectedId.value = institution.id;
+            emit('rowClick', institution);
+        };
+
+        const handleLocate = (institution) => {
+            emit('rowClick', institution);
         };
 
         const handleReset = () => {
@@ -143,16 +168,12 @@ export default {
             emit('resetSelection');
         };
 
-        const getCountryColor = (country) => {
-            return SEAFLOOR_OBSERVATION_COLORS[country] || '#3b82f6';
-        };
-
         return {
             selectedId,
+            getCountryColor,
             handleRowClick,
             handleLocate,
-            handleReset,
-            getCountryColor
+            handleReset
         };
     }
 };
@@ -161,20 +182,20 @@ export default {
 <style scoped>
 /* 自定义滚动条 */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(59, 130, 246, 0.1);
-    border-radius: 4px;
+    background: rgba(30, 58, 138, 0.5);
+    border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
-    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.7);
+    background: rgba(59, 130, 246, 0.5);
 }
 </style>

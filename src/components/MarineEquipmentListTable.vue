@@ -8,7 +8,7 @@
             <div class="h-14 flex items-center justify-between px-8 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
                   <div class="flex items-center gap-4">
                       <div class="w-1.5 h-6 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-                      <h3 class="text-2xl font-bold text-cyan-50 tracking-wider font-['Noto_Sans_SC']">海底光缆列表</h3>
+                      <h3 class="text-2xl font-bold text-cyan-50 tracking-wider font-['Noto_Sans_SC']">海洋装备列表</h3>
                       <span class="text-sm text-cyan-500/60 font-['Orbitron'] mt-1 ml-3 tracking-widest">共 {{ totalCount }} 条</span>
                   </div>
                   
@@ -18,7 +18,7 @@
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                           </svg>
-                          统计
+                          数据分析
                       </button>
                       <button @click="refreshData" class="hover:text-white hover:underline decoration-2 underline-offset-4">刷新列表</button>
                   </div>
@@ -29,7 +29,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-cyan-900/20 text-cyan-200 text-sm sticky top-0 backdrop-blur-md z-10">
                         <tr>
-                            <th v-for="h in ['序号', '光缆名称', '起始国家', '终点国家', '容量(Gbps)', '长度(km)', '投入使用', '状态']" :key="h" 
+                            <th v-for="h in ['序号', '装备名称', '国家', '下潜深度(m)', '载人数', '制造年份', '状态']" :key="h" 
                                 class="px-3 py-2 font-bold tracking-wider border-b-2 border-cyan-500/30 whitespace-nowrap"
                             >
                                 {{ h }}
@@ -38,24 +38,23 @@
                     </thead>
                     <tbody class="text-slate-300 text-sm font-['Rajdhani']">
                         <tr v-if="paginatedData.length === 0">
-                            <td colspan="8" class="px-3 py-6 text-center text-slate-500">
+                            <td colspan="7" class="px-3 py-6 text-center text-slate-500">
                                 暂无数据
                             </td>
                         </tr>
-                        <tr v-for="(item, index) in paginatedData" :key="item.id" 
+                        <tr v-for="(item, index) in paginatedData" :key="index" 
                             class="border-b border-slate-800 hover:bg-cyan-500/10 transition-colors group cursor-pointer"
                             @click="onRowClick(item)"
                         >
                             <td class="px-3 py-2 text-cyan-500 font-bold">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                             <td class="px-3 py-2 font-['Noto_Sans_SC'] text-white group-hover:text-cyan-300 transition-colors font-bold">{{ item.name }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-green-400 text-xs">{{ item.startCountry || 'N/A' }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-blue-400 text-xs">{{ item.endCountry || 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono text-cyan-400 text-xs">{{ item.capacity || 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono text-yellow-400/90 font-bold text-xs">{{ formatDistance(item.distance) }}</td>
-                            <td class="px-3 py-2 opacity-80 text-xs">{{ item.inService || 'N/A' }}</td>
+                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-yellow-400 text-xs">{{ item.country || 'N/A' }}</td>
+                            <td class="px-3 py-2 font-mono text-cyan-400 font-bold text-xs">{{ formatDepth(item.depth) }}</td>
+                            <td class="px-3 py-2 font-mono text-green-400 text-xs">{{ item.capacity || 'N/A' }}</td>
+                            <td class="px-3 py-2 opacity-80 text-xs">{{ item.year || 'N/A' }}</td>
                             <td class="px-3 py-2 font-['Noto_Sans_SC']">
-                                <span :class="item.notLive === 1 ? 'text-gray-400' : 'text-green-400'">
-                                    {{ item.notLive === 1 ? '未启用' : '运营中' }}
+                                <span :class="item.status === '运营中' ? 'text-green-400' : 'text-gray-400'">
+                                    {{ item.status || '运营中' }}
                                 </span>
                             </td>
                         </tr>
@@ -121,18 +120,22 @@ import { ref, computed, watch } from 'vue';
 
 export default {
     props: {
-        cableData: {
+        equipmentData: {
             type: Array,
             default: () => []
         }
     },
-    emits: ['rowClick', 'toggleStatistics'],
+    emits: ['rowClick', 'toggleStatistics', 'refresh'],
     setup(props, { emit }) {
         const currentPage = ref(1);
         const pageSize = ref(10);
 
         // 总数据量
-        const totalCount = computed(() => props.cableData.length);
+        const totalCount = computed(() => {
+            console.log('📊 列表组件 - equipmentData 长度:', props.equipmentData.length);
+            console.log('📊 列表组件 - equipmentData 内容:', props.equipmentData);
+            return props.equipmentData.length;
+        });
 
         // 总页数
         const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value));
@@ -141,7 +144,7 @@ export default {
         const paginatedData = computed(() => {
             const start = (currentPage.value - 1) * pageSize.value;
             const end = start + pageSize.value;
-            return props.cableData.slice(start, end);
+            return props.equipmentData.slice(start, end);
         });
 
         // 可见页码
@@ -196,10 +199,10 @@ export default {
             }
         };
 
-        // 格式化距离
-        const formatDistance = (distance) => {
-            if (!distance) return '-';
-            return `${distance.toLocaleString()}`;
+        // 格式化深度
+        const formatDepth = (depth) => {
+            if (!depth) return '-';
+            return `${depth.toLocaleString()}`;
         };
 
         // 刷新数据
@@ -214,7 +217,7 @@ export default {
         };
 
         // 监听数据变化，重置到第一页
-        watch(() => props.cableData, () => {
+        watch(() => props.equipmentData, () => {
             currentPage.value = 1;
         });
 
@@ -228,7 +231,7 @@ export default {
             prevPage,
             nextPage,
             goToPage,
-            formatDistance,
+            formatDepth,
             refreshData,
             onRowClick
         };

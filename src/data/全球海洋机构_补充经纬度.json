@@ -1,0 +1,381 @@
+[
+  {
+    "country_cn": "美国",
+    "country_en": "United States",
+    "country_coordinates": {
+      "lat": 39.8283,
+      "lng": -98.5795
+    },
+    "institutions": [
+      {
+        "name": "国家海洋与大气管理局",
+        "founded": "1970.10.3",
+        "location_raw": "华盛顿",
+        "city": "Washington, D.C.",
+        "city_coordinates": {
+          "lat": 38.9072,
+          "lng": -77.0369
+        },
+        "supervising_unit": "国家气象局、国家海洋局、国家海洋渔业局、国家环境卫星、数据与信息服务中心、规划计划和综合司、海洋和大气研究中心",
+        "main_tasks": "关注地球的大气和海洋状况，提供灾害天气预警，提升对海洋和大气环境的认识和管理",
+        "notes": ""
+      },
+      {
+        "name": "伍兹霍尔海洋研究所",
+        "founded": "1930",
+        "location_raw": "东海岸马萨诸塞州",
+        "city": "Woods Hole, Massachusetts",
+        "city_coordinates": {
+          "lat": 41.5265,
+          "lng": -70.6715
+        },
+        "supervising_unit": "研究所拥有各类人员1300人左右",
+        "main_tasks": "致力于研究认识海洋的各种现象和事实，研究海洋与大气、陆地、冰川以及人类在内的生命复杂关系",
+        "notes": "原文位置为州级/区域级描述，这里按机构通用所在地 Woods Hole 映射。"
+      },
+      {
+        "name": "斯克里普斯海洋学研究所",
+        "founded": "1903",
+        "location_raw": "加利福尼亚州",
+        "city": "La Jolla, California",
+        "city_coordinates": {
+          "lat": 32.8328,
+          "lng": -117.2713
+        },
+        "supervising_unit": "研究所共有2000人左右",
+        "main_tasks": "是全球规模最大、历史最悠久也是最重要的海洋研究机构之一，主要集中在海洋学、地球化学和地球物理学以及气象与大气科学等方面",
+        "notes": "原文位置为州级描述，这里按机构常用所在地 La Jolla 映射。"
+      },
+      {
+        "name": "加利福尼亚大学",
+        "founded": "1853",
+        "location_raw": "美国加州",
+        "city": null,
+        "city_coordinates": null,
+        "region": "California",
+        "region_coordinates": {
+          "lat": 36.7783,
+          "lng": -119.4179
+        },
+        "supervising_unit": "共有十个分校、3个国家重点实验室、150个学科设置",
+        "main_tasks": "主要研究领域在海洋学、环境科学以及生态学与地质学等方面",
+        "notes": "原文仅到州级，无法唯一对应单一城市，故保留州级坐标。"
+      }
+    ]
+  },
+  {
+    "country_cn": "英国",
+    "country_en": "United Kingdom",
+    "country_coordinates": {
+      "lat": 55.3781,
+      "lng": -3.436
+    },
+    "institutions": [
+      {
+        "name": "国家海洋学中心",
+        "founded": "1996",
+        "location_raw": "南安普顿",
+        "city": "Southampton",
+        "city_coordinates": {
+          "lat": 50.9097,
+          "lng": -1.4044
+        },
+        "supervising_unit": "运行经费均由英国自然环境研究委员会出资",
+        "main_tasks": "基于地球系统理念开展具有国际竞争力的海洋科学研究与研究成果的转移转化，研究开发和整理整合大型研究设施及数据库",
+        "notes": ""
+      },
+      {
+        "name": "普利茅斯海洋实验室",
+        "founded": "1988",
+        "location_raw": "普利茅斯",
+        "city": "Plymouth",
+        "city_coordinates": {
+          "lat": 50.3755,
+          "lng": -4.1427
+        },
+        "supervising_unit": "总人数约200人左右，属于一家独立具有慈善性质的责任公司",
+        "main_tasks": "主要研究包括海洋初级生产力、沉积物、气候变化以及光合作用等。",
+        "notes": ""
+      },
+      {
+        "name": "英国南极调查局",
+        "founded": "1943",
+        "location_raw": "剑桥",
+        "city": "Cambridge",
+        "city_coordinates": {
+          "lat": 52.2053,
+          "lng": 0.1218
+        },
+        "supervising_unit": "现有五百余名多个领域的专业人士。该机构可以大体分为科学、工程、商务与领导四个部门",
+        "main_tasks": "按照研究领域划分一共可以划分为冰冻圈变化、海洋与大气、地球极地档案、物种生态系统与资源、空间天气",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "country_cn": "法国",
+    "country_en": "France",
+    "country_coordinates": {
+      "lat": 46.2276,
+      "lng": 2.2137
+    },
+    "institutions": [
+      {
+        "name": "法国海洋开发研究院",
+        "founded": "1984",
+        "location_raw": "布列斯特、南特、土伦、布洛涅",
+        "city": [
+          "Brest",
+          "Nantes",
+          "Toulon",
+          "Boulogne-sur-Mer"
+        ],
+        "city_coordinates": [
+          {
+            "city": "Brest",
+            "lat": 48.3904,
+            "lng": -4.4861
+          },
+          {
+            "city": "Nantes",
+            "lat": 47.2184,
+            "lng": -1.5536
+          },
+          {
+            "city": "Toulon",
+            "lat": 43.1242,
+            "lng": 5.928
+          },
+          {
+            "city": "Boulogne-sur-Mer",
+            "lat": 50.7264,
+            "lng": 1.6147
+          }
+        ],
+        "supervising_unit": "是法国唯一专门从事海洋开发研究的机构，拥有1700名人员",
+        "main_tasks": "主要负责组织和管理海洋资源的开发，开展环境和水质监测、指导海洋资源开发科技项目",
+        "notes": "原文包含多个城市，故保留多城市坐标。"
+      },
+      {
+        "name": "国家地球科学与天文学研究所",
+        "founded": "1985",
+        "location_raw": "",
+        "city": null,
+        "city_coordinates": null,
+        "supervising_unit": "主要包括地球科学观测、重大基础设施建设",
+        "main_tasks": "研究包括固体地球科学、海洋大气科学、陆地表面和地面科学",
+        "notes": "原文未提供位置，无法可靠补全单一城市坐标。"
+      }
+    ]
+  },
+  {
+    "country_cn": "德国",
+    "country_en": "Germany",
+    "country_coordinates": {
+      "lat": 51.1657,
+      "lng": 10.4515
+    },
+    "institutions": [
+      {
+        "name": "阿尔弗雷德魏格纳极地与海洋研究所",
+        "founded": "2014",
+        "location_raw": "不来梅港",
+        "city": "Bremerhaven",
+        "city_coordinates": {
+          "lat": 53.5396,
+          "lng": 8.5809
+        },
+        "supervising_unit": "波茨坦研究中心、黑尔戈兰岛生物研究所、叙尔特岛瓦登海研究站",
+        "main_tasks": "主要进行冰缘地区的陆地地球科学、极地地区气候过程的实验调查和模型研究",
+        "notes": ""
+      },
+      {
+        "name": "汉堡大学",
+        "founded": "1919",
+        "location_raw": "德国汉堡市",
+        "city": "Hamburg",
+        "city_coordinates": {
+          "lat": 53.5511,
+          "lng": 9.9937
+        },
+        "supervising_unit": "一共包括7个研究所、并有地球系统研究和可持续发展中心及综合气候系统分析和预测的卓越集群中心",
+        "main_tasks": "研究方向包括理论海洋学、浅海海洋学、实验海洋学、遥感和数据同化",
+        "notes": ""
+      }
+    ]
+  },
+  {
+    "country_cn": "加拿大",
+    "country_en": "Canada",
+    "country_coordinates": {
+      "lat": 56.1304,
+      "lng": -106.3468
+    },
+    "institutions": [
+      {
+        "name": "加拿大渔业与海洋部",
+        "founded": "1867",
+        "location_raw": "渥太华",
+        "city": "Ottawa",
+        "city_coordinates": {
+          "lat": 45.4215,
+          "lng": -75.6972
+        },
+        "supervising_unit": "由6个分局，下设15个机构构成",
+        "main_tasks": "推动可持续发展的水生生态系统，确保加拿大水域安全，促进海洋和渔业经济繁荣",
+        "notes": ""
+      },
+      {
+        "name": "贝德福德海洋研究院",
+        "founded": "1962",
+        "location_raw": "新斯科舍省达特茅斯",
+        "city": "Dartmouth, Nova Scotia",
+        "city_coordinates": {
+          "lat": 44.6713,
+          "lng": -63.5772
+        },
+        "supervising_unit": "拥有超过600名员工，人员来自国防部、环境部门等多个政府部门",
+        "main_tasks": "为政府的一系列海洋发展战略提供研究支撑，发展战略涉及主权、安全、环保、海洋健康等的可持续利用和海洋综合管理规划等",
+        "notes": ""
+      },
+      {
+        "name": "达尔豪西大学",
+        "founded": "1818",
+        "location_raw": "新斯科舍省",
+        "city": null,
+        "city_coordinates": null,
+        "region": "Nova Scotia",
+        "region_coordinates": {
+          "lat": 44.682,
+          "lng": -63.7443
+        },
+        "supervising_unit": "共设10个院系以及渔业技术研究所、海洋船舶发展研究中心、水资源研究中心、大西洋研究中心",
+        "main_tasks": "研究方面主要再海洋与淡水生物学、海洋学、地质学和环境科学与生态学",
+        "notes": "原文仅到省级，无法唯一对应单一城市，故保留省级坐标。"
+      }
+    ]
+  },
+  {
+    "country_cn": "澳大利亚",
+    "country_en": "Australia",
+    "country_coordinates": {
+      "lat": -25.2744,
+      "lng": 133.7751
+    },
+    "institutions": [
+      {
+        "name": "澳大利亚海洋科学研究院",
+        "founded": "1972",
+        "location_raw": "弗谷森角",
+        "city": "Cape Ferguson, Queensland",
+        "city_coordinates": {
+          "lat": -19.278,
+          "lng": 147.058
+        },
+        "supervising_unit": "总部位于弗谷森角，在西澳的珀斯和北领地的达尔文两地有分支机构",
+        "main_tasks": "研究工作旨在确保应对海洋生态系统面临的挑战和利益相关者的需求",
+        "notes": "位置为角/岬地名，按 Cape Ferguson 映射。"
+      },
+      {
+        "name": "联邦科学与工业研究组织海洋与大气研究部",
+        "founded": "2012",
+        "location_raw": "堪培拉",
+        "city": "Canberra",
+        "city_coordinates": {
+          "lat": -35.2809,
+          "lng": 149.13
+        },
+        "supervising_unit": "隶属于澳大利亚联邦科学与工业研究组织，在五个州设立有站点，工作人员约550名",
+        "main_tasks": "致力于推动澳大利亚气候、海洋与地球系统科学的发展。",
+        "notes": ""
+      },
+      {
+        "name": "詹姆斯库克大学",
+        "founded": "2003",
+        "location_raw": "昆士兰州",
+        "city": null,
+        "city_coordinates": null,
+        "region": "Queensland",
+        "region_coordinates": {
+          "lat": -20.9176,
+          "lng": 142.7028
+        },
+        "supervising_unit": "共有五个校区以及三个学习中心",
+        "main_tasks": "其重点研究领域包括珊瑚礁、大堡礁、珊瑚礁鱼类、恢复力、河口及渔业管理等方向",
+        "notes": "原文仅到州级，无法唯一对应单一城市，故保留州级坐标。"
+      }
+    ]
+  },
+  {
+    "country_cn": "俄罗斯",
+    "country_en": "Russia",
+    "country_coordinates": {
+      "lat": 61.524,
+      "lng": 105.3188
+    },
+    "institutions": [
+      {
+        "name": "希尔绍夫海洋研究所",
+        "founded": "1946",
+        "location_raw": "莫斯科",
+        "city": "Moscow",
+        "city_coordinates": {
+          "lat": 55.7558,
+          "lng": 37.6173
+        },
+        "supervising_unit": "下设五个研究部，另有加里宁格勒大西洋分所、格连吉克南方分所等五个机构",
+        "main_tasks": "以海洋中发生的物理、化学、生物及地质过程为基础，开展全面研究",
+        "notes": ""
+      },
+      {
+        "name": "伊利切夫太平洋海洋研究所",
+        "founded": "1973",
+        "location_raw": "莫斯科",
+        "city": "Moscow",
+        "city_coordinates": {
+          "lat": 55.7558,
+          "lng": 37.6173
+        },
+        "supervising_unit": "目前由行政事业部和9个学科研究室，研究室下设36个现代化实验室",
+        "main_tasks": "其主要研究方向有综合海洋学、海洋声学、海洋与大气物理、生化技术等方面",
+        "notes": "按原文位置填写；未纠正文档中的地名信息。"
+      }
+    ]
+  },
+  {
+    "country_cn": "日本",
+    "country_en": "Japan",
+    "country_coordinates": {
+      "lat": 36.2048,
+      "lng": 138.2529
+    },
+    "institutions": [
+      {
+        "name": "日本海洋开发研究机构",
+        "founded": "2004",
+        "location_raw": "神奈川县横须贺市",
+        "city": "Yokosuka, Kanagawa",
+        "city_coordinates": {
+          "lat": 35.2813,
+          "lng": 139.6722
+        },
+        "supervising_unit": "隶属于文部科学省，前身为海洋科学技术中心，人员数量1500名左右",
+        "main_tasks": "研究领域主要在海底资源研究开发、海洋与地球环境变化研究开发、海域地震带研究开发、海洋生命工程研究开发、尖端基础技术开发",
+        "notes": ""
+      },
+      {
+        "name": "东京大学大气与海洋研究所",
+        "founded": "1962",
+        "location_raw": "东京",
+        "city": "Tokyo",
+        "city_coordinates": {
+          "lat": 35.6762,
+          "lng": 139.6503
+        },
+        "supervising_unit": "研究所下设国际海岸带海洋研究中心、国际合作研究中心和地球表层系统变化中心等三个附属中心",
+        "main_tasks": "其致力于海洋与大气科学基础研究，以及地球表层系统科学研究",
+        "notes": ""
+      }
+    ]
+  }
+]

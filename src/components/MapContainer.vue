@@ -468,6 +468,8 @@ import { ResourceLayer } from '../utils/resourceLayer.js';
 import { SubmarineCableLayer } from '../utils/submarineCableLayer.js';
 import { ArcticRouteLayer } from '../utils/arcticRouteLayer.js';
 import { SeafloorObservationLayer } from '../utils/seafloorObservationLayer.js';
+import { MarineEquipmentLayer } from '../utils/marineEquipmentLayer.js';
+import { ResearchInstitutionLayer } from '../utils/researchInstitutionLayer.js';
 import { AntarcticResourceLoader } from '../utils/antarcticResourceLoader.js';
 import { PolarStationsLoader } from '../utils/polarStationsLoader.js';
 import { PortMarkerManager } from '../utils/portMarkerManager.js';
@@ -604,6 +606,10 @@ export default {
         const showArcticRoutes = ref(false); // 北极航线显示状态
         let seafloorObservationLayer = null; // 海底观测网图层实例
         const showSeafloorObservation = ref(false); // 海底观测网显示状态
+        let marineEquipmentLayer = null; // 海洋装备图层实例
+        const showMarineEquipment = ref(false); // 海洋装备显示状态
+        let researchInstitutionLayer = null; // 研究机构图层实例
+        const showResearchInstitution = ref(false); // 研究机构显示状态
         let antarcticResourceLoader = null; // 南极资源加载器实例
         let polarStationsLoader = null; // 极地科考站加载器实例
         let portMarkerManager = null; // 港口标记管理器实例
@@ -946,9 +952,20 @@ export default {
             seafloorObservationLayer = new SeafloorObservationLayer(viewer);
             console.log('🔬 海底观测网图层初始化完成');
             
+            // 初始化海洋装备图层
+            marineEquipmentLayer = new MarineEquipmentLayer(viewer);
+            console.log('🚢 海洋装备图层初始化完成');
+            
+            // 初始化研究机构图层
+            researchInstitutionLayer = new ResearchInstitutionLayer(viewer);
+            console.log('🏛️ 研究机构图层初始化完成');
+            
             // 初始化港口标记管理器
             portMarkerManager = new PortMarkerManager(viewer);
             console.log('⚓ 港口标记管理器初始化完成');
+            
+            // 设置全局点击事件处理器（独立于数据加载）
+            setupGlobalClickHandler();
             
             // 加载 GeoJSON 数据
             loadMiningData();
@@ -966,6 +983,556 @@ export default {
             // updateWindVisibility(props.layerState);
         };
 
+        // 设置全局点击事件处理器（独立于数据加载，确保即使数据加载失败也能响应点击）
+        const setupGlobalClickHandler = () => {
+            console.log('🖱️ 设置全局点击事件处理器...');
+            
+            // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
+            const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            handler.setInputAction((click) => {
+                console.log('🖱️ ========== 地图被点击 ==========');
+                console.log('原始坐标:', click.position);
+                
+                // 计算 CSS scale 缩放比例（App.vue 中的缩放）
+                const baseWidth = 1920;
+                const baseHeight = 1080;
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                
+                // 修正点击坐标（除以缩放比例）
+                const correctedPosition = new Cesium.Cartesian2(
+                    click.position.x / scaleX,
+                    click.position.y / scaleY
+                );
+                
+                console.log('修正后坐标:', correctedPosition);
+                console.log('缩放比例:', { scaleX, scaleY });
+                
+                // 如果正在选点（路径规划），不处理其他点击
+                if (props.pickingPointType) {
+                    console.log('⚠️ 正在选点模式，跳过处理');
+                    return;
+                }
+                
+                // 如果有激活的气象图层，优先处理气象查询
+                if (showWind.value || showWave.value || showOceanCurrent.value || showInternalWave.value) {
+                    console.log('🌦️ 气象图层已激活');
+                    // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
+                    const pickedObject = viewer.scene.pick(correctedPosition);
+                    
+                    // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
+                    if (!pickedObject || 
+                        (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
+                        console.log('→ 进行气象查询');
+                        // 传递原始坐标、修正后的坐标和缩放比例
+                        handleWeatherPointClick(click.position, correctedPosition, scaleX, scaleY);
+                        return;
+                    }
+                    console.log('→ 点击到了其他实体，继续处理');
+                    // 如果点击到了其他实体（矿区、船舶），继续下面的处理
+                }
+                
+                // 恢复上一个选中实体的样式
+                if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
+                    previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.5);
+                    previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
+                    previousEntity.polygon.outlineWidth = 1;
+                }
+                
+                console.log('🔍 开始拾取实体...');
+                console.log('   - 修正后坐标:', correctedPosition);
+                
+                // 使用修正后的坐标拾取实体
+                const pickedObject = viewer.scene.pick(correctedPosition);
+                
+                console.log('🎯 拾取结果:');
+                console.log('   - 是否拾取到对象:', Cesium.defined(pickedObject));
+                console.log('   - pickedObject:', pickedObject);
+                
+                if (Cesium.defined(pickedObject)) {
+                    console.log('   - 有 id:', !!pickedObject.id);
+                    console.log('   - 有 primitive:', !!pickedObject.primitive);
+                    if (pickedObject.id) {
+                        console.log('   - entity.id:', pickedObject.id.id);
+                        console.log('   - entity.name:', pickedObject.id.name);
+                    }
+                }
+                
+                // 检查是否点击了船舶或气象标记
+                if (Cesium.defined(pickedObject) && pickedObject.id) {
+                    const entity = pickedObject.id;
+                    
+                    console.log('📦 实体详情:');
+                    console.log('   - id:', entity.id);
+                    console.log('   - name:', entity.name);
+                    console.log('   - 有 billboard:', !!entity.billboard);
+                    console.log('   - 有 polygon:', !!entity.polygon);
+                    console.log('   - 有 properties:', !!entity.properties);
+                    console.log('   - 有 point:', !!entity.point);
+                    console.log('   - 有 model:', !!entity.model);
+                    console.log('   - 有 _waypointData:', !!entity._waypointData);
+                    console.log('   - 有 _shipData:', !!entity._shipData);
+                    
+                    // 优先检查是否点击了美国合作关系线或标记
+                    if (entity.properties && entity.properties.type) {
+                        const entityType = entity.properties.type.getValue ? entity.properties.type.getValue() : entity.properties.type;
+                        if (entityType === 'us-cooperation' || entityType === 'us-cooperation-marker') {
+                            console.log('🇺🇸 点击了美国合作关系线/标记，显示合作信息');
+                            
+                            // 获取合作信息
+                            const cooperationData = {
+                                country: entity.properties.country.getValue ? entity.properties.country.getValue() : entity.properties.country,
+                                cooperationType: entity.properties.cooperationType.getValue ? entity.properties.cooperationType.getValue() : entity.properties.cooperationType,
+                                mainAreas: entity.properties.mainAreas.getValue ? entity.properties.mainAreas.getValue() : entity.properties.mainAreas,
+                                details: entity.properties.details.getValue ? entity.properties.details.getValue() : entity.properties.details
+                            };
+                            
+                            // 通知App.vue显示弹窗
+                            window.dispatchEvent(new CustomEvent('showUSCooperationPopup', {
+                                detail: {
+                                    data: cooperationData,
+                                    x: click.position.x,
+                                    y: click.position.y
+                                }
+                            }));
+                            
+                            return;
+                        }
+                    }
+                    
+                    // 检查是否点击了科考站
+                    if (entity.properties && (entity.properties.stationName || entity.properties.country)) {
+                        console.log('🏔️ 点击了科考站');
+                        const props = entity.properties;
+                        
+                        // 判断是南极还是北极站点
+                        const isAntarctic = props.establishedDate !== undefined;
+                        
+                        selectedStation.value = {
+                            type: isAntarctic ? 'antarctic' : 'arctic',
+                            name: props.stationName?.getValue() || '未知站点',
+                            country: props.country?.getValue() || '未知',
+                            location: props.location?.getValue(),
+                            establishedDate: props.establishedDate?.getValue(),
+                            stationType: props.stationType?.getValue(),
+                            personnel: props.personnel?.getValue()
+                        };
+                        
+                        stationInfoPosition.value = {
+                            x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                            y: Math.max(click.position.y - 100, 10)
+                        };
+                        
+                        showStationInfo.value = true;
+                        console.log('✅ 显示科考站信息:', selectedStation.value);
+                        return;
+                    }
+                    
+                    // 如果点击的是航线演示的航点
+                    if (entity.name && entity.name.startsWith('waypoint-')) {
+                        console.log('✅ 检测到航点实体:', entity.name);
+                        console.log('   - _waypointData 存在:', !!entity._waypointData);
+                        
+                        if (entity._waypointData) {
+                            console.log('📍 点击了航线演示航点:', entity.name);
+                            
+                            const waypointData = entity._waypointData;
+                        
+                        // 构建气象信息显示数据
+                        const weatherDetails = {
+                            title: waypointData.name,
+                            items: [
+                                { label: '风险等级', value: waypointData.risk === 'safe' ? '安全' : 
+                                                             waypointData.risk === 'caution' ? '注意' :
+                                                             waypointData.risk === 'warning' ? '警告' : '危险' },
+                                { label: '风速', value: `${waypointData.weather.windSpeed} m/s` },
+                                { label: '风级', value: `${waypointData.weather.windBeaufort} 级` },
+                                { label: '风向', value: waypointData.weather.windDirection },
+                                { label: '浪高', value: `${waypointData.weather.waveHeight} m` },
+                                { label: '能见度', value: `${(waypointData.weather.visibility / 1000).toFixed(1)} km` },
+                                { label: '温度', value: `${waypointData.weather.temperature} °C` },
+                                { label: '气压', value: `${waypointData.weather.pressure} hPa` }
+                            ]
+                        };
+                        
+                        // 关闭船舶信息窗口
+                        selectedShip.value = null;
+                        
+                        // 显示气象详情窗口
+                        selectedWeather.value = weatherDetails;
+                        weatherInfoPosition.value = {
+                            x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                            y: Math.max(click.position.y - 100, 10)
+                        };
+                        
+                        console.log('✅ 显示航点气象信息:', weatherDetails);
+                        return;
+                        } else {
+                            console.log('❌ 航点没有 _waypointData 属性');
+                        }
+                    }
+                    
+                    // 如果点击的是航线演示的船舶
+                    if (entity.name === 'demo-ship') {
+                        console.log('✅ 检测到演示船舶:', entity.name);
+                        console.log('   - _shipData 存在:', !!entity._shipData);
+                        
+                        if (entity._shipData) {
+                            console.log('🚢 点击了航线演示船舶:', entity.name);
+                            
+                            const shipData = entity._shipData;
+                        
+                        // 关闭气象信息窗口
+                        selectedWeather.value = null;
+                        
+                        // 显示船舶信息（使用特殊格式以区分演示船舶）
+                        selectedShip.value = {
+                            ship_name: shipData.ship_name,
+                            ship_cnname: shipData.ship_cnname,
+                            ship_type: shipData.ship_type,
+                            // 使用航线信息填充其他字段
+                            length: shipData.route,
+                            width: shipData.description,
+                            sog: shipData.averageSpeed,
+                            dest: shipData.endArea,
+                            draught: shipData.distance,
+                            eta: shipData.estimatedDays,
+                            last_time: '演示中',
+                            navistat: '航行中'
+                        };
+                        
+                        shipInfoPosition.value = {
+                            x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                            y: Math.max(click.position.y - 100, 10)
+                        };
+                        
+                        console.log('✅ 显示演示船舶信息:', selectedShip.value);
+                        return;
+                        } else {
+                            console.log('❌ 船舶没有 _shipData 属性');
+                        }
+                    }
+                    
+                    // 如果点击的是钻孔点
+                    if (entity.properties && entity.properties.type) {
+                        const type = entity.properties.type.getValue();
+                        if (type === 'drilling_hole') {
+                            console.log('🔵 点击了钻孔点:', entity.id);
+                            
+                            // 获取钻孔信息
+                            const props = entity.properties;
+                            const drillingInfo = {
+                                code: props.ZK_JSRO_ed?.getValue() || 'N/A',
+                                voyage: props.HangCi?.getValue() || 'N/A',
+                                platform: props.ZTPT?.getValue() || 'N/A',
+                                program: props.SSJD?.getValue() || 'N/A',
+                                longitude: props.JD?.getValue()?.toFixed(4) || 'N/A',
+                                latitude: props.WD?.getValue()?.toFixed(4) || 'N/A'
+                            };
+                            
+                            // 关闭其他信息窗口
+                            selectedArea.value = null;
+                            selectedShip.value = null;
+                            selectedWeather.value = null;
+                            
+                            // 显示钻孔信息
+                            selectedDrilling.value = drillingInfo;
+                            drillingInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示钻孔详细信息:', drillingInfo);
+                            return;
+                        }
+                        
+                        // 如果点击的是海底光缆
+                        if (type === 'submarine_cable') {
+                            console.log('🌐 点击了海底光缆:', entity.id);
+                            
+                            // 获取光缆信息
+                            const props = entity.properties;
+                            const cableInfo = {
+                                name: props.Name?.getValue() || '未知光缆',
+                                capacity: props.Capacity_G?.getValue() || 0,
+                                distance: props.Distance_K?.getValue() || 0,
+                                inService: props.InService?.getValue() || 'N/A',
+                                status: props.NotLive?.getValue() === 1 ? '未启用' : '运营中',
+                                url: props.URL1?.getValue() || ''
+                            };
+                            
+                            // 关闭其他信息窗口
+                            selectedArea.value = null;
+                            selectedShip.value = null;
+                            selectedWeather.value = null;
+                            selectedDrilling.value = null;
+                            
+                            // 显示光缆信息（复用 selectedDrilling，或创建新的 selectedCable）
+                            selectedCable.value = cableInfo;
+                            cableInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示光缆详细信息:', cableInfo);
+                            return;
+                        }
+                        
+                        // 如果点击的是海底观测网
+                        if (type === 'seafloor_observation') {
+                            console.log('🔬 点击了海底观测网:', entity.id);
+                            
+                            // 获取观测网信息
+                            const props = entity.properties;
+                            const country = props.country?.getValue();
+                            const name = props.name?.getValue();
+                            const unit = props.unit?.getValue();
+                            
+                            console.log('   - 国家:', country);
+                            console.log('   - 名称:', name);
+                            console.log('   - 单位:', unit);
+                            
+                            // 如果是日本的观测网，显示图片弹窗
+                            if (country === '日本') {
+                                console.log('🇯🇵 检测到日本观测网，触发图片弹窗');
+                                
+                                // 触发事件通知 App.vue 显示图片
+                                window.dispatchEvent(new CustomEvent('showObservationImage', {
+                                    detail: {
+                                        title: name || '日本海底观测网',
+                                        imagePath: '/data/日本_海底观测网.png',
+                                        x: click.position.x,
+                                        y: click.position.y
+                                    }
+                                }));
+                            }
+                            
+                            return;
+                        }
+                        
+                        // 如果点击的是研究机构
+                        if (type === 'research_institution') {
+                            console.log('🏛️ 点击了研究机构:', entity.id);
+                            
+                            // 获取研究机构信息
+                            const props = entity.properties;
+                            const countryId = props.countryId?.getValue();
+                            const institutionData = props.institutionData?.getValue();
+                            
+                            console.log('   - 国家ID:', countryId);
+                            console.log('   - 机构名称:', institutionData?.name);
+                            console.log('   - 机构数据:', institutionData);
+                            
+                            // 如果是日本的研究机构，显示图片弹窗
+                            if (countryId === 'japan') {
+                                console.log('🇯🇵 检测到日本研究机构，触发图片弹窗');
+                                
+                                // 触发事件通知 App.vue 显示图片
+                                window.dispatchEvent(new CustomEvent('showObservationImage', {
+                                    detail: {
+                                        title: institutionData?.name || '日本海洋研究机构',
+                                        imagePath: '/data/日本_海底观测网.png',
+                                        x: click.position.x,
+                                        y: click.position.y
+                                    }
+                                }));
+                            }
+                            
+                            return;
+                        }
+                    }
+                    
+                    // 如果点击的是气象标记
+                    if (entity.id && entity.id.startsWith('weather_marker_')) {
+                        console.log('🌦️ 点击了气象标记:', entity.id);
+                        
+                        // 从 entity 上直接读取存储的数据
+                        const weatherData = {
+                            weather: entity._weatherData,
+                            risk: entity._riskData
+                        };
+                        
+                        console.log('📦 气象数据:', weatherData);
+                        
+                        if (!weatherData.weather || !weatherData.risk) {
+                            console.error('❌ 气象数据不存在');
+                            return;
+                        }
+                        
+                        const details = routeWeatherLayer.showWeatherDetails(weatherData);
+                        
+                        // 关闭船舶信息窗口
+                        selectedShip.value = null;
+                        
+                        // 显示气象详情窗口
+                        selectedWeather.value = details;
+                        weatherInfoPosition.value = {
+                            x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                            y: Math.max(click.position.y - 100, 10)
+                        };
+                        
+                        console.log('✅ 显示气象详情:', details);
+                        return;
+                    }
+                    
+                    // 如果点击的是船舶（检查 id 是否以 ship_ 开头）
+                    if (entity.id && entity.id.startsWith('ship_') && entity.billboard) {
+                        console.log('🚢 点击了船舶:', entity.id);
+                        
+                        // 从 shipLayer 获取船舶信息（根据API实际返回字段）
+                        if (shipLayer && entity.properties) {
+                            const props = entity.properties;
+                            // 直接传递所有原始字段，让模板处理显示
+                            const shipInfo = {
+                                mmsi: props.mmsi,
+                                imo: props.imo,
+                                call_sign: props.call_sign,
+                                ship_name: props.ship_name,
+                                ship_cnname: props.ship_cnname,
+                                ship_type: props.ship_type,
+                                length: props.length,
+                                width: props.width,
+                                draught: props.draught,
+                                sog: props.sog,
+                                cog: props.cog,
+                                hdg: props.hdg,
+                                navistat: props.navistat,
+                                dest: props.dest,
+                                destcode: props.destcode,
+                                eta: props.eta,
+                                last_time: props.last_time,
+                                lat: props.lat,
+                                lng: props.lng
+                            };
+                            
+                            // 显示船舶信息
+                            selectedShip.value = shipInfo;
+                            shipInfoPosition.value = {
+                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                y: Math.max(click.position.y - 100, 10)
+                            };
+                            
+                            console.log('✅ 显示船舶信息:', shipInfo);
+                        }
+                        return;  // 不继续处理矿区点击
+                    }
+                    
+                    // 如果点击的是轨迹船舶（有 billboard 且 name 以 ship_ 开头）
+                    if (entity.billboard && entity.name && entity.name.startsWith('ship_')) {
+                        console.log('🚢 点击了轨迹船舶:', entity.name);
+                        
+                        // 查找对应的轨迹
+                        if (trajectoryLayer) {
+                            const trajectory = trajectoryLayer.trajectories.find(traj => {
+                                return traj.ship === entity;
+                            });
+                            
+                            if (trajectory && trajectory.data.shipInfo) {
+                                // 暂停动画
+                                trajectoryLayer.isPaused = true;
+                                
+                                // 显示船舶信息
+                                selectedShip.value = trajectory.data.shipInfo;
+                                shipInfoPosition.value = {
+                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
+                                    y: Math.max(click.position.y - 100, 10)
+                                };
+                                
+                                console.log('✅ 显示轨迹船舶信息:', trajectory.data.shipInfo);
+                            }
+                        }
+                        return;  // 不继续处理矿区点击
+                    }
+                }
+                
+                if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polygon) {
+                    const entity = pickedObject.id;
+                    previousEntity = entity;
+                    
+                    // 高亮选中的实体（增强效果：更亮的颜色 + 青色发光边框）
+                    // 方案1: 让原色更亮（提高亮度）
+                    const brightColor = entity._originalColor.brighten(0.3, new Cesium.Color());
+                    entity.polygon.material = brightColor.withAlpha(1.0);
+                    
+                    // 方案2: 青色发光边框
+                    entity.polygon.outlineColor = Cesium.Color.CYAN;
+                    entity.polygon.outlineWidth = 6;
+                    
+                    // 获取属性
+                    const props = {};
+                    if (entity.properties) {
+                        entity.properties.propertyNames.forEach(name => {
+                            props[name] = entity.properties[name]?.getValue();
+                        });
+                    }
+                    
+                    console.log('✅ 点击成功:', props);
+                    
+                    // 计算信息面板位置（点击位置作为左上角）
+                    const panelWidth = 320; // 20rem = 320px
+                    const panelHeight = 280; // 估计高度
+                    const margin = 10; // 容器边缘安全距离
+                    
+                    // 使用原始屏幕坐标
+                    const containerWidth = window.innerWidth;
+                    const containerHeight = window.innerHeight;
+                    
+                    // 默认：点击位置作为面板左上角
+                    let x = click.position.x;
+                    let y = click.position.y;
+                    
+                    // 边界检测：防止超出右边界
+                    if (x + panelWidth > containerWidth - margin) {
+                        x = containerWidth - panelWidth - margin;
+                    }
+                    
+                    // 边界检测：防止超出下边界
+                    if (y + panelHeight > containerHeight - margin) {
+                        y = containerHeight - panelHeight - margin;
+                    }
+                    
+                    // 边界检测：防止超出左边界
+                    if (x < margin) {
+                        x = margin;
+                    }
+                    
+                    // 边界检测：防止超出上边界
+                    if (y < margin) {
+                        y = margin;
+                    }
+                    
+                    console.log('📍 面板位置:', { 
+                        x, y, 
+                        originalClickX: click.position.x,
+                        originalClickY: click.position.y,
+                        scale: { scaleX, scaleY }
+                    });
+                    
+                    infoPosition.value = { x, y };
+                    
+                    // 显示信息（使用正确的字段名）
+                    selectedArea.value = {
+                        id: props.id || '未知',
+                        contractor: props.contractor || '未知',
+                        sponsor: props.sponsor || '未知',
+                        mineral: props.mineral || '未知',
+                        location: props.location || '未知',
+                        dateRange: props.date_range || '未知',
+                        area: props.area_km2 ? `${props.area_km2.toLocaleString()} km²` : '未知'
+                    };
+                    
+                    // 强制渲染
+                    viewer.scene.requestRender();
+                } else {
+                    // 点击空白处，关闭信息面板
+                    selectedArea.value = null;
+                    console.log('❌ 未点击到矿区，修正后坐标:', correctedPosition);
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            
+            clickHandler = handler;
+            console.log('✅ 全局点击事件处理器设置完成');
+        };
 
         // 加载海洋采矿数据（简化版）
         const loadMiningData = async () => {
@@ -1051,488 +1618,6 @@ export default {
                     miningData: miningData,
                     regionCounts: regionCounts
                 });
-
-                // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
-                const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-                handler.setInputAction((click) => {
-                    console.log('🖱️ ========== 地图被点击 ==========');
-                    console.log('原始坐标:', click.position);
-                    
-                    // 计算 CSS scale 缩放比例（App.vue 中的缩放）
-                    const baseWidth = 1920;
-                    const baseHeight = 1080;
-                    const scaleX = window.innerWidth / baseWidth;
-                    const scaleY = window.innerHeight / baseHeight;
-                    
-                    // 修正点击坐标（除以缩放比例）
-                    const correctedPosition = new Cesium.Cartesian2(
-                        click.position.x / scaleX,
-                        click.position.y / scaleY
-                    );
-                    
-                    console.log('修正后坐标:', correctedPosition);
-                    console.log('缩放比例:', { scaleX, scaleY });
-                    
-                    // 如果正在选点（路径规划），不处理其他点击
-                    if (props.pickingPointType) {
-                        console.log('⚠️ 正在选点模式，跳过处理');
-                        return;
-                    }
-                    
-                    // 如果有激活的气象图层，优先处理气象查询
-                    if (showWind.value || showWave.value || showOceanCurrent.value || showInternalWave.value) {
-                        console.log('🌦️ 气象图层已激活');
-                        // 检查是否点击到了实体（矿区、船舶等）- 使用修正后的坐标
-                        const pickedObject = viewer.scene.pick(correctedPosition);
-                        
-                        // 如果没有点击到实体，或者点击的是气象相关的实体，则进行气象查询
-                        if (!pickedObject || 
-                            (pickedObject.id && pickedObject.id.id && pickedObject.id.id.startsWith('weather_'))) {
-                            console.log('→ 进行气象查询');
-                            // 传递原始坐标、修正后的坐标和缩放比例
-                            handleWeatherPointClick(click.position, correctedPosition, scaleX, scaleY);
-                            return;
-                        }
-                        console.log('→ 点击到了其他实体，继续处理');
-                        // 如果点击到了其他实体（矿区、船舶），继续下面的处理
-                    }
-                    
-                    // 恢复上一个选中实体的样式
-                    if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
-                        previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.5);
-                        previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
-                        previousEntity.polygon.outlineWidth = 1;
-                    }
-                    
-                    console.log('🔍 开始拾取实体...');
-                    console.log('   - 修正后坐标:', correctedPosition);
-                    
-                    // 使用修正后的坐标拾取实体
-                    const pickedObject = viewer.scene.pick(correctedPosition);
-                    
-                    console.log('🎯 拾取结果:');
-                    console.log('   - 是否拾取到对象:', Cesium.defined(pickedObject));
-                    console.log('   - pickedObject:', pickedObject);
-                    
-                    if (Cesium.defined(pickedObject)) {
-                        console.log('   - 有 id:', !!pickedObject.id);
-                        console.log('   - 有 primitive:', !!pickedObject.primitive);
-                        if (pickedObject.id) {
-                            console.log('   - entity.id:', pickedObject.id.id);
-                            console.log('   - entity.name:', pickedObject.id.name);
-                        }
-                    }
-                    
-                    // 检查是否点击了船舶或气象标记
-                    if (Cesium.defined(pickedObject) && pickedObject.id) {
-                        const entity = pickedObject.id;
-                        
-                        console.log('📦 实体详情:');
-                        console.log('   - id:', entity.id);
-                        console.log('   - name:', entity.name);
-                        console.log('   - 有 billboard:', !!entity.billboard);
-                        console.log('   - 有 polygon:', !!entity.polygon);
-                        console.log('   - 有 properties:', !!entity.properties);
-                        console.log('   - 有 point:', !!entity.point);
-                        console.log('   - 有 model:', !!entity.model);
-                        console.log('   - 有 _waypointData:', !!entity._waypointData);
-                        console.log('   - 有 _shipData:', !!entity._shipData);
-                        
-                        // 优先检查是否点击了美国合作关系线或标记
-                        if (entity.properties && entity.properties.type) {
-                            const entityType = entity.properties.type.getValue ? entity.properties.type.getValue() : entity.properties.type;
-                            if (entityType === 'us-cooperation' || entityType === 'us-cooperation-marker') {
-                                console.log('🇺🇸 点击了美国合作关系线/标记，显示合作信息');
-                                
-                                // 获取合作信息
-                                const cooperationData = {
-                                    country: entity.properties.country.getValue ? entity.properties.country.getValue() : entity.properties.country,
-                                    cooperationType: entity.properties.cooperationType.getValue ? entity.properties.cooperationType.getValue() : entity.properties.cooperationType,
-                                    mainAreas: entity.properties.mainAreas.getValue ? entity.properties.mainAreas.getValue() : entity.properties.mainAreas,
-                                    details: entity.properties.details.getValue ? entity.properties.details.getValue() : entity.properties.details
-                                };
-                                
-                                // 通知App.vue显示弹窗
-                                window.dispatchEvent(new CustomEvent('showUSCooperationPopup', {
-                                    detail: {
-                                        data: cooperationData,
-                                        x: click.position.x,
-                                        y: click.position.y
-                                    }
-                                }));
-                                
-                                return;
-                            }
-                        }
-                        
-                        // 检查是否点击了科考站
-                        if (entity.properties && (entity.properties.stationName || entity.properties.country)) {
-                            console.log('🏔️ 点击了科考站');
-                            const props = entity.properties;
-                            
-                            // 判断是南极还是北极站点
-                            const isAntarctic = props.establishedDate !== undefined;
-                            
-                            selectedStation.value = {
-                                type: isAntarctic ? 'antarctic' : 'arctic',
-                                name: props.stationName?.getValue() || '未知站点',
-                                country: props.country?.getValue() || '未知',
-                                location: props.location?.getValue(),
-                                establishedDate: props.establishedDate?.getValue(),
-                                stationType: props.stationType?.getValue(),
-                                personnel: props.personnel?.getValue()
-                            };
-                            
-                            stationInfoPosition.value = {
-                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                y: Math.max(click.position.y - 100, 10)
-                            };
-                            
-                            showStationInfo.value = true;
-                            console.log('✅ 显示科考站信息:', selectedStation.value);
-                            return;
-                        }
-                        
-                        // 如果点击的是航线演示的航点
-                        if (entity.name && entity.name.startsWith('waypoint-')) {
-                            console.log('✅ 检测到航点实体:', entity.name);
-                            console.log('   - _waypointData 存在:', !!entity._waypointData);
-                            
-                            if (entity._waypointData) {
-                                console.log('📍 点击了航线演示航点:', entity.name);
-                                
-                                const waypointData = entity._waypointData;
-                            
-                            // 构建气象信息显示数据
-                            const weatherDetails = {
-                                title: waypointData.name,
-                                items: [
-                                    { label: '风险等级', value: waypointData.risk === 'safe' ? '安全' : 
-                                                                 waypointData.risk === 'caution' ? '注意' :
-                                                                 waypointData.risk === 'warning' ? '警告' : '危险' },
-                                    { label: '风速', value: `${waypointData.weather.windSpeed} m/s` },
-                                    { label: '风级', value: `${waypointData.weather.windBeaufort} 级` },
-                                    { label: '风向', value: waypointData.weather.windDirection },
-                                    { label: '浪高', value: `${waypointData.weather.waveHeight} m` },
-                                    { label: '能见度', value: `${(waypointData.weather.visibility / 1000).toFixed(1)} km` },
-                                    { label: '温度', value: `${waypointData.weather.temperature} °C` },
-                                    { label: '气压', value: `${waypointData.weather.pressure} hPa` }
-                                ]
-                            };
-                            
-                            // 关闭船舶信息窗口
-                            selectedShip.value = null;
-                            
-                            // 显示气象详情窗口
-                            selectedWeather.value = weatherDetails;
-                            weatherInfoPosition.value = {
-                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                y: Math.max(click.position.y - 100, 10)
-                            };
-                            
-                            console.log('✅ 显示航点气象信息:', weatherDetails);
-                            return;
-                            } else {
-                                console.log('❌ 航点没有 _waypointData 属性');
-                            }
-                        }
-                        
-                        // 如果点击的是航线演示的船舶
-                        if (entity.name === 'demo-ship') {
-                            console.log('✅ 检测到演示船舶:', entity.name);
-                            console.log('   - _shipData 存在:', !!entity._shipData);
-                            
-                            if (entity._shipData) {
-                                console.log('🚢 点击了航线演示船舶:', entity.name);
-                                
-                                const shipData = entity._shipData;
-                            
-                            // 关闭气象信息窗口
-                            selectedWeather.value = null;
-                            
-                            // 显示船舶信息（使用特殊格式以区分演示船舶）
-                            selectedShip.value = {
-                                ship_name: shipData.ship_name,
-                                ship_cnname: shipData.ship_cnname,
-                                ship_type: shipData.ship_type,
-                                // 使用航线信息填充其他字段
-                                length: shipData.route,
-                                width: shipData.description,
-                                sog: shipData.averageSpeed,
-                                dest: shipData.endArea,
-                                draught: shipData.distance,
-                                eta: shipData.estimatedDays,
-                                last_time: '演示中',
-                                navistat: '航行中'
-                            };
-                            
-                            shipInfoPosition.value = {
-                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                y: Math.max(click.position.y - 100, 10)
-                            };
-                            
-                            console.log('✅ 显示演示船舶信息:', selectedShip.value);
-                            return;
-                            } else {
-                                console.log('❌ 船舶没有 _shipData 属性');
-                            }
-                        }
-                        
-                        // 如果点击的是钻孔点
-                        if (entity.properties && entity.properties.type) {
-                            const type = entity.properties.type.getValue();
-                            if (type === 'drilling_hole') {
-                                console.log('🔵 点击了钻孔点:', entity.id);
-                                
-                                // 获取钻孔信息
-                                const props = entity.properties;
-                                const drillingInfo = {
-                                    code: props.ZK_JSRO_ed?.getValue() || 'N/A',
-                                    voyage: props.HangCi?.getValue() || 'N/A',
-                                    platform: props.ZTPT?.getValue() || 'N/A',
-                                    program: props.SSJD?.getValue() || 'N/A',
-                                    longitude: props.JD?.getValue()?.toFixed(4) || 'N/A',
-                                    latitude: props.WD?.getValue()?.toFixed(4) || 'N/A'
-                                };
-                                
-                                // 关闭其他信息窗口
-                                selectedArea.value = null;
-                                selectedShip.value = null;
-                                selectedWeather.value = null;
-                                
-                                // 显示钻孔信息
-                                selectedDrilling.value = drillingInfo;
-                                drillingInfoPosition.value = {
-                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                    y: Math.max(click.position.y - 100, 10)
-                                };
-                                
-                                console.log('✅ 显示钻孔详细信息:', drillingInfo);
-                                return;
-                            }
-                            
-                            // 如果点击的是海底光缆
-                            if (type === 'submarine_cable') {
-                                console.log('🌐 点击了海底光缆:', entity.id);
-                                
-                                // 获取光缆信息
-                                const props = entity.properties;
-                                const cableInfo = {
-                                    name: props.Name?.getValue() || '未知光缆',
-                                    capacity: props.Capacity_G?.getValue() || 0,
-                                    distance: props.Distance_K?.getValue() || 0,
-                                    inService: props.InService?.getValue() || 'N/A',
-                                    status: props.NotLive?.getValue() === 1 ? '未启用' : '运营中',
-                                    url: props.URL1?.getValue() || ''
-                                };
-                                
-                                // 关闭其他信息窗口
-                                selectedArea.value = null;
-                                selectedShip.value = null;
-                                selectedWeather.value = null;
-                                selectedDrilling.value = null;
-                                
-                                // 显示光缆信息（复用 selectedDrilling，或创建新的 selectedCable）
-                                selectedCable.value = cableInfo;
-                                cableInfoPosition.value = {
-                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                    y: Math.max(click.position.y - 100, 10)
-                                };
-                                
-                                console.log('✅ 显示光缆详细信息:', cableInfo);
-                                return;
-                            }
-                        }
-                        
-                        // 如果点击的是气象标记
-                        if (entity.id && entity.id.startsWith('weather_marker_')) {
-                            console.log('🌦️ 点击了气象标记:', entity.id);
-                            
-                            // 从 entity 上直接读取存储的数据
-                            const weatherData = {
-                                weather: entity._weatherData,
-                                risk: entity._riskData
-                            };
-                            
-                            console.log('📦 气象数据:', weatherData);
-                            
-                            if (!weatherData.weather || !weatherData.risk) {
-                                console.error('❌ 气象数据不存在');
-                                return;
-                            }
-                            
-                            const details = routeWeatherLayer.showWeatherDetails(weatherData);
-                            
-                            // 关闭船舶信息窗口
-                            selectedShip.value = null;
-                            
-                            // 显示气象详情窗口
-                            selectedWeather.value = details;
-                            weatherInfoPosition.value = {
-                                x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                y: Math.max(click.position.y - 100, 10)
-                            };
-                            
-                            console.log('✅ 显示气象详情:', details);
-                            return;
-                        }
-                        
-                        // 如果点击的是船舶（检查 id 是否以 ship_ 开头）
-                        if (entity.id && entity.id.startsWith('ship_') && entity.billboard) {
-                            console.log('🚢 点击了船舶:', entity.id);
-                            
-                            // 从 shipLayer 获取船舶信息（根据API实际返回字段）
-                            if (shipLayer && entity.properties) {
-                                const props = entity.properties;
-                                // 直接传递所有原始字段，让模板处理显示
-                                const shipInfo = {
-                                    mmsi: props.mmsi,
-                                    imo: props.imo,
-                                    call_sign: props.call_sign,
-                                    ship_name: props.ship_name,
-                                    ship_cnname: props.ship_cnname,
-                                    ship_type: props.ship_type,
-                                    length: props.length,
-                                    width: props.width,
-                                    draught: props.draught,
-                                    sog: props.sog,
-                                    cog: props.cog,
-                                    hdg: props.hdg,
-                                    navistat: props.navistat,
-                                    dest: props.dest,
-                                    destcode: props.destcode,
-                                    eta: props.eta,
-                                    last_time: props.last_time,
-                                    lat: props.lat,
-                                    lng: props.lng
-                                };
-                                
-                                // 显示船舶信息
-                                selectedShip.value = shipInfo;
-                                shipInfoPosition.value = {
-                                    x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                    y: Math.max(click.position.y - 100, 10)
-                                };
-                                
-                                console.log('✅ 显示船舶信息:', shipInfo);
-                            }
-                            return;  // 不继续处理矿区点击
-                        }
-                        
-                        // 如果点击的是轨迹船舶（有 billboard 且 name 以 ship_ 开头）
-                        if (entity.billboard && entity.name && entity.name.startsWith('ship_')) {
-                            console.log('🚢 点击了轨迹船舶:', entity.name);
-                            
-                            // 查找对应的轨迹
-                            if (trajectoryLayer) {
-                                const trajectory = trajectoryLayer.trajectories.find(traj => {
-                                    return traj.ship === entity;
-                                });
-                                
-                                if (trajectory && trajectory.data.shipInfo) {
-                                    // 暂停动画
-                                    trajectoryLayer.isPaused = true;
-                                    
-                                    // 显示船舶信息
-                                    selectedShip.value = trajectory.data.shipInfo;
-                                    shipInfoPosition.value = {
-                                        x: Math.min(click.position.x + 20, window.innerWidth - 370),
-                                        y: Math.max(click.position.y - 100, 10)
-                                    };
-                                    
-                                    console.log('✅ 显示轨迹船舶信息:', trajectory.data.shipInfo);
-                                }
-                            }
-                            return;  // 不继续处理矿区点击
-                        }
-                    }
-                    
-                    if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polygon) {
-                        const entity = pickedObject.id;
-                        previousEntity = entity;
-                        
-                        // 高亮选中的实体（增强效果：更亮的颜色 + 青色发光边框）
-                        // 方案1: 让原色更亮（提高亮度）
-                        const brightColor = entity._originalColor.brighten(0.3, new Cesium.Color());
-                        entity.polygon.material = brightColor.withAlpha(1.0);
-                        
-                        // 方案2: 青色发光边框
-                        entity.polygon.outlineColor = Cesium.Color.CYAN;
-                        entity.polygon.outlineWidth = 6;
-                        
-                        // 获取属性
-                        const props = {};
-                        if (entity.properties) {
-                            entity.properties.propertyNames.forEach(name => {
-                                props[name] = entity.properties[name]?.getValue();
-                            });
-                        }
-                        
-                        console.log('✅ 点击成功:', props);
-                        
-                        // 计算信息面板位置（点击位置作为左上角）
-                        const panelWidth = 320; // 20rem = 320px
-                        const panelHeight = 280; // 估计高度
-                        const margin = 10; // 容器边缘安全距离
-                        
-                        // 使用原始屏幕坐标
-                        const containerWidth = window.innerWidth;
-                        const containerHeight = window.innerHeight;
-                        
-                        // 默认：点击位置作为面板左上角
-                        let x = click.position.x;
-                        let y = click.position.y;
-                        
-                        // 边界检测：防止超出右边界
-                        if (x + panelWidth > containerWidth - margin) {
-                            x = containerWidth - panelWidth - margin;
-                        }
-                        
-                        // 边界检测：防止超出下边界
-                        if (y + panelHeight > containerHeight - margin) {
-                            y = containerHeight - panelHeight - margin;
-                        }
-                        
-                        // 边界检测：防止超出左边界
-                        if (x < margin) {
-                            x = margin;
-                        }
-                        
-                        // 边界检测：防止超出上边界
-                        if (y < margin) {
-                            y = margin;
-                        }
-                        
-                        console.log('📍 面板位置:', { 
-                            x, y, 
-                            originalClickX: click.position.x,
-                            originalClickY: click.position.y,
-                            scale: { scaleX, scaleY }
-                        });
-                        
-                        infoPosition.value = { x, y };
-                        
-                        // 显示信息（使用正确的字段名）
-                        selectedArea.value = {
-                            id: props.id || '未知',
-                            contractor: props.contractor || '未知',
-                            sponsor: props.sponsor || '未知',
-                            mineral: props.mineral || '未知',
-                            location: props.location || '未知',
-                            dateRange: props.date_range || '未知',
-                            area: props.area_km2 ? `${props.area_km2.toLocaleString()} km²` : '未知'
-                        };
-                        
-                        // 强制渲染
-                        viewer.scene.requestRender();
-                    } else {
-                        // 点击空白处，关闭信息面板
-                        selectedArea.value = null;
-                        console.log('❌ 未点击到矿区，修正后坐标:', correctedPosition);
-                    }
-                }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-                
-                clickHandler = handler;
                 
             } catch (error) {
                 console.error('❌ 加载失败:', error);
@@ -1573,10 +1658,9 @@ export default {
                 totalCount: cableData.length,
                 totalLength: 0,
                 totalCapacity: 0,
-                byDecade: {},
-                byCapacity: { low: 0, medium: 0, high: 0 },
+                byCountry: {},  // 按国家统计
                 byStatus: { active: 0, inactive: 0 },
-                byRegion: {}
+                cables: cableData  // 保存原始数据供图表使用
             };
             
             cableData.forEach(cable => {
@@ -1584,22 +1668,18 @@ export default {
                 stats.totalLength += cable.distance || 0;
                 stats.totalCapacity += cable.capacity || 0;
                 
-                // 按年代分组
-                if (cable.inService) {
-                    const decade = Math.floor(cable.inService / 10) * 10;
-                    const decadeKey = `${decade}s`;
-                    stats.byDecade[decadeKey] = (stats.byDecade[decadeKey] || 0) + 1;
+                // 按起始国家分组
+                const startCountry = cable.startCountry || '未知';
+                if (!stats.byCountry[startCountry]) {
+                    stats.byCountry[startCountry] = {
+                        count: 0,
+                        totalLength: 0,
+                        totalCapacity: 0
+                    };
                 }
-                
-                // 按容量分组
-                const capacity = cable.capacity || 0;
-                if (capacity < 500) {
-                    stats.byCapacity.low++;
-                } else if (capacity < 2000) {
-                    stats.byCapacity.medium++;
-                } else {
-                    stats.byCapacity.high++;
-                }
+                stats.byCountry[startCountry].count++;
+                stats.byCountry[startCountry].totalLength += cable.distance || 0;
+                stats.byCountry[startCountry].totalCapacity += cable.capacity || 0;
                 
                 // 按状态分组
                 if (cable.notLive === 1) {
@@ -1829,6 +1909,114 @@ export default {
             
             showSeafloorObservation.value = active;
         };
+        
+        // 切换海洋装备显示
+        const toggleMarineEquipment = async (active) => {
+            if (!marineEquipmentLayer) return;
+            
+            // 首次显示时加载数据
+            if (active && !marineEquipmentLayer.dataLoaded) {
+                console.log('🚢 首次显示海洋装备，开始加载数据...');
+                await loadMarineEquipmentData();
+            }
+            
+            // 切换显示状态
+            if (active) {
+                marineEquipmentLayer.show();
+            } else {
+                marineEquipmentLayer.hide();
+            }
+            
+            showMarineEquipment.value = active;
+        };
+        
+        // 加载海洋装备数据
+        const loadMarineEquipmentData = async () => {
+            if (!marineEquipmentLayer) return;
+            
+            try {
+                console.log('🚢 开始加载海洋装备数据...');
+                const data = await marineEquipmentLayer.loadData();
+                console.log('🚢 海洋装备数据加载完成:', data.length, '条');
+                
+                // 通知父组件数据已加载
+                emit('marineEquipmentDataLoaded', data);
+            } catch (error) {
+                console.error('❌ 加载海洋装备数据失败:', error);
+            }
+        };
+        
+        // 飞行到海洋装备
+        const flyToMarineEquipment = (equipment) => {
+            if (!marineEquipmentLayer) return;
+            marineEquipmentLayer.flyTo(equipment);
+        };
+        
+        // 刷新海洋装备数据
+        const refreshMarineEquipment = async () => {
+            if (!marineEquipmentLayer) return;
+            await loadMarineEquipmentData();
+        };
+        
+        // ==================== 研究机构相关函数 ====================
+        
+        // 加载研究机构数据
+        const loadResearchInstitutionData = async () => {
+            if (!researchInstitutionLayer) return;
+            
+            try {
+                console.log('🏛️ 开始加载研究机构数据...');
+                const data = await researchInstitutionLayer.loadData();
+                console.log('🏛️ 研究机构数据加载完成:', data.length, '条');
+                
+                // 通知父组件数据已加载
+                emit('researchInstitutionDataLoaded', data);
+            } catch (error) {
+                console.error('❌ 加载研究机构数据失败:', error);
+            }
+        };
+        
+        // 切换研究机构显示（按国家）
+        const toggleResearchInstitution = async (active, countryId) => {
+            if (!researchInstitutionLayer) return;
+            
+            console.log('🏛️ MapContainer - toggleResearchInstitution 被调用');
+            console.log('   - active:', active);
+            console.log('   - countryId:', countryId);
+            
+            // 首次显示时加载数据
+            if (active && !researchInstitutionLayer.dataLoaded) {
+                console.log('🏛️ 首次显示研究机构，开始加载数据...');
+                await loadResearchInstitutionData();
+            }
+            
+            // 切换指定国家的机构
+            if (countryId) {
+                researchInstitutionLayer.toggleCountry(countryId, active);
+            }
+            
+            showResearchInstitution.value = active;
+        };
+        
+        // 飞行到研究机构
+        const flyToResearchInstitution = (institution) => {
+            if (!researchInstitutionLayer) return;
+            researchInstitutionLayer.flyTo(institution);
+        };
+        
+        // 高亮研究机构
+        const highlightResearchInstitution = (institutionId) => {
+            if (!researchInstitutionLayer) return;
+            researchInstitutionLayer.highlightInstitution(institutionId);
+        };
+        
+        // 重置研究机构高亮
+        const resetResearchInstitutionHighlight = () => {
+            if (!researchInstitutionLayer) return;
+            researchInstitutionLayer.resetHighlight();
+        };
+        
+        // ==================== 海底观测网相关函数 ====================
         
         // 高亮海底观测网
         const highlightObservation = (observationId) => {
@@ -6766,6 +6954,13 @@ export default {
             highlightObservation,  // 暴露海底观测网高亮函数
             resetObservationHighlight,  // 暴露海底观测网重置高亮函数
             flyToObservation,  // 暴露海底观测网定位函数
+            toggleMarineEquipment,  // 暴露海洋装备图层切换函数
+            flyToMarineEquipment,  // 暴露海洋装备定位函数
+            refreshMarineEquipment,  // 暴露海洋装备刷新函数
+            toggleResearchInstitution,  // 暴露研究机构图层切换函数
+            flyToResearchInstitution,  // 暴露研究机构定位函数
+            highlightResearchInstitution,  // 暴露研究机构高亮函数
+            resetResearchInstitutionHighlight,  // 暴露研究机构重置高亮函数
             togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,

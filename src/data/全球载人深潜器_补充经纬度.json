@@ -1,0 +1,206 @@
+[
+  {
+    "name": "阿尔文号",
+    "country": {
+      "name_cn": "美国",
+      "name_en": "United States",
+      "coordinates": {
+        "lat": 39.8283,
+        "lng": -98.5795
+      }
+    },
+    "city": {
+      "name_cn": "马萨诸塞州伍兹霍尔",
+      "name_en": "Woods Hole, Massachusetts",
+      "coordinates": {
+        "lat": 41.5265,
+        "lng": -70.6715
+      }
+    },
+    "service_unit": "美国，伍兹霍尔海洋研究所",
+    "development_year": "1964",
+    "specification": "最大4500米（最深6500）可搭载三人，作业6-8h",
+    "notes": ""
+  },
+  {
+    "name": "深海6500号",
+    "country": {
+      "name_cn": "日本",
+      "name_en": "Japan",
+      "coordinates": {
+        "lat": 36.2048,
+        "lng": 138.2529
+      }
+    },
+    "city": {
+      "name_cn": "神奈川县横须贺市",
+      "name_en": "Yokosuka, Kanagawa",
+      "coordinates": {
+        "lat": 35.2813,
+        "lng": 139.6722
+      }
+    },
+    "service_unit": "日本海洋研究与开发机构",
+    "development_year": "1989",
+    "specification": "最大下潜6527米，可搭载3人，水下作业8h",
+    "notes": ""
+  },
+  {
+    "name": "和平1号",
+    "country": {
+      "name_cn": "俄罗斯",
+      "name_en": "Russia",
+      "coordinates": {
+        "lat": 61.524,
+        "lng": 105.3188
+      }
+    },
+    "city": {
+      "name_cn": "加里宁格勒州加里宁格勒",
+      "name_en": "Kaliningrad, Kaliningrad Oblast",
+      "coordinates": {
+        "lat": 54.7104,
+        "lng": 20.4522
+      }
+    },
+    "service_unit": "俄罗斯科学院海洋研究所",
+    "development_year": "1987",
+    "specification": "最大下潜深度6000米，可搭载3人，水下作业时间17-20h",
+    "notes": "原文将“和平1号、和平2号”合并在同一行，这里拆分为独立记录。"
+  },
+  {
+    "name": "和平2号",
+    "country": {
+      "name_cn": "俄罗斯",
+      "name_en": "Russia",
+      "coordinates": {
+        "lat": 61.524,
+        "lng": 105.3188
+      }
+    },
+    "city": {
+      "name_cn": "加里宁格勒州加里宁格勒",
+      "name_en": "Kaliningrad, Kaliningrad Oblast",
+      "coordinates": {
+        "lat": 54.7104,
+        "lng": 20.4522
+      }
+    },
+    "service_unit": "俄罗斯科学院海洋研究所",
+    "development_year": "1987",
+    "specification": "最大下潜深度6000米，可搭载3人，水下作业时间17-20h",
+    "notes": "原文将“和平1号、和平2号”合并在同一行，这里拆分为独立记录。"
+  },
+  {
+    "name": "鹦鹉螺号",
+    "country": {
+      "name_cn": "法国",
+      "name_en": "France",
+      "coordinates": {
+        "lat": 46.2276,
+        "lng": 2.2137
+      }
+    },
+    "city": {
+      "name_cn": "普罗旺斯-阿尔卑斯-蓝色海岸大区土伦港",
+      "name_en": "Toulon, Provence-Alpes-Cote d'Azur",
+      "coordinates": {
+        "lat": 43.1242,
+        "lng": 5.928
+      }
+    },
+    "service_unit": "法国海洋开发研究院",
+    "development_year": "1985",
+    "specification": "最大下潜深度6000米，可搭载3人，水下作业时间约6-8h",
+    "notes": ""
+  },
+  {
+    "name": "奋斗者号",
+    "country": {
+      "name_cn": "中国",
+      "name_en": "China",
+      "coordinates": {
+        "lat": 35.8617,
+        "lng": 104.1954
+      }
+    },
+    "city": {
+      "name_cn": "海南省三亚市南山港",
+      "name_en": "Nanshan Port, Sanya, Hainan",
+      "coordinates": {
+        "lat": 18.25,
+        "lng": 109.5
+      }
+    },
+    "service_unit": "中国科学院深海科学与工程研究中心",
+    "development_year": "2020",
+    "specification": "最大下潜深度10909米，可搭载3人，水下作业时间6-8h",
+    "notes": "南山港坐标按三亚南山港区域近似点处理。"
+  },
+  {
+    "name": "蛟龙号",
+    "country": {
+      "name_cn": "中国",
+      "name_en": "China",
+      "coordinates": {
+        "lat": 35.8617,
+        "lng": 104.1954
+      }
+    },
+    "city": {
+      "name_cn": "青岛即墨区国家深海基地",
+      "name_en": "National Deep Sea Center, Jimo District, Qingdao",
+      "coordinates": {
+        "lat": 36.3894,
+        "lng": 120.4622
+      }
+    },
+    "service_unit": "国家深海基地管理中心",
+    "development_year": "2007",
+    "specification": "最大海试深度7062米，可搭载3人",
+    "notes": "坐标按青岛市即墨区国家深海基地所在区域近似点处理。"
+  },
+  {
+    "name": "深海勇士号",
+    "country": {
+      "name_cn": "中国",
+      "name_en": "China",
+      "coordinates": {
+        "lat": 35.8617,
+        "lng": 104.1954
+      }
+    },
+    "city": {
+      "name_cn": "海南省三亚市南山港",
+      "name_en": "Nanshan Port, Sanya, Hainan",
+      "coordinates": {
+        "lat": 18.25,
+        "lng": 109.5
+      }
+    },
+    "service_unit": "中国科学院深海科学与工程研究所",
+    "development_year": "2017",
+    "specification": "最大深度4500米，可搭载3人，重约20吨",
+    "notes": "南山港坐标按三亚南山港区域近似点处理。"
+  },
+  {
+    "name": "玛茨亚6000",
+    "country": {
+      "name_cn": "印度",
+      "name_en": "India",
+      "coordinates": {
+        "lat": 20.5937,
+        "lng": 78.9629
+      }
+    },
+    "city": {
+      "name_cn": null,
+      "name_en": null,
+      "coordinates": null
+    },
+    "service_unit": null,
+    "development_year": "目标2026年底前实现",
+    "specification": "载员3人，可提供作业常规12h",
+    "notes": "原文未给出具体城市与服役单位，城市坐标留空。"
+  }
+]

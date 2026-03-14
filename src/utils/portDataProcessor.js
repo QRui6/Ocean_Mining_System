@@ -97,6 +97,7 @@ export function calculatePortStatistics(ports) {
         strategicCount,
         regionDistribution,
         countryCount,
-        regionCount
+        regionCount,
+        ports: processedPorts  // 添加完整的港口列表
     };
 }

@@ -698,14 +698,24 @@ export const MARINE_PROTECTED_AREAS = {
 };
 
 // 态势总览 - 海底观测网
+// 海底观测网国家颜色配置（使用高区分度颜色）
+export const SEAFLOOR_OBSERVATION_COLORS = {
+    '美国': '#0EA5E9',    // 天蓝色 (Sky Blue)
+    '欧洲': '#8B5CF6',    // 紫色 (Purple)
+    '加拿大': '#EF4444',  // 红色 (Red)
+    '日本': '#F59E0B',    // 橙色 (Orange)
+    '中国': '#10B981'     // 绿色 (Green)
+};
+
+// 态势总览 - 海底观测网
 export const SEAFLOOR_OBSERVATION = {
     label: '海底观测网',
     countries: [
-        { id: 'usa', label: '美国', color: '#0052B4' },
-        { id: 'eu', label: '欧盟', color: '#003399' },
-        { id: 'canada', label: '加拿大', color: '#FF0000' },
-        { id: 'japan', label: '日本', color: '#BC002D' },
-        { id: 'china', label: '中国', color: '#FF0000' }
+        { id: 'usa', label: '美国', color: SEAFLOOR_OBSERVATION_COLORS['美国'] },
+        { id: 'eu', label: '欧盟', color: SEAFLOOR_OBSERVATION_COLORS['欧洲'] },
+        { id: 'canada', label: '加拿大', color: SEAFLOOR_OBSERVATION_COLORS['加拿大'] },
+        { id: 'japan', label: '日本', color: SEAFLOOR_OBSERVATION_COLORS['日本'] },
+        { id: 'china', label: '中国', color: SEAFLOOR_OBSERVATION_COLORS['中国'] }
     ]
 };
 
@@ -715,20 +725,35 @@ export const SUBMARINE_CABLES = {
     description: '全球海底光缆网络'
 };
 
+// 主要研究机构国家颜色配置（使用高区分度颜色）
+export const RESEARCH_INSTITUTION_COLORS = {
+    'usa': '#0EA5E9',      // 天蓝色 (Sky Blue)
+    'uk': '#EF4444',       // 红色 (Red)
+    'france': '#8B5CF6',   // 紫色 (Purple)
+    'germany': '#F59E0B',  // 橙色 (Orange)
+    'canada': '#EC4899',   // 粉色 (Pink)
+    'australia': '#10B981',// 绿色 (Green)
+    'russia': '#6366F1',   // 靛蓝色 (Indigo)
+    'japan': '#F97316'     // 深橙色 (Deep Orange)
+};
+
 // 态势总览 - 主要研究机构
 export const RESEARCH_INSTITUTIONS = {
     label: '主要研究机构',
-    categories: [
-        { id: 'ocean_survey', label: '海洋调查' },
-        { id: 'ocean_research', label: '海洋科研' }
+    countries: [
+        { id: 'usa', label: '美国', color: RESEARCH_INSTITUTION_COLORS.usa },
+        { id: 'uk', label: '英国', color: RESEARCH_INSTITUTION_COLORS.uk },
+        { id: 'france', label: '法国', color: RESEARCH_INSTITUTION_COLORS.france },
+        { id: 'germany', label: '德国', color: RESEARCH_INSTITUTION_COLORS.germany },
+        { id: 'canada', label: '加拿大', color: RESEARCH_INSTITUTION_COLORS.canada },
+        { id: 'australia', label: '澳大利亚', color: RESEARCH_INSTITUTION_COLORS.australia },
+        { id: 'russia', label: '俄罗斯', color: RESEARCH_INSTITUTION_COLORS.russia },
+        { id: 'japan', label: '日本', color: RESEARCH_INSTITUTION_COLORS.japan }
     ]
 };
 
 // 态势总览 - 海洋装备
 export const MARINE_EQUIPMENT = {
-    label: '海洋装备',
-    categories: [
-        { id: 'manned_submersible', label: '载人潜水器' },
-        { id: 'unmanned_submersible', label: '无人潜航器' }
-    ]
+    label: '海洋装备'
 };
+
