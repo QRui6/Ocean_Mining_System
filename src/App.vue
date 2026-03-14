@@ -24,6 +24,8 @@
                 @cableDataLoaded="handleCableDataLoaded"
                 @arcticRouteDataLoaded="handleArcticRouteDataLoaded"
                 @observationDataLoaded="handleObservationDataLoaded"
+                @marineEquipmentDataLoaded="handleMarineEquipmentDataLoaded"
+                @researchInstitutionDataLoaded="handleResearchInstitutionDataLoaded"
                 @weatherDataLoaded="handleWeatherDataLoaded"
                 @pointPicked="handlePointPicked"
             />
@@ -282,6 +284,26 @@
                     />
                 </div>
                 
+                <!-- 海洋装备列表 -->
+                <div v-if="activePanels.marineEquipmentList" class="pointer-events-auto">
+                    <MarineEquipmentListTable 
+                        :equipmentData="allMarineEquipmentData"
+                        @rowClick="handleMarineEquipmentRowClick"
+                        @toggleStatistics="toggleMarineEquipmentStatistics"
+                        @refresh="handleMarineEquipmentRefresh"
+                    />
+                </div>
+                
+                <!-- 研究机构列表 -->
+                <div v-if="activePanels.researchInstitutionList" class="pointer-events-auto">
+                    <ResearchInstitutionListTable 
+                        :institutionData="allResearchInstitutionData"
+                        @rowClick="handleResearchInstitutionRowClick"
+                        @resetSelection="handleResearchInstitutionResetSelection"
+                        @toggleStatistics="toggleResearchInstitutionStatistics"
+                    />
+                </div>
+                
                 <!-- 气象数据列表 -->
                 <WeatherListTable 
                     v-if="showWeatherList && weatherListData.length > 0"
@@ -469,6 +491,20 @@
                     @close="toggleObservationStatistics"
                 />
                 
+                <!-- 海洋装备统计面板 -->
+                <MarineEquipmentStatisticsPanel
+                    v-if="activePanels.marineEquipmentStatistics"
+                    :equipmentData="allMarineEquipmentData"
+                    @close="toggleMarineEquipmentStatistics"
+                />
+                
+                <!-- 研究机构统计面板 -->
+                <ResearchInstitutionStatisticsPanel
+                    v-if="activePanels.researchInstitutionStatistics"
+                    :institutionData="allResearchInstitutionData"
+                    @close="toggleResearchInstitutionStatistics"
+                />
+                
                 <!-- 海底观测网图片弹窗 -->
                 <ObservationImagePopup
                     :show="showObservationImage"
@@ -526,6 +562,10 @@ import RouteStatisticsPanel from './components/RouteStatisticsPanel.vue';
 import ObservationListTable from './components/ObservationListTable.vue';
 import ObservationStatisticsPanel from './components/ObservationStatisticsPanel.vue';
 import ObservationImagePopup from './components/ObservationImagePopup.vue';
+import MarineEquipmentListTable from './components/MarineEquipmentListTable.vue';
+import MarineEquipmentStatisticsPanel from './components/MarineEquipmentStatisticsPanel.vue';
+import ResearchInstitutionListTable from './components/ResearchInstitutionListTable.vue';
+import ResearchInstitutionStatisticsPanel from './components/ResearchInstitutionStatisticsPanel.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -596,6 +636,10 @@ export default {
         ObservationListTable,
         ObservationStatisticsPanel,
         ObservationImagePopup,
+        MarineEquipmentListTable,
+        MarineEquipmentStatisticsPanel,
+        ResearchInstitutionListTable,
+        ResearchInstitutionStatisticsPanel,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -705,7 +749,11 @@ export default {
             routeList: false,  // 主要航线列表（底部表格）
             routeStatistics: false,  // 主要航线统计面板（右侧）
             observationList: false,  // 海底观测网列表（底部表格）
-            observationStatistics: false  // 海底观测网统计面板（右侧）
+            observationStatistics: false,  // 海底观测网统计面板（右侧）
+            marineEquipmentList: false,  // 海洋装备列表（底部表格）
+            marineEquipmentStatistics: false,  // 海洋装备统计面板（右侧）
+            researchInstitutionList: false,  // 研究机构列表（底部表格）
+            researchInstitutionStatistics: false  // 研究机构统计面板（右侧）
         });
         
         // 区域详情对话框状态
@@ -755,6 +803,12 @@ export default {
         // 海底观测网数据
         const allObservationData = ref([]);
         const observationStatistics = ref(null);
+        
+        // 海洋装备数据
+        const allMarineEquipmentData = ref([]);
+        
+        // 研究机构数据
+        const allResearchInstitutionData = ref([]);
         
         // 海底观测网图片弹窗状态
         const showObservationImage = ref(false);
@@ -1112,6 +1166,83 @@ export default {
         };
         
         /**
+         * 切换海洋装备统计面板的显示状态
+         */
+        const toggleMarineEquipmentStatistics = () => {
+            activePanels.value.marineEquipmentStatistics = !activePanels.value.marineEquipmentStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.marineEquipmentStatistics) {
+                activePanels.value.marineEquipmentList = false;
+            }
+        };
+        
+        /**
+         * 处理海洋装备行点击事件
+         */
+        const handleMarineEquipmentRowClick = (equipment) => {
+            console.log('🚢 海洋装备行点击:', equipment);
+            // 飞到装备位置
+            if (mapContainerRef.value && mapContainerRef.value.flyToMarineEquipment) {
+                mapContainerRef.value.flyToMarineEquipment(equipment);
+            }
+        };
+        
+        /**
+         * 处理海洋装备刷新事件
+         */
+        const handleMarineEquipmentRefresh = () => {
+            console.log('🔄 刷新海洋装备数据');
+            // 重新加载数据
+            if (mapContainerRef.value && mapContainerRef.value.refreshMarineEquipment) {
+                mapContainerRef.value.refreshMarineEquipment();
+            }
+        };
+        
+        /**
+         * 切换研究机构统计面板的显示状态
+         */
+        const toggleResearchInstitutionStatistics = () => {
+            activePanels.value.researchInstitutionStatistics = !activePanels.value.researchInstitutionStatistics;
+            // 如果打开统计面板，关闭列表
+            if (activePanels.value.researchInstitutionStatistics) {
+                activePanels.value.researchInstitutionList = false;
+            }
+        };
+        
+        /**
+         * 处理研究机构行点击事件
+         */
+        const handleResearchInstitutionRowClick = (institution) => {
+            console.log('🏛️ 研究机构行点击:', institution);
+            // 飞到机构位置
+            if (mapContainerRef.value && mapContainerRef.value.flyToResearchInstitution) {
+                mapContainerRef.value.flyToResearchInstitution(institution);
+            }
+        };
+        
+        /**
+         * 处理研究机构重置选择事件
+         */
+        const handleResearchInstitutionResetSelection = () => {
+            console.log('🔄 重置研究机构选择');
+            if (mapContainerRef.value && mapContainerRef.value.resetResearchInstitutionHighlight) {
+                mapContainerRef.value.resetResearchInstitutionHighlight();
+            }
+        };
+        
+        /**
+         * 处理研究机构数据加载完成事件
+         * @param {Array} data - 研究机构数据数组
+         */
+        const handleResearchInstitutionDataLoaded = (data) => {
+            console.log('🏛️ App.vue - handleResearchInstitutionDataLoaded 被调用');
+            console.log('🏛️ App.vue - 接收到的数据:', data);
+            console.log('🏛️ App.vue - 数据长度:', data?.length);
+            allResearchInstitutionData.value = data;
+            console.log('🏛️ App.vue - allResearchInstitutionData 已更新:', allResearchInstitutionData.value);
+        };
+        
+        /**
          * 切换科考船列表面板的显示状态
          */
         const toggleResearchVesselList = () => {
@@ -1356,6 +1487,56 @@ export default {
                     if (allInactive) {
                         activePanels.value.observationList = false;
                         activePanels.value.observationStatistics = false;
+                    }
+                }
+                return;
+            }
+            
+            // 处理海洋装备
+            if (data.category === 'marine_equipment') {
+                console.log('🚢 切换海洋装备显示');
+                if (mapContainerRef.value && mapContainerRef.value.toggleMarineEquipment) {
+                    await mapContainerRef.value.toggleMarineEquipment(data.active);
+                }
+                
+                // 只打开/关闭装备列表，统计面板由用户手动切换
+                if (data.active) {
+                    // 等待数据加载完成后再打开列表
+                    await nextTick();
+                    activePanels.value.marineEquipmentList = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.marineEquipmentStatistics = false;
+                } else {
+                    activePanels.value.marineEquipmentList = false;
+                    activePanels.value.marineEquipmentStatistics = false;
+                }
+                return;
+            }
+            
+            // 处理主要研究机构（按国家切换）
+            if (data.category === 'research_institutions') {
+                console.log('🏛️ 切换研究机构显示:', data.itemId);
+                
+                // data.itemId 是国家ID（如 'usa', 'uk' 等）
+                const countryId = data.itemId;
+                
+                if (mapContainerRef.value && mapContainerRef.value.toggleResearchInstitution) {
+                    await mapContainerRef.value.toggleResearchInstitution(data.active, countryId);
+                }
+                
+                // 只打开/关闭机构列表，统计面板由用户手动切换
+                if (data.active) {
+                    // 等待数据加载完成后再打开列表
+                    await nextTick();
+                    activePanels.value.researchInstitutionList = true;
+                    // 如果打开列表，关闭统计面板
+                    activePanels.value.researchInstitutionStatistics = false;
+                } else {
+                    // 检查是否所有国家都已关闭
+                    const allInactive = !data.active;
+                    if (allInactive) {
+                        activePanels.value.researchInstitutionList = false;
+                        activePanels.value.researchInstitutionStatistics = false;
                     }
                 }
                 return;
@@ -2366,6 +2547,18 @@ export default {
         };
         
         /**
+         * 处理海洋装备数据加载完成事件
+         * @param {Array} data - 海洋装备数据数组
+         */
+        const handleMarineEquipmentDataLoaded = (data) => {
+            console.log('🚢 App.vue - handleMarineEquipmentDataLoaded 被调用');
+            console.log('🚢 App.vue - 接收到的数据:', data);
+            console.log('🚢 App.vue - 数据长度:', data?.length);
+            allMarineEquipmentData.value = data;
+            console.log('🚢 App.vue - allMarineEquipmentData 已更新:', allMarineEquipmentData.value);
+        };
+        
+        /**
          * 处理北极航线行点击事件
          */
         const handleArcticRouteRowClick = (route) => {
@@ -3016,6 +3209,19 @@ export default {
                 console.log('📡 收到打开航线演示事件');
                 activePanels.value.routePlan = false;
                 activePanels.value.routeDemo = true;
+            });
+            
+            // 监听来自 MapContainer 的海底观测网图片弹窗事件
+            window.addEventListener('showObservationImage', (event) => {
+                console.log('📡 收到海底观测网图片弹窗事件:', event.detail);
+                const { title, imagePath, x, y } = event.detail;
+                
+                observationImageData.value = {
+                    title: title,
+                    imagePath: imagePath,
+                    position: { x, y }
+                };
+                showObservationImage.value = true;
             });
             
             // 等待所有组件完全挂载后再设置全局引用
@@ -3811,7 +4017,19 @@ export default {
             handleObservationResetSelection,
             closeObservationImage,
             toggleObservationList,
-            toggleObservationStatistics
+            toggleObservationStatistics,
+            // 海洋装备相关
+            allMarineEquipmentData,
+            toggleMarineEquipmentStatistics,
+            handleMarineEquipmentRowClick,
+            handleMarineEquipmentRefresh,
+            handleMarineEquipmentDataLoaded,
+            // 研究机构相关
+            allResearchInstitutionData,
+            handleResearchInstitutionDataLoaded,
+            handleResearchInstitutionRowClick,
+            handleResearchInstitutionResetSelection,
+            toggleResearchInstitutionStatistics
         };
     }
 };

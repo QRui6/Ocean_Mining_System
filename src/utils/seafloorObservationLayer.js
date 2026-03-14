@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { SEAFLOOR_OBSERVATION_COLORS } from '../constants.js';
 
 /**
  * 海底观测网图层管理器
@@ -98,14 +99,7 @@ export class SeafloorObservationLayer {
      * 根据国家获取颜色
      */
     getCountryColor(country) {
-        const colorMap = {
-            '美国': '#0052B4',
-            '欧洲': '#003399',
-            '加拿大': '#FF0000',
-            '日本': '#BC002D',
-            '中国': '#DE2910'
-        };
-        return colorMap[country] || '#9333EA'; // 默认紫色
+        return SEAFLOOR_OBSERVATION_COLORS[country] || '#9333EA'; // 默认紫色
     }
 
     /**

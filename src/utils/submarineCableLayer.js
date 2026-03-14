@@ -4,6 +4,7 @@
  */
 
 import * as Cesium from 'cesium';
+import { getStartEndCountries } from './coordinateToCountry.js';
 
 export class SubmarineCableLayer {
     constructor(viewer) {
@@ -147,6 +148,20 @@ export class SubmarineCableLayer {
         const entities = this.dataSource.entities.values;
         return entities.map(entity => {
             const props = entity.properties;
+            
+            // 获取起始国家
+            let startCountry = '未知';
+            let endCountry = '未知';
+            
+            if (entity.polyline && entity.polyline.positions) {
+                const positions = entity.polyline.positions.getValue(Cesium.JulianDate.now());
+                if (positions && positions.length > 0) {
+                    const countries = getStartEndCountries(positions);
+                    startCountry = countries.startCountry;
+                    endCountry = countries.endCountry;
+                }
+            }
+            
             return {
                 id: props.FID?.getValue() || props.Id?.getValue(),
                 name: props.Name?.getValue() || '未知',
@@ -157,7 +172,9 @@ export class SubmarineCableLayer {
                 url1: props.URL1?.getValue() || '',
                 url2: props.URL2?.getValue() || '',
                 notes: props.Notes?.getValue() || '',
-                overLand: props.OverLand?.getValue() || 0
+                overLand: props.OverLand?.getValue() || 0,
+                startCountry: startCountry,
+                endCountry: endCountry
             };
         });
     }

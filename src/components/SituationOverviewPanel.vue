@@ -85,7 +85,7 @@
                                 <div v-for="country in SEAFLOOR_OBSERVATION.countries" :key="country.id"
                                      @click="handleItemClick('seafloor_observation', country.id)"
                                      class="relative py-2 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center"
-                                     :class="activeItems.includes(country.id) ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-purple-500/50'">
+                                     :style="getCountryButtonStyle(country.id, country.color)">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative">
                                         <span class="font-medium text-sm">{{ country.label }}</span>
@@ -113,7 +113,7 @@
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-orange-400 rotate-45 shadow-[0_0_6px_#fb923c]"></div>
                                 <span class="text-orange-400 text-base font-bold">主要研究机构</span>
-                                <span v-if="getActiveCount('research_institutions') > 0" class="px-2 py-0.5 bg-orange-500 text-black text-xs font-bold rounded-full">{{ getActiveCount('research_institutions') }}</span>
+                                <span v-if="getActiveCount('research_institutions') > 0" class="px-2 py-0.5 bg-orange-500 text-white text-xs font-bold rounded-full">{{ getActiveCount('research_institutions') }}</span>
                             </div>
                             <svg class="w-5 h-5 text-orange-400 transition-transform duration-300" 
                                  :class="{ 'rotate-180': showResearchInstitutions }" 
@@ -122,19 +122,15 @@
                             </svg>
                         </div>
                         <transition name="slide-down">
-                            <div v-if="showResearchInstitutions" class="space-y-2 bg-slate-900/30 p-2 rounded">
-                                <div v-for="cat in RESEARCH_INSTITUTIONS.categories" :key="cat.id"
-                                     @click="handleItemClick('research_institutions', cat.id)"
-                                     class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
-                                     :class="activeItems.includes(cat.id) ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white border-l-4 border-orange-300' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-orange-500/50'">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full" 
-                                             :class="activeItems.includes(cat.id) ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-orange-400'"></div>
-                                        <span class="font-medium">{{ cat.label }}</span>
+                            <div v-if="showResearchInstitutions" class="grid grid-cols-2 gap-2 p-2 bg-slate-900/30 rounded">
+                                <div v-for="country in RESEARCH_INSTITUTIONS.countries" :key="country.id"
+                                     @click="handleItemClick('research_institutions', country.id)"
+                                     class="relative py-2 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center"
+                                     :style="getCountryButtonStyle(country.id, country.color)">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                    <div class="relative">
+                                        <span class="font-medium text-sm">{{ country.label }}</span>
                                     </div>
-                                    <svg v-if="activeItems.includes(cat.id)" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                                    </svg>
                                 </div>
                             </div>
                         </transition>
@@ -143,35 +139,16 @@
                     <!-- Level 6: 海洋装备 -->
                     <div class="space-y-2 pt-2 border-t-2 border-red-500/30">
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
-                             @click="showMarineEquipment = !showMarineEquipment">
+                             @click="handleItemClick('marine_equipment', 'toggle')">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-red-400 rotate-45 shadow-[0_0_6px_#f87171]"></div>
                                 <span class="text-red-400 text-base font-bold">海洋装备</span>
-                                <span v-if="getActiveCount('marine_equipment') > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{{ getActiveCount('marine_equipment') }}</span>
+                                <span v-if="activeItems.includes('marine_equipment')" class="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">已激活</span>
                             </div>
-                            <svg class="w-5 h-5 text-red-400 transition-transform duration-300" 
-                                 :class="{ 'rotate-180': showMarineEquipment }" 
-                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            <svg v-if="activeItems.includes('marine_equipment')" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
                             </svg>
                         </div>
-                        <transition name="slide-down">
-                            <div v-if="showMarineEquipment" class="space-y-2 bg-gradient-to-br from-red-900/20 to-orange-900/20 p-2 rounded">
-                                <div v-for="cat in MARINE_EQUIPMENT.categories" :key="cat.id"
-                                     @click="handleItemClick('marine_equipment', cat.id)"
-                                     class="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 group"
-                                     :class="activeItems.includes(cat.id) ? 'bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white border-l-4 border-yellow-400' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-red-500/50'">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2.5 h-2.5 rounded-full" 
-                                             :class="activeItems.includes(cat.id) ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'bg-slate-600 group-hover:bg-red-400'"></div>
-                                        <span class="font-bold">{{ cat.label }}</span>
-                                    </div>
-                                    <svg v-if="activeItems.includes(cat.id)" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                                    </svg>
-                                </div>
-                            </div>
-                        </transition>
                     </div>
 
                 </div>
@@ -204,7 +181,6 @@ export default {
         const showMaritimeSilkRoad = ref(true);  // 默认展开海上丝绸之路
         const showSeafloorObservation = ref(true);  // 默认展开海底观测网
         const showResearchInstitutions = ref(false);  // 默认收起主要研究机构
-        const showMarineEquipment = ref(false);  // 默认收起海洋装备
         
         // 选中的项目
         const activeItems = ref([]);
@@ -237,14 +213,34 @@ export default {
                     categoryItems = SEAFLOOR_OBSERVATION.countries.map(c => c.id);
                     break;
                 case 'research_institutions':
-                    categoryItems = RESEARCH_INSTITUTIONS.categories.map(c => c.id);
-                    break;
-                case 'marine_equipment':
-                    categoryItems = MARINE_EQUIPMENT.categories.map(c => c.id);
+                    categoryItems = RESEARCH_INSTITUTIONS.countries.map(c => c.id);
                     break;
             }
             
             return activeItems.value.filter(id => categoryItems.includes(id)).length;
+        };
+        
+        // 获取国家按钮样式（根据激活状态和国家颜色）
+        const getCountryButtonStyle = (countryId, countryColor) => {
+            const isActive = activeItems.value.includes(countryId);
+            
+            if (isActive) {
+                // 激活状态：使用国家颜色的渐变背景 + 发光效果
+                return {
+                    background: `linear-gradient(135deg, ${countryColor}dd, ${countryColor}aa)`,
+                    color: '#ffffff',
+                    border: `2px solid ${countryColor}`,
+                    boxShadow: `0 0 15px ${countryColor}80, inset 0 0 10px ${countryColor}40`
+                };
+            } else {
+                // 未激活状态：灰色背景 + 国家颜色边框
+                return {
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    color: '#ffffff',
+                    border: `1px solid ${countryColor}60`,
+                    boxShadow: 'none'
+                };
+            }
         };
         
         return {
@@ -260,12 +256,12 @@ export default {
             showMaritimeSilkRoad,
             showSeafloorObservation,
             showResearchInstitutions,
-            showMarineEquipment,
             activeItems,
             
             // 方法
             handleItemClick,
-            getActiveCount
+            getActiveCount,
+            getCountryButtonStyle
         };
     }
 };
