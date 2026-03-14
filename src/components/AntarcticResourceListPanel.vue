@@ -47,6 +47,54 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                 </svg>
                                 
+                                <!-- 资源形状图标 -->
+                                <div class="flex-shrink-0">
+                                    <svg :width="16" :height="16" viewBox="0 0 16 16">
+                                        <!-- 圆形 -->
+                                        <circle v-if="getResourceShape(group.type) === 'circle'" 
+                                                cx="8" cy="8" r="6" 
+                                                :fill="getResourceColor(group.type)" 
+                                                :stroke="getResourceColor(group.type)" 
+                                                stroke-width="1" 
+                                                opacity="0.9"/>
+                                        <!-- 方形 -->
+                                        <rect v-else-if="getResourceShape(group.type) === 'square'" 
+                                              x="3" y="3" width="10" height="10" 
+                                              :fill="getResourceColor(group.type)" 
+                                              :stroke="getResourceColor(group.type)" 
+                                              stroke-width="1" 
+                                              opacity="0.9"/>
+                                        <!-- 三角形 -->
+                                        <polygon v-else-if="getResourceShape(group.type) === 'triangle'" 
+                                                 points="8,2 14,14 2,14" 
+                                                 :fill="getResourceColor(group.type)" 
+                                                 :stroke="getResourceColor(group.type)" 
+                                                 stroke-width="1" 
+                                                 opacity="0.9"/>
+                                        <!-- 菱形 -->
+                                        <polygon v-else-if="getResourceShape(group.type) === 'diamond'" 
+                                                 points="8,2 14,8 8,14 2,8" 
+                                                 :fill="getResourceColor(group.type)" 
+                                                 :stroke="getResourceColor(group.type)" 
+                                                 stroke-width="1" 
+                                                 opacity="0.9"/>
+                                        <!-- 星形 -->
+                                        <polygon v-else-if="getResourceShape(group.type) === 'star'" 
+                                                 points="8,1 9.5,6 14.5,6 10.5,9.5 12,14.5 8,11 4,14.5 5.5,9.5 1.5,6 6.5,6" 
+                                                 :fill="getResourceColor(group.type)" 
+                                                 :stroke="getResourceColor(group.type)" 
+                                                 stroke-width="1" 
+                                                 opacity="0.9"/>
+                                        <!-- 默认圆形 -->
+                                        <circle v-else 
+                                                cx="8" cy="8" r="6" 
+                                                :fill="getResourceColor(group.type)" 
+                                                :stroke="getResourceColor(group.type)" 
+                                                stroke-width="1" 
+                                                opacity="0.9"/>
+                                    </svg>
+                                </div>
+                                
                                 <!-- 资源类型名称 -->
                                 <span class="text-white text-sm font-bold flex-shrink-0">{{ group.type }}</span>
                                 
@@ -126,6 +174,25 @@ const RESOURCE_COLORS = {
     '磷': '#FF6347',
     '硫黄': '#FFFF00',
     '锡钴铬': '#9370DB'
+};
+
+// 资源形状配置（与地图保持一致）
+const RESOURCE_SHAPES = {
+    '石油天然气': 'circle',
+    '天然气': 'circle',
+    '煤炭': 'square',
+    '铁': 'triangle',
+    '铜': 'circle',
+    '金': 'star',
+    '银': 'circle',
+    '铅': 'square',
+    '锡': 'circle',
+    '钼': 'triangle',
+    '铀': 'diamond',
+    '白金': 'star',
+    '磷': 'circle',
+    '硫黄': 'circle',
+    '锡钴铬': 'triangle'
 };
 
 // 资源详细信息（根据参考资料）
@@ -289,6 +356,11 @@ export default {
             return RESOURCE_COLORS[type] || '#808080';
         };
         
+        // 获取资源形状
+        const getResourceShape = (type) => {
+            return RESOURCE_SHAPES[type] || 'circle';
+        };
+        
         return {
             expandedGroups,
             groupedResources,
@@ -296,7 +368,8 @@ export default {
             categoryText,
             toggleGroup,
             formatCoordinates,
-            getResourceColor
+            getResourceColor,
+            getResourceShape
         };
     }
 };

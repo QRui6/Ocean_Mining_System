@@ -55,6 +55,7 @@
                     @showEnvironmentalMonitoring="handleShowEnvironmentalMonitoring"
                     @showLiftingSystem="handleShowLiftingSystem"
                     @showEnterprise="handleShowEnterprise"
+                    @showEconomicCalculation="handleShowEconomicCalculation"
                     @showModelComparison="handleShowModelComparison"
                     @showEvaluationFormula="handleShowEvaluationFormula"
                     @showFeasibilityAnalysis="handleShowFeasibilityAnalysis"
@@ -120,7 +121,7 @@
                 <!-- 管理框架面板 -->
                 <ManagementFrameworkPanel 
                     :show="showManagementFramework"
-                    :framework="selectedManagementFramework"
+                    :frameworks="selectedManagementFrameworks"
                     @close="handleCloseManagementFramework"
                 />
                 
@@ -131,6 +132,17 @@
                     @close="toggleCoordinateCollector"
                     @startCollecting="handleStartCollecting"
                     @stopCollecting="handleStopCollecting"
+                />
+                
+                <!-- 区域勾面面板 -->
+                <PolygonDrawerPanel 
+                    ref="polygonDrawerRef"
+                    :show="activePanels.polygonDrawer"
+                    @close="togglePolygonDrawer"
+                    @startDrawing="handleStartPolygonDrawing"
+                    @stopDrawing="handleStopPolygonDrawing"
+                    @polygonFinished="handlePolygonFinished"
+                    @polygonsUpdated="handlePolygonsUpdated"
                 />
                 
                 <!-- 极地科考面板 -->
@@ -147,6 +159,7 @@
                 <PolarResourcePotentialPanel 
                     :show="activePanels.resourcePotential"
                     @close="toggleResourcePotential"
+                    @showResourceCharts="handleShowResourceCharts"
                 />
                 
                 <!-- 科考站国家图例 - 与科考站点按钮绑定 - 暂时隐藏 -->
@@ -158,8 +171,14 @@
                 
                 <!-- 科考站统计面板 - 与科考站点按钮绑定 -->
                 <PolarStationStatistics 
-                    :show="activePanels.polarStations"
+                    :show="activePanels.polarStations && !showArcticResourceCharts"
                     @close="togglePolarStations"
+                />
+                
+                <!-- 北极资源图表面板 - 替换科考站统计面板 -->
+                <ArcticResourceCharts 
+                    :show="showArcticResourceCharts"
+                    @close="handleCloseResourceCharts"
                 />
                 
                 <!-- 极地主权主张面板 - 与主权主张按钮绑定 -->
@@ -209,10 +228,12 @@
                     @toggleDrillingPanel="toggleDrillingPanel"
                     @toggleDrillingStatistics="toggleDrillingStatistics"
                     @toggleCoordinateCollector="toggleCoordinateCollector"
+                    @togglePolygonDrawer="togglePolygonDrawer"
                     @togglePolarPanel="togglePolarPanel"
                     @toggleResourcePotential="toggleResourcePotential"
                     @togglePolarStations="togglePolarStations"
                     @togglePolarSovereignty="togglePolarSovereignty"
+                    @toggleSituationOverview="toggleSituationOverview"
                     @toggleCableList="toggleCableList"
                     @toggleCableStatistics="toggleCableStatistics"
                     @toggleArcticRouteList="toggleArcticRouteList"
@@ -478,6 +499,12 @@
             @close="closeAreaDetailDialog"
         />
         
+        <!-- 经济计算面板 -->
+        <EconomicCalculationPanel 
+            :show="showEconomicCalculation"
+            @close="handleCloseEconomicCalculation"
+        />
+        
         <!-- 模型对比面板 -->
         <ModelComparisonPanel 
             :show="showModelComparison"
@@ -494,6 +521,19 @@
         <FeasibilityAnalysisPanel 
             :show="showFeasibilityAnalysis"
             @close="handleCloseFeasibilityAnalysis"
+        />
+        
+        <!-- 北极资源统计表格 -->
+        <ArcticResourceTable 
+            :show="activePanels.arcticResourceTable"
+            @close="toggleArcticResourceTable"
+            @showStatistics="handleShowArcticStatistics"
+        />
+        
+        <!-- 北极资源统计面板 -->
+        <ArcticResourceStatisticsPanel 
+            :show="showArcticStatisticsPanel"
+            @close="handleCloseArcticStatistics"
         />
     </div>
 </template>
@@ -535,6 +575,8 @@ import ResearchVesselList from './components/ResearchVesselList.vue';
 import DevelopmentTimeline from './components/DevelopmentTimeline.vue';
 // import PolicyDynamicsTimeline from './components/PolicyDynamicsTimeline.vue'; // 旧版已注释
 import USPolicyTimeline from './components/USPolicyTimeline.vue'; // 新版横向时间轴
+import ArcticResourceTable from './components/ArcticResourceTable.vue'; // 北极资源统计表格
+import ArcticResourceStatisticsPanel from './components/ArcticResourceStatisticsPanel.vue'; // 北极资源统计面板
 import USCooperationPopup from './components/USCooperationPopup.vue'; // 美国合作关系弹窗
 import CountryAttitudesTable from './components/CountryAttitudesTable.vue';
 import MiningVehiclePanel from './components/MiningVehiclePanel.vue';
@@ -549,6 +591,7 @@ import DrillingPanel from './components/DrillingPanel.vue';
 import DrillingStatisticsPanel from './components/DrillingStatisticsPanel.vue';
 import ManagementFrameworkPanel from './components/ManagementFrameworkPanel.vue';
 import CoordinateCollectorPanel from './components/CoordinateCollectorPanel.vue';
+import PolygonDrawerPanel from './components/PolygonDrawerPanel.vue';
 import PolarPanel from './components/PolarPanel.vue';
 import PolarStationListPanel from './components/PolarStationListPanel.vue';
 import AntarcticResourceListPanel from './components/AntarcticResourceListPanel.vue';
@@ -556,11 +599,13 @@ import ResourceSurveyPanel from './components/ResourceSurveyPanel.vue';
 import PolarResourcePotentialPanel from './components/PolarResourcePotentialPanel.vue';
 import StationCountryLegend from './components/StationCountryLegend.vue';
 import PolarStationStatistics from './components/PolarStationStatistics.vue';
+import ArcticResourceCharts from './components/ArcticResourceCharts.vue';
 import PolarSovereigntyPanel from './components/PolarSovereigntyPanel.vue';
 import AntarcticSovereigntyDetail from './components/AntarcticSovereigntyDetail.vue';
 import SituationOverviewPanel from './components/SituationOverviewPanel.vue';
 import CoreRepositoryCharts from './components/CoreRepositoryCharts.vue';
 import ModelComparisonPanel from './components/ModelComparisonPanel.vue';
+import EconomicCalculationPanel from './components/EconomicCalculationPanel.vue';
 import EvaluationFormulaPanel from './components/EvaluationFormulaPanel.vue';
 import FeasibilityAnalysisPanel from './components/FeasibilityAnalysisPanel.vue';
 import { PolarStationsLoader } from './utils/polarStationsLoader.js';
@@ -605,6 +650,8 @@ export default {
         // PolicyDynamicsTimeline, // 旧版已注释
         USPolicyTimeline, // 新版横向时间轴
         USCooperationPopup, // 美国合作关系弹窗
+        ArcticResourceTable, // 北极资源统计表格
+        ArcticResourceStatisticsPanel, // 北极资源统计面板
         CountryAttitudesTable,
         MiningVehiclePanel,
         TechnologyMaturityPanel,
@@ -618,6 +665,7 @@ export default {
         DrillingStatisticsPanel,
         ManagementFrameworkPanel,
         CoordinateCollectorPanel,
+        PolygonDrawerPanel,
         PolarPanel,
         PolarResourcePotentialPanel,
         PolarStationListPanel,
@@ -625,11 +673,13 @@ export default {
         ResourceSurveyPanel,
         StationCountryLegend,
         PolarStationStatistics,
+        ArcticResourceCharts,
         PolarSovereigntyPanel,
         AntarcticSovereigntyDetail,
         SituationOverviewPanel,
         CoreRepositoryCharts,
         ModelComparisonPanel,
+        EconomicCalculationPanel,
         EvaluationFormulaPanel,
         FeasibilityAnalysisPanel
     },
@@ -694,7 +744,9 @@ export default {
             routeList: false,  // 主要航线列表（底部表格）
             routeStatistics: false,  // 主要航线统计面板（右侧）
             observationList: false,  // 海底观测网列表（底部表格）
-            observationStatistics: false  // 海底观测网统计面板（右侧）
+            observationStatistics: false,  // 海底观测网统计面板（右侧）
+            arcticResourceTable: false,  // 北极资源统计表格（底部中间）
+            polygonDrawer: false  // 区域勾面面板（左侧）
         });
         
         // 区域详情对话框状态
@@ -705,6 +757,7 @@ export default {
         const showTimeline = ref(false);
         
         // 经济评价面板状态
+        const showEconomicCalculation = ref(false);
         const showModelComparison = ref(false);
         const showEvaluationFormula = ref(false);
         const showFeasibilityAnalysis = ref(false);
@@ -801,7 +854,7 @@ export default {
         
         // 管理框架面板显示状态
         const showManagementFramework = ref(false);
-        const selectedManagementFramework = ref(null);
+        const selectedManagementFrameworks = ref([]);
         
         // 极地科考站国家列表（用于图例显示）
         const polarStationCountries = ref(null);
@@ -981,12 +1034,23 @@ export default {
         
         /**
          * 显示管理框架面板
-         * @param {string} frameworkId - 管理框架ID
+         * @param {array|null} frameworksArray - 管理框架ID数组，null表示关闭面板
          */
-        const handleShowManagementFramework = (frameworkId) => {
-            console.log('📋 显示管理框架:', frameworkId);
-            selectedManagementFramework.value = frameworkId;
-            showManagementFramework.value = true;
+        const handleShowManagementFramework = (frameworksArray) => {
+            console.log('📋 显示管理框架:', frameworksArray);
+            console.log('📋 当前selectedManagementFrameworks:', selectedManagementFrameworks.value);
+            if (frameworksArray === null || (Array.isArray(frameworksArray) && frameworksArray.length === 0)) {
+                // 关闭面板
+                showManagementFramework.value = false;
+                selectedManagementFrameworks.value = [];
+                console.log('📋 关闭面板，清空数组');
+            } else {
+                // 显示面板并设置选中的框架数组
+                selectedManagementFrameworks.value = Array.isArray(frameworksArray) ? frameworksArray : [frameworksArray];
+                showManagementFramework.value = true;
+                console.log('📋 设置selectedManagementFrameworks为:', selectedManagementFrameworks.value);
+                console.log('📋 设置showManagementFramework为:', showManagementFramework.value);
+            }
         };
         
         /**
@@ -994,7 +1058,7 @@ export default {
          */
         const handleCloseManagementFramework = () => {
             showManagementFramework.value = false;
-            selectedManagementFramework.value = null;
+            selectedManagementFrameworks.value = [];
         };
         
         /**
@@ -1093,6 +1157,13 @@ export default {
         };
         
         /**
+         * 切换北极资源统计表格的显示状态
+         */
+        const toggleArcticResourceTable = () => {
+            activePanels.value.arcticResourceTable = !activePanels.value.arcticResourceTable;
+        };
+        
+        /**
          * 切换科考船列表面板的显示状态
          */
         const toggleResearchVesselList = () => {
@@ -1161,6 +1232,54 @@ export default {
             if (mapContainerRef.value && mapContainerRef.value.toggleAntarcticResources) {
                 mapContainerRef.value.toggleAntarcticResources(activePanels.value.resourcePotential);
             }
+        };
+        
+        // 北极资源图表显示状态
+        const showArcticResourceCharts = ref(false);
+        
+        // 北极资源统计面板显示状态
+        const showArcticStatisticsPanel = ref(false);
+        
+        /**
+         * 处理显示北极资源图表
+         */
+        const handleShowResourceCharts = (resourceType) => {
+            console.log('🎨 [App.vue] 收到显示北极资源图表事件:', resourceType);
+            console.log('🎨 [App.vue] 当前 showArcticResourceCharts 值:', showArcticResourceCharts.value);
+            console.log('🎨 [App.vue] 当前 activePanels.polarStations 值:', activePanels.value.polarStations);
+            
+            // 确保科考站点面板是打开的
+            if (!activePanels.value.polarStations) {
+                console.log('🎨 [App.vue] 科考站点面板未打开，自动打开');
+                activePanels.value.polarStations = true;
+            }
+            
+            showArcticResourceCharts.value = true;
+            console.log('🎨 [App.vue] 设置后 showArcticResourceCharts 值:', showArcticResourceCharts.value);
+        };
+        
+        /**
+         * 处理关闭北极资源图表
+         */
+        const handleCloseResourceCharts = () => {
+            console.log('🎨 [App.vue] 关闭北极资源图表');
+            showArcticResourceCharts.value = false;
+        };
+        
+        /**
+         * 处理显示北极资源统计面板
+         */
+        const handleShowArcticStatistics = () => {
+            console.log('📊 [App.vue] 显示北极资源统计面板');
+            showArcticStatisticsPanel.value = true;
+        };
+        
+        /**
+         * 处理关闭北极资源统计面板
+         */
+        const handleCloseArcticStatistics = () => {
+            console.log('📊 [App.vue] 关闭北极资源统计面板');
+            showArcticStatisticsPanel.value = false;
         };
         
         /**
@@ -1380,6 +1499,19 @@ export default {
                 const { longitude, latitude, zoom, regionId } = regionData;
                 console.log('🟢 解析坐标:', { longitude, latitude, zoom, regionId });
                 
+                // 处理北极盆地数据加载/卸载
+                if (mapContainerRef.value && mapContainerRef.value.toggleArcticBasinData) {
+                    if (regionId === 'arctic') {
+                        // 切换到北极时，加载北极盆地数据
+                        console.log('🏔️ 切换到北极，加载北极盆地数据');
+                        mapContainerRef.value.toggleArcticBasinData(true);
+                    } else if (regionId === 'antarctic') {
+                        // 切换到南极时，卸载北极盆地数据
+                        console.log('🗑️ 切换到南极，卸载北极盆地数据');
+                        mapContainerRef.value.toggleArcticBasinData(false);
+                    }
+                }
+                
                 // 调用地图跳转方法
                 if (mapContainerRef.value && mapContainerRef.value.viewer) {
                     console.log('🟢 MapContainer 和 viewer 存在，准备跳转...');
@@ -1492,8 +1624,48 @@ export default {
             // 处理北极资源筛选
             if (category === 'resource_arctic') {
                 console.log('🌍 北极资源筛选:', selectedTypes);
-                // TODO: 实现北极资源筛选
-                console.log('⚠️ 北极资源筛选功能开发中...');
+                
+                try {
+                    if (mapContainerRef.value && mapContainerRef.value.toggleArcticResourceData) {
+                        // 处理天然气
+                        if (selectedTypes.includes('natural_gas')) {
+                            console.log('⛽ 加载天然气数据');
+                            await mapContainerRef.value.toggleArcticResourceData('natural_gas', true);
+                        } else {
+                            console.log('🗑️ 卸载天然气数据');
+                            await mapContainerRef.value.toggleArcticResourceData('natural_gas', false);
+                        }
+                        
+                        // 处理石油
+                        if (selectedTypes.includes('oil')) {
+                            console.log('🛢️ 加载石油数据');
+                            await mapContainerRef.value.toggleArcticResourceData('oil', true);
+                        } else {
+                            console.log('🗑️ 卸载石油数据');
+                            await mapContainerRef.value.toggleArcticResourceData('oil', false);
+                        }
+                        
+                        // 控制图表显示：当选择了任何资源时显示新的资源图表面板和统计表格
+                        if (selectedTypes.length > 0) {
+                            // 显示新的资源图表面板，替换科考站统计表
+                            showArcticResourceCharts.value = true;
+                            // 同时显示底部的统计表格
+                            activePanels.value.arcticResourceTable = true;
+                            console.log('📊 显示北极资源图表面板和统计表格');
+                        } else {
+                            // 隐藏资源图表面板和统计表格
+                            showArcticResourceCharts.value = false;
+                            activePanels.value.arcticResourceTable = false;
+                            console.log('❌ 隐藏北极资源图表面板和统计表格');
+                        }
+                        
+                        console.log('✅ 北极资源数据加载完成');
+                    } else {
+                        console.error('❌ MapContainer 引用不存在或 toggleArcticResourceData 方法未定义');
+                    }
+                } catch (error) {
+                    console.error('❌ 北极资源加载失败:', error);
+                }
                 return;
             }
             
@@ -3523,6 +3695,22 @@ export default {
         };
 
         /**
+         * 显示经济计算面板
+         */
+        const handleShowEconomicCalculation = () => {
+            console.log('🧮 显示经济计算面板');
+            showEconomicCalculation.value = true;
+        };
+
+        /**
+         * 关闭经济计算面板
+         */
+        const handleCloseEconomicCalculation = () => {
+            console.log('🧮 关闭经济计算面板');
+            showEconomicCalculation.value = false;
+        };
+
+        /**
          * 显示模型对比面板
          */
         const handleShowModelComparison = () => {
@@ -3569,6 +3757,96 @@ export default {
             console.log('📈 关闭可行性分析面板');
             showFeasibilityAnalysis.value = false;
         };
+        
+        // ==================== 多边形绘制相关 ====================
+        
+        const polygonDrawerRef = ref(null);
+        
+        /**
+         * 切换区域勾面面板
+         */
+        const togglePolygonDrawer = () => {
+            activePanels.value.polygonDrawer = !activePanels.value.polygonDrawer;
+            console.log('🖊️ 切换区域勾面面板:', activePanels.value.polygonDrawer);
+        };
+        
+        /**
+         * 开始多边形绘制
+         */
+        const handleStartPolygonDrawing = () => {
+            console.log('🖊️ 开始多边形绘制');
+            if (mapContainerRef.value && mapContainerRef.value.enablePolygonDrawing) {
+                mapContainerRef.value.enablePolygonDrawing();
+                
+                // 监听地图点击事件，更新面板顶点数
+                const updatePointCount = () => {
+                    if (mapContainerRef.value && mapContainerRef.value.polygonPoints && polygonDrawerRef.value) {
+                        polygonDrawerRef.value.updatePointCount(mapContainerRef.value.polygonPoints.length);
+                    }
+                };
+                
+                // 使用定时器定期更新顶点数
+                const intervalId = setInterval(updatePointCount, 100);
+                
+                // 保存intervalId以便后续清理
+                if (!window._polygonDrawingInterval) {
+                    window._polygonDrawingInterval = intervalId;
+                }
+            }
+        };
+        
+        /**
+         * 停止多边形绘制
+         */
+        const handleStopPolygonDrawing = () => {
+            console.log('⏹️ 停止多边形绘制');
+            
+            // 清理定时器
+            if (window._polygonDrawingInterval) {
+                clearInterval(window._polygonDrawingInterval);
+                window._polygonDrawingInterval = null;
+            }
+            
+            if (mapContainerRef.value && mapContainerRef.value.disablePolygonDrawing) {
+                mapContainerRef.value.disablePolygonDrawing();
+                mapContainerRef.value.cancelPolygonDrawing();
+            }
+        };
+        
+        /**
+         * 完成多边形绘制
+         * @param {String} name - 多边形名称
+         */
+        const handlePolygonFinished = (name) => {
+            console.log('✅ 完成多边形绘制, 名称:', name);
+            
+            // 清理定时器
+            if (window._polygonDrawingInterval) {
+                clearInterval(window._polygonDrawingInterval);
+                window._polygonDrawingInterval = null;
+            }
+            
+            if (mapContainerRef.value && mapContainerRef.value.finishPolygonDrawing) {
+                const polygonData = mapContainerRef.value.finishPolygonDrawing();
+                if (polygonData && polygonDrawerRef.value) {
+                    // 添加名称和时间戳
+                    polygonData.name = name;
+                    polygonData.timestamp = new Date().toISOString();
+                    polygonDrawerRef.value.addPolygon(polygonData);
+                }
+            }
+        };
+        
+        /**
+         * 更新多边形列表
+         * @param {Array} polygons - 多边形列表
+         */
+        const handlePolygonsUpdated = (polygons) => {
+            console.log('📊 更新多边形列表:', polygons);
+            if (mapContainerRef.value && mapContainerRef.value.updatePolygons) {
+                mapContainerRef.value.updatePolygons(polygons);
+            }
+        };
 
         return {
             currentTheme,
@@ -3593,7 +3871,7 @@ export default {
             handleDrillingFilterChange,
             handleSelectCoreRepository,
             showManagementFramework,
-            selectedManagementFramework,
+            selectedManagementFrameworks,
             handleShowManagementFramework,
             handleCloseManagementFramework,
             toggleShipSearch,
@@ -3667,6 +3945,12 @@ export default {
             resourceSurveyPanelVisible,
             selectedResourceSurveyCountries,
             toggleResourcePotential,
+            showArcticResourceCharts,
+            showArcticStatisticsPanel,
+            handleShowResourceCharts,
+            handleCloseResourceCharts,
+            handleShowArcticStatistics,
+            handleCloseArcticStatistics,
             togglePolarStations,
             togglePolarSovereignty,
             polarStationCountries,
@@ -3719,6 +4003,9 @@ export default {
             toggleLatestProgress,
             handleShowEnterprise,
             toggleEnterprise,
+            showEconomicCalculation,
+            handleShowEconomicCalculation,
+            handleCloseEconomicCalculation,
             showModelComparison,
             handleShowModelComparison,
             handleCloseModelComparison,
@@ -3765,7 +4052,16 @@ export default {
             handleObservationRowClick,
             handleObservationResetSelection,
             toggleObservationList,
-            toggleObservationStatistics
+            toggleObservationStatistics,
+            // 北极资源表格相关
+            toggleArcticResourceTable,
+            // 多边形绘制相关
+            polygonDrawerRef,
+            togglePolygonDrawer,
+            handleStartPolygonDrawing,
+            handleStopPolygonDrawing,
+            handlePolygonFinished,
+            handlePolygonsUpdated
         };
     }
 };

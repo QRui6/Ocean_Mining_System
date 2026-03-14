@@ -135,37 +135,34 @@
                                     <!-- 北极资源类型 -->
                                     <transition name="slide-down">
                                         <div v-if="showArcticResourcePanel" class="ml-4 space-y-2 bg-slate-800/30 p-2 rounded">
-                                            <!-- 上面两个并排 -->
+                                            <!-- 北极只显示两个按钮：天然气和石油 -->
                                             <div class="grid grid-cols-2 gap-2">
+                                                <!-- 天然气 -->
                                                 <div 
-                                                    v-for="item in RESOURCE_TYPES.filter(i => !i.fullWidth)" 
-                                                    :key="item.id"
-                                                    @click.stop="handleCategoryClick('resource_arctic', item.id)"
+                                                    @click.stop="handleCategoryClick('resource_arctic', 'natural_gas')"
                                                     class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
-                                                    :class="activeArcticResources.includes(item.id) 
+                                                    :class="activeArcticResources.includes('natural_gas') 
                                                         ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
                                                         : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
                                                 >
                                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                                     <div class="relative">
-                                                        <span class="text-xs font-medium">{{ item.label }}</span>
+                                                        <span class="text-xs font-medium">天然气</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            
-                                            <!-- 下面一个长按钮 -->
-                                            <div 
-                                                v-for="item in RESOURCE_TYPES.filter(i => i.fullWidth)" 
-                                                :key="item.id"
-                                                @click.stop="handleCategoryClick('resource_arctic', item.id)"
-                                                class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
-                                                :class="activeArcticResources.includes(item.id) 
-                                                    ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
-                                                    : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
-                                            >
-                                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                                <div class="relative">
-                                                    <span class="text-xs font-medium">{{ item.label }}</span>
+                                                
+                                                <!-- 石油 -->
+                                                <div 
+                                                    @click.stop="handleCategoryClick('resource_arctic', 'oil')"
+                                                    class="relative py-2 px-3 rounded cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                                    :class="activeArcticResources.includes('oil') 
+                                                        ? 'bg-green-600/80 text-white border-green-400 shadow-[0_0_10px_rgba(34,197,94,0.5)]' 
+                                                        : 'bg-slate-700/60 text-slate-400 hover:bg-slate-600 hover:text-green-300 border-slate-600 hover:border-green-500/50'"
+                                                >
+                                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                                    <div class="relative">
+                                                        <span class="text-xs font-medium">石油</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

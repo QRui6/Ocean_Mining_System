@@ -654,6 +654,28 @@ export default {
             collected: []   // 坐标采集标记数组
         }; // 选点标记
         
+        // 多边形绘制相关
+        const isPolygonDrawingMode = ref(false);  // 是否处于多边形绘制模式
+        const polygonPoints = ref([]);  // 当前多边形的顶点
+        let polygonEntities = [];  // 存储所有多边形实体
+        let tempPolygonEntity = null;  // 临时多边形实体（绘制中）
+        let polygonPointMarkers = [];  // 多边形顶点标记
+        let polygonDrawHandler = null;  // 多边形绘制专用事件处理器
+        
+        // 北极盆地数据相关
+        let arcticBasinDataSources = [];  // 存储北极盆地数据源
+        const showArcticBasin = ref(false);  // 北极盆地显示状态
+        
+        // 北极资源数据相关（天然气、石油）
+        let arcticResourceDataSources = {
+            natural_gas: null,  // 天然气数据源
+            oil: null           // 石油数据源
+        };
+        const showArcticResources = ref({
+            natural_gas: false,
+            oil: false
+        });
+        
         // 气象点查询相关
         const weatherPickedPoint = ref(null);  // 选中的气象查询点
         const currentWeatherLayer = ref(null); // 当前激活的气象图层
@@ -6189,6 +6211,503 @@ export default {
             }
         });
         
+        // ==================== 多边形绘制功能 ====================
+        
+        /**
+         * 启用多边形绘制模式
+         */
+        const enablePolygonDrawing = () => {
+            if (!viewer) {
+                console.warn('⚠️ Viewer未初始化');
+                return;
+            }
+            
+            isPolygonDrawingMode.value = true;
+            polygonPoints.value = [];
+            console.log('🖊️ 多边形绘制模式已启用');
+            
+            // 创建独立的多边形绘制事件处理器
+            if (!polygonDrawHandler) {
+                polygonDrawHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            }
+            
+            polygonDrawHandler.setInputAction((click) => {
+                if (!isPolygonDrawingMode.value) return;
+                
+                // 计算 CSS scale 缩放比例（与坐标采集功能保持一致）
+                const baseWidth = 1920;
+                const baseHeight = 1080;
+                const scaleX = window.innerWidth / baseWidth;
+                const scaleY = window.innerHeight / baseHeight;
+                
+                // 修正点击坐标
+                const correctedPosition = new Cesium.Cartesian2(
+                    click.position.x / scaleX,
+                    click.position.y / scaleY
+                );
+                
+                // 获取点击位置的地理坐标（使用修正后的坐标）
+                const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+                if (!cartesian) return;
+                
+                const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+                
+                // 添加顶点
+                const point = { longitude, latitude };
+                polygonPoints.value.push(point);
+                
+                // 添加顶点标记
+                const marker = viewer.entities.add({
+                    position: cartesian,
+                    point: {
+                        pixelSize: 10,
+                        color: Cesium.Color.CYAN,
+                        outlineColor: Cesium.Color.WHITE,
+                        outlineWidth: 2
+                    },
+                    label: {
+                        text: `${polygonPoints.value.length}`,
+                        font: '14px sans-serif',
+                        fillColor: Cesium.Color.WHITE,
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 2,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        pixelOffset: new Cesium.Cartesian2(0, -15)
+                    }
+                });
+                polygonPointMarkers.push(marker);
+                
+                // 更新临时多边形
+                updateTempPolygon();
+                
+                console.log(`📍 添加顶点 ${polygonPoints.value.length}:`, point);
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+        };
+        
+        /**
+         * 禁用多边形绘制模式
+         */
+        const disablePolygonDrawing = () => {
+            isPolygonDrawingMode.value = false;
+            
+            // 移除多边形绘制事件监听
+            if (polygonDrawHandler) {
+                polygonDrawHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            }
+            
+            console.log('⏹️ 多边形绘制模式已禁用');
+        };
+        
+        /**
+         * 更新临时多边形（绘制中）
+         */
+        const updateTempPolygon = () => {
+            if (!viewer) return;
+            
+            // 移除旧的临时多边形
+            if (tempPolygonEntity) {
+                viewer.entities.remove(tempPolygonEntity);
+                tempPolygonEntity = null;
+            }
+            
+            // 至少需要3个点才能绘制多边形
+            if (polygonPoints.value.length < 3) return;
+            
+            // 创建新的临时多边形
+            const positions = polygonPoints.value.map(p => 
+                Cesium.Cartesian3.fromDegrees(p.longitude, p.latitude)
+            );
+            
+            tempPolygonEntity = viewer.entities.add({
+                polygon: {
+                    hierarchy: positions,
+                    material: Cesium.Color.CYAN.withAlpha(0.3),
+                    outline: true,
+                    outlineColor: Cesium.Color.CYAN,
+                    outlineWidth: 2
+                }
+            });
+        };
+        
+        /**
+         * 完成多边形绘制
+         * @returns {Object} 多边形数据
+         */
+        const finishPolygonDrawing = () => {
+            if (!viewer || polygonPoints.value.length < 3) {
+                console.warn('⚠️ 至少需要3个顶点才能完成多边形');
+                return null;
+            }
+            
+            // 创建最终的多边形
+            const positions = polygonPoints.value.map(p => 
+                Cesium.Cartesian3.fromDegrees(p.longitude, p.latitude)
+            );
+            
+            const polygonEntity = viewer.entities.add({
+                polygon: {
+                    hierarchy: positions,
+                    material: Cesium.Color.YELLOW.withAlpha(0.4),
+                    outline: true,
+                    outlineColor: Cesium.Color.YELLOW,
+                    outlineWidth: 3
+                }
+            });
+            
+            polygonEntities.push(polygonEntity);
+            
+            // 保存多边形数据
+            const polygonData = {
+                id: `polygon_${Date.now()}`,
+                points: [...polygonPoints.value],
+                entity: polygonEntity
+            };
+            
+            // 清理临时数据
+            clearTempPolygonData();
+            
+            console.log('✅ 多边形绘制完成:', polygonData);
+            return polygonData;
+        };
+        
+        /**
+         * 取消当前多边形绘制
+         */
+        const cancelPolygonDrawing = () => {
+            clearTempPolygonData();
+            console.log('❌ 已取消多边形绘制');
+        };
+        
+        /**
+         * 清理临时多边形数据
+         */
+        const clearTempPolygonData = () => {
+            if (!viewer) return;
+            
+            // 移除临时多边形
+            if (tempPolygonEntity) {
+                viewer.entities.remove(tempPolygonEntity);
+                tempPolygonEntity = null;
+            }
+            
+            // 移除顶点标记
+            polygonPointMarkers.forEach(marker => {
+                viewer.entities.remove(marker);
+            });
+            polygonPointMarkers = [];
+            
+            // 清空顶点数据
+            polygonPoints.value = [];
+        };
+        
+        /**
+         * 清空所有多边形
+         */
+        const clearAllPolygons = () => {
+            if (!viewer) return;
+            
+            // 移除所有多边形实体
+            polygonEntities.forEach(entity => {
+                viewer.entities.remove(entity);
+            });
+            polygonEntities = [];
+            
+            // 清理临时数据
+            clearTempPolygonData();
+            
+            console.log('🗑️ 已清空所有多边形');
+        };
+        
+        /**
+         * 添加多边形到地图
+         * @param {Object} polygon - 多边形数据
+         */
+        const addPolygon = (polygon) => {
+            if (!viewer || !polygon || !polygon.points || polygon.points.length < 3) {
+                console.warn('⚠️ 无效的多边形数据');
+                return;
+            }
+            
+            const positions = polygon.points.map(p => 
+                Cesium.Cartesian3.fromDegrees(p.longitude, p.latitude)
+            );
+            
+            const polygonEntity = viewer.entities.add({
+                polygon: {
+                    hierarchy: positions,
+                    material: Cesium.Color.YELLOW.withAlpha(0.4),
+                    outline: true,
+                    outlineColor: Cesium.Color.YELLOW,
+                    outlineWidth: 3
+                }
+            });
+            
+            polygonEntities.push(polygonEntity);
+            console.log('📐 多边形已添加到地图');
+        };
+        
+        /**
+         * 更新地图上的所有多边形
+         * @param {Array} polygons - 多边形列表
+         */
+        const updatePolygons = (polygons) => {
+            if (!viewer) return;
+            
+            // 清空现有多边形
+            polygonEntities.forEach(entity => {
+                viewer.entities.remove(entity);
+            });
+            polygonEntities = [];
+            
+            // 添加新的多边形
+            polygons.forEach(polygon => {
+                addPolygon(polygon);
+            });
+            
+            console.log(`📊 已更新 ${polygons.length} 个多边形`);
+        };
+        
+        // ==================== 北极盆地数据加载功能 ====================
+        
+        /**
+         * 加载北极盆地分布数据
+         */
+        const loadArcticBasinData = async () => {
+            if (!viewer) {
+                console.warn('⚠️ Viewer未初始化，无法加载北极盆地数据');
+                return;
+            }
+            
+            try {
+                console.log('🏔️ 开始加载北极盆地分布数据...');
+                
+                // 加载两个北极盆地数据文件
+                const dataFiles = [
+                    '/data/BJ/PD/PD1.geojson',
+                    '/data/BJ/PD/PD2.geojson'
+                ];
+                
+                for (const dataFile of dataFiles) {
+                    console.log(`📂 加载文件: ${dataFile}`);
+                    
+                    // 使用fetch加载自定义格式的数据
+                    const response = await fetch(dataFile);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('📊 加载的数据:', data);
+                    
+                    // 检查数据格式
+                    if (data.type === 'PolygonCollection' && data.polygons) {
+                        // 处理自定义的PolygonCollection格式
+                        data.polygons.forEach((polygon, index) => {
+                            if (polygon.points && polygon.points.length >= 3) {
+                                // 转换点坐标为Cesium格式
+                                const positions = polygon.points.map(point => 
+                                    Cesium.Cartesian3.fromDegrees(point.longitude, point.latitude)
+                                );
+                                
+                                // 创建多边形实体
+                                const entity = viewer.entities.add({
+                                    name: polygon.name || `北极盆地_${index + 1}`,
+                                    polygon: {
+                                        hierarchy: positions,
+                                        material: Cesium.Color.SKYBLUE.withAlpha(0.8),
+                                        outline: true,
+                                        outlineColor: Cesium.Color.WHITE,
+                                        outlineWidth: 5
+                                    }
+                                });
+                                
+                                // 添加到数据源数组（这里存储实体而不是数据源）
+                                arcticBasinDataSources.push(entity);
+                                
+                                console.log(`✅ 成功加载北极盆地: ${polygon.name || `盆地_${index + 1}`}`);
+                            }
+                        });
+                    } else {
+                        console.warn('⚠️ 数据格式不正确:', data);
+                    }
+                }
+                
+                showArcticBasin.value = true;
+                console.log(`🏔️ 北极盆地数据加载完成，共加载 ${arcticBasinDataSources.length} 个盆地`);
+                
+            } catch (error) {
+                console.error('❌ 加载北极盆地数据失败:', error);
+            }
+        };
+        
+        /**
+         * 卸载北极盆地分布数据
+         */
+        const unloadArcticBasinData = () => {
+            if (!viewer) return;
+            
+            try {
+                console.log('🗑️ 开始卸载北极盆地分布数据...');
+                
+                // 移除所有北极盆地实体
+                arcticBasinDataSources.forEach(entity => {
+                    viewer.entities.remove(entity);
+                });
+                
+                // 清空实体数组
+                arcticBasinDataSources = [];
+                showArcticBasin.value = false;
+                
+                console.log('✅ 北极盆地数据卸载完成');
+                
+            } catch (error) {
+                console.error('❌ 卸载北极盆地数据失败:', error);
+            }
+        };
+        
+        /**
+         * 切换北极盆地数据显示
+         * @param {boolean} show - 是否显示
+         */
+        const toggleArcticBasinData = async (show) => {
+            if (show && !showArcticBasin.value) {
+                await loadArcticBasinData();
+            } else if (!show && showArcticBasin.value) {
+                unloadArcticBasinData();
+            }
+        };
+        
+        // ==================== 北极资源数据加载功能（天然气、石油）====================
+        
+        /**
+         * 加载北极资源数据
+         * @param {string} resourceType - 资源类型：'natural_gas' 或 'oil'
+         */
+        const loadArcticResourceData = async (resourceType) => {
+            if (!viewer) {
+                console.warn('⚠️ Viewer未初始化，无法加载北极资源数据');
+                return;
+            }
+            
+            try {
+                const resourceNames = {
+                    natural_gas: '天然气',
+                    oil: '石油'
+                };
+                
+                const resourceName = resourceNames[resourceType];
+                console.log(`⛽ 开始加载北极${resourceName}数据...`);
+                
+                const dataFile = `/data/BJ/${resourceName}.geojson`;
+                
+                // 创建小长方块图标（横向）
+                const canvas = document.createElement('canvas');
+                canvas.width = 8;  // 横向：宽度
+                canvas.height = 5;  // 横向：高度
+                const ctx = canvas.getContext('2d');
+                
+                // 设置颜色：天然气红色，石油深绿色
+                const color = resourceType === 'natural_gas' ? '#FF0000' : '#006400';
+                
+                // 绘制横向长方块，不要边框
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, 8, 5);
+                
+                // 使用fetch加载GeoJSON数据
+                const response = await fetch(dataFile);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const geojsonData = await response.json();
+                console.log('📊 加载的数据:', geojsonData);
+                
+                // 手动创建实体
+                const entities = [];
+                if (geojsonData.features) {
+                    geojsonData.features.forEach((feature, index) => {
+                        if (feature.geometry && feature.geometry.type === 'Point') {
+                            const [longitude, latitude] = feature.geometry.coordinates;
+                            
+                            const entity = viewer.entities.add({
+                                name: feature.properties?.name || `${resourceName}_${index + 1}`,
+                                position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+                                billboard: {
+                                    image: canvas,
+                                    width: 8,
+                                    height: 5,
+                                    verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                                },
+                                properties: feature.properties
+                            });
+                            
+                            entities.push(entity);
+                        }
+                    });
+                }
+                
+                // 存储实体引用（而不是数据源）
+                if (!arcticResourceDataSources[resourceType]) {
+                    arcticResourceDataSources[resourceType] = [];
+                }
+                arcticResourceDataSources[resourceType] = entities;
+                
+                showArcticResources.value[resourceType] = true;
+                console.log(`✅ 成功加载 ${entities.length} 个${resourceName}点位`);
+                
+            } catch (error) {
+                console.error(`❌ 加载北极${resourceNames[resourceType]}数据失败:`, error);
+            }
+        };
+        
+        /**
+         * 卸载北极资源数据
+         * @param {string} resourceType - 资源类型：'natural_gas' 或 'oil'
+         */
+        const unloadArcticResourceData = (resourceType) => {
+            if (!viewer) return;
+            
+            try {
+                const resourceNames = {
+                    natural_gas: '天然气',
+                    oil: '石油'
+                };
+                
+                console.log(`🗑️ 开始卸载北极${resourceNames[resourceType]}数据...`);
+                
+                // 移除所有实体
+                if (arcticResourceDataSources[resourceType] && Array.isArray(arcticResourceDataSources[resourceType])) {
+                    arcticResourceDataSources[resourceType].forEach(entity => {
+                        viewer.entities.remove(entity);
+                    });
+                    arcticResourceDataSources[resourceType] = [];
+                }
+                
+                showArcticResources.value[resourceType] = false;
+                console.log(`✅ 北极${resourceNames[resourceType]}数据卸载完成`);
+                
+            } catch (error) {
+                console.error(`❌ 卸载北极${resourceNames[resourceType]}数据失败:`, error);
+            }
+        };
+        
+        /**
+         * 切换北极资源数据显示
+         * @param {string} resourceType - 资源类型：'natural_gas' 或 'oil'
+         * @param {boolean} show - 是否显示
+         */
+        const toggleArcticResourceData = async (resourceType, show) => {
+            if (show && !showArcticResources.value[resourceType]) {
+                await loadArcticResourceData(resourceType);
+            } else if (!show && showArcticResources.value[resourceType]) {
+                unloadArcticResourceData(resourceType);
+            }
+        };
+        
         // ==================== 返回暴露的方法和状态 ====================
         
         return {
@@ -6284,7 +6803,27 @@ export default {
             weatherDataCache,
             weatherTimeSteps,
             currentTimeIndex,
-            closeWeatherPicker
+            closeWeatherPicker,
+            // 多边形绘制相关
+            enablePolygonDrawing,
+            disablePolygonDrawing,
+            finishPolygonDrawing,
+            cancelPolygonDrawing,
+            clearAllPolygons,
+            addPolygon,
+            updatePolygons,
+            isPolygonDrawingMode,
+            polygonPoints,
+            // 北极盆地数据相关
+            loadArcticBasinData,
+            unloadArcticBasinData,
+            toggleArcticBasinData,
+            showArcticBasin,
+            // 北极资源数据相关
+            loadArcticResourceData,
+            unloadArcticResourceData,
+            toggleArcticResourceData,
+            showArcticResources
         };
     }
 };

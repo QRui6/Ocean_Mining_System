@@ -83,7 +83,7 @@ export default {
             default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel', 'toggleCableList', 'toggleCableStatistics', 'toggleArcticRouteList', 'toggleArcticRouteStatistics'],
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'togglePolygonDrawer', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel', 'toggleSituationOverview', 'toggleCableList', 'toggleCableStatistics', 'toggleArcticRouteList', 'toggleArcticRouteStatistics'],
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -179,10 +179,14 @@ export default {
             // 极地科考选项卡的功能
             else if (props.currentTab === '极地科考') {
                 console.log('🧊 极地科考按钮点击:', tool);
-                if (tool === '极地面板') {
-                    emit('togglePolarPanel');
+                if (tool === '态势总览') {
+                    emit('toggleSituationOverview');
                 } else if (tool === '坐标采集') {
                     emit('toggleCoordinateCollector');
+                } else if (tool === '区域勾面') {
+                    emit('togglePolygonDrawer');
+                } else if (tool === '极地面板') {
+                    emit('togglePolarPanel');
                 } else if (tool === '资源潜力') {
                     emit('toggleResourcePotential');
                 } else if (tool === '科考站点') {
@@ -266,8 +270,10 @@ export default {
             
             // 极地科考选项卡的功能
             if (props.currentTab === '极地科考') {
-                if (tool === '极地面板') return props.activePanels.polarPanel;
+                if (tool === '态势总览') return props.activePanels.situationOverview;
                 if (tool === '坐标采集') return props.activePanels.coordinateCollector;
+                if (tool === '区域勾面') return props.activePanels.polygonDrawer;
+                if (tool === '极地面板') return props.activePanels.polarPanel;
                 if (tool === '资源潜力') return props.activePanels.resourcePotential;
                 if (tool === '科考站点') return props.activePanels.polarStations;
                 if (tool === '主权主张') return props.activePanels.polarSovereignty;

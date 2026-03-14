@@ -128,9 +128,41 @@
                         </button>
                         
                         <transition name="expand">
-                            <div v-if="expandedSections.arctic" class="px-6 pb-4 space-y-4">
-                                <div class="p-4 rounded-lg text-center" style="background: var(--panel-item-bg); color: var(--text-secondary);">
-                                    北极资源数据开发中...
+                            <div v-if="expandedSections.arctic" class="space-y-2">
+                                <!-- 资源潜力 -->
+                                <div class="border-b" style="border-color: var(--panel-border);">
+                                    <button @click="toggleSection('arcticPotential')"
+                                            class="w-full px-6 py-3 flex items-center justify-between transition-all hover:bg-white/5">
+                                        <span class="text-base font-bold" style="color: var(--text-primary);">资源潜力</span>
+                                        <svg class="w-4 h-4 transition-transform" 
+                                             :class="{ 'rotate-180': expandedSections.arcticPotential }"
+                                             style="color: var(--text-secondary);"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+                                    
+                                    <transition name="expand">
+                                        <div v-if="expandedSections.arcticPotential" class="px-6 pb-4 space-y-2">
+                                            <button @click="handleResourceClick('oil')"
+                                                    class="w-full p-3 rounded-lg border transition-all hover:bg-white/10"
+                                                    style="background: var(--panel-item-bg); border-color: var(--panel-border);">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                                                    <span class="font-medium" style="color: var(--text-primary);">石油</span>
+                                                </div>
+                                            </button>
+                                            
+                                            <button @click="handleResourceClick('gas')"
+                                                    class="w-full p-3 rounded-lg border transition-all hover:bg-white/10"
+                                                    style="background: var(--panel-item-bg); border-color: var(--panel-border);">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                    <span class="font-medium" style="color: var(--text-primary);">天然气</span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </transition>
                                 </div>
                             </div>
                         </transition>
@@ -156,17 +188,26 @@ export default {
             default: false
         }
     },
-    emits: ['close'],
-    setup() {
+    emits: ['close', 'showResourceCharts'],
+    setup(props, context) {
         const expandedSections = reactive({
             antarctic: true,
             arctic: false,
             antarcticResources: true,  // 资源基础默认展开
-            antarcticSurvey: false     // 资源调查情况默认折叠
+            antarcticSurvey: false,    // 资源调查情况默认折叠
+            arcticPotential: false     // 北极资源潜力默认折叠
         });
 
         const toggleSection = (section) => {
             expandedSections[section] = !expandedSections[section];
+        };
+        
+        const handleResourceClick = (resourceType) => {
+            console.log('🎨 [PolarResourcePotentialPanel] 点击资源类型:', resourceType);
+            console.log('🎨 [PolarResourcePotentialPanel] context.emit 可用:', !!context.emit);
+            // 触发事件，通知父组件显示资源图表
+            context.emit('showResourceCharts', resourceType);
+            console.log('🎨 [PolarResourcePotentialPanel] 已触发 showResourceCharts 事件');
         };
 
         // 南极资源数据
@@ -286,6 +327,7 @@ export default {
         return {
             expandedSections,
             toggleSection,
+            handleResourceClick,
             antarcticResources,
             antarcticSurveys
         };

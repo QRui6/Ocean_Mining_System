@@ -75,7 +75,7 @@
                 </div>
 
                 <!-- Level 2: 所属大洋 - 3列大按钮 -->
-                <div class="space-y-2 pt-2 border-t-2 border-cyan-500/30">
+                <!-- <div class="space-y-2 pt-2 border-t-2 border-cyan-500/30">
                     <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all" @click="showOceanPanel = !showOceanPanel">
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
@@ -98,7 +98,7 @@
                             </div>
                         </div>
                     </transition>
-                </div>
+                </div> -->
 
                 <!-- Level 3: 国家（可折叠面板） -->
                 <div class="space-y-2 pt-2 border-t-2 border-slate-700/30">
@@ -776,6 +776,12 @@ export default {
          */
         const toggleEconomicEvaluation = (item) => {
             console.log('💰 LeftPanel toggleEconomicEvaluation 被调用, item:', item);
+            
+            // 如果点击的是"经济计算"，显示经济计算面板
+            if (item === '经济计算') {
+                emit('showEconomicCalculation');
+                return;
+            }
             
             // 如果点击的是"模型对比"，显示模型对比面板
             if (item === '模型对比') {

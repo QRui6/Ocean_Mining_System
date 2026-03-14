@@ -124,35 +124,48 @@
                             </svg>
                         </div>
                         <transition name="slide-down">
-                            <div v-if="showCoreRepositoriesPanel" class="flex gap-2 p-2 bg-slate-900/30 rounded">
-                                <div 
-                                    @click="selectCoreRepository('usa')"
-                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
-                                    :class="selectedCoreRepository === 'usa' ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-blue-500/50'"
-                                >
-                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <div class="relative text-center">
-                                        <span class="font-medium text-sm">美国</span>
+                            <div v-if="showCoreRepositoriesPanel" class="space-y-2 p-2 bg-slate-900/30 rounded">
+                                <!-- 2x2网格布局 -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div 
+                                        @click="selectCoreRepository('usa')"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                        :class="selectedCoreRepository === 'usa' ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-blue-500/50'"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative text-center">
+                                            <span class="font-medium text-sm">美国</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div 
-                                    @click="selectCoreRepository('germany')"
-                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
-                                    :class="selectedCoreRepository === 'germany' ? 'bg-gradient-to-br from-yellow-600 to-yellow-800 text-white shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-yellow-500/50'"
-                                >
-                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <div class="relative text-center">
-                                        <span class="font-medium text-sm">德国</span>
+                                    <div 
+                                        @click="selectCoreRepository('germany')"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                        :class="selectedCoreRepository === 'germany' ? 'bg-gradient-to-br from-yellow-600 to-yellow-800 text-white shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-yellow-500/50'"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative text-center">
+                                            <span class="font-medium text-sm">德国</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div 
-                                    @click="selectCoreRepository('japan')"
-                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
-                                    :class="selectedCoreRepository === 'japan' ? 'bg-gradient-to-br from-red-600 to-red-800 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-red-500/50'"
-                                >
-                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <div class="relative text-center">
-                                        <span class="font-medium text-sm">日本</span>
+                                    <div 
+                                        @click="selectCoreRepository('japan')"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden"
+                                        :class="selectedCoreRepository === 'japan' ? 'bg-gradient-to-br from-red-600 to-red-800 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-red-500/50'"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative text-center">
+                                            <span class="font-medium text-sm">日本</span>
+                                        </div>
+                                    </div>
+                                    <!-- 中国按钮 -->
+                                    <div 
+                                        @click="handleChinaCoreRepository"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-red-500/50"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative text-center">
+                                            <span class="font-medium text-sm">中国</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -167,22 +180,42 @@
                                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
                                 </svg>
                                 <span class="text-purple-400 text-base font-bold">管理框架</span>
+                                <span v-if="selectedManagementFrameworks.length > 0" class="px-2 py-0.5 bg-purple-500 text-white text-xs font-bold rounded-full">{{ selectedManagementFrameworks.length }}</span>
                             </div>
                             <svg class="w-5 h-5 text-purple-400 transition-transform duration-300" :class="{ 'rotate-180': showManagementPanel }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
                         <transition name="slide-down">
-                            <div v-if="showManagementPanel" class="flex gap-2 p-2 bg-slate-900/30 rounded">
-                                <div 
-                                    v-for="mgmt in DRILLING_CATEGORIES.MANAGEMENT.items" 
-                                    :key="mgmt.id"
-                                    @click="toggleManagement(mgmt.id)"
-                                    class="flex-1 relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-purple-500/50"
-                                >
-                                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <div class="relative">
-                                        <span class="font-medium text-sm">{{ mgmt.label }}</span>
+                            <div v-if="showManagementPanel" class="p-2 bg-slate-900/30 rounded">
+                                <!-- 2x2网格布局 -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div 
+                                        v-for="mgmt in DRILLING_CATEGORIES.MANAGEMENT.items" 
+                                        :key="mgmt.id"
+                                        @click="toggleManagement(mgmt.id)"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center border"
+                                        :class="selectedManagementFrameworks.includes(mgmt.id) 
+                                            ? 'bg-gradient-to-br from-purple-600 to-purple-800 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] border-purple-400' 
+                                            : 'bg-slate-800/60 text-white hover:bg-slate-700 border-slate-700 hover:border-purple-500/50'"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative flex items-center justify-center gap-2">
+                                            <span class="font-medium text-sm">{{ mgmt.label }}</span>
+                                            <svg v-if="selectedManagementFrameworks.includes(mgmt.id)" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <!-- 中国按钮 -->
+                                    <div 
+                                        @click="handleChinaManagement"
+                                        class="relative py-3 px-3 rounded-lg cursor-pointer transition-all duration-300 group overflow-hidden text-center bg-slate-800/60 text-white hover:bg-slate-700 border border-slate-700 hover:border-purple-500/50"
+                                    >
+                                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                                        <div class="relative">
+                                            <span class="font-medium text-sm">中国</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -292,6 +325,9 @@ export default {
         // 岩心库选中状态（单选）
         const selectedCoreRepository = ref(null);
         
+        // 管理框架选中状态（多选）
+        const selectedManagementFrameworks = ref([]);
+        
         // 选择岩心库
         const selectCoreRepository = (countryId) => {
             console.log('🖱️ DrillingPanel: 点击岩心库按钮', countryId);
@@ -310,10 +346,43 @@ export default {
             }
         };
         
-        // 切换管理框架
+        // 切换管理框架（多选逻辑，可以同时选择多个国家）
         const toggleManagement = (mgmtId) => {
-            // 只触发显示管理框架面板，不改变选中状态
-            emit('showManagementFramework', mgmtId);
+            console.log('🖱️ DrillingPanel: 点击管理框架按钮', mgmtId);
+            const index = selectedManagementFrameworks.value.indexOf(mgmtId);
+            
+            if (index > -1) {
+                // 如果已选中，则取消选中
+                selectedManagementFrameworks.value.splice(index, 1);
+                console.log('🖱️ DrillingPanel: 取消选中管理框架', mgmtId, '当前选中:', selectedManagementFrameworks.value);
+                
+                // 如果没有选中的框架了，关闭面板
+                if (selectedManagementFrameworks.value.length === 0) {
+                    emit('showManagementFramework', null);
+                } else {
+                    // 仍有选中的框架，更新面板显示
+                    emit('showManagementFramework', selectedManagementFrameworks.value);
+                }
+            } else {
+                // 如果未选中，则添加到选中列表
+                selectedManagementFrameworks.value.push(mgmtId);
+                console.log('🖱️ DrillingPanel: 选中管理框架', mgmtId, '当前选中:', selectedManagementFrameworks.value);
+                
+                // 通知父组件显示管理框架面板
+                emit('showManagementFramework', selectedManagementFrameworks.value);
+            }
+        };
+        
+        // 处理中国岩芯库点击
+        const handleChinaCoreRepository = () => {
+            console.log('🖱️ DrillingPanel: 点击中国岩芯库按钮');
+            // 暂时不做处理，只打印日志
+        };
+        
+        // 处理中国管理框架点击
+        const handleChinaManagement = () => {
+            console.log('🖱️ DrillingPanel: 点击中国管理框架按钮');
+            // 暂时不做处理，只打印日志
         };
         
         return {
@@ -322,6 +391,7 @@ export default {
             activePlatforms,
             selectedCoreRepository,
             activeManagement,
+            selectedManagementFrameworks,
             showDrillingSitesPanel,
             showPlatformsPanel,
             showCoreRepositoriesPanel,
@@ -332,7 +402,9 @@ export default {
             togglePlatform,
             getPlatformClass,
             selectCoreRepository,
-            toggleManagement
+            toggleManagement,
+            handleChinaCoreRepository,
+            handleChinaManagement
         };
     }
 };
