@@ -3,9 +3,17 @@
         <!-- Top Decor -->
         <div class="h-3 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
         
-        <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 flex flex-col relative overflow-hidden">
+        <div class="flex-1 relative overflow-hidden flex flex-col"
+             style="background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 2px solid rgba(6, 182, 212, 0.3);">
+            
+            <!-- 发光边框效果 -->
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+            </div>
+            
             <!-- Header -->
-            <div class="h-14 flex items-center justify-between px-8 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
+            <div class="h-14 flex items-center justify-between px-8 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent relative z-10">
                   <div class="flex items-center gap-4">
                       <div class="w-1.5 h-6 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
                       <h3 class="text-2xl font-bold text-cyan-50 tracking-wider font-['Noto_Sans_SC']">海洋装备列表</h3>
@@ -14,12 +22,6 @@
                   
                   <!-- Tools -->
                   <div class="flex gap-6 text-cyan-400 text-base font-bold">
-                      <button @click="$emit('toggleStatistics')" class="hover:text-white hover:underline decoration-2 underline-offset-4 flex items-center gap-1">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                          </svg>
-                          数据分析
-                      </button>
                       <button @click="refreshData" class="hover:text-white hover:underline decoration-2 underline-offset-4">刷新列表</button>
                   </div>
             </div>
@@ -29,7 +31,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-cyan-900/20 text-cyan-200 text-sm sticky top-0 backdrop-blur-md z-10">
                         <tr>
-                            <th v-for="h in ['序号', '装备名称', '国家', '下潜深度(m)', '载人数', '制造年份', '状态']" :key="h" 
+                            <th v-for="h in ['序号', '装备名称', '国家', '下潜深度(m)', '载人数', '制造年份']" :key="h" 
                                 class="px-3 py-2 font-bold tracking-wider border-b-2 border-cyan-500/30 whitespace-nowrap"
                             >
                                 {{ h }}
@@ -38,7 +40,7 @@
                     </thead>
                     <tbody class="text-slate-300 text-sm font-['Rajdhani']">
                         <tr v-if="paginatedData.length === 0">
-                            <td colspan="7" class="px-3 py-6 text-center text-slate-500">
+                            <td colspan="6" class="px-3 py-6 text-center text-slate-500">
                                 暂无数据
                             </td>
                         </tr>
@@ -52,11 +54,6 @@
                             <td class="px-3 py-2 font-mono text-cyan-400 font-bold text-xs">{{ formatDepth(item.depth) }}</td>
                             <td class="px-3 py-2 font-mono text-green-400 text-xs">{{ item.capacity || 'N/A' }}</td>
                             <td class="px-3 py-2 opacity-80 text-xs">{{ item.year || 'N/A' }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC']">
-                                <span :class="item.status === '运营中' ? 'text-green-400' : 'text-gray-400'">
-                                    {{ item.status || '运营中' }}
-                                </span>
-                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -125,7 +122,7 @@ export default {
             default: () => []
         }
     },
-    emits: ['rowClick', 'toggleStatistics', 'refresh'],
+    emits: ['rowClick', 'refresh'],
     setup(props, { emit }) {
         const currentPage = ref(1);
         const pageSize = ref(10);

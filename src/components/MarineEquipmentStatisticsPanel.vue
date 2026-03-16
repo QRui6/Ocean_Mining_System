@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed top-32 right-8 z-30 w-[800px] pointer-events-auto font-['Noto_Sans_SC']">
+    <div class="absolute bottom-[27rem] left-[31rem] right-8 z-30 pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
              style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);">
@@ -27,12 +27,6 @@
                         海洋装备深度对比
                     </h3>
                 </div>
-                <button @click="$emit('close')" 
-                        class="text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
             </div>
 
             <!-- 图表内容区 -->
@@ -43,7 +37,7 @@
                         <div class="chart-title-line"></div>
                         <h4 class="chart-title">各国深潜装备下潜深度对比</h4>
                     </div>
-                    <div ref="depthChart" class="w-full h-[500px]"></div>
+                    <div ref="depthChart" class="w-full h-[400px]"></div>
                 </div>
             </div>
         </div>
@@ -62,7 +56,7 @@ export default {
             default: () => []
         }
     },
-    emits: ['close'],
+    emits: [],
     setup(props) {
         const depthChart = ref(null);
         let chartInstance = null;

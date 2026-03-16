@@ -231,6 +231,75 @@ export class SeafloorObservationLayer {
     }
 
     /**
+     * 飞行到指定国家的所有观测网（总览视角）
+     */
+    flyToCountry(country) {
+        if (!this.viewer || !country) return;
+        
+        // 筛选该国家的所有观测点
+        const countryObservations = this.observationData.filter(obs => obs.country === country);
+        
+        if (countryObservations.length === 0) {
+            console.warn(`⚠️ 没有找到${country}的观测网数据`);
+            return;
+        }
+        
+        console.log(`🔬 飞行到${country}的观测网，共 ${countryObservations.length} 个点`);
+        
+        // 如果只有一个点，直接飞到该点
+        if (countryObservations.length === 1) {
+            this.flyTo(countryObservations[0]);
+            return;
+        }
+        
+        // 计算边界框
+        let minLng = Infinity, maxLng = -Infinity;
+        let minLat = Infinity, maxLat = -Infinity;
+        
+        countryObservations.forEach(obs => {
+            minLng = Math.min(minLng, obs.longitude);
+            maxLng = Math.max(maxLng, obs.longitude);
+            minLat = Math.min(minLat, obs.latitude);
+            maxLat = Math.max(maxLat, obs.latitude);
+        });
+        
+        // 计算中心点
+        const centerLng = (minLng + maxLng) / 2;
+        const centerLat = (minLat + maxLat) / 2;
+        
+        // 计算合适的高度（根据跨度）
+        const lngSpan = maxLng - minLng;
+        const latSpan = maxLat - minLat;
+        const maxSpan = Math.max(lngSpan, latSpan);
+        
+        // 根据跨度计算高度，确保能看到所有点
+        // 跨度越大，高度越高
+        let height;
+        if (maxSpan < 5) {
+            height = 800000; // 小范围：800km
+        } else if (maxSpan < 20) {
+            height = 2000000; // 中等范围：2000km
+        } else if (maxSpan < 50) {
+            height = 5000000; // 大范围：5000km
+        } else {
+            height = 10000000; // 超大范围：10000km
+        }
+        
+        console.log(`📍 中心点: (${centerLng.toFixed(2)}, ${centerLat.toFixed(2)}), 高度: ${(height/1000).toFixed(0)}km`);
+        
+        // 飞行到总览视角
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, height),
+            duration: 2.5,
+            orientation: {
+                heading: Cesium.Math.toRadians(0),
+                pitch: Cesium.Math.toRadians(-45),
+                roll: 0
+            }
+        });
+    }
+
+    /**
      * 高亮指定观测网
      */
     highlightObservation(observationId) {

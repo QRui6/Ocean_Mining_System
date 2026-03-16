@@ -3,9 +3,17 @@
         <!-- Top Decor -->
         <div class="h-3 w-full bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
         
-        <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-blue-500/30 flex flex-col relative overflow-hidden">
+        <div class="flex-1 relative overflow-hidden flex flex-col"
+             style="background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 2px solid rgba(59, 130, 246, 0.3);">
+            
+            <!-- 发光边框效果 -->
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-70"></div>
+                <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-400 to-transparent opacity-70"></div>
+            </div>
+            
             <!-- Header -->
-            <div class="h-14 flex items-center justify-between px-8 border-b border-blue-500/20 bg-gradient-to-r from-blue-900/30 to-transparent">
+            <div class="h-14 flex items-center justify-between px-8 border-b border-blue-500/20 bg-gradient-to-r from-blue-900/30 to-transparent relative z-10">
                   <div class="flex items-center gap-4">
                       <div class="w-1.5 h-6 bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>
                       <h3 class="text-2xl font-bold text-blue-50 tracking-wider font-['Noto_Sans_SC']">主要航线列表</h3>

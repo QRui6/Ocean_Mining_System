@@ -60,7 +60,7 @@
                             }">
                             <td class="py-3 px-4 font-bold" 
                                 :style="{ 
-                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -68,7 +68,7 @@
                             </td>
                             <td class="py-3 px-4 font-medium"
                                 :style="{ 
-                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -79,7 +79,7 @@
                                 <span class="px-2 py-1 rounded font-bold"
                                       :style="{ 
                                           backgroundColor: getCountryColor(inst.countryId) + '40', 
-                                          color: `${getCountryColor(inst.countryId)} !important`,
+                                          color: '#ffffff !important',
                                           border: `1px solid ${getCountryColor(inst.countryId)}80`,
                                           fontSize: '0.75rem'
                                       }">
@@ -88,14 +88,14 @@
                             </td>
                             <td class="py-3 px-4 text-sm"
                                 :style="{ 
-                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)'
                                 }">
                                 {{ inst.founded || '-' }}
                             </td>
                             <td class="py-3 px-4 text-sm"
                                 :style="{ 
-                                    color: `${getCountryColor(inst.countryId)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)'
                                 }">
                                 {{ inst.city || '-' }}
@@ -105,7 +105,7 @@
                                         class="px-2 py-1 rounded transition-all duration-200 text-xs"
                                         :style="{ 
                                             backgroundColor: getCountryColor(inst.countryId) + '40',
-                                            color: `${getCountryColor(inst.countryId)} !important`,
+                                            color: '#ffffff !important',
                                             border: `1px solid ${getCountryColor(inst.countryId)}80`
                                         }">
                                     定位

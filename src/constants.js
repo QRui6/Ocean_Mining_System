@@ -711,11 +711,11 @@ export const SEAFLOOR_OBSERVATION_COLORS = {
 export const SEAFLOOR_OBSERVATION = {
     label: '海底观测网',
     countries: [
-        { id: 'usa', label: '美国', color: SEAFLOOR_OBSERVATION_COLORS['美国'] },
-        { id: 'eu', label: '欧盟', color: SEAFLOOR_OBSERVATION_COLORS['欧洲'] },
-        { id: 'canada', label: '加拿大', color: SEAFLOOR_OBSERVATION_COLORS['加拿大'] },
-        { id: 'japan', label: '日本', color: SEAFLOOR_OBSERVATION_COLORS['日本'] },
-        { id: 'china', label: '中国', color: SEAFLOOR_OBSERVATION_COLORS['中国'] }
+        { id: 'seafloor_usa', label: '美国', color: SEAFLOOR_OBSERVATION_COLORS['美国'] },
+        { id: 'seafloor_eu', label: '欧盟', color: SEAFLOOR_OBSERVATION_COLORS['欧洲'] },
+        { id: 'seafloor_canada', label: '加拿大', color: SEAFLOOR_OBSERVATION_COLORS['加拿大'] },
+        { id: 'seafloor_japan', label: '日本', color: SEAFLOOR_OBSERVATION_COLORS['日本'] },
+        { id: 'seafloor_china', label: '中国', color: SEAFLOOR_OBSERVATION_COLORS['中国'] }
     ]
 };
 
@@ -741,14 +741,14 @@ export const RESEARCH_INSTITUTION_COLORS = {
 export const RESEARCH_INSTITUTIONS = {
     label: '主要研究机构',
     countries: [
-        { id: 'usa', label: '美国', color: RESEARCH_INSTITUTION_COLORS.usa },
-        { id: 'uk', label: '英国', color: RESEARCH_INSTITUTION_COLORS.uk },
-        { id: 'france', label: '法国', color: RESEARCH_INSTITUTION_COLORS.france },
-        { id: 'germany', label: '德国', color: RESEARCH_INSTITUTION_COLORS.germany },
-        { id: 'canada', label: '加拿大', color: RESEARCH_INSTITUTION_COLORS.canada },
-        { id: 'australia', label: '澳大利亚', color: RESEARCH_INSTITUTION_COLORS.australia },
-        { id: 'russia', label: '俄罗斯', color: RESEARCH_INSTITUTION_COLORS.russia },
-        { id: 'japan', label: '日本', color: RESEARCH_INSTITUTION_COLORS.japan }
+        { id: 'research_usa', label: '美国', color: RESEARCH_INSTITUTION_COLORS.usa },
+        { id: 'research_uk', label: '英国', color: RESEARCH_INSTITUTION_COLORS.uk },
+        { id: 'research_france', label: '法国', color: RESEARCH_INSTITUTION_COLORS.france },
+        { id: 'research_germany', label: '德国', color: RESEARCH_INSTITUTION_COLORS.germany },
+        { id: 'research_canada', label: '加拿大', color: RESEARCH_INSTITUTION_COLORS.canada },
+        { id: 'research_australia', label: '澳大利亚', color: RESEARCH_INSTITUTION_COLORS.australia },
+        { id: 'research_russia', label: '俄罗斯', color: RESEARCH_INSTITUTION_COLORS.russia },
+        { id: 'research_japan', label: '日本', color: RESEARCH_INSTITUTION_COLORS.japan }
     ]
 };
 
