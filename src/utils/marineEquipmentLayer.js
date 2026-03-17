@@ -136,12 +136,12 @@ export class MarineEquipmentLayer {
                 // 构建用于列表和图表的数据
                 processedData.push({
                     name: equipment.name,
-                    country: equipment.country.name_cn,
-                    serviceUnit: equipment.service_unit || '未知',
+                    location: equipment.city?.name_cn || '未知',
+                    organization: equipment.service_unit || '未知',
                     year: equipment.development_year,
-                    capacity: capacity,
+                    specifications: equipment.specification,
+                    country: equipment.country.name_cn,
                     depth: depth,
-                    specification: equipment.specification,
                     notes: equipment.notes || '',
                     image: imagePath,
                     longitude: cityCoords.lng,
@@ -206,15 +206,14 @@ export class MarineEquipmentLayer {
             const props = entity.properties;
             return {
                 name: props.name?.getValue(),
-                country: props.country?.getValue(),
-                serviceUnit: props.serviceUnit?.getValue(),
+                location: props.serviceUnit?.getValue()?.includes('，') ? 
+                          props.serviceUnit?.getValue().split('，')[0] : '未知',
+                organization: props.serviceUnit?.getValue() || '未知',
                 year: props.developmentYear?.getValue(),
-                capacity: props.specification?.getValue()?.match(/载人(\d+)人/) ? 
-                          props.specification?.getValue().match(/载人(\d+)人/)[1] + '人' : 'N/A',
+                specifications: props.specification?.getValue(),
+                country: props.country?.getValue(),
                 depth: props.depth?.getValue() || 0,
-                specification: props.specification?.getValue(),
                 notes: props.notes?.getValue(),
-                status: '运营中',
                 image: props.imagePath?.getValue()
             };
         });

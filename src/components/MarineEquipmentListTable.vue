@@ -31,7 +31,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-cyan-900/20 text-cyan-200 text-sm sticky top-0 backdrop-blur-md z-10">
                         <tr>
-                            <th v-for="h in ['序号', '装备名称', '国家', '下潜深度(m)', '载人数', '制造年份']" :key="h" 
+                            <th v-for="h in ['序号', '名称', '位置', '服役单位', '研制时间', '规格']" :key="h" 
                                 class="px-3 py-2 font-bold tracking-wider border-b-2 border-cyan-500/30 whitespace-nowrap"
                             >
                                 {{ h }}
@@ -50,10 +50,10 @@
                         >
                             <td class="px-3 py-2 text-cyan-500 font-bold">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                             <td class="px-3 py-2 font-['Noto_Sans_SC'] text-white group-hover:text-cyan-300 transition-colors font-bold">{{ item.name }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-yellow-400 text-xs">{{ item.country || 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono text-cyan-400 font-bold text-xs">{{ formatDepth(item.depth) }}</td>
-                            <td class="px-3 py-2 font-mono text-green-400 text-xs">{{ item.capacity || 'N/A' }}</td>
-                            <td class="px-3 py-2 opacity-80 text-xs">{{ item.year || 'N/A' }}</td>
+                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-slate-300 text-xs">{{ item.location || '-' }}</td>
+                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-yellow-400 text-xs">{{ item.organization || '-' }}</td>
+                            <td class="px-3 py-2 font-mono text-cyan-400 text-xs">{{ item.year || '-' }}</td>
+                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-green-400 text-xs">{{ item.specifications || '-' }}</td>
                         </tr>
                     </tbody>
                 </table>
