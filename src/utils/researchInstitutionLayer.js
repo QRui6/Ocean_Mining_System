@@ -335,6 +335,74 @@ export class ResearchInstitutionLayer {
     }
 
     /**
+     * 飞行到指定国家的所有研究机构（总览视角）
+     */
+    flyToCountry(countryId) {
+        if (!this.viewer || !countryId) return;
+        
+        // 筛选该国家的所有机构
+        const countryInstitutions = this.institutionData.filter(inst => inst.countryId === countryId);
+        
+        if (countryInstitutions.length === 0) {
+            console.warn(`⚠️ 没有找到${countryId}的研究机构数据`);
+            return;
+        }
+        
+        console.log(`🏛️ 飞行到${countryId}的研究机构，共 ${countryInstitutions.length} 个`);
+        
+        // 如果只有一个机构，直接飞到该机构
+        if (countryInstitutions.length === 1) {
+            this.flyTo(countryInstitutions[0]);
+            return;
+        }
+        
+        // 计算边界框
+        let minLng = Infinity, maxLng = -Infinity;
+        let minLat = Infinity, maxLat = -Infinity;
+        
+        countryInstitutions.forEach(inst => {
+            minLng = Math.min(minLng, inst.longitude);
+            maxLng = Math.max(maxLng, inst.longitude);
+            minLat = Math.min(minLat, inst.latitude);
+            maxLat = Math.max(maxLat, inst.latitude);
+        });
+        
+        // 计算中心点
+        const centerLng = (minLng + maxLng) / 2;
+        const centerLat = (minLat + maxLat) / 2;
+        
+        // 计算合适的高度（根据跨度）
+        const lngSpan = maxLng - minLng;
+        const latSpan = maxLat - minLat;
+        const maxSpan = Math.max(lngSpan, latSpan);
+        
+        // 根据跨度计算高度，确保能看到所有机构
+        let height;
+        if (maxSpan < 5) {
+            height = 800000; // 小范围：800km
+        } else if (maxSpan < 20) {
+            height = 2000000; // 中等范围：2000km
+        } else if (maxSpan < 50) {
+            height = 5000000; // 大范围：5000km
+        } else {
+            height = 10000000; // 超大范围：10000km
+        }
+        
+        console.log(`📍 中心点: (${centerLng.toFixed(2)}, ${centerLat.toFixed(2)}), 高度: ${(height/1000).toFixed(0)}km`);
+        
+        // 飞行到总览视角
+        this.viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(centerLng, centerLat, height),
+            duration: 2.5,
+            orientation: {
+                heading: Cesium.Math.toRadians(0),
+                pitch: Cesium.Math.toRadians(-45),
+                roll: 0
+            }
+        });
+    }
+
+    /**
      * 高亮指定机构
      */
     highlightInstitution(institutionId) {

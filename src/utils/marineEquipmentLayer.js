@@ -112,18 +112,37 @@ export class MarineEquipmentLayer {
                 
                 this.equipmentEntities.push(entity);
                 
+                // 提取载人数 - 支持多种表达方式
+                let capacity = 'N/A';
+                if (equipment.specification) {
+                    const capacityPatterns = [
+                        /载人(\d+)人/,
+                        /载员(\d+)人/,
+                        /乘员(\d+)人/,
+                        /(\d+)人载/,
+                        /可载(\d+)人/,
+                        /搭载(\d+)人/
+                    ];
+                    
+                    for (const pattern of capacityPatterns) {
+                        const match = equipment.specification.match(pattern);
+                        if (match) {
+                            capacity = match[1] + '人';
+                            break;
+                        }
+                    }
+                }
+                
                 // 构建用于列表和图表的数据
                 processedData.push({
                     name: equipment.name,
                     country: equipment.country.name_cn,
                     serviceUnit: equipment.service_unit || '未知',
                     year: equipment.development_year,
-                    capacity: equipment.specification?.match(/载人(\d+)人/) ? 
-                              equipment.specification.match(/载人(\d+)人/)[1] + '人' : 'N/A',
+                    capacity: capacity,
                     depth: depth,
                     specification: equipment.specification,
                     notes: equipment.notes || '',
-                    status: '运营中',
                     image: imagePath,
                     longitude: cityCoords.lng,
                     latitude: cityCoords.lat

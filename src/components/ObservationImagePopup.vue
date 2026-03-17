@@ -3,7 +3,7 @@
          class="fixed z-50 pointer-events-auto"
          :style="popupStyle">
         <div class="relative bg-slate-900/95 backdrop-blur-lg border-2 border-cyan-400/50 rounded-lg shadow-2xl overflow-hidden"
-             style="box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);">
+             style="box-shadow: 0 0 30px rgba(6, 182, 212, 0.4); z-index: 9000;">
             <!-- 关闭按钮 -->
             <button @click="$emit('close')" 
                     class="absolute top-2 right-2 z-10 text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90 bg-slate-900/80 rounded-full p-1">

@@ -40,7 +40,7 @@
                                 <div v-for="item in MARITIME_SILK_ROAD.items" :key="item.id"
                                      @click="handleItemClick('maritime_silk_road', item.id)"
                                      class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
-                                     :class="activeItems.includes(item.id) ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-l-4 border-blue-300' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-500/50'">
+                                     :class="activeItems.includes(item.id) ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-l-4 border-blue-300' : 'bg-slate-800/60 text-white hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-500/50'">
                                     <div class="flex items-center gap-3">
                                         <div class="w-2 h-2 rounded-full" 
                                              :class="activeItems.includes(item.id) ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-blue-400'"></div>
@@ -88,7 +88,7 @@
                                      :style="getCountryButtonStyle(country.id, country.color)">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative">
-                                        <span class="font-medium text-sm">{{ country.label }}</span>
+                                        <span class="font-medium text-sm text-white">{{ country.label }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -129,7 +129,7 @@
                                      :style="getCountryButtonStyle(country.id, country.color)">
                                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <div class="relative">
-                                        <span class="font-medium text-sm">{{ country.label }}</span>
+                                        <span class="font-medium text-sm text-white">{{ country.label }}</span>
                                     </div>
                                 </div>
                             </div>

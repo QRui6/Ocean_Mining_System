@@ -89,14 +89,14 @@
                     </div>
                 </div>
 
-                <!-- 第二行：区域分布对比 -->
-                <div class="chart-container">
+                <!-- 第二行：区域分布对比（暂时隐藏，因为数据源缺少 region 字段） -->
+                <!-- <div class="chart-container">
                     <div class="chart-header">
                         <div class="chart-title-line"></div>
                         <h4 class="chart-title">各国在不同区域的观测网分布</h4>
                     </div>
                     <div ref="countryChart" class="w-full h-48"></div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -118,11 +118,11 @@ export default {
     setup(props) {
         const pieChart = ref(null);
         const barChart = ref(null);
-        const countryChart = ref(null);
+        // const countryChart = ref(null);  // 暂时注释，因为数据源缺少 region 字段
         
         let pieChartInstance = null;
         let barChartInstance = null;
-        let countryChartInstance = null;
+        // let countryChartInstance = null;  // 暂时注释
 
         // 初始化饼图 - 各国观测网数量占比
         const initPieChart = () => {
@@ -493,7 +493,7 @@ export default {
             if (props.statistics) {
                 initPieChart();
                 initBarChart();
-                initCountryChart();
+                // initCountryChart();  // 暂时注释，因为数据源缺少 region 字段
             }
         }, { deep: true });
 
@@ -501,7 +501,7 @@ export default {
             if (props.statistics) {
                 initPieChart();
                 initBarChart();
-                initCountryChart();
+                // initCountryChart();  // 暂时注释，因为数据源缺少 region 字段
             }
             window.addEventListener('resize', handleResize);
         });
@@ -509,14 +509,14 @@ export default {
         onUnmounted(() => {
             pieChartInstance?.dispose();
             barChartInstance?.dispose();
-            countryChartInstance?.dispose();
+            // countryChartInstance?.dispose();  // 暂时注释
             window.removeEventListener('resize', handleResize);
         });
 
         return {
             pieChart,
-            barChart,
-            countryChart
+            barChart
+            // countryChart  // 暂时注释
         };
     }
 };

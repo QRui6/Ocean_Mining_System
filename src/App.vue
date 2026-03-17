@@ -299,7 +299,7 @@
                 <!-- 海底观测网列表 -->
                 <div v-if="activePanels.observationList" class="pointer-events-auto">
                     <ObservationListTable 
-                        :observationData="allObservationData"
+                        :observationData="filteredObservationData"
                         @rowClick="handleObservationRowClick"
                         @resetSelection="handleObservationResetSelection"
                         @toggleStatistics="toggleObservationStatistics"
@@ -311,7 +311,6 @@
                     <MarineEquipmentListTable 
                         :equipmentData="allMarineEquipmentData"
                         @rowClick="handleMarineEquipmentRowClick"
-                        @toggleStatistics="toggleMarineEquipmentStatistics"
                         @refresh="handleMarineEquipmentRefresh"
                     />
                 </div>
@@ -319,7 +318,7 @@
                 <!-- 研究机构列表 -->
                 <div v-if="activePanels.researchInstitutionList" class="pointer-events-auto">
                     <ResearchInstitutionListTable 
-                        :institutionData="allResearchInstitutionData"
+                        :institutionData="filteredResearchInstitutionData"
                         @rowClick="handleResearchInstitutionRowClick"
                         @resetSelection="handleResearchInstitutionResetSelection"
                         @toggleStatistics="toggleResearchInstitutionStatistics"
@@ -513,11 +512,10 @@
                     @close="toggleObservationStatistics"
                 />
                 
-                <!-- 海洋装备统计面板 -->
+                <!-- 海洋装备统计面板（跟随列表显示） -->
                 <MarineEquipmentStatisticsPanel
-                    v-if="activePanels.marineEquipmentStatistics"
+                    v-if="activePanels.marineEquipmentList"
                     :equipmentData="allMarineEquipmentData"
-                    @close="toggleMarineEquipmentStatistics"
                 />
                 
                 <!-- 研究机构统计面板 -->
@@ -537,6 +535,22 @@
                 />
             </div>
         </div>
+        
+        <!-- 海底观测网信息弹窗（放在 screen-container 外部，避免 scale 影响） -->
+        <SeafloorObservationPopup
+            :show="showSeafloorPopup"
+            :data="seafloorPopupData"
+            :position="seafloorPopupPosition"
+            @close="closeSeafloorPopup"
+        />
+        
+        <!-- 研究机构信息弹窗（放在 screen-container 外部，避免 scale 影响） -->
+        <ResearchInstitutionPopup
+            :show="showInstitutionPopup"
+            :data="institutionPopupData"
+            :position="institutionPopupPosition"
+            @close="closeInstitutionPopup"
+        />
         
         <!-- 区域详情对话框 -->
         <AreaDetailDialog 
@@ -609,10 +623,12 @@ import RouteStatisticsPanel from './components/RouteStatisticsPanel.vue';
 import ObservationListTable from './components/ObservationListTable.vue';
 import ObservationStatisticsPanel from './components/ObservationStatisticsPanel.vue';
 import ObservationImagePopup from './components/ObservationImagePopup.vue';
+import SeafloorObservationPopup from './components/SeafloorObservationPopup.vue';
 import MarineEquipmentListTable from './components/MarineEquipmentListTable.vue';
 import MarineEquipmentStatisticsPanel from './components/MarineEquipmentStatisticsPanel.vue';
 import ResearchInstitutionListTable from './components/ResearchInstitutionListTable.vue';
 import ResearchInstitutionStatisticsPanel from './components/ResearchInstitutionStatisticsPanel.vue';
+import ResearchInstitutionPopup from './components/ResearchInstitutionPopup.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -689,10 +705,12 @@ export default {
         ObservationListTable,
         ObservationStatisticsPanel,
         ObservationImagePopup,
+        SeafloorObservationPopup,
         MarineEquipmentListTable,
         MarineEquipmentStatisticsPanel,
         ResearchInstitutionListTable,
         ResearchInstitutionStatisticsPanel,
+        ResearchInstitutionPopup,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -866,12 +884,14 @@ export default {
         // 海底观测网数据
         const allObservationData = ref([]);
         const observationStatistics = ref(null);
+        const activeSeafloorCountries = ref([]); // 已激活的海底观测网国家列表
         
         // 海洋装备数据
         const allMarineEquipmentData = ref([]);
         
         // 研究机构数据
         const allResearchInstitutionData = ref([]);
+        const activeResearchCountries = ref([]); // 已激活的研究机构国家列表
         
         // 海底观测网图片弹窗状态
         const showObservationImage = ref(false);
@@ -880,6 +900,16 @@ export default {
             imagePath: '',
             position: { x: 0, y: 0 }
         });
+        
+        // 海底观测网信息弹窗状态
+        const showSeafloorPopup = ref(false);
+        const seafloorPopupData = ref(null);
+        const seafloorPopupPosition = ref({ x: 0, y: 0 });
+        
+        // 研究机构信息弹窗状态
+        const showInstitutionPopup = ref(false);
+        const institutionPopupData = ref(null);
+        const institutionPopupPosition = ref({ x: 0, y: 0 });
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
@@ -925,6 +955,47 @@ export default {
         const polarStationListVisible = ref(false);
         const polarStationList = ref([]);
         const currentPolarRegion = ref('antarctic');
+        
+        // ==================== 计算属性 ====================
+        
+        // 过滤后的海底观测网数据（根据激活的国家）
+        const filteredObservationData = computed(() => {
+            if (activeSeafloorCountries.value.length === 0) {
+                return []; // 没有激活任何国家时，返回空数组
+            }
+            
+            // 映射国家ID到中文名称
+            const countryMap = {
+                'seafloor_usa': '美国',
+                'seafloor_eu': '欧洲',
+                'seafloor_canada': '加拿大',
+                'seafloor_japan': '日本',
+                'seafloor_china': '中国'
+            };
+            
+            // 获取激活国家的中文名称列表
+            const activeCountryNames = activeSeafloorCountries.value.map(id => countryMap[id]).filter(Boolean);
+            
+            // 过滤数据
+            return allObservationData.value.filter(obs => 
+                activeCountryNames.includes(obs.country)
+            );
+        });
+        
+        // 过滤后的研究机构数据（根据激活的国家）
+        const filteredResearchInstitutionData = computed(() => {
+            if (activeResearchCountries.value.length === 0) {
+                return []; // 没有激活任何国家时，返回空数组
+            }
+            
+            // 移除前缀 'research_' 得到实际的国家ID
+            const activeCountryIds = activeResearchCountries.value.map(id => id.replace('research_', ''));
+            
+            // 过滤数据
+            return allResearchInstitutionData.value.filter(inst => 
+                activeCountryIds.includes(inst.countryId)
+            );
+        });
         
         // 南极资源列表状态
         const antarcticResourceListVisible = ref(false);
@@ -1247,14 +1318,11 @@ export default {
         };
         
         /**
-         * 切换海洋装备统计面板的显示状态
+         * 切换海洋装备统计面板的显示状态（已废弃，统计面板现在跟随列表自动显示）
          */
         const toggleMarineEquipmentStatistics = () => {
-            activePanels.value.marineEquipmentStatistics = !activePanels.value.marineEquipmentStatistics;
-            // 如果打开统计面板，关闭列表
-            if (activePanels.value.marineEquipmentStatistics) {
-                activePanels.value.marineEquipmentList = false;
-            }
+            // 功能已移除，统计面板现在跟随列表自动显示
+            console.log('⚠️ toggleMarineEquipmentStatistics 已废弃');
         };
         
         /**
@@ -1590,13 +1658,27 @@ export default {
             if (data.category === 'seafloor_observation') {
                 console.log('🔬 切换海底观测网显示:', data.itemId);
                 
+                // 更新激活国家列表
+                if (data.active) {
+                    // 添加国家到激活列表
+                    if (!activeSeafloorCountries.value.includes(data.itemId)) {
+                        activeSeafloorCountries.value.push(data.itemId);
+                    }
+                } else {
+                    // 从激活列表中移除国家
+                    const index = activeSeafloorCountries.value.indexOf(data.itemId);
+                    if (index > -1) {
+                        activeSeafloorCountries.value.splice(index, 1);
+                    }
+                }
+                
                 // 映射国家ID到中文名称
                 const countryMap = {
-                    'usa': '美国',
-                    'eu': '欧洲',
-                    'canada': '加拿大',
-                    'japan': '日本',
-                    'china': '中国'
+                    'seafloor_usa': '美国',
+                    'seafloor_eu': '欧洲',
+                    'seafloor_canada': '加拿大',
+                    'seafloor_japan': '日本',
+                    'seafloor_china': '中国'
                 };
                 
                 const country = countryMap[data.itemId];
@@ -1605,18 +1687,18 @@ export default {
                     mapContainerRef.value.toggleSeafloorObservation(data.active, country);
                 }
                 
-                // 只打开/关闭观测网列表，统计面板由用户手动切换
-                if (data.active) {
+                // 激活时飞行到该国家的观测网总览视角
+                if (data.active && mapContainerRef.value && mapContainerRef.value.flyToSeafloorCountry) {
+                    mapContainerRef.value.flyToSeafloorCountry(country);
+                }
+                
+                // 只要有国家激活就显示列表
+                if (activeSeafloorCountries.value.length > 0) {
                     activePanels.value.observationList = true;
-                    // 如果打开列表，关闭统计面板
-                    activePanels.value.observationStatistics = false;
                 } else {
-                    // 检查是否所有国家都已关闭
-                    const allInactive = !data.active;
-                    if (allInactive) {
-                        activePanels.value.observationList = false;
-                        activePanels.value.observationStatistics = false;
-                    }
+                    // 所有国家都关闭时，关闭列表和统计面板
+                    activePanels.value.observationList = false;
+                    activePanels.value.observationStatistics = false;
                 }
                 return;
             }
@@ -1646,27 +1728,42 @@ export default {
             if (data.category === 'research_institutions') {
                 console.log('🏛️ 切换研究机构显示:', data.itemId);
                 
-                // data.itemId 是国家ID（如 'usa', 'uk' 等）
-                const countryId = data.itemId;
+                // 更新激活国家列表
+                if (data.active) {
+                    // 添加国家到激活列表
+                    if (!activeResearchCountries.value.includes(data.itemId)) {
+                        activeResearchCountries.value.push(data.itemId);
+                    }
+                } else {
+                    // 从激活列表中移除国家
+                    const index = activeResearchCountries.value.indexOf(data.itemId);
+                    if (index > -1) {
+                        activeResearchCountries.value.splice(index, 1);
+                    }
+                }
+                
+                // data.itemId 是带前缀的国家ID（如 'research_usa', 'research_uk' 等）
+                // 需要移除前缀传递给地图组件
+                const countryId = data.itemId.replace('research_', '');
                 
                 if (mapContainerRef.value && mapContainerRef.value.toggleResearchInstitution) {
                     await mapContainerRef.value.toggleResearchInstitution(data.active, countryId);
                 }
                 
-                // 只打开/关闭机构列表，统计面板由用户手动切换
-                if (data.active) {
-                    // 等待数据加载完成后再打开列表
+                // 激活时飞行到该国家的研究机构总览视角
+                if (data.active && mapContainerRef.value && mapContainerRef.value.flyToResearchCountry) {
+                    await nextTick(); // 等待数据加载完成
+                    mapContainerRef.value.flyToResearchCountry(countryId);
+                }
+                
+                // 只要有国家激活就显示列表
+                if (activeResearchCountries.value.length > 0) {
                     await nextTick();
                     activePanels.value.researchInstitutionList = true;
-                    // 如果打开列表，关闭统计面板
-                    activePanels.value.researchInstitutionStatistics = false;
                 } else {
-                    // 检查是否所有国家都已关闭
-                    const allInactive = !data.active;
-                    if (allInactive) {
-                        activePanels.value.researchInstitutionList = false;
-                        activePanels.value.researchInstitutionStatistics = false;
-                    }
+                    // 所有国家都关闭时，关闭列表和统计面板
+                    activePanels.value.researchInstitutionList = false;
+                    activePanels.value.researchInstitutionStatistics = false;
                 }
                 return;
             }
@@ -2812,6 +2909,59 @@ export default {
         };
         
         /**
+         * 显示海底观测网信息弹窗
+         */
+        const handleShowSeafloorPopup = (event) => {
+            console.log('📡 App.vue - 收到海底观测网信息弹窗事件:', event.detail);
+            const { data, x, y } = event.detail;
+            
+            console.log('📡 App.vue - 弹窗数据:', data);
+            console.log('📡 App.vue - 弹窗位置:', { x, y });
+            console.log('📡 App.vue - 数据类型:', typeof data);
+            console.log('📡 App.vue - 数据是否为null:', data === null);
+            console.log('📡 App.vue - 数据是否为undefined:', data === undefined);
+            
+            if (!data) {
+                console.error('❌ App.vue - 接收到的数据为空！');
+                return;
+            }
+            
+            seafloorPopupData.value = data;
+            seafloorPopupPosition.value = { x, y };
+            showSeafloorPopup.value = true;
+            
+            console.log('📡 App.vue - showSeafloorPopup 设置为:', showSeafloorPopup.value);
+            console.log('📡 App.vue - seafloorPopupData 设置为:', seafloorPopupData.value);
+            console.log('📡 App.vue - seafloorPopupPosition 设置为:', seafloorPopupPosition.value);
+        };
+        
+        /**
+         * 关闭海底观测网信息弹窗
+         */
+        const closeSeafloorPopup = () => {
+            showSeafloorPopup.value = false;
+        };
+        
+        /**
+         * 显示研究机构信息弹窗
+         */
+        const handleShowInstitutionPopup = (event) => {
+            console.log('📡 收到研究机构信息弹窗事件:', event.detail);
+            const { data, x, y } = event.detail;
+            
+            institutionPopupData.value = data;
+            institutionPopupPosition.value = { x, y };
+            showInstitutionPopup.value = true;
+        };
+        
+        /**
+         * 关闭研究机构信息弹窗
+         */
+        const closeInstitutionPopup = () => {
+            showInstitutionPopup.value = false;
+        };
+        
+        /**
          * 处理海底观测网重置选择事件
          */
         const handleObservationResetSelection = () => {
@@ -3406,6 +3556,12 @@ export default {
                 showObservationImage.value = true;
             });
             
+            // 监听海底观测网信息弹窗事件
+            window.addEventListener('showSeafloorPopup', handleShowSeafloorPopup);
+            
+            // 监听研究机构信息弹窗事件
+            window.addEventListener('showInstitutionPopup', handleShowInstitutionPopup);
+            
             // 等待所有组件完全挂载后再设置全局引用
             await nextTick();
             
@@ -3710,6 +3866,8 @@ export default {
          */
         onUnmounted(() => {
             window.removeEventListener('resize', updateScale);
+            window.removeEventListener('showSeafloorPopup', handleShowSeafloorPopup);
+            window.removeEventListener('showInstitutionPopup', handleShowInstitutionPopup);
             
             // 关闭 WebSocket
             if (ws) {
@@ -4325,9 +4483,16 @@ export default {
             toggleRouteStatistics,
             // 海底观测网相关
             allObservationData,
+            activeSeafloorCountries,
+            filteredObservationData,
             observationStatistics,
             showObservationImage,
             observationImageData,
+            closeObservationImage,
+            showSeafloorPopup,
+            seafloorPopupData,
+            seafloorPopupPosition,
+            closeSeafloorPopup,
             handleObservationDataLoaded,
             handleObservationRowClick,
             handleObservationResetSelection,
@@ -4351,6 +4516,12 @@ export default {
             handleMarineEquipmentDataLoaded,
             // 研究机构相关
             allResearchInstitutionData,
+            activeResearchCountries,
+            filteredResearchInstitutionData,
+            showInstitutionPopup,
+            institutionPopupData,
+            institutionPopupPosition,
+            closeInstitutionPopup,
             handleResearchInstitutionDataLoaded,
             handleResearchInstitutionRowClick,
             handleResearchInstitutionResetSelection,

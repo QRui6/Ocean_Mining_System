@@ -1100,8 +1100,12 @@ export default {
                         }
                     }
                     
-                    // 检查是否点击了科考站
-                    if (entity.properties && (entity.properties.stationName || entity.properties.country)) {
+                    // 检查是否点击了科考站（排除海底观测网和研究机构）
+                    const entityType = entity.properties?.type?.getValue();
+                    if (entity.properties && 
+                        (entity.properties.stationName || entity.properties.country) &&
+                        entityType !== 'seafloor_observation' &&
+                        entityType !== 'research_institution') {
                         console.log('🏔️ 点击了科考站');
                         const props = entity.properties;
                         
@@ -1285,12 +1289,11 @@ export default {
                             // 获取观测网信息
                             const props = entity.properties;
                             const country = props.country?.getValue();
-                            const name = props.name?.getValue();
-                            const unit = props.unit?.getValue();
+                            const observationData = props.observationData?.getValue();
                             
                             console.log('   - 国家:', country);
-                            console.log('   - 名称:', name);
-                            console.log('   - 单位:', unit);
+                            console.log('   - 观测网数据:', observationData);
+                            console.log('   - 点击位置:', { x: click.position.x, y: click.position.y });
                             
                             // 如果是日本的观测网，显示图片弹窗
                             if (country === '日本') {
@@ -1299,12 +1302,32 @@ export default {
                                 // 触发事件通知 App.vue 显示图片
                                 window.dispatchEvent(new CustomEvent('showObservationImage', {
                                     detail: {
-                                        title: name || '日本海底观测网',
+                                        title: observationData?.name || '日本海底观测网',
                                         imagePath: '/data/日本_海底观测网.png',
                                         x: click.position.x,
                                         y: click.position.y
                                     }
                                 }));
+                            } else {
+                                // 其他国家显示信息弹窗
+                                console.log('🔬 准备显示海底观测网信息弹窗');
+                                console.log('🔬 弹窗数据:', JSON.stringify(observationData, null, 2));
+                                
+                                // 确保数据完整
+                                if (!observationData) {
+                                    console.error('❌ observationData 为空！');
+                                    return;
+                                }
+                                
+                                window.dispatchEvent(new CustomEvent('showSeafloorPopup', {
+                                    detail: {
+                                        data: observationData,
+                                        x: click.position.x,
+                                        y: click.position.y
+                                    }
+                                }));
+                                
+                                console.log('✅ showSeafloorPopup 事件已触发');
                             }
                             
                             return;
@@ -1320,7 +1343,6 @@ export default {
                             const institutionData = props.institutionData?.getValue();
                             
                             console.log('   - 国家ID:', countryId);
-                            console.log('   - 机构名称:', institutionData?.name);
                             console.log('   - 机构数据:', institutionData);
                             
                             // 如果是日本的研究机构，显示图片弹窗
@@ -1332,6 +1354,17 @@ export default {
                                     detail: {
                                         title: institutionData?.name || '日本海洋研究机构',
                                         imagePath: '/data/日本_海底观测网.png',
+                                        x: click.position.x,
+                                        y: click.position.y
+                                    }
+                                }));
+                            } else {
+                                // 其他国家显示信息弹窗
+                                console.log('🏛️ 显示研究机构信息弹窗');
+                                
+                                window.dispatchEvent(new CustomEvent('showInstitutionPopup', {
+                                    detail: {
+                                        data: institutionData,
                                         x: click.position.x,
                                         y: click.position.y
                                     }
@@ -2004,6 +2037,12 @@ export default {
             researchInstitutionLayer.flyTo(institution);
         };
         
+        // 飞行到指定国家的研究机构（总览视角）
+        const flyToResearchCountry = (countryId) => {
+            if (!researchInstitutionLayer) return;
+            researchInstitutionLayer.flyToCountry(countryId);
+        };
+        
         // 高亮研究机构
         const highlightResearchInstitution = (institutionId) => {
             if (!researchInstitutionLayer) return;
@@ -2034,6 +2073,12 @@ export default {
         const flyToObservation = (observation) => {
             if (!seafloorObservationLayer) return;
             seafloorObservationLayer.flyTo(observation);
+        };
+        
+        // 飞行到指定国家的海底观测网（总览视角）
+        const flyToSeafloorCountry = (country) => {
+            if (!seafloorObservationLayer) return;
+            seafloorObservationLayer.flyToCountry(country);
         };
         
         // 切换港口标记显示
@@ -6954,11 +6999,13 @@ export default {
             highlightObservation,  // 暴露海底观测网高亮函数
             resetObservationHighlight,  // 暴露海底观测网重置高亮函数
             flyToObservation,  // 暴露海底观测网定位函数
+            flyToSeafloorCountry,  // 暴露海底观测网国家总览函数
             toggleMarineEquipment,  // 暴露海洋装备图层切换函数
             flyToMarineEquipment,  // 暴露海洋装备定位函数
             refreshMarineEquipment,  // 暴露海洋装备刷新函数
             toggleResearchInstitution,  // 暴露研究机构图层切换函数
             flyToResearchInstitution,  // 暴露研究机构定位函数
+            flyToResearchCountry,  // 暴露研究机构国家总览函数
             highlightResearchInstitution,  // 暴露研究机构高亮函数
             resetResearchInstitutionHighlight,  // 暴露研究机构重置高亮函数
             togglePorts,  // 暴露港口标记切换函数

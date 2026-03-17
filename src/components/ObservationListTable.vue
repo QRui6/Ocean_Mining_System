@@ -59,7 +59,7 @@
                             }">
                             <td class="py-3 px-4 font-bold" 
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -67,7 +67,7 @@
                             </td>
                             <td class="py-3 px-4 font-medium"
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -77,7 +77,7 @@
                                 <span class="px-2 py-1 rounded font-bold"
                                       :style="{ 
                                           backgroundColor: getCountryColor(obs.country) + '40', 
-                                          color: `${getCountryColor(obs.country)} !important`,
+                                          color: '#ffffff !important',
                                           border: `1px solid ${getCountryColor(obs.country)}80`,
                                           fontSize: '0.75rem'
                                       }">
@@ -86,7 +86,7 @@
                             </td>
                             <td class="py-3 px-4"
                                 :style="{ 
-                                    color: `${getCountryColor(obs.country)} !important`,
+                                    color: '#ffffff !important',
                                     textShadow: '0 0 10px rgba(0, 0, 0, 0.8)',
                                     fontSize: '0.875rem'
                                 }">
@@ -97,7 +97,7 @@
                                         class="px-2 py-1 rounded transition-all duration-200"
                                         :style="{ 
                                             backgroundColor: getCountryColor(obs.country) + '40',
-                                            color: `${getCountryColor(obs.country)} !important`,
+                                            color: '#ffffff !important',
                                             border: `1px solid ${getCountryColor(obs.country)}80`,
                                             fontSize: '0.75rem'
                                         }">
