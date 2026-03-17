@@ -388,7 +388,7 @@ export default {
                                     {
                                         yAxis: 0,
                                         itemStyle: {
-                                            color: 'rgba(165, 243, 252, 0.15)' // 浅海层 - 浅青色
+                                            color: 'rgba(103, 232, 249, 0.08)' // 浅海层 (0-3000m) - 最浅的青色
                                         }
                                     },
                                     {
@@ -399,7 +399,7 @@ export default {
                                     {
                                         yAxis: 3000,
                                         itemStyle: {
-                                            color: 'rgba(34, 211, 238, 0.12)' // 中层 - 中青色
+                                            color: 'rgba(34, 211, 238, 0.12)' // 中层 (3000-6000m) - 中等青色，稍深
                                         }
                                     },
                                     {
@@ -410,7 +410,7 @@ export default {
                                     {
                                         yAxis: 6000,
                                         itemStyle: {
-                                            color: 'rgba(8, 145, 178, 0.1)' // 深层 - 深青色
+                                            color: 'rgba(8, 145, 178, 0.16)' // 深层 (6000-8000m) - 深青色，更深
                                         }
                                     },
                                     {
@@ -421,7 +421,7 @@ export default {
                                     {
                                         yAxis: 8000,
                                         itemStyle: {
-                                            color: 'rgba(22, 78, 99, 0.15)' // 深渊层 - 深蓝色
+                                            color: 'rgba(14, 116, 144, 0.22)' // 深渊层 (8000m+) - 最深的蓝色
                                         }
                                     },
                                     {
