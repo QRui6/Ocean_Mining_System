@@ -61,6 +61,7 @@
                     @showModelComparison="handleShowModelComparison"
                     @showEvaluationFormula="handleShowEvaluationFormula"
                     @showFeasibilityAnalysis="handleShowFeasibilityAnalysis"
+                    @showScenarioSimulation="handleShowScenarioSimulation"
                 />
                 
                 <!-- 态势总览面板 -->
@@ -568,6 +569,12 @@
             @close="handleCloseFeasibilityAnalysis"
         />
         
+        <!-- 情景模拟面板 -->
+        <ScenarioSimulationPanel 
+            :show="showScenarioSimulation"
+            @close="handleCloseScenarioSimulation"
+        />
+        
         <!-- 北极资源统计表格 -->
         <ArcticResourceTable 
             :show="activePanels.arcticResourceTable"
@@ -658,6 +665,7 @@ import ModelComparisonPanel from './components/ModelComparisonPanel.vue';
 import EconomicCalculationPanel from './components/EconomicCalculationPanel.vue';
 import EvaluationFormulaPanel from './components/EvaluationFormulaPanel.vue';
 import FeasibilityAnalysisPanel from './components/FeasibilityAnalysisPanel.vue';
+import ScenarioSimulationPanel from './components/ScenarioSimulationPanel.vue';
 import { PolarStationsLoader } from './utils/polarStationsLoader.js';
 import { EnterpriseMarkerManager } from './utils/enterpriseMarkers.js';
 import { CHINA_ENTERPRISES } from './constants.js';
@@ -736,7 +744,8 @@ export default {
         ModelComparisonPanel,
         EconomicCalculationPanel,
         EvaluationFormulaPanel,
-        FeasibilityAnalysisPanel
+        FeasibilityAnalysisPanel,
+        ScenarioSimulationPanel
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -820,6 +829,7 @@ export default {
         const showModelComparison = ref(false);
         const showEvaluationFormula = ref(false);
         const showFeasibilityAnalysis = ref(false);
+        const showScenarioSimulation = ref(false);
         
         // 屏幕缩放比例（用于响应式适配）
         const scale = ref({ x: 1, y: 1 });
@@ -4006,6 +4016,22 @@ export default {
             console.log('📈 关闭可行性分析面板');
             showFeasibilityAnalysis.value = false;
         };
+
+        /**
+         * 显示情景模拟面板
+         */
+        const handleShowScenarioSimulation = () => {
+            console.log('🎯 显示情景模拟面板');
+            showScenarioSimulation.value = true;
+        };
+
+        /**
+         * 关闭情景模拟面板
+         */
+        const handleCloseScenarioSimulation = () => {
+            console.log('🎯 关闭情景模拟面板');
+            showScenarioSimulation.value = false;
+        };
         
         // ==================== 多边形绘制相关 ====================
         
@@ -4264,6 +4290,9 @@ export default {
             showFeasibilityAnalysis,
             handleShowFeasibilityAnalysis,
             handleCloseFeasibilityAnalysis,
+            showScenarioSimulation,
+            handleShowScenarioSimulation,
+            handleCloseScenarioSimulation,
             showPolicyDynamicsTimeline,
             policyDynamicsCountry,
             handleShowPolicyDynamics,
