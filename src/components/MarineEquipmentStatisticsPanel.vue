@@ -83,7 +83,11 @@ export default {
                 groupedData[country].push({
                     name: item.name,
                     depth: item.depth || 0,
-                    image: item.image || ''
+                    image: item.image || '',
+                    location: item.location,
+                    organization: item.organization,
+                    year: item.year,
+                    specifications: item.specifications
                 });
             });
             
@@ -98,6 +102,10 @@ export default {
                         name: equipment.name,
                         country: country,
                         image: equipment.image,
+                        location: equipment.location,
+                        organization: equipment.organization,
+                        year: equipment.year,
+                        specifications: equipment.specifications,
                         symbolSize: [80, 60]
                     });
                 });
@@ -113,15 +121,75 @@ export default {
                 backgroundColor: 'transparent',
                 tooltip: {
                     trigger: 'item',
-                    backgroundColor: 'rgba(0, 20, 40, 0.95)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     borderColor: '#06b6d4',
-                    borderWidth: 1,
+                    borderWidth: 2,
+                    padding: 12,
                     textStyle: { 
-                        color: '#fff',
-                        fontSize: 12
+                        color: '#e2e8f0',
+                        fontSize: 13
                     },
                     formatter: function(params) {
-                        return `${params.data.name}<br/>国家: ${params.data.country}<br/>下潜深度: ${params.data.value[1].toLocaleString()} 米`;
+                        const data = params.data;
+                        let html = `<div style="padding: 4px;">`;
+                        
+                        // 标题 - 装备名称
+                        html += `<div style="color: #06b6d4; font-weight: bold; font-size: 15px; margin-bottom: 10px; border-bottom: 1px solid #475569; padding-bottom: 6px;">${data.name}</div>`;
+                        
+                        // 下潜深度 - 主要信息
+                        html += `<div style="margin: 6px 0; font-size: 14px;">`;
+                        html += `<span style="color: #94a3b8;">下潜深度: </span>`;
+                        html += `<span style="color: #22c55e; font-weight: bold; font-size: 16px;">${data.value[1].toLocaleString()} 米</span>`;
+                        html += `</div>`;
+                        
+                        // 分隔线
+                        html += `<div style="border-top: 1px solid #334155; margin: 8px 0;"></div>`;
+                        
+                        // 详细信息
+                        html += `<div style="font-size: 12px; line-height: 1.8;">`;
+                        
+                        // 国家
+                        html += `<div style="margin: 4px 0;">`;
+                        html += `<span style="color: #94a3b8;">国家: </span>`;
+                        html += `<span style="color: #fbbf24; font-weight: 600;">${data.country || '未知'}</span>`;
+                        html += `</div>`;
+                        
+                        // 位置（如果有）
+                        if (data.location) {
+                            html += `<div style="margin: 4px 0;">`;
+                            html += `<span style="color: #94a3b8;">位置: </span>`;
+                            html += `<span style="color: #f472b6;">${data.location}</span>`;
+                            html += `</div>`;
+                        }
+                        
+                        // 服役单位（如果有）
+                        if (data.organization) {
+                            html += `<div style="margin: 4px 0;">`;
+                            html += `<span style="color: #94a3b8;">服役单位: </span>`;
+                            html += `<span style="color: #a78bfa;">${data.organization}</span>`;
+                            html += `</div>`;
+                        }
+                        
+                        // 研制时间（如果有）
+                        if (data.year) {
+                            html += `<div style="margin: 4px 0;">`;
+                            html += `<span style="color: #94a3b8;">研制时间: </span>`;
+                            html += `<span style="color: #34d399;">${data.year}</span>`;
+                            html += `</div>`;
+                        }
+                        
+                        // 规格（如果有）
+                        if (data.specifications) {
+                            html += `<div style="margin: 4px 0;">`;
+                            html += `<span style="color: #94a3b8;">规格: </span>`;
+                            html += `<span style="color: #60a5fa;">${data.specifications}</span>`;
+                            html += `</div>`;
+                        }
+                        
+                        html += `</div>`;
+                        html += `</div>`;
+                        
+                        return html;
                     }
                 },
                 grid: {
