@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed top-32 right-8 z-30 w-[1000px] pointer-events-auto font-['Noto_Sans_SC']">
+    <div class="fixed top-32 right-8 z-30 w-[600px] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative overflow-hidden"
              style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 2px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);">
@@ -43,7 +43,7 @@
                         <div class="chart-title-line"></div>
                         <h4 class="chart-title">各国研究机构数量统计</h4>
                     </div>
-                    <div ref="countryChart" class="w-full h-[400px]"></div>
+                    <div ref="countryChart" class="w-full h-[300px]"></div>
                 </div>
             </div>
         </div>

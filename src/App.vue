@@ -1352,10 +1352,7 @@ export default {
          */
         const toggleResearchInstitutionStatistics = () => {
             activePanels.value.researchInstitutionStatistics = !activePanels.value.researchInstitutionStatistics;
-            // 如果打开统计面板，关闭列表
-            if (activePanels.value.researchInstitutionStatistics) {
-                activePanels.value.researchInstitutionList = false;
-            }
+            // 允许统计面板和列表同时显示，不再自动关闭列表
         };
         
         /**
@@ -3186,8 +3183,8 @@ export default {
             currentTab.value = tab;
             
             // 根据选项卡切换地图模式
-            if (tab === '矿区管理' || tab === '地质调查') {
-                // 矿区管理和地质调查：切换到2D平面模式
+            if (tab === '矿区管理' || tab === '地质调查' || tab === '大洋钻探' || tab === '态势总览') {
+                // 矿区管理、地质调查、大洋钻探、态势总览：切换到2D平面模式
                 if (mapContainerRef.value && mapContainerRef.value.switchTo3D) {
                     console.log('🗺️ 切换到2D平面模式');
                     mapContainerRef.value.switchTo2D();
@@ -3208,7 +3205,7 @@ export default {
             
             // 根据选项卡切换右侧功能面板
             if (tab === '矿区管理') {
-                // 矿区管理：自动打开矿区查询和图层控制，关闭气象图层
+                // 矿区管理：自动打开矿区查询和数据统计面板，关闭气象图层
                 showTimeline.value = false;
                 activePanels.value = {
                     list: false,
@@ -3222,7 +3219,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    miningData: true      // 自动打开矿区数据统计面板
                 };
                 
                 // 隐藏大洋钻探图层
