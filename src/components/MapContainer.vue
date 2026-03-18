@@ -1345,31 +1345,16 @@ export default {
                             console.log('   - 国家ID:', countryId);
                             console.log('   - 机构数据:', institutionData);
                             
-                            // 如果是日本的研究机构，显示图片弹窗
-                            if (countryId === 'japan') {
-                                console.log('🇯🇵 检测到日本研究机构，触发图片弹窗');
-                                
-                                // 触发事件通知 App.vue 显示图片
-                                window.dispatchEvent(new CustomEvent('showObservationImage', {
-                                    detail: {
-                                        title: institutionData?.name || '日本海洋研究机构',
-                                        imagePath: '/data/日本_海底观测网.png',
-                                        x: click.position.x,
-                                        y: click.position.y
-                                    }
-                                }));
-                            } else {
-                                // 其他国家显示信息弹窗
-                                console.log('🏛️ 显示研究机构信息弹窗');
-                                
-                                window.dispatchEvent(new CustomEvent('showInstitutionPopup', {
-                                    detail: {
-                                        data: institutionData,
-                                        x: click.position.x,
-                                        y: click.position.y
-                                    }
-                                }));
-                            }
+                            // 显示研究机构信息弹窗（所有国家统一处理）
+                            console.log('🏛️ 显示研究机构信息弹窗');
+                            
+                            window.dispatchEvent(new CustomEvent('showInstitutionPopup', {
+                                detail: {
+                                    data: institutionData,
+                                    x: click.position.x,
+                                    y: click.position.y
+                                }
+                            }));
                             
                             return;
                         }
