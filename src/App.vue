@@ -152,6 +152,7 @@
                 <PolarPanel
                     v-if="currentTab === '极地科考'"
                     :showPanel="activePanels.polarPanel"
+                    :activePanels="activePanels"
                     @regionChange="handlePolarRegionChange"
                     @categoryClick="handlePolarCategoryClick"
                     @stationCountryClick="handleStationCountryClick"
@@ -190,12 +191,19 @@
                     :show="activePanels.polarSovereignty"
                     @close="togglePolarSovereignty"
                     @showAntarcticDetail="handleShowAntarcticDetail"
+                    @showArcticDetail="handleShowArcticDetail"
                 />
                 
                 <!-- 南极主权详情面板 - 中间大面板 -->
                 <AntarcticSovereigntyDetail 
                     :show="activePanels.antarcticSovereigntyDetail"
                     @close="handleCloseAntarcticDetail"
+                />
+                
+                <!-- 北极主权详情面板 - 中间大面板 -->
+                <ArcticSovereigntyDetail 
+                    :show="activePanels.arcticSovereigntyDetail"
+                    @close="handleCloseArcticDetail"
                 />
                 
                 <!-- 矿区数据统计面板 -->
@@ -241,6 +249,7 @@
                     @toggleCableStatistics="toggleCableStatistics"
                     @toggleArcticRouteList="toggleArcticRouteList"
                     @toggleArcticRouteStatistics="toggleArcticRouteStatistics"
+                    @toggleIcebreakerList="toggleIcebreakerList"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                 />
@@ -312,6 +321,15 @@
                         :equipmentData="allMarineEquipmentData"
                         @rowClick="handleMarineEquipmentRowClick"
                         @refresh="handleMarineEquipmentRefresh"
+                    />
+                </div>
+                
+                <!-- 破冰船列表 -->
+                <div v-if="activePanels.icebreakerList" class="pointer-events-auto">
+                    <IcebreakerListTable 
+                        :equipmentData="allIcebreakerData"
+                        @rowClick="handleIcebreakerRowClick"
+                        @close="toggleIcebreakerList"
                     />
                 </div>
                 
@@ -518,6 +536,12 @@
                     :equipmentData="allMarineEquipmentData"
                 />
                 
+                <!-- 破冰船统计面板（跟随列表显示） -->
+                <IcebreakerStatisticsPanel
+                    v-if="activePanels.icebreakerList"
+                    :equipmentData="allIcebreakerData"
+                />
+                
                 <!-- 研究机构统计面板 -->
                 <ResearchInstitutionStatisticsPanel
                     v-if="activePanels.researchInstitutionStatistics"
@@ -626,6 +650,8 @@ import ObservationImagePopup from './components/ObservationImagePopup.vue';
 import SeafloorObservationPopup from './components/SeafloorObservationPopup.vue';
 import MarineEquipmentListTable from './components/MarineEquipmentListTable.vue';
 import MarineEquipmentStatisticsPanel from './components/MarineEquipmentStatisticsPanel.vue';
+import IcebreakerListTable from './components/IcebreakerListTable.vue';
+import IcebreakerStatisticsPanel from './components/IcebreakerStatisticsPanel.vue';
 import ResearchInstitutionListTable from './components/ResearchInstitutionListTable.vue';
 import ResearchInstitutionStatisticsPanel from './components/ResearchInstitutionStatisticsPanel.vue';
 import ResearchInstitutionPopup from './components/ResearchInstitutionPopup.vue';
@@ -675,6 +701,7 @@ import PolarStationStatistics from './components/PolarStationStatistics.vue';
 import ArcticResourceCharts from './components/ArcticResourceCharts.vue';
 import PolarSovereigntyPanel from './components/PolarSovereigntyPanel.vue';
 import AntarcticSovereigntyDetail from './components/AntarcticSovereigntyDetail.vue';
+import ArcticSovereigntyDetail from './components/ArcticSovereigntyDetail.vue';
 import SituationOverviewPanel from './components/SituationOverviewPanel.vue';
 import CoreRepositoryCharts from './components/CoreRepositoryCharts.vue';
 import ModelComparisonPanel from './components/ModelComparisonPanel.vue';
@@ -708,6 +735,8 @@ export default {
         SeafloorObservationPopup,
         MarineEquipmentListTable,
         MarineEquipmentStatisticsPanel,
+        IcebreakerListTable,
+        IcebreakerStatisticsPanel,
         ResearchInstitutionListTable,
         ResearchInstitutionStatisticsPanel,
         ResearchInstitutionPopup,
@@ -757,6 +786,7 @@ export default {
         ArcticResourceCharts,
         PolarSovereigntyPanel,
         AntarcticSovereigntyDetail,
+        ArcticSovereigntyDetail,
         SituationOverviewPanel,
         CoreRepositoryCharts,
         ModelComparisonPanel,
@@ -815,6 +845,7 @@ export default {
             polarStations: false,  // 极地科考站（地图图层）
             polarSovereignty: false,  // 极地主权主张面板（左侧）
             antarcticSovereigntyDetail: false,  // 南极主权详情面板（中间）
+            arcticSovereigntyDetail: false,     // 北极主权详情面板（中间）
             environmentalMonitoring: false,  // 环境监测面板（中间）
             situationOverview: false,  // 态势总览面板（左侧）
             cableList: false,     // 光缆列表（底部表格）
@@ -831,6 +862,8 @@ export default {
             polygonDrawer: false,  // 区域勾面面板（左侧）
             marineEquipmentList: false,  // 海洋装备列表（底部表格）
             marineEquipmentStatistics: false,  // 海洋装备统计面板（右侧）
+            icebreakerList: false, // 破冰船列表（底部表格）
+            icebreakerStatistics: false, // 破冰船统计面板（右侧）
             researchInstitutionList: false,  // 研究机构列表（底部表格）
             researchInstitutionStatistics: false  // 研究机构统计面板（右侧）
         });
@@ -888,6 +921,18 @@ export default {
         
         // 海洋装备数据
         const allMarineEquipmentData = ref([]);
+        
+        // 破冰船数据
+        const allIcebreakerData = ref([
+            { name: '22220型（LK-60Ya）', country: '俄罗斯（约43艘）', specifications: '船长173.3米；动力为2座RITM-200核反应堆；可破除3米厚冰层', year: '西伯利亚号2021年交付' },
+            { name: '北极级（Arktika）', country: '俄罗斯（约43艘）', specifications: '船长134米，宽30米；排水量23000吨；可破除2米厚冰层', year: '1975年' },
+            { name: '极地安全巡逻舰', country: '美国（约3艘）', specifications: '基于通用设计，长约100-112米；破冰能力约1.2米；采用柴油电力推进', year: '2028年交付' },
+            { name: '极地星号', country: '美国（约3艘）', specifications: '重型破冰船，马力7.5万，可破约0.6米冰层（连续破冰能力）', year: '1976' },
+            { name: '希利号', country: '美国（约3艘）', specifications: '中型破冰船，主要用于北极科研', year: '1999' },
+            { name: '雪龙2号', country: '中国（约5艘）', specifications: '中国首艘自主研发的极地科考破冰船，采用芬兰设计，可破20米高的冰脊', year: '2019' },
+            { name: '雪龙号', country: '中国（约5艘）', specifications: '排水量2.1万吨，可破1.2米厚冰层', year: '1994' },
+            { name: '极地海号', country: '美国（约3艘）', specifications: '重型破冰船，主要用于南极科研', year: '1978' }
+        ]);
         
         // 研究机构数据
         const allResearchInstitutionData = ref([]);
@@ -1288,6 +1333,25 @@ export default {
             }
         };
         
+        /**
+         * 切换破冰船列表的显示状态
+         */
+        const toggleIcebreakerList = () => {
+            activePanels.value.icebreakerList = !activePanels.value.icebreakerList;
+            // 如果打开列表，关闭统计面板（根据需求可选，这里保持独立或联动）
+            if (activePanels.value.icebreakerList) {
+                activePanels.value.icebreakerStatistics = false;
+            }
+        };
+
+        /**
+         * 处理破冰船行点击事件
+         */
+        const handleIcebreakerRowClick = (equipment) => {
+            console.log('🚢 破冰船行点击:', equipment);
+            // 这里可以添加破冰船定位逻辑，暂不实现
+        };
+
         /**
          * 切换海底观测网列表的显示状态
          */
@@ -1721,6 +1785,20 @@ export default {
                 return;
             }
             
+            // 处理破冰船
+            if (data.category === 'polar_expedition' && data.itemId === 'icebreaker') {
+                console.log('🚢 切换破冰船显示');
+                
+                if (data.active) {
+                    activePanels.value.icebreakerList = true;
+                    activePanels.value.icebreakerStatistics = false;
+                } else {
+                    activePanels.value.icebreakerList = false;
+                    activePanels.value.icebreakerStatistics = false;
+                }
+                return;
+            }
+            
             // 处理主要研究机构（按国家切换）
             if (data.category === 'research_institutions') {
                 console.log('🏛️ 切换研究机构显示:', data.itemId);
@@ -1979,7 +2057,10 @@ export default {
                     togglePolarStations();
                     break;
                 case 'research_equipment':
-                    console.log('🔬 科考装备功能开发中...');
+                    console.log('🔬 科考装备分类点击:', itemId);
+                    if (itemId === 'icebreaker') {
+                        toggleIcebreakerList();
+                    }
                     break;
                 case 'sovereignty_claims':
                     // 如果点击的是南极，直接显示南极主权详情面板
@@ -1987,8 +2068,9 @@ export default {
                         console.log('🇦🇶 显示南极主权详情面板');
                         activePanels.value.antarcticSovereigntyDetail = true;
                     } else if (itemId === 'arctic') {
-                        // 北极暂无数据，不显示面板
-                        console.log('🌊 北极主权数据开发中...');
+                        // 显示北极主权详情面板
+                        console.log('🧊 显示北极主权详情面板');
+                        activePanels.value.arcticSovereigntyDetail = true;
                     } else {
                         // 其他情况显示主权主张选择面板
                         togglePolarSovereignty();
@@ -2098,6 +2180,28 @@ export default {
                 polarSovereigntyPanelRef.value.selectedRegion = null;
             }
             console.log('🇦🇶 关闭南极主权详情面板');
+        };
+        
+        /**
+         * 显示北极主权详情面板
+         */
+        const handleShowArcticDetail = () => {
+            console.log('🧊 [App.vue] handleShowArcticDetail 被调用');
+            console.log('🧊 [App.vue] 当前 arcticSovereigntyDetail 状态:', activePanels.value.arcticSovereigntyDetail);
+            activePanels.value.arcticSovereigntyDetail = true;
+            console.log('🧊 [App.vue] 设置后 arcticSovereigntyDetail 状态:', activePanels.value.arcticSovereigntyDetail);
+        };
+        
+        /**
+         * 关闭北极主权详情面板
+         */
+        const handleCloseArcticDetail = () => {
+            activePanels.value.arcticSovereigntyDetail = false;
+            // 重置主权主张面板的选中状态
+            if (polarSovereigntyPanelRef.value) {
+                polarSovereigntyPanelRef.value.selectedRegion = null;
+            }
+            console.log('🧊 关闭北极主权详情面板');
         };
         
         /**
@@ -2875,8 +2979,16 @@ export default {
         const handleObservationRowClick = (observation) => {
             console.log('🔬 点击海底观测网:', observation);
             
-            // 如果是日本的海底观测网，显示图片弹窗
-            if (observation.country === '日本') {
+            const imageMap = {
+                '日本': '/data/日本_海底观测网.png',
+                '美国': '/data/美国观测网.png',
+                '欧洲': '/data/欧盟观测网.png', // 数据中为“欧洲”
+                '欧盟': '/data/欧盟观测网.png', // 兼容可能的“欧盟”命名
+                '加拿大': '/data/加拿大观测网.png'
+            };
+            
+            // 如果是有对应图片的观测网，显示图片弹窗
+            if (imageMap[observation.country]) {
                 // 获取点击位置（这里使用屏幕中心位置，实际应该从地图获取）
                 const screenCenter = {
                     x: window.innerWidth / 2,
@@ -2885,7 +2997,7 @@ export default {
                 
                 observationImageData.value = {
                     title: observation.name,
-                    imagePath: '/src/data/日本_海底观测网.png',
+                    imagePath: imageMap[observation.country],
                     position: screenCenter
                 };
                 showObservationImage.value = true;
@@ -3220,6 +3332,7 @@ export default {
                     polarStations: false,
                     polarSovereignty: false,
                     antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false,
                     miningData: true      // 自动打开矿区数据统计面板
                 };
                 
@@ -3293,7 +3406,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 隐藏大洋钻探图层
@@ -3328,7 +3442,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 隐藏大洋钻探图层
@@ -3367,7 +3482,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 隐藏大洋钻探图层
@@ -3406,7 +3522,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 显示大洋钻探图层
@@ -3447,7 +3564,8 @@ export default {
                     resourcePotential: false, // 资源潜力面板默认关闭
                     polarStations: true,      // 科考站点默认打开
                     polarSovereignty: false,  // 主权主张默认关闭（通过极地面板控制）
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 加载南极资源（但不显示，等待用户在极地面板中选择）
@@ -3501,7 +3619,8 @@ export default {
                     resourcePotential: false,
                     polarStations: false,
                     polarSovereignty: false,
-                    antarcticSovereigntyDetail: false
+                    antarcticSovereigntyDetail: false,
+                    arcticSovereigntyDetail: false
                 };
                 
                 // 隐藏大洋钻探图层
@@ -4390,6 +4509,9 @@ export default {
             handlePortClick,
             handleShowAntarcticDetail,
             handleCloseAntarcticDetail,
+            handleShowArcticDetail,
+            handleCloseArcticDetail,
+            handleCloseAntarcticDetail,
             handleStartDrawing,
             handleCancelDrawing,
             handleAreaCreated,
@@ -4523,7 +4645,11 @@ export default {
             handleResearchInstitutionDataLoaded,
             handleResearchInstitutionRowClick,
             handleResearchInstitutionResetSelection,
-            toggleResearchInstitutionStatistics
+            toggleResearchInstitutionStatistics,
+            // 破冰船相关
+            allIcebreakerData,
+            toggleIcebreakerList,
+            handleIcebreakerRowClick
         };
     }
 };

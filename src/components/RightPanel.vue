@@ -83,7 +83,7 @@ export default {
             default: '矿区管理'
         }
     },
-    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'togglePolygonDrawer', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel', 'toggleSituationOverview', 'toggleCableList', 'toggleCableStatistics', 'toggleArcticRouteList', 'toggleArcticRouteStatistics'],
+    emits: ['toggleList', 'toggleMapTools', 'toggleQuery', 'toggleLayers', 'toggleWeatherLayers', 'toggleShipSearch', 'toggleRoutePlan', 'toggleHistoryTrack', 'toggleShipList', 'toggleRouteWeather', 'toggleAreaMonitor', 'toggleMiningWeatherMonitor', 'toggleMiningData', 'toggleResearchVesselList', 'toggleRouteDemo', 'toggleGeologicalSurvey', 'toggleDrillingPanel', 'toggleDrillingStatistics', 'toggleCoordinateCollector', 'togglePolygonDrawer', 'toggleResourcePotential', 'togglePolarStations', 'togglePolarSovereignty', 'togglePolarPanel', 'toggleSituationOverview', 'toggleCableList', 'toggleCableStatistics', 'toggleArcticRouteList', 'toggleArcticRouteStatistics', 'toggleIcebreakerList', 'toggleIcebreakerStatistics'],
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         

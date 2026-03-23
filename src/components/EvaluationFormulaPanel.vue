@@ -74,8 +74,11 @@
                 <input v-model.number="params.closureYears" type="number" class="w-full bg-gray-700/80 text-white px-1.5 py-0.5 rounded border border-gray-600 focus:border-cyan-500 focus:outline-none text-xs transition-colors" />
               </div>
               <div>
-                <label class="text-xs text-gray-400 mb-0.5 block">年产能（百万干吨）</label>
-                <input v-model.number="params.annualCapacity" type="number" step="0.01" class="w-full bg-gray-700/80 text-white px-1.5 py-0.5 rounded border border-gray-600 focus:border-cyan-500 focus:outline-none text-xs transition-colors" />
+                <label class="text-xs text-gray-400 mb-0.5 block flex items-center gap-1">
+                  年产能（百万干吨）
+                  <span v-if="capacityUpdated" class="text-[9px] text-yellow-400 animate-pulse">已反向更新!</span>
+                </label>
+                <input v-model.number="params.annualCapacity" type="number" step="0.01" class="w-full bg-gray-700/80 text-white px-1.5 py-0.5 rounded border focus:outline-none text-xs transition-colors" :class="capacityUpdated ? 'border-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.3)]' : 'border-gray-600 focus:border-cyan-500'" @input="capacityUpdated = false" />
               </div>
               <div>
                 <label class="text-xs text-gray-400 mb-0.5 block">企业所得税</label>
@@ -170,9 +173,54 @@
                 </div>
                 <div class="text-xs text-gray-500">百万美元</div>
               </div>
-              <div class="bg-gray-800/60 rounded-lg p-1.5 border border-gray-700/50 hover:border-cyan-500/50 transition-all">
-                <div class="text-gray-400 text-xs mb-0.5">内部收益率</div>
-                <div class="text-base font-bold text-cyan-400">{{ results.irr.toFixed(2) }}%</div>
+              <div class="bg-gray-800/60 rounded-lg p-1.5 border transition-all flex flex-col items-center group relative"
+                   :class="isIRRInputMode ? 'border-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]' : 'border-gray-700/50 hover:border-cyan-500/50'">
+                <div class="text-gray-400 text-xs mb-0.5 w-full flex justify-between items-center px-1">
+                  <span class="flex items-center gap-1">
+                    内部收益率
+                    <span v-if="isIRRInputMode" class="text-[9px] text-cyan-400 bg-cyan-900/40 px-1 rounded">目标设定</span>
+                  </span>
+                  <button @click="toggleIRRMode" 
+                          class="text-gray-400 hover:text-cyan-300 transition-colors p-0.5 rounded-full hover:bg-gray-700" 
+                          :title="isIRRInputMode ? '取消反算模式' : '点击设定目标IRR以反算产能'">
+                    <svg v-if="!isIRRInputMode" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div class="flex items-center gap-1 w-full justify-center mt-0.5 h-7">
+                  <template v-if="!isIRRInputMode">
+                    <div class="text-base font-bold text-cyan-400" :class="{'animate-pulse-once': capacityUpdated}">
+                      {{ results.irr.toFixed(2) }}%
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="flex items-center bg-gray-900/80 rounded border border-cyan-500/50 px-1.5 py-0.5 w-full max-w-[90%]">
+                      <input 
+                        v-model.number="targetIRR" 
+                        type="number" 
+                        step="0.1" 
+                        class="w-full bg-transparent text-cyan-300 font-bold text-sm outline-none text-right" 
+                        @keyup.enter="applyTargetIRR"
+                      />
+                      <span class="text-cyan-400 font-bold text-sm ml-0.5">%</span>
+                    </div>
+                  </template>
+                </div>
+                
+                <!-- 确认按钮（仅在输入模式显示） -->
+                <div v-if="isIRRInputMode" class="absolute -bottom-7 left-1/2 transform -translate-x-1/2 z-10 w-[120%]">
+                  <button @click="applyTargetIRR" 
+                          class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[10px] font-bold py-1 px-2 rounded shadow-lg border border-cyan-400/50 flex items-center justify-center gap-1 transition-all">
+                    <span>反算产能</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div class="bg-gray-800/60 rounded-lg p-1.5 border border-gray-700/50 hover:border-yellow-500/50 transition-all">
                 <div class="text-gray-400 text-xs mb-0.5">投资回收期</div>
@@ -286,6 +334,39 @@ const params = ref({
     cobalt: 0.002      // 0.2%
   }
 });
+
+const targetIRR = ref(15); // 默认目标 IRR 为 15%
+const isIRRInputMode = ref(false); // 是否处于 IRR 输入反算模式
+const capacityUpdated = ref(false); // 标记产能是否刚刚被反向更新
+
+const toggleIRRMode = () => {
+  isIRRInputMode.value = !isIRRInputMode.value;
+  if (isIRRInputMode.value) {
+    // 切换到输入模式时，将当前算出的 IRR 填入输入框作为起点
+    targetIRR.value = Number(results.value.irr.toFixed(2));
+    capacityUpdated.value = false;
+  }
+};
+
+const applyTargetIRR = () => {
+  if (requiredCapacity.value !== null) {
+    // 将反算出的产能直接更新到左侧的输入框中（保留两位小数）
+    params.value.annualCapacity = Number(requiredCapacity.value.toFixed(2));
+    // 触发更新动画效果
+    capacityUpdated.value = true;
+    // 自动切回显示模式
+    isIRRInputMode.value = false;
+    
+    // 3秒后取消高亮效果
+    setTimeout(() => {
+      capacityUpdated.value = false;
+    }, 3000);
+  }
+};
+
+const handleTargetIRRChange = () => {
+  // 保留此方法以兼容之前的代码结构，但实际通过 applyTargetIRR 触发
+};
 
 const chartRef1 = ref(null);
 const chartRef2 = ref(null);
@@ -570,6 +651,85 @@ const results = computed(() => {
   const feasible = npv >= 0 && irr >= parseFloat(params.value.discountRate);
   
   return { npv, irr, paybackPeriod, feasible };
+});
+
+// 计算目标 IRR 对应的所需年产能
+const requiredCapacity = computed(() => {
+  if (targetIRR.value === null || isNaN(targetIRR.value)) return null;
+
+  const targetRate = targetIRR.value / 100;
+  const taxRate = parseFloat(params.value.corporateTax) / 100;
+  
+  const totalYears = params.value.feasibilityYears + 
+                     params.value.constructionYears + 
+                     params.value.operationYears + 
+                     params.value.closureYears;
+  
+  const operationStartYear = params.value.feasibilityYears + params.value.constructionYears;
+  const operationEndYear = operationStartYear + params.value.operationYears;
+
+  // 每吨矿石的价值
+  const perTonValue = params.value.metalPrices.manganese * params.value.metalContent.manganese + 
+                      params.value.metalPrices.nickel * params.value.metalContent.nickel + 
+                      params.value.metalPrices.copper * params.value.metalContent.copper + 
+                      params.value.metalPrices.cobalt * params.value.metalContent.cobalt;
+
+  if (perTonValue <= 0) return null;
+
+  const annualOperatingCost = params.value.operatingCost.mining + 
+                              params.value.operatingCost.smelting + 
+                              params.value.operatingCost.maintenance;
+  
+  const constructionInvestment = params.value.investment.miningSystem + 
+                                 params.value.investment.transportSystem + 
+                                 params.value.investment.smeltingSystem;
+  const annualConstructionCost = constructionInvestment / params.value.constructionYears;
+
+  // 我们需要解方程：NPV(targetRate, capacity) = 0
+  let capLow = 0.1;
+  let capHigh = 100.0; // 扩大最大产能假设，从2000万吨扩大到1亿吨，以支持更高IRR的反算
+  let cap = 0;
+  const tolerance = 0.001;
+  
+  for (let iteration = 0; iteration < 100; iteration++) {
+    cap = (capLow + capHigh) / 2;
+    let npvAtCap = 0;
+    const testRevenue = cap * perTonValue;
+    
+    for (let t = 1; t <= totalYears; t++) {
+      let CI_t = 0;
+      let CO_t = 0;
+      
+      if (t <= params.value.feasibilityYears) {
+        CO_t = params.value.investment.feasibility / params.value.feasibilityYears;
+      } else if (t <= operationStartYear) {
+        CO_t = annualConstructionCost;
+      } else if (t <= operationEndYear) {
+        CI_t = testRevenue;
+        CO_t = annualOperatingCost;
+        const profit = CI_t - CO_t;
+        const tax = profit > 0 ? profit * taxRate : 0;
+        CO_t += tax;
+      } else {
+        CO_t = annualOperatingCost * 0.5;
+      }
+      
+      npvAtCap += (CI_t - CO_t) * Math.pow(1 + targetRate, -t);
+    }
+    
+    if (Math.abs(npvAtCap) < tolerance) {
+      break;
+    }
+    
+    // 如果算出来的 NPV < 0，说明产能不够，需要提高下限
+    if (npvAtCap < 0) {
+      capLow = cap;
+    } else {
+      capHigh = cap;
+    }
+  }
+  
+  return cap;
 });
 
 // 计算不同参数变化下的IRR（用于敏感性分析）

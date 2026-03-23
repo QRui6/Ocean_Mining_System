@@ -28,14 +28,14 @@
                     <!-- 钢图表 - 橙色边框 -->
                     <div class="relative rounded-lg border-2 border-orange-500/50 p-3 flex flex-col overflow-hidden" style="height: 100%; background: linear-gradient(135deg, rgba(249, 115, 22, 0.05) 0%, rgba(15, 23, 42, 0.8) 100%);">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
-                        <div class="text-base text-white font-medium mb-2 text-center">钢 (a)</div>
+                        <div class="text-base text-white font-medium mb-2 text-center">铜 (a)</div>
                         <div ref="steelChartRef" class="w-full flex-1" style="min-height: 200px;"></div>
                     </div>
                     
                     <!-- 铁图表 - 红色边框 -->
                     <div class="relative rounded-lg border-2 border-red-500/50 p-3 flex flex-col overflow-hidden" style="height: 100%; background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(15, 23, 42, 0.8) 100%);">
                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
-                        <div class="text-base text-white font-medium mb-2 text-center">铁 (b)</div>
+                        <div class="text-base text-white font-medium mb-2 text-center">镍 (b)</div>
                         <div ref="ironChartRef" class="w-full flex-1" style="min-height: 200px;"></div>
                     </div>
                     

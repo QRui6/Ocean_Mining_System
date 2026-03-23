@@ -167,6 +167,19 @@ export default {
                     },
                     formatter: '{b}<br/>数量: {c} 条 ({d}%)'
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 legend: {
                     orient: 'horizontal',
                     bottom: 5,
@@ -259,6 +272,19 @@ export default {
                         textShadowOffsetY: 2
                     },
                     formatter: '{b}<br/>长度: {c} km ({d}%)'
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 legend: {
                     orient: 'horizontal',
@@ -355,6 +381,19 @@ export default {
                         textShadowOffsetY: 2
                     },
                     formatter: '{b}<br/>容量: {c} Gbps'
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 grid: {
                     left: '5%',

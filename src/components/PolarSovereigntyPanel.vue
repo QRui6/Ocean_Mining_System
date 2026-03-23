@@ -81,12 +81,16 @@ export default {
     },
     methods: {
         handleAntarcticClick() {
+            console.log('🇦🇶 南极按钮被点击');
             this.selectedRegion = 'antarctic';
             this.$emit('showAntarcticDetail');
+            console.log('🇦🇶 触发 showAntarcticDetail 事件');
         },
         handleArcticClick() {
+            console.log('🧊 北极按钮被点击');
             this.selectedRegion = 'arctic';
             this.$emit('showArcticDetail');
+            console.log('🧊 触发 showArcticDetail 事件');
         }
     }
 };

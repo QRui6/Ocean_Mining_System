@@ -778,7 +778,7 @@ export default {
             console.log('💰 LeftPanel toggleEconomicEvaluation 被调用, item:', item);
             
             // 如果点击的是"经济计算"，显示经济计算面板
-            if (item === '经济分析') {
+            if (item === '产能分析') {
                 emit('showEconomicCalculation');
                 return;
             }
@@ -790,7 +790,7 @@ export default {
             }
             
             // 如果点击的是"评价公式"，显示评价公式面板
-            if (item === '评价公式') {
+            if (item === '经济分析') {
                 emit('showEvaluationFormula');
                 return;
             }

@@ -1295,30 +1295,11 @@ export default {
                             console.log('   - 观测网数据:', observationData);
                             console.log('   - 点击位置:', { x: click.position.x, y: click.position.y });
                             
-                            // 如果是日本的观测网，显示图片弹窗
-                            if (country === '日本') {
-                                console.log('🇯🇵 检测到日本观测网，触发图片弹窗');
-                                
-                                // 触发事件通知 App.vue 显示图片
-                                window.dispatchEvent(new CustomEvent('showObservationImage', {
-                                    detail: {
-                                        title: observationData?.name || '日本海底观测网',
-                                        imagePath: '/data/日本_海底观测网.png',
-                                        x: click.position.x,
-                                        y: click.position.y
-                                    }
-                                }));
-                            } else {
-                                // 其他国家显示信息弹窗
-                                console.log('🔬 准备显示海底观测网信息弹窗');
-                                console.log('🔬 弹窗数据:', JSON.stringify(observationData, null, 2));
-                                
-                                // 确保数据完整
-                                if (!observationData) {
-                                    console.error('❌ observationData 为空！');
-                                    return;
-                                }
-                                
+                            // 始终显示信息弹窗
+                            console.log('🔬 准备显示海底观测网信息弹窗');
+                            console.log('🔬 弹窗数据:', JSON.stringify(observationData, null, 2));
+                            
+                            if (observationData) {
                                 window.dispatchEvent(new CustomEvent('showSeafloorPopup', {
                                     detail: {
                                         data: observationData,
@@ -1326,8 +1307,31 @@ export default {
                                         y: click.position.y
                                     }
                                 }));
-                                
                                 console.log('✅ showSeafloorPopup 事件已触发');
+                            }
+
+                            // 如果是特定国家的观测网，额外显示图片弹窗
+                            const imageMap = {
+                                '日本': '/data/日本_海底观测网.png',
+                                '美国': '/data/美国观测网.png',
+                                '欧洲': '/data/欧盟观测网.png', // 数据中为“欧洲”
+                                '欧盟': '/data/欧盟观测网.png', // 兼容可能的“欧盟”命名
+                                '加拿大': '/data/加拿大观测网.png'
+                            };
+
+                            if (imageMap[country]) {
+                                console.log(`📸 检测到${country}观测网，触发图片弹窗`);
+                                
+                                // 触发事件通知 App.vue 显示图片
+                                // 调整 X 轴偏移，避免完全遮挡信息弹窗（信息弹窗默认宽大约是250~300px）
+                                window.dispatchEvent(new CustomEvent('showObservationImage', {
+                                    detail: {
+                                        title: observationData?.name || `${country}海底观测网`,
+                                        imagePath: imageMap[country],
+                                        x: click.position.x + 300, 
+                                        y: click.position.y
+                                    }
+                                }));
                             }
                             
                             return;

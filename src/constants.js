@@ -87,7 +87,7 @@ export const OCEANS = ['太平洋', '印度洋', '大西洋'];
 export const TECH_PROGRESS = ['采矿车', '提升系统', '采矿平台', '环境监测', '试验试采'];
 
 // 3.5 经济评价类型（新增）
-export const ECONOMIC_EVALUATION = ['经济分析', '模型对比', '评价公式', '可行性分析', '情景模拟'];
+export const ECONOMIC_EVALUATION = ['产能分析', '模型对比', '经济分析', '可行性分析', '情景模拟'];
 
 // 4. 政策法规类型（新增）
 export const POLICY_REGULATIONS = ['开发规章时间线', '政策动态', '各国态度'];

@@ -59,7 +59,7 @@
                 <div class="relative flex items-center justify-between px-4 py-2.5 border-b border-cyan-500/30 bg-gray-900/50">
                     <div class="flex items-center gap-2">
                         <div class="w-1 h-5 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>
-                        <h2 class="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">海底矿物资源经济评价计算器</h2>
+                        <h2 class="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">海底矿物资源产能分析</h2>
                     </div>
                     <button @click="$emit('close')" class="text-gray-400 hover:text-cyan-400 transition-all hover:rotate-90 duration-300">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,6 +448,13 @@
                         
                         <!-- 切换按钮 -->
                         <div class="flex bg-gray-800/60 rounded-lg p-0.5 border border-cyan-500/30">
+                            <button @click="chartMode = 'consumption'" 
+                                    :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
+                                        chartMode === 'consumption' 
+                                            ? 'bg-cyan-500/80 text-white shadow-md' 
+                                            : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
+                                金属消费
+                            </button>
                             <button @click="chartMode = 'production'" 
                                     :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
                                         chartMode === 'production' 
@@ -461,13 +468,6 @@
                                             ? 'bg-cyan-500/80 text-white shadow-md' 
                                             : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
                                 金属价值
-                            </button>
-                            <button @click="chartMode = 'consumption'" 
-                                    :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
-                                        chartMode === 'consumption' 
-                                            ? 'bg-cyan-500/80 text-white shadow-md' 
-                                            : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
-                                金属消费
                             </button>
                         </div>
                     </div>
@@ -559,7 +559,7 @@ export default {
             singleAreaProduction: 300,
             recoveryRate: 92,
             exchangeRate: 6.96,
-            chartMode: 'production', // 图表模式：'production' 或 'value'
+            chartMode: 'consumption', // 图表模式：'consumption', 'production' 或 'value'
             metalPricesUsd: {
                 co: 56290,
                 ni: 17266,
@@ -581,18 +581,18 @@ export default {
                 mn: 74       // 中国锰产量 74万吨
             },
             
-            // 全球和中国金属消费数据（2023年，万吨）
+            // 全球和中国金属消费数据（万吨）
             globalConsumption: {
-                co: 17,      // 全球钴消费量 17万吨
-                ni: 310,     // 全球镍消费量 310万吨
-                cu: 2515,    // 全球铜消费量 2515万吨
+                co: 20.48,   // 全球钴消费量 20.48万吨
+                ni: 355.65,  // 全球镍消费量 355.65万吨
+                cu: 2682.71, // 全球铜消费量 2682.71万吨
                 mn: 2000     // 全球锰消费量 2000万吨
             },
             chinaConsumption: {
-                co: 11,      // 中国钴消费量 11万吨 (66%)
-                ni: 195,     // 中国镍消费量 195万吨 (63%)
-                cu: 1509,    // 中国铜消费量 1509万吨 (60%)
-                mn: 1320     // 中国锰消费量 1320万吨 (66%)
+                co: 12.31,   // 中国钴消费量 12.31万吨
+                ni: 232.52,  // 中国镍消费量 232.52万吨
+                cu: 1535.75, // 中国铜消费量 1535.75万吨
+                mn: 1198     // 中国锰消费量 1198万吨
             },
             
             // 全球和中国金属价值数据（基于产量和平均价格计算，万元）
@@ -793,85 +793,19 @@ export default {
                 { co: '万元', ni: '万元', cu: '万元', mn: '万元' } : 
                 { co: '万吨', ni: '万吨', cu: '万吨', mn: '万吨' };
             
-            // 消费模式使用环形图
-            if (isConsumptionMode) {
-                const consumptionData = this.getConsumptionData(metal);
-                
-                return {
-                    backgroundColor: 'transparent',
-                    title: {
-                        text: `${consumptionData.total}万吨`,
-                        left: 'center',
-                        top: 'center',
-                        textStyle: {
-                            fontSize: 16,
-                            fontWeight: 'bold',
-                            color: '#ffffff',
-                            textShadowColor: 'rgba(0, 0, 0, 0.6)',
-                            textShadowBlur: 4,
-                            textShadowOffsetX: 2,
-                            textShadowOffsetY: 2
-                        }
-                    },
-                    series: [{
-                        type: 'pie',
-                        radius: ['40%', '70%'],
-                        center: ['50%', '50%'],
-                        data: consumptionData.data,
-                        label: {
-                            show: true,
-                            position: 'outside',
-                            formatter: '{b}\n{d}%',
-                            fontSize: 10,
-                            fontWeight: 'bold',
-                            color: '#ffffff',
-                            textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                            textShadowBlur: 3,
-                            textShadowOffsetX: 1,
-                            textShadowOffsetY: 1
-                        },
-                        labelLine: {
-                            show: true,
-                            length: 10,
-                            length2: 5,
-                            lineStyle: {
-                                color: '#ffffff'
-                            }
-                        },
-                        emphasis: {
-                            itemStyle: {
-                                shadowBlur: 10,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0, 0, 0, 0.5)'
-                            }
-                        }
-                    }],
-                    tooltip: {
-                        trigger: 'item',
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        borderColor: '#06b6d4',
-                        borderWidth: 1,
-                        textStyle: {
-                            color: '#e2e8f0',
-                            fontSize: 12
-                        },
-                        formatter: function(params) {
-                            return `<div style="padding: 6px;">
-                                    <div style="color: #06b6d4; font-weight: bold; margin-bottom: 6px; font-size: 13px;">全球${metalNames[metal]}消费国家分布</div>
-                                    <div style="font-size: 12px;">${params.name}: <span style="color: #22c55e; font-weight: bold;">${params.value}万吨</span> (${params.percent}%)</div>
-                                    </div>`;
-                        }
-                    }
-                };
-            }
-            
-            // 产量和价值模式使用柱状图
+            // 产量、价值和消费模式均使用柱状图
             let data;
             if (isValueMode) {
                 data = [
                     this.predictedValue[metal],
                     this.chinaMetalValue[metal],
                     this.globalMetalValue[metal]
+                ];
+            } else if (isConsumptionMode) {
+                data = [
+                    this.predictedProduction[metal],
+                    this.chinaConsumption[metal],
+                    this.globalConsumption[metal]
                 ];
             } else {
                 data = [
@@ -884,6 +818,15 @@ export default {
             const maxValue = Math.max(...data);
             const yAxisMax = maxValue * 1.08;
             
+            let xAxisData = ['预测', '中国', '全球'];
+            if (isConsumptionMode) {
+                xAxisData = ['预测产量', '中国消费量', '世界消费量'];
+            } else if (isValueMode) {
+                xAxisData = ['预测价值', '中国价值', '全球价值'];
+            } else {
+                xAxisData = ['预测产量', '中国产量', '全球产量'];
+            }
+
             return {
                 backgroundColor: 'transparent',
                 grid: {
@@ -895,10 +838,10 @@ export default {
                 },
                 xAxis: {
                     type: 'category',
-                    data: ['预测', '中国', '全球'],
+                    data: xAxisData,
                     axisLabel: {
                         color: '#ffffff',
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: 'bold',
                         rotate: 0,
                         interval: 0,

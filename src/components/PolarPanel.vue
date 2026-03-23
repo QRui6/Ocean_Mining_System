@@ -315,11 +315,15 @@
                                     v-for="item in EQUIPMENT_ITEMS" 
                                     :key="item.id"
                                     @click="handleCategoryClick('research_equipment', item.id)"
-                                    class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-purple-500/50"
+                                    class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
+                                    :class="activePanels?.icebreakerList && item.id === 'icebreaker'
+                                        ? 'bg-slate-700 text-purple-400 border-l-4 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                                        : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border-l-4 border-transparent hover:border-purple-500/50'"
                                 >
                                     <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full bg-slate-600 group-hover:bg-purple-400"></div>
-                                        <span class="font-medium">{{ item.label }}</span>
+                                        <div class="w-2 h-2 rounded-full transition-colors duration-300"
+                                             :class="activePanels?.icebreakerList && item.id === 'icebreaker' ? 'bg-purple-400 shadow-[0_0_8px_#a855f7]' : 'bg-slate-600 group-hover:bg-purple-400'"></div>
+                                        <span class="font-medium" :class="activePanels?.icebreakerList && item.id === 'icebreaker' ? 'text-white' : ''">{{ item.label }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -521,6 +525,10 @@ export default {
         showPanel: {
             type: Boolean,
             default: true
+        },
+        activePanels: {
+            type: Object,
+            default: () => ({})
         }
     },
     emits: [

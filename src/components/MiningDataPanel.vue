@@ -109,6 +109,21 @@ export default {
                     },
                     formatter: '{b}<br/>数量: {c} ({d}%)'
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            },
+                            backgroundColor: 'transparent',
+                            pixelRatio: 3
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 legend: {
                     orient: 'horizontal',
                     bottom: 0,
@@ -281,6 +296,21 @@ export default {
                     },
                     formatter: '{b}<br/>{c} 个 ({d}%)'
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            },
+                            backgroundColor: 'transparent',
+                            pixelRatio: 3
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 legend: {
                     orient: 'horizontal',
                     bottom: 5,
@@ -442,6 +472,21 @@ export default {
                         }
                     },
                     formatter: '{b}<br/>合同数量: {c} 个'
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            },
+                            backgroundColor: 'transparent',
+                            pixelRatio: 3
+                        }
+                    },
+                    right: 20,
+                    top: 0
                 },
                 grid: {
                     left: '5%',

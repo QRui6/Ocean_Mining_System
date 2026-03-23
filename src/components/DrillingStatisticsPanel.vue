@@ -318,6 +318,19 @@ export default {
                         fontSize: 12
                     }
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 grid: {
                     left: '12%',
                     right: '8%',
@@ -422,6 +435,19 @@ export default {
                         fontSize: 12
                     },
                     formatter: '{b}<br/>{c} 次 ({d}%)'
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#06b6d4'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 legend: {
                     orient: 'horizontal',
@@ -529,6 +555,19 @@ export default {
                         fontSize: 12
                     }
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#a855f7'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 legend: {
                     data: Object.keys(statisticsData.value.platforms.platforms),
                     top: '5%',
@@ -615,6 +654,19 @@ export default {
                     borderColor: '#fb923c',
                     borderWidth: 1,
                     textStyle: { color: '#fff', fontSize: 11 }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#fb923c'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 legend: {
                     data: ['MSP', '地球号', '决心号'],
@@ -730,6 +782,19 @@ export default {
                     borderWidth: 1,
                     textStyle: { color: '#fff', fontSize: 11 }
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#3b82f6'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
+                },
                 grid: {
                     left: '12%',
                     right: '8%',
@@ -797,6 +862,19 @@ export default {
                     borderColor: '#10b981',
                     borderWidth: 1,
                     textStyle: { color: '#fff', fontSize: 11 }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#10b981'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 grid: {
                     left: '30%',
@@ -876,6 +954,19 @@ export default {
                     borderColor: '#a855f7',
                     borderWidth: 1,
                     textStyle: { color: '#fff', fontSize: 11 }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {
+                            show: true,
+                            title: '保存图片',
+                            iconStyle: {
+                                borderColor: '#a855f7'
+                            }
+                        }
+                    },
+                    right: 10,
+                    top: 0
                 },
                 grid: {
                     left: '18%',
