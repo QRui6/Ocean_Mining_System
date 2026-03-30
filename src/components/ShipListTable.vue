@@ -1,68 +1,65 @@
 <template>
     <div class="absolute bottom-2 left-[31rem] right-8 h-[25rem] z-30 animate-slideUp flex flex-col">
-        <!-- Top Decor -->
-        <div class="h-3 w-full bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
-        
-        <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 flex flex-col relative overflow-hidden">
+        <div class="flex-1 ship-list-shell flex flex-col relative overflow-hidden">
             <!-- Header -->
-            <div class="h-14 flex items-center justify-between px-8 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent">
+            <div class="h-14 flex items-center justify-between px-6 border-b border-slate-600/60 bg-slate-800/95">
                   <div class="flex items-center gap-4">
-                      <div class="w-1.5 h-6 bg-yellow-400 shadow-[0_0_10px_#facc15]"></div>
-                      <h3 class="text-2xl font-bold text-cyan-50 tracking-wider font-['Noto_Sans_SC']">船舶数据列表</h3>
-                      <span class="text-sm text-cyan-500/60 font-['Orbitron'] mt-1 ml-3 tracking-widest">共 {{ totalCount }} 艘</span>
+                      <div class="w-1.5 h-6 bg-cyan-400"></div>
+                      <h3 class="text-2xl font-bold text-slate-100 tracking-wide font-['Noto_Sans_SC']">船舶数据列表</h3>
+                      <span class="text-sm text-slate-300 font-['Noto_Sans_SC'] mt-1 ml-2">共 {{ totalCount }} 艘</span>
                   </div>
                   
                   <!-- Tools -->
-                  <div class="flex gap-6 text-cyan-400 text-base font-bold">
-                      <button @click="clearData" class="hover:text-white hover:underline decoration-2 underline-offset-4">清空列表</button>
+                  <div class="flex gap-6 text-slate-200 text-base font-semibold">
+                      <button @click="clearData" class="hover:text-white transition-colors">清空列表</button>
                   </div>
             </div>
 
             <!-- Table -->
-            <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar px-4 py-2 min-h-0">
+            <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar px-4 py-2 min-h-0 bg-slate-900/95">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-cyan-900/20 text-cyan-200 text-sm sticky top-0 backdrop-blur-md z-10">
+                    <thead class="ship-table-head sticky top-0 z-10">
                         <tr>
                             <th v-for="h in ['序号', 'MMSI', '船舶名称', '船舶类型', '船长', '船宽', '航速', '载重', '目的港', '预计到达', '最后更新', '状态']" :key="h" 
-                                class="px-3 py-2 font-bold tracking-wider border-b-2 border-cyan-500/30 whitespace-nowrap"
+                                class="px-3 py-3 font-semibold tracking-wide border-b border-slate-600 whitespace-nowrap text-sm text-slate-100"
                             >
                                 {{ h }}
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="text-slate-300 text-sm font-['Rajdhani']">
+                    <tbody class="text-slate-100 text-[14px] font-['Noto_Sans_SC']">
                         <tr v-if="paginatedData.length === 0">
-                            <td colspan="12" class="px-3 py-6 text-center text-slate-500">
+                            <td colspan="12" class="px-3 py-8 text-center text-slate-400 text-base">
                                 暂无数据，请先搜索船舶
                             </td>
                         </tr>
                         <tr v-for="(item, index) in paginatedData" :key="item.mmsi" 
-                            class="border-b border-slate-800 hover:bg-cyan-500/10 transition-colors group cursor-pointer"
+                            class="ship-row border-b border-slate-700/60 transition-colors group cursor-pointer"
                             @click="onRowClick(item)"
                         >
-                            <td class="px-3 py-2 text-cyan-500 font-bold">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-                            <td class="px-3 py-2 font-mono text-cyan-400 text-xs">{{ item.mmsi }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC'] text-white group-hover:text-yellow-300 transition-colors font-bold">{{ item.ship_cnname || item.ship_name || '-' }}</td>
-                            <td class="px-3 py-2 font-['Noto_Sans_SC']">{{ getShipTypeName(item.ship_type) }}</td>
-                            <td class="px-3 py-2 font-mono">{{ item.length ? item.length + 'm' : 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono">{{ item.width ? item.width + 'm' : 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono text-yellow-400/90 font-bold">{{ item.sog ? item.sog + ' kn' : 'N/A' }}</td>
-                            <td class="px-3 py-2 font-mono">{{ item.draught ? item.draught + 'm' : 'N/A' }}</td>
-                            <td class="px-3 py-2 text-xs max-w-[120px] truncate" :title="item.dest">{{ item.dest || 'N/A' }}</td>
-                            <td class="px-3 py-2 text-xs">
+                            <td class="px-3 py-3 text-cyan-300 font-semibold">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+                            <td class="px-3 py-3 font-mono text-slate-200">{{ item.mmsi }}</td>
+                            <td class="px-3 py-3 text-slate-50 group-hover:text-white transition-colors font-semibold">{{ item.ship_cnname || item.ship_name || '-' }}</td>
+                            <td class="px-3 py-3 text-slate-200">{{ getShipTypeName(item.ship_type) }}</td>
+                            <td class="px-3 py-3 font-mono text-slate-200">{{ item.length ? item.length + 'm' : 'N/A' }}</td>
+                            <td class="px-3 py-3 font-mono text-slate-200">{{ item.width ? item.width + 'm' : 'N/A' }}</td>
+                            <td class="px-3 py-3 font-mono text-amber-300 font-semibold">{{ item.sog ? item.sog + ' kn' : 'N/A' }}</td>
+                            <td class="px-3 py-3 font-mono text-slate-200">{{ item.draught ? item.draught + 'm' : 'N/A' }}</td>
+                            <td class="px-3 py-3 text-slate-200 max-w-[140px] truncate" :title="item.dest">{{ item.dest || 'N/A' }}</td>
+                            <td class="px-3 py-3 text-slate-200">
                                 <div>{{ item.eta || 'N/A' }}</div>
-                                <div v-if="isEtaExpired(item.eta, item.last_time)" class="text-orange-400 text-xs">⚠️ 已过期</div>
+                                <div v-if="isEtaExpired(item.eta, item.last_time)" class="text-orange-300 text-xs mt-1">已过期</div>
                             </td>
-                            <td class="px-3 py-2 opacity-80 text-xs">{{ item.last_time || '-' }}</td>
-                            <td class="px-3 py-2 text-xs">{{ getNavigationStatus(item.navistat) }}</td>
+                            <td class="px-3 py-3 text-slate-300">{{ item.last_time || '-' }}</td>
+                            <td class="px-3 py-3 text-slate-200">{{ getNavigationStatus(item.navistat) }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Pagination -->
-            <div class="h-14 flex-shrink-0 flex items-center justify-between px-6 border-t border-cyan-500/20 bg-slate-900/80">
-                <div class="text-sm text-slate-400">
+            <div class="h-14 flex-shrink-0 flex items-center justify-between px-6 border-t border-slate-700/70 bg-slate-800/95">
+                <div class="text-sm text-slate-300">
                     显示 {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalCount) }} 条，共 {{ totalCount }} 条
                 </div>
                 <div class="flex items-center gap-2">
@@ -73,7 +70,7 @@
                             'px-3 py-1 rounded text-sm font-bold transition-all',
                             currentPage === 1 
                                 ? 'bg-slate-800 text-slate-600 cursor-not-allowed' 
-                                : 'bg-cyan-700 text-white hover:bg-cyan-600'
+                                : 'bg-slate-700 text-slate-100 hover:bg-slate-600'
                         ]"
                     >
                         上一页
@@ -87,8 +84,8 @@
                             :class="[
                                 'w-8 h-8 rounded text-sm font-bold transition-all',
                                 currentPage === page 
-                                    ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
-                                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                    ? 'bg-cyan-600 text-white' 
+                                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
                             ]"
                         >
                             {{ page }}
@@ -102,7 +99,7 @@
                             'px-3 py-1 rounded text-sm font-bold transition-all',
                             currentPage === totalPages 
                                 ? 'bg-slate-800 text-slate-600 cursor-not-allowed' 
-                                : 'bg-cyan-700 text-white hover:bg-cyan-600'
+                                : 'bg-slate-700 text-slate-100 hover:bg-slate-600'
                         ]"
                     >
                         下一页
@@ -347,6 +344,28 @@ export default {
 </script>
 
 <style scoped>
+.ship-list-shell {
+    background: rgba(15, 23, 42, 0.96);
+    border: 1px solid rgba(100, 116, 139, 0.65);
+    border-radius: 8px;
+}
+
+.ship-table-head {
+    background: rgba(30, 41, 59, 0.98);
+}
+
+.ship-row:nth-child(odd) {
+    background: rgba(15, 23, 42, 0.65);
+}
+
+.ship-row:nth-child(even) {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.ship-row:hover {
+    background: rgba(56, 189, 248, 0.16);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -358,11 +377,11 @@ export default {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(6, 182, 212, 0.6), rgba(6, 182, 212, 0.3));
+    background: rgba(71, 85, 105, 0.85);
     border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(6, 182, 212, 0.9), rgba(6, 182, 212, 0.6));
+    background: rgba(100, 116, 139, 0.95);
 }
 </style>

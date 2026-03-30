@@ -10,6 +10,7 @@ export class ShipLayer {
         this.viewer = viewer;
         this.ships = new Map(); // mmsi -> entity
         this.updateInterval = null;
+        this.shipAltitude = 120;
     }
     
     /**
@@ -17,11 +18,15 @@ export class ShipLayer {
      * @param {Object} shipData - 船舶数据
      */
     addShip(shipData) {
-        const { mmsi, lat, lng, ship_name, ship_cnname, sog, cog, ship_type, hdg } = shipData;
+        const { mmsi, lat, lng, ship_name, ship_cnname, sog, cog, ship_type, hdg, displayColor } = shipData;
         
         // 如果已存在，更新位置
         if (this.ships.has(mmsi)) {
             this.updateShipPosition(mmsi, lat, lng, sog, cog, hdg);
+            if (displayColor) {
+                const entity = this.ships.get(mmsi);
+                entity.billboard.color = Cesium.Color.fromCssColorString(displayColor);
+            }
             return this.ships.get(mmsi);
         }
         
@@ -29,15 +34,18 @@ export class ShipLayer {
         const entity = this.viewer.entities.add({
             id: `ship_${mmsi}`,
             name: ship_cnname || ship_name || `Ship ${mmsi}`,
-            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            position: Cesium.Cartesian3.fromDegrees(lng, lat, this.shipAltitude),
             billboard: {
                 image: this.getShipIcon(ship_type),
                 width: 40,
                 height: 40,
                 rotation: Cesium.Math.toRadians((hdg !== 511 ? hdg : cog) - 90), // 航向，511表示无效
+                color: displayColor ? Cesium.Color.fromCssColorString(displayColor) : Cesium.Color.WHITE,
                 verticalOrigin: Cesium.VerticalOrigin.CENTER,
                 horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                heightReference: Cesium.HeightReference.NONE,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                eyeOffset: new Cesium.Cartesian3(0, 0, -80)
             },
             label: {
                 text: ship_cnname || ship_name || `${mmsi}`,
@@ -50,7 +58,8 @@ export class ShipLayer {
                 showBackground: true,
                 backgroundColor: Cesium.Color.fromCssColorString('rgba(0,0,0,0.7)'),
                 backgroundPadding: new Cesium.Cartesian2(8, 4),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                heightReference: Cesium.HeightReference.NONE,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY
             },
             properties: {
                 mmsi: mmsi,
@@ -97,7 +106,7 @@ export class ShipLayer {
     updateShipPosition(mmsi, lat, lng, sog, cog, hdg) {
         const entity = this.ships.get(mmsi);
         if (entity) {
-            entity.position = Cesium.Cartesian3.fromDegrees(lng, lat);
+            entity.position = Cesium.Cartesian3.fromDegrees(lng, lat, this.shipAltitude);
             entity.billboard.rotation = Cesium.Math.toRadians((hdg !== 511 ? hdg : cog) - 90);
             entity.properties.sog = sog;
             entity.properties.cog = cog;
@@ -128,6 +137,8 @@ export class ShipLayer {
         }
         
         // 绘制船舶形状（简化的船形）
+        ctx.shadowColor = 'rgba(255,255,255,0.85)';
+        ctx.shadowBlur = 10;
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.moveTo(20, 5);  // 船头
@@ -140,6 +151,7 @@ export class ShipLayer {
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.shadowBlur = 0;
         
         return canvas;
     }

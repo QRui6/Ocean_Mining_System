@@ -778,7 +778,7 @@ export default {
             console.log('💰 LeftPanel toggleEconomicEvaluation 被调用, item:', item);
             
             // 如果点击的是"经济计算"，显示经济计算面板
-            if (item === '产能分析') {
+            if (item === '产能与价值分析') {
                 emit('showEconomicCalculation');
                 return;
             }

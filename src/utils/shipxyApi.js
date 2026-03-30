@@ -80,6 +80,18 @@ export async function getSingleShip(mmsi) {
 }
 
 /**
+ * 船舶模糊查询
+ * @param {string} keywords - 搜索关键字（如船名）
+ * @returns {Promise<Object>} 搜索结果
+ */
+export async function searchShipFuzzy(keywords) {
+    // URL编码关键字，防止中文导致请求失败
+    const encodedKeywords = encodeURIComponent(keywords);
+    const url = `${API_BASE}/SearchShip?key=${API_KEY}&keywords=${encodedKeywords}`;
+    return await request(url);
+}
+
+/**
  * 按船名搜索船舶
  * @param {string} shipName - 船舶名称
  * @returns {Promise<Object>} 船舶信息
@@ -160,37 +172,48 @@ export async function planRouteByPort(startPortCode, endPortCode, avoid = '', th
  * @returns {Promise<Object>} 航线信息 { distance, route: [{lng, lat}] }
  */
 export async function planRouteByPoint(startPoint, endPoint, avoid = '', through = '') {
-    // 临时使用本地JSON文件代替API调用
-    try {
-        console.log('📂 使用本地JSON文件进行航线规划');
-        console.log('   - 起点:', startPoint);
-        console.log('   - 终点:', endPoint);
-        
-        const response = await fetch('/点到点航线规划.json');
-        const jsonData = await response.json();
-        
-        console.log('✅ 本地航线数据加载成功:', jsonData);
-        
-        // 返回与API相同的格式
-        if (jsonData.status === 0) {
-            return { success: true, data: jsonData.data };
-        } else {
-            return { success: false, error: jsonData.msg || '加载本地航线数据失败' };
-        }
-    } catch (error) {
-        console.error('❌ 加载本地航线数据失败:', error);
-        return { success: false, error: error.message };
-    }
-    
-    /* 原API调用代码（已注释）
-    let url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${startPoint}&end_point=${endPoint}`;
-    if (avoid) url += `&avoid=${avoid}`;
-    if (through) url += `&through=${through}`;
+    let url = `${API_BASE}/PlanRouteByPoint?key=${API_KEY}&start_point=${encodeURIComponent(startPoint)}&end_point=${encodeURIComponent(endPoint)}`;
+    if (avoid) url += `&avoid=${encodeURIComponent(avoid)}`;
+    if (through) url += `&through=${encodeURIComponent(through)}`;
     console.log('🌐 点到点航线规划 URL:', url);
-    const result = await request(url);
-    console.log('📦 点到点航线响应:', result);
-    return result;
-    */
+
+    try {
+        const result = await request(url);
+        console.log('📦 点到点航线响应:', result);
+        if (result.success) return result;
+        throw new Error(result.error || 'API 返回失败');
+    } catch (apiError) {
+        console.warn('⚠️ 点到点 API 调用失败，回退本地演示数据:', apiError.message || apiError);
+        try {
+            const response = await fetch('/点到点航线规划.json');
+            const jsonData = await response.json();
+            if (jsonData.status === 0) {
+                const parsePoint = (value) => {
+                    const [lng, lat] = String(value).split(',').map(v => Number(v.trim()));
+                    return Number.isFinite(lng) && Number.isFinite(lat) ? { lng, lat } : null;
+                };
+                const start = parsePoint(startPoint);
+                const end = parsePoint(endPoint);
+                if (start && end) {
+                    const mid = {
+                        lng: (start.lng + end.lng) / 2,
+                        lat: (start.lat + end.lat) / 2
+                    };
+                    return {
+                        success: true,
+                        data: {
+                            distance: jsonData.data?.distance || 0,
+                            route: [start, mid, end]
+                        }
+                    };
+                }
+                return { success: true, data: jsonData.data };
+            }
+            return { success: false, error: jsonData.msg || '加载本地航线数据失败' };
+        } catch (localError) {
+            return { success: false, error: localError.message || '点到点航线规划失败' };
+        }
+    }
 }
 
 /**

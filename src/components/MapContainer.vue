@@ -586,6 +586,7 @@ export default {
         const selectedCable = ref(null); // 选中的光缆信息
         const cableInfoPosition = ref({ x: 0, y: 0 }); // 光缆信息窗口位置
         let shipLayer = null; // 船舶图层实例
+        const shipTrackColors = new Map(); // mmsi -> Cesium.Color
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
         let routeWeatherLayer = null; // 航线气象图层实例
@@ -4053,6 +4054,47 @@ export default {
         let pickPointHandler = null;
         let pickPointType = null; // 当前选点类型
         let pickPointMarkerEntity = null; // 当前选点标记
+
+        const pickCartesianFromClick = (viewer, clickPosition) => {
+            // 按 screen-container 的 CSS transform: scale 反算真实点击坐标
+            let scaleX = 1;
+            let scaleY = 1;
+            const screenContainer = document.getElementById('screen-container');
+            if (screenContainer) {
+                const style = window.getComputedStyle(screenContainer);
+                const transform = style.transform || '';
+                const matrixMatch = transform.match(/matrix\(([^)]+)\)/);
+                if (matrixMatch && matrixMatch[1]) {
+                    const values = matrixMatch[1].split(',').map(v => Number(v.trim()));
+                    if (values.length >= 6) {
+                        scaleX = values[0];
+                        scaleY = values[3];
+                    }
+                } else {
+                    const rect = screenContainer.getBoundingClientRect();
+                    const baseWidth = screenContainer.offsetWidth || 1920;
+                    const baseHeight = screenContainer.offsetHeight || 1080;
+                    if (rect.width > 0 && rect.height > 0 && baseWidth > 0 && baseHeight > 0) {
+                        scaleX = rect.width / baseWidth;
+                        scaleY = rect.height / baseHeight;
+                    }
+                }
+            }
+
+            if (!Number.isFinite(scaleX) || scaleX <= 0) scaleX = 1;
+            if (!Number.isFinite(scaleY) || scaleY <= 0) scaleY = 1;
+
+            const correctedPosition = new Cesium.Cartesian2(
+                clickPosition.x / scaleX,
+                clickPosition.y / scaleY
+            );
+
+            let cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+            if (cartesian) return cartesian;
+
+            // 兜底：直接尝试原始坐标
+            return viewer.camera.pickEllipsoid(clickPosition, viewer.scene.globe.ellipsoid);
+        };
         
         // 处理地图选点请求
         const handlePickPoint = (data) => {
@@ -4091,20 +4133,7 @@ export default {
             pickPointHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
             
             pickPointHandler.setInputAction((click) => {
-                // 计算 CSS scale 缩放比例
-                const baseWidth = 1920;
-                const baseHeight = 1080;
-                const scaleX = window.innerWidth / baseWidth;
-                const scaleY = window.innerHeight / baseHeight;
-                
-                // 修正点击坐标
-                const correctedPosition = new Cesium.Cartesian2(
-                    click.position.x / scaleX,
-                    click.position.y / scaleY
-                );
-                
-                // 获取点击位置的笛卡尔坐标
-                const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+                const cartesian = pickCartesianFromClick(viewer, click.position);
                 
                 if (cartesian) {
                     // 转换为经纬度
@@ -4152,6 +4181,14 @@ export default {
                     // 创建标记
                     pickPointMarkerEntity = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                        point: {
+                            pixelSize: 14,
+                            color: Cesium.Color.fromCssColorString(markerColor),
+                            outlineColor: Cesium.Color.WHITE,
+                            outlineWidth: 2,
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
+                        },
                         billboard: {
                             image: 'data:image/svg+xml;base64,' + window.btoa(`
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
@@ -4793,8 +4830,22 @@ export default {
         // 监听船舶定位请求
         watch(() => props.shipToLocate, (ship) => {
             if (ship && shipLayer) {
+                if (ship.action === 'remove') {
+                    shipLayer.removeShip(ship.mmsi);
+                    return;
+                }
+                const numericMmsi = Number(ship.mmsi);
+                let trackColor = shipTrackColors.get(numericMmsi);
+                if (!trackColor) {
+                    const hue = ((numericMmsi * 137.508) % 360) / 360;
+                    trackColor = Cesium.Color.fromHsl(hue, 0.9, 0.5, 0.95);
+                    shipTrackColors.set(numericMmsi, trackColor);
+                }
                 // 添加船舶到地图
-                shipLayer.addShip(ship);
+                shipLayer.addShip({
+                    ...ship,
+                    displayColor: trackColor.toCssColorString()
+                });
                 // 飞到船舶位置
                 shipLayer.flyToShip(ship.mmsi);
             }
@@ -4855,75 +4906,273 @@ export default {
             if (!trackData || !viewer) return;
             
             console.log('📈 收到轨迹绘制请求:', trackData);
+
+            const removeTrackByMmsi = (mmsi) => {
+                const idPrefixList = [`ship-track-${mmsi}`, `track-start-${mmsi}`, `track-end-${mmsi}`];
+                const idsToRemove = viewer.entities.values
+                    .map(entity => entity.id)
+                    .filter(id =>
+                        typeof id === 'string'
+                        && idPrefixList.some(prefix => id.startsWith(prefix))
+                    );
+                idsToRemove.forEach(id => {
+                    const entity = viewer.entities.getById(id);
+                    if (entity) viewer.entities.remove(entity);
+                });
+            };
+            const clearAllTracks = () => {
+                const idsToRemove = viewer.entities.values
+                    .map(entity => entity.id)
+                    .filter(id =>
+                        typeof id === 'string'
+                        && (id.startsWith('ship-track-') || id.startsWith('track-start-') || id.startsWith('track-end-'))
+                    );
+                idsToRemove.forEach(id => {
+                    const entity = viewer.entities.getById(id);
+                    if (entity) viewer.entities.remove(entity);
+                });
+                shipTrackColors.clear();
+            };
             
             if (trackData.action === 'draw' && trackData.track) {
-                // 先清除之前的轨迹（避免重复添加）
-                const existingTrack = viewer.entities.getById('ship-track');
-                if (existingTrack) viewer.entities.remove(existingTrack);
+                const mmsi = Number(trackData.mmsi);
+                if (!Number.isFinite(mmsi)) return;
+                removeTrackByMmsi(mmsi);
                 
-                const existingStart = viewer.entities.getById('track-start');
-                if (existingStart) viewer.entities.remove(existingStart);
-                
-                const existingEnd = viewer.entities.getById('track-end');
-                if (existingEnd) viewer.entities.remove(existingEnd);
-                
-                // 构建轨迹点位置数组
-                const positions = trackData.track.map(point => 
-                    Cesium.Cartesian3.fromDegrees(point.lng, point.lat)
-                );
-                
-                if (positions.length > 0) {
-                    // 绘制轨迹线 - 蓝色粗线
-                    viewer.entities.add({
-                        id: 'ship-track',
-                        name: `船舶轨迹 (MMSI: ${trackData.mmsi})`,
-                        polyline: {
-                            positions: positions,
-                            width: 6,
-                            material: new Cesium.PolylineGlowMaterialProperty({
-                                glowPower: 0.3,
-                                color: Cesium.Color.CYAN.withAlpha(0.95)
-                            }),
-                            clampToGround: false
+                const toTimestamp = (point) => {
+                    const value = point.utc ?? point.timestamp ?? point.time ?? point.loc_time ?? point.pos_time ?? point.last_time ?? null;
+                    const num = Number(value);
+                    if (Number.isFinite(num)) {
+                        // 兼容毫秒时间戳
+                        return num > 1e12 ? Math.floor(num / 1000) : num;
+                    }
+                    const parsed = Date.parse(String(value));
+                    return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : null;
+                };
+                const normalizeLongitude = (lng) => {
+                    let normalized = lng;
+                    while (normalized > 180) normalized -= 360;
+                    while (normalized < -180) normalized += 360;
+                    return normalized;
+                };
+                const haversineKm = (lat1, lng1, lat2, lng2) => {
+                    const rad = Math.PI / 180;
+                    const dLat = (lat2 - lat1) * rad;
+                    const dLng = (lng2 - lng1) * rad;
+                    const a = Math.sin(dLat / 2) ** 2
+                        + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+                    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                };
+
+                const normalizedTrack = trackData.track
+                    .map((point, index) => {
+                        const lng = normalizeLongitude(Number(point.lng));
+                        const lat = Number(point.lat);
+                        return {
+                            ...point,
+                            lng,
+                            lat,
+                            __index: index,
+                            __ts: toTimestamp(point)
+                        };
+                    })
+                    .filter(point =>
+                        Number.isFinite(point.lng)
+                        && Number.isFinite(point.lat)
+                        && point.lng >= -180
+                        && point.lng <= 180
+                        && point.lat >= -90
+                        && point.lat <= 90
+                        && !(point.lng === 0 && point.lat === 0)
+                    );
+
+                const sortedTrack = [...normalizedTrack].sort((a, b) => {
+                    if (a.__ts != null && b.__ts != null) return a.__ts - b.__ts;
+                    if (a.__ts != null) return -1;
+                    if (b.__ts != null) return 1;
+                    return a.__index - b.__index;
+                });
+
+                const dedupedPoints = [];
+                let lastPoint = null;
+                sortedTrack.forEach(point => {
+                    if (!lastPoint) {
+                        dedupedPoints.push(point);
+                        lastPoint = point;
+                        return;
+                    }
+                    const distanceKm = haversineKm(lastPoint.lat, lastPoint.lng, point.lat, point.lng);
+                    if (distanceKm < 0.015) return;
+                    dedupedPoints.push(point);
+                    lastPoint = point;
+                });
+
+                const splitToSegments = (points) => {
+                    if (points.length < 2) return [];
+                    const segments = [];
+                    let current = [points[0]];
+
+                    for (let i = 1; i < points.length; i += 1) {
+                        const prev = current[current.length - 1];
+                        const curr = points[i];
+                        const distanceKm = haversineKm(prev.lat, prev.lng, curr.lat, curr.lng);
+                        const deltaSeconds = (prev.__ts != null && curr.__ts != null) ? (curr.__ts - prev.__ts) : null;
+                        const speedKnots = deltaSeconds && deltaSeconds > 0
+                            ? (distanceKm / deltaSeconds) * 1943.8444924406
+                            : null;
+
+                        const hasReverseTime = deltaSeconds != null && deltaSeconds <= 0;
+                        const hasLongGap = deltaSeconds != null && deltaSeconds > 6 * 3600;
+                        const maxDistance = deltaSeconds != null
+                            ? Math.max(25, (deltaSeconds / 3600) * 35 + 5)
+                            : 20;
+                        const isJumpPoint = distanceKm > maxDistance;
+                        const isExtremeSpeed = speedKnots != null && speedKnots > 55;
+
+                        if (hasReverseTime) {
+                            continue;
                         }
+
+                        if (hasLongGap || isJumpPoint || isExtremeSpeed) {
+                            if (current.length >= 2) {
+                                segments.push(current);
+                            }
+                            current = [curr];
+                            continue;
+                        }
+
+                        current.push(curr);
+                    }
+
+                    if (current.length >= 2) {
+                        segments.push(current);
+                    }
+
+                    return segments;
+                };
+
+                const removeSpikePoints = (points) => {
+                    if (points.length < 3) return points;
+                    const cleaned = [points[0]];
+                    for (let i = 1; i < points.length - 1; i += 1) {
+                        const prev = cleaned[cleaned.length - 1];
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        const prevToCurr = haversineKm(prev.lat, prev.lng, curr.lat, curr.lng);
+                        const currToNext = haversineKm(curr.lat, curr.lng, next.lat, next.lng);
+                        const prevToNext = haversineKm(prev.lat, prev.lng, next.lat, next.lng);
+                        const isZeroSegment = prevToCurr < 0.001 || currToNext < 0.001;
+                        const isSpike = prevToNext < Math.min(prevToCurr, currToNext) * 0.7
+                            || prevToNext < (prevToCurr + currToNext) * 0.45;
+                        if (isZeroSegment || isSpike) continue;
+                        cleaned.push(curr);
+                    }
+                    cleaned.push(points[points.length - 1]);
+                    return cleaned;
+                };
+                const smoothByWeightedAverage = (points) => {
+                    if (points.length < 5) return points;
+                    const w = [1, 2, 3, 2, 1];
+                    const sumW = 9;
+                    return points.map((point, index) => {
+                        if (index < 2 || index > points.length - 3) return point;
+                        let lng = 0;
+                        let lat = 0;
+                        for (let k = -2; k <= 2; k += 1) {
+                            const weight = w[k + 2];
+                            lng += points[index + k].lng * weight;
+                            lat += points[index + k].lat * weight;
+                        }
+                        return {
+                            ...point,
+                            lng: lng / sumW,
+                            lat: lat / sumW
+                        };
                     });
-                    
-                    // 添加起点和终点标记
-                    const startPoint = trackData.track[0];
-                    const endPoint = trackData.track[trackData.track.length - 1];
-                    
+                };
+                const chaikinOpenCurve = (points, iterations = 1) => {
+                    if (points.length < 3 || iterations <= 0) return points;
+                    let result = points;
+                    for (let step = 0; step < iterations; step += 1) {
+                        const next = [result[0]];
+                        for (let i = 0; i < result.length - 1; i += 1) {
+                            const p0 = result[i];
+                            const p1 = result[i + 1];
+                            next.push({
+                                ...p0,
+                                lng: p0.lng * 0.75 + p1.lng * 0.25,
+                                lat: p0.lat * 0.75 + p1.lat * 0.25
+                            });
+                            next.push({
+                                ...p1,
+                                lng: p0.lng * 0.25 + p1.lng * 0.75,
+                                lat: p0.lat * 0.25 + p1.lat * 0.75
+                            });
+                        }
+                        next.push(result[result.length - 1]);
+                        result = next;
+                    }
+                    return result;
+                };
+                const rawSegments = splitToSegments(dedupedPoints);
+                const maxRenderPointsPerSegment = 600;
+                const renderedSegments = rawSegments
+                    .map(segment => {
+                        const deSpikedPoints = removeSpikePoints(segment);
+                        const averagedPoints = smoothByWeightedAverage(deSpikedPoints);
+                        const smoothedPoints = averagedPoints.length <= 1000
+                            ? chaikinOpenCurve(averagedPoints, 1)
+                            : averagedPoints;
+                        if (smoothedPoints.length <= maxRenderPointsPerSegment) return smoothedPoints;
+                        const step = Math.ceil(smoothedPoints.length / maxRenderPointsPerSegment);
+                        return smoothedPoints.filter((_, index) => index % step === 0);
+                    })
+                    .filter(segment => segment.length >= 2);
+
+                const allRenderedPoints = renderedSegments.flat();
+
+                console.log(`轨迹优化: 原始 ${trackData.track.length} 点 -> 排序去重 ${dedupedPoints.length} 点 -> 分段 ${renderedSegments.length} 段 -> 绘制 ${allRenderedPoints.length} 点`);
+
+                if (allRenderedPoints.length > 0) {
+                    const shipDisplayName = trackData.shipName || trackData.shipCnName || '船舶';
+                    let trackColor = shipTrackColors.get(mmsi);
+                    if (!trackColor) {
+                        const hue = ((Number(mmsi) * 137.508) % 360) / 360;
+                        trackColor = Cesium.Color.fromHsl(hue, 0.9, 0.5, 0.95);
+                        shipTrackColors.set(mmsi, trackColor);
+                    }
+                    renderedSegments.forEach((segment, segmentIndex) => {
+                        const positions = segment.map(point =>
+                            Cesium.Cartesian3.fromDegrees(point.lng, point.lat)
+                        );
+                        viewer.entities.add({
+                            id: `ship-track-${mmsi}-seg-${segmentIndex}`,
+                            name: `船舶轨迹 (MMSI: ${trackData.mmsi})`,
+                            polyline: {
+                                positions: positions,
+                                width: 4,
+                                material: new Cesium.PolylineOutlineMaterialProperty({
+                                    color: trackColor,
+                                    outlineColor: Cesium.Color.BLACK.withAlpha(0.35),
+                                    outlineWidth: 1
+                                }),
+                                clampToGround: false
+                            }
+                        });
+                    });
+
+                    const startPoint = allRenderedPoints[0];
                     viewer.entities.add({
-                        id: 'track-start',
+                        id: `track-start-${mmsi}`,
                         position: Cesium.Cartesian3.fromDegrees(startPoint.lng, startPoint.lat),
                         point: {
                             pixelSize: 12,
-                            color: Cesium.Color.GREEN,
+                            color: trackColor,
                             outlineColor: Cesium.Color.WHITE,
                             outlineWidth: 3
                         },
                         label: {
-                            text: '起点',
-                            font: '16px sans-serif',
-                            fillColor: Cesium.Color.WHITE,
-                            outlineColor: Cesium.Color.BLACK,
-                            outlineWidth: 2,
-                            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                            pixelOffset: new Cesium.Cartesian2(0, -12)
-                        }
-                    });
-                    
-                    viewer.entities.add({
-                        id: 'track-end',
-                        position: Cesium.Cartesian3.fromDegrees(endPoint.lng, endPoint.lat),
-                        point: {
-                            pixelSize: 12,
-                            color: Cesium.Color.RED,
-                            outlineColor: Cesium.Color.WHITE,
-                            outlineWidth: 3
-                        },
-                        label: {
-                            text: '终点',
+                            text: `起点 (${shipDisplayName})`,
                             font: '16px sans-serif',
                             fillColor: Cesium.Color.WHITE,
                             outlineColor: Cesium.Color.BLACK,
@@ -4936,29 +5185,49 @@ export default {
                     
                     // 飞到轨迹视角
                     setTimeout(() => {
-                        const trackEntity = viewer.entities.getById('ship-track');
-                        if (trackEntity) {
-                            viewer.flyTo(trackEntity, {
-                                duration: 2,
-                                offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), positions.length > 100 ? 500000 : 200000)
+                        let minLng = 180;
+                        let maxLng = -180;
+                        let minLat = 90;
+                        let maxLat = -90;
+
+                        allRenderedPoints.forEach(p => {
+                            if (p.lng < minLng) minLng = p.lng;
+                            if (p.lng > maxLng) maxLng = p.lng;
+                            if (p.lat < minLat) minLat = p.lat;
+                            if (p.lat > maxLat) maxLat = p.lat;
+                        });
+
+                        const lngDiff = maxLng - minLng;
+                        const latDiff = maxLat - minLat;
+
+                        if (lngDiff < 0.01 && latDiff < 0.01) {
+                            viewer.camera.flyTo({
+                                destination: Cesium.Cartesian3.fromDegrees((minLng + maxLng) / 2, (minLat + maxLat) / 2, 50000),
+                                duration: 2
+                            });
+                        } else {
+                            const margin = Math.max(lngDiff, latDiff) * 0.1;
+                            viewer.camera.flyTo({
+                                destination: Cesium.Rectangle.fromDegrees(
+                                    minLng - margin,
+                                    minLat - margin,
+                                    maxLng + margin,
+                                    maxLat + margin
+                                ),
+                                duration: 2
                             });
                         }
                     }, 300);
-                    
-                    console.log(`✅ 已绘制 ${positions.length} 个轨迹点`);
+
+                    console.log(`✅ 已绘制 ${renderedSegments.length} 段轨迹，共 ${allRenderedPoints.length} 个点`);
                 }
+            } else if (trackData.action === 'remove' && trackData.mmsi != null) {
+                removeTrackByMmsi(trackData.mmsi);
+                shipTrackColors.delete(Number(trackData.mmsi));
+                console.log(`🗑️ 已清除船舶轨迹: ${trackData.mmsi}`);
             } else if (trackData.action === 'clear') {
-                // 清除轨迹
-                const existingTrack = viewer.entities.getById('ship-track');
-                if (existingTrack) viewer.entities.remove(existingTrack);
-                
-                const existingStart = viewer.entities.getById('track-start');
-                if (existingStart) viewer.entities.remove(existingStart);
-                
-                const existingEnd = viewer.entities.getById('track-end');
-                if (existingEnd) viewer.entities.remove(existingEnd);
-                
-                console.log('🗑️ 轨迹已清除');
+                clearAllTracks();
+                console.log('🗑️ 所有轨迹已清除');
             }
         }, { deep: true });
         
@@ -5062,21 +5331,8 @@ export default {
             
             pickPointHandler.setInputAction((click) => {
                 console.log('🖱️ 地图被点击了！类型:', newType);
-                
-                // 计算 CSS scale 缩放比例
-                const baseWidth = 1920;
-                const baseHeight = 1080;
-                const scaleX = window.innerWidth / baseWidth;
-                const scaleY = window.innerHeight / baseHeight;
-                
-                // 修正点击坐标
-                const correctedPosition = new Cesium.Cartesian2(
-                    click.position.x / scaleX,
-                    click.position.y / scaleY
-                );
-                
-                // 获取点击位置的笛卡尔坐标
-                const cartesian = viewer.camera.pickEllipsoid(correctedPosition, viewer.scene.globe.ellipsoid);
+
+                const cartesian = pickCartesianFromClick(viewer, click.position);
                 
                 if (cartesian) {
                     // 转换为经纬度
@@ -5124,6 +5380,14 @@ export default {
                     // 创建标记
                     const marker = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(lng, lat),
+                        point: {
+                            pixelSize: 14,
+                            color: Cesium.Color.fromCssColorString(markerColor),
+                            outlineColor: Cesium.Color.WHITE,
+                            outlineWidth: 2,
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
+                        },
                         billboard: {
                             image: 'data:image/svg+xml;base64,' + window.btoa(`
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
@@ -5135,7 +5399,8 @@ export default {
                             width: 32,
                             height: 48,
                             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
                         },
                         label: {
                             text: markerLabel,
@@ -5146,7 +5411,8 @@ export default {
                             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
                             verticalOrigin: Cesium.VerticalOrigin.TOP,
                             pixelOffset: new Cesium.Cartesian2(0, 5),
-                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
                         }
                     });
                     

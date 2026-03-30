@@ -2,7 +2,7 @@
     <div class="fixed left-8 top-40 z-30 w-[28rem] pointer-events-auto font-['Noto_Sans_SC']">
         <!-- 主容器 - 科技感边框 -->
         <div class="relative backdrop-blur-md overflow-hidden"
-             style="clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px)); background: rgba(15, 30, 60, 0.3);">
+             style="clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px)); background: linear-gradient(180deg, rgba(15, 30, 60, 0.8), rgba(8, 20, 45, 0.74));">
             
             <!-- 发光边框效果 -->
             <div class="absolute inset-0 pointer-events-none">
@@ -28,12 +28,24 @@
                         科考船列表
                     </h3>
                 </div>
-                <button @click="$emit('close')" 
-                        class="text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="toggleStatisticsPanel"
+                        class="px-3 py-1.5 bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/50 rounded transition-all duration-300 flex items-center gap-2"
+                        :class="showStatisticsPanel ? 'bg-cyan-600/50 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : ''"
+                    >
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="text-cyan-400 text-sm font-bold">统计</span>
+                    </button>
+                    <button @click="$emit('close')"
+                            class="text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- 树状列表内容区 -->
@@ -231,11 +243,82 @@
                 </div>
             </div>
         </div>
+
+        <transition name="slide-right">
+            <div v-if="showStatisticsPanel" class="fixed top-28 bottom-8 right-8 w-[30rem] z-40 pointer-events-auto font-['Noto_Sans_SC']">
+                <div class="relative overflow-hidden h-full"
+                     style="clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px)); background: linear-gradient(to right, rgba(30, 58, 138, 0.2), rgba(30, 58, 138, 0.25), rgba(30, 58, 138, 0.2)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(6, 182, 212, 0.3); box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);">
+                    <div class="absolute inset-0 pointer-events-none">
+                        <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                        <div class="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                        <div class="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-70"></div>
+                    </div>
+                    <div class="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-cyan-400/80"></div>
+                    <div class="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-cyan-400/80"></div>
+                    <div class="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-cyan-400/80"></div>
+                    <div class="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-cyan-400/80"></div>
+
+                    <div class="relative flex items-center justify-between px-4 py-2.5 border-b border-cyan-500/30"
+                         style="background: rgba(6, 182, 212, 0.08);">
+                        <div class="flex items-center gap-3">
+                            <div class="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-500 shadow-lg shadow-cyan-500/50"></div>
+                            <h3 class="text-lg font-bold text-white tracking-wider" style="text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);">
+                                科考船航行时长统计
+                            </h3>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-cyan-200/90 text-xs font-semibold tracking-wide">
+                                时间范围：近半年
+                            </span>
+                            <button @click="showStatisticsPanel = false"
+                                    class="text-cyan-400 hover:text-white transition-all duration-300 hover:rotate-90">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-2 border-b border-cyan-500/20 bg-cyan-950/20">
+                        <div class="flex items-center gap-3 whitespace-nowrap overflow-x-auto custom-scrollbar">
+                            <span class="text-[11px] text-cyan-100/70 font-medium">图例：</span>
+                            <button
+                                v-for="legend in departmentLegend"
+                                :key="legend.key"
+                                type="button"
+                                class="flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all duration-200 shrink-0"
+                                :class="isDepartmentSelected(legend.key)
+                                    ? 'border-cyan-300/80 bg-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.25)]'
+                                    : 'border-white/15 bg-white/5 hover:border-cyan-300/40 hover:bg-cyan-400/10'"
+                                @click="toggleDepartmentFilter(legend.key)"
+                            >
+                                <span
+                                    class="inline-block w-3 h-3 rounded-sm border border-white/40"
+                                    :style="{ background: `linear-gradient(90deg, ${legend.startColor}, ${legend.endColor})` }"
+                                ></span>
+                                <span
+                                    class="text-[11px] whitespace-nowrap"
+                                    :class="isDepartmentSelected(legend.key) ? 'text-cyan-100 font-semibold' : 'text-slate-100/90'"
+                                >
+                                    {{ legend.label }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-1.5 h-[calc(100%-5.75rem)]">
+                        <div ref="navigationHoursChartRef" class="w-full h-full"></div>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
 <script>
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch, nextTick, onUnmounted } from 'vue';
+import * as echarts from 'echarts';
 
 export default {
     name: 'ResearchVesselList',
@@ -243,11 +326,11 @@ export default {
     setup(props, { emit }) {
         // 展开状态
         const expandedNodes = reactive({
-            mnr: false,
+            mnr: true,
             mnr_geo: false,
             mnr_ocean: false,
-            cas: false,
-            university: false
+            cas: true,
+            university: true
         });
 
         // 选中状态
@@ -257,6 +340,11 @@ export default {
             cas: [],
             university: []
         });
+        const showStatisticsPanel = ref(true);
+        const navigationHoursChartRef = ref(null);
+        const shipHoursData = ref([]);
+        const selectedDepartmentKey = ref('');
+        let navigationHoursChart = null;
 
         // 科考船数据
         const vessels = reactive({
@@ -309,6 +397,79 @@ export default {
             ]
         });
 
+        const normalizeVesselName = (name = '') => String(name).replace(/["'“”]/g, '').replace(/\s+/g, '').trim();
+
+        const departmentStyles = {
+            mnr_geo: {
+                label: '自然资源部-地调局系统',
+                startColor: '#60a5fa',
+                endColor: '#2563eb',
+                textColor: '#bfdbfe'
+            },
+            mnr_ocean: {
+                label: '自然资源部-国家海洋局系统',
+                startColor: '#2dd4bf',
+                endColor: '#059669',
+                textColor: '#99f6e4'
+            },
+            cas: {
+                label: '中国科学院',
+                startColor: '#fbbf24',
+                endColor: '#ea580c',
+                textColor: '#fde68a'
+            },
+            university: {
+                label: '高等院校',
+                startColor: '#fb7185',
+                endColor: '#be123c',
+                textColor: '#fecdd3'
+            },
+            unknown: {
+                label: '未分类',
+                startColor: '#94a3b8',
+                endColor: '#64748b',
+                textColor: '#cbd5e1'
+            }
+        };
+        const departmentLegend = [
+            {
+                key: 'mnr_geo',
+                label: '地调局系统',
+                startColor: departmentStyles.mnr_geo.startColor,
+                endColor: departmentStyles.mnr_geo.endColor
+            },
+            {
+                key: 'mnr_ocean',
+                label: '国家海洋局系统',
+                startColor: departmentStyles.mnr_ocean.startColor,
+                endColor: departmentStyles.mnr_ocean.endColor
+            },
+            {
+                key: 'cas',
+                label: '中国科学院',
+                startColor: departmentStyles.cas.startColor,
+                endColor: departmentStyles.cas.endColor
+            },
+            {
+                key: 'university',
+                label: '高等院校',
+                startColor: departmentStyles.university.startColor,
+                endColor: departmentStyles.university.endColor
+            }
+        ];
+
+        const vesselDepartmentLookup = {};
+        Object.entries(vessels).forEach(([departmentKey, vesselList]) => {
+            vesselList.forEach((vessel) => {
+                vesselDepartmentLookup[normalizeVesselName(vessel.name)] = departmentKey;
+            });
+        });
+
+        const getDepartmentKeyByVesselName = (vesselName) => {
+            const normalizedName = normalizeVesselName(vesselName);
+            return vesselDepartmentLookup[normalizedName] || 'unknown';
+        };
+
         // 获取总数（用于自然资源部）
         const getTotalCount = (category) => {
             if (category === 'mnr') {
@@ -323,13 +484,23 @@ export default {
         };
 
         // 切换船只选中状态
-        const toggleVesselSelection = (category, vesselId) => {
+        const toggleVesselSelection = (category, vessel) => {
+            const vesselInfo = typeof vessel === 'object'
+                ? vessel
+                : vessels[category].find(item => item.id === vessel) || { id: vessel, name: vessel, type: '' };
+            const vesselId = vesselInfo.id;
             const index = selectedVessels[category].indexOf(vesselId);
             if (index > -1) {
                 selectedVessels[category].splice(index, 1);
             } else {
                 selectedVessels[category].push(vesselId);
             }
+            const isSelected = selectedVessels[category].includes(vesselId);
+            emit('vesselSelect', {
+                vessel: JSON.parse(JSON.stringify(vesselInfo)),
+                selected: isSelected
+            });
+            return isSelected;
         };
 
         // 检查船只是否被选中
@@ -339,19 +510,183 @@ export default {
 
         // 选择科考船（点击整行）
         const selectVessel = (vessel, category) => {
-            toggleVesselSelection(category, vessel.id);
-            emit('vesselSelect', vessel);
+            toggleVesselSelection(category, vessel);
         };
+
+        const loadShipHoursData = async () => {
+            const response = await fetch('/ship_hours.json');
+            const data = await response.json();
+            shipHoursData.value = Array.isArray(data)
+                ? data
+                    .map(item => ({
+                        vesselName: item.vessel_name || '未命名船舶',
+                        navigationHours: Number(item.navigation_hours || 0),
+                        navigationDays: Number(item.navigation_days || 0)
+                    }))
+                    .sort((a, b) => b.navigationHours - a.navigationHours)
+                : [];
+        };
+
+        const createNavigationHoursChart = () => {
+            if (!navigationHoursChartRef.value) {
+                return;
+            }
+            if (navigationHoursChart) {
+                navigationHoursChart.dispose();
+            }
+            navigationHoursChart = echarts.init(navigationHoursChartRef.value);
+            const chartData = shipHoursData.value
+                .map(item => {
+                    const departmentKey = getDepartmentKeyByVesselName(item.vesselName);
+                    return {
+                        ...item,
+                        departmentKey,
+                        departmentLabel: departmentStyles[departmentKey]?.label || departmentStyles.unknown.label
+                    };
+                })
+                .filter(item => !selectedDepartmentKey.value || item.departmentKey === selectedDepartmentKey.value);
+            const vesselNames = chartData.map(item => item.vesselName);
+            const hourValues = chartData.map(item => Number(item.navigationHours.toFixed(2)));
+            const option = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    backgroundColor: 'rgba(0, 20, 40, 0.95)',
+                    borderColor: '#06b6d4',
+                    borderWidth: 1,
+                    textStyle: { color: '#fff', fontSize: 13, fontWeight: 600 },
+                    formatter: params => {
+                        if (!params.length) return '';
+                        const index = params[0].dataIndex;
+                        const item = chartData[index];
+                        return `${item.vesselName}<br/>所属部门：${item.departmentLabel}<br/>${item.navigationHours.toFixed(2)}小时（${item.navigationDays.toFixed(2)}天）`;
+                    }
+                },
+                grid: {
+                    left: 10,
+                    right: 8,
+                    top: 8,
+                    bottom: 16,
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '航行时长（小时）',
+                    nameTextStyle: { color: '#67e8f9', fontSize: 13, fontWeight: 600 },
+                    axisLine: { lineStyle: { color: 'rgba(103, 232, 249, 0.5)' } },
+                    axisLabel: { color: '#e2e8f0', fontSize: 11, fontWeight: 600 },
+                    splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.15)' } }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: vesselNames,
+                    inverse: true,
+                    axisLine: { lineStyle: { color: 'rgba(103, 232, 249, 0.5)' } },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        fontSize: 12,
+                        fontWeight: 600,
+                        interval: 0,
+                        color: (_, index) => {
+                            const departmentKey = chartData[index]?.departmentKey || 'unknown';
+                            return departmentStyles[departmentKey]?.textColor || departmentStyles.unknown.textColor;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        type: 'bar',
+                        data: hourValues,
+                        barWidth: 12,
+                        itemStyle: {
+                            borderRadius: [0, 6, 6, 0],
+                            borderColor: 'rgba(255, 255, 255, 0.35)',
+                            borderWidth: 1,
+                            color: params => {
+                                const departmentKey = chartData[params.dataIndex]?.departmentKey || 'unknown';
+                                const departmentStyle = departmentStyles[departmentKey] || departmentStyles.unknown;
+                                return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                                    { offset: 0, color: departmentStyle.startColor },
+                                    { offset: 1, color: departmentStyle.endColor }
+                                ]);
+                            }
+                        },
+                        label: {
+                            show: true,
+                            position: 'right',
+                            color: '#f8fafc',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            formatter: params => {
+                                const item = chartData[params.dataIndex];
+                                if (!item) return '';
+                                return `${item.navigationHours.toFixed(2)}小时（${item.navigationDays.toFixed(2)}天）`;
+                            }
+                        }
+                    }
+                ]
+            };
+            navigationHoursChart.setOption(option);
+        };
+
+        const toggleDepartmentFilter = (departmentKey) => {
+            selectedDepartmentKey.value = selectedDepartmentKey.value === departmentKey ? '' : departmentKey;
+            if (showStatisticsPanel.value) {
+                nextTick(() => {
+                    createNavigationHoursChart();
+                });
+            }
+        };
+
+        const isDepartmentSelected = (departmentKey) => selectedDepartmentKey.value === departmentKey;
+
+        const toggleStatisticsPanel = () => {
+            showStatisticsPanel.value = !showStatisticsPanel.value;
+        };
+
+        const handleResize = () => {
+            if (navigationHoursChart) {
+                navigationHoursChart.resize();
+            }
+        };
+
+        watch(showStatisticsPanel, async (visible) => {
+            if (visible) {
+                await loadShipHoursData();
+                await nextTick();
+                createNavigationHoursChart();
+            } else if (navigationHoursChart) {
+                navigationHoursChart.dispose();
+                navigationHoursChart = null;
+            }
+        }, { immediate: true });
+
+        window.addEventListener('resize', handleResize);
+
+        onUnmounted(() => {
+            window.removeEventListener('resize', handleResize);
+            if (navigationHoursChart) {
+                navigationHoursChart.dispose();
+                navigationHoursChart = null;
+            }
+        });
 
         return {
             expandedNodes,
             selectedVessels,
             vessels,
+            departmentLegend,
+            showStatisticsPanel,
+            navigationHoursChartRef,
+            toggleDepartmentFilter,
+            isDepartmentSelected,
             toggleNode,
             toggleVesselSelection,
             isVesselSelected,
             selectVessel,
-            getTotalCount
+            getTotalCount,
+            toggleStatisticsPanel
         };
     }
 };

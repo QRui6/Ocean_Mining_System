@@ -1,0 +1,177 @@
+[
+  {
+    "vessel_name": "大洋号",
+    "navigation_hours": 2259.42,
+    "navigation_days": 94.14
+  },
+  {
+    "vessel_name": "大洋一号",
+    "navigation_hours": 2491.63,
+    "navigation_days": 103.82
+  },
+  {
+    "vessel_name": "东方红2",
+    "navigation_hours": 0.0,
+    "navigation_days": 0.0
+  },
+  {
+    "vessel_name": "东方红3",
+    "navigation_hours": 886.59,
+    "navigation_days": 36.94
+  },
+  {
+    "vessel_name": "海洋地质八号",
+    "navigation_hours": 1258.71,
+    "navigation_days": 52.45
+  },
+  {
+    "vessel_name": "海洋地质二号",
+    "navigation_hours": 814.31,
+    "navigation_days": 33.93
+  },
+  {
+    "vessel_name": "海洋地质二十六号",
+    "navigation_hours": 224.65,
+    "navigation_days": 9.36
+  },
+  {
+    "vessel_name": "海洋地质九号",
+    "navigation_hours": 2515.64,
+    "navigation_days": 104.82
+  },
+  {
+    "vessel_name": "海洋地质六号",
+    "navigation_hours": 1752.91,
+    "navigation_days": 73.04
+  },
+  {
+    "vessel_name": "海洋地质七号",
+    "navigation_hours": 234.27,
+    "navigation_days": 9.76
+  },
+  {
+    "vessel_name": "海洋地质十八号",
+    "navigation_hours": 122.1,
+    "navigation_days": 5.09
+  },
+  {
+    "vessel_name": "海洋地质十二号",
+    "navigation_hours": 863.61,
+    "navigation_days": 35.98
+  },
+  {
+    "vessel_name": "海洋地质十号",
+    "navigation_hours": 490.83,
+    "navigation_days": 20.45
+  },
+  {
+    "vessel_name": "海洋地质十七号",
+    "navigation_hours": 315.62,
+    "navigation_days": 13.15
+  },
+  {
+    "vessel_name": "海洋地质四号",
+    "navigation_hours": 737.4,
+    "navigation_days": 30.72
+  },
+  {
+    "vessel_name": "嘉庚号",
+    "navigation_hours": 1140.89,
+    "navigation_days": 47.54
+  },
+  {
+    "vessel_name": "科学号",
+    "navigation_hours": 722.89,
+    "navigation_days": 30.12
+  },
+  {
+    "vessel_name": "科学三号",
+    "navigation_hours": 385.38,
+    "navigation_days": 16.06
+  },
+  {
+    "vessel_name": "探索一号",
+    "navigation_hours": 2762.76,
+    "navigation_days": 115.12
+  },
+  {
+    "vessel_name": "天使1",
+    "navigation_hours": 56.17,
+    "navigation_days": 2.34
+  },
+  {
+    "vessel_name": "同济号",
+    "navigation_hours": 318.38,
+    "navigation_days": 13.27
+  },
+  {
+    "vessel_name": "向阳红01",
+    "navigation_hours": 708.05,
+    "navigation_days": 29.5
+  },
+  {
+    "vessel_name": "向阳红03",
+    "navigation_hours": 1630.74,
+    "navigation_days": 67.95
+  },
+  {
+    "vessel_name": "向阳红06",
+    "navigation_hours": 91.82,
+    "navigation_days": 3.83
+  },
+  {
+    "vessel_name": "向阳红08",
+    "navigation_hours": 303.0,
+    "navigation_days": 12.63
+  },
+  {
+    "vessel_name": "向阳红09",
+    "navigation_hours": 49.95,
+    "navigation_days": 2.08
+  },
+  {
+    "vessel_name": "向阳红10",
+    "navigation_hours": 613.36,
+    "navigation_days": 25.56
+  },
+  {
+    "vessel_name": "向阳红14",
+    "navigation_hours": 0.6,
+    "navigation_days": 0.03
+  },
+  {
+    "vessel_name": "向阳红18",
+    "navigation_hours": 331.81,
+    "navigation_days": 13.83
+  },
+  {
+    "vessel_name": "向阳红20",
+    "navigation_hours": 328.35,
+    "navigation_days": 13.68
+  },
+  {
+    "vessel_name": "雪龙2号",
+    "navigation_hours": 2476.76,
+    "navigation_days": 103.2
+  },
+  {
+    "vessel_name": "雪龙号",
+    "navigation_hours": 47.04,
+    "navigation_days": 1.96
+  },
+  {
+    "vessel_name": "育鲲",
+    "navigation_hours": 85.51,
+    "navigation_days": 3.56
+  },
+  {
+    "vessel_name": "张謇号",
+    "navigation_hours": 0.0,
+    "navigation_days": 0.0
+  },
+  {
+    "vessel_name": "中号",
+    "navigation_hours": 1.41,
+    "navigation_days": 0.06
+  }
+]

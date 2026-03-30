@@ -72,7 +72,7 @@
                 
                 <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
                 <ShipTrackingPanel 
-                    ref="shipTrackingRef"
+                    ref="shipTrackingPanelRef"
                     :showShipSearch="activePanels.shipSearch"
                     :showRoutePlan="activePanels.routePlan"
                     :showHistoryTrack="activePanels.historyTrack"
@@ -713,6 +713,7 @@ import { PolarStationsLoader } from './utils/polarStationsLoader.js';
 import { EnterpriseMarkerManager } from './utils/enterpriseMarkers.js';
 import { CHINA_ENTERPRISES } from './constants.js';
 import { RouteManager } from './utils/routeManager.js';
+import { searchShipFuzzy, getSingleShip, getShipTrack } from './utils/shipxyApi.js';
 
 export default {
     components: {
@@ -809,6 +810,9 @@ export default {
         
         // 航线管理器
         let routeManager = null;
+
+        // 组件引用
+        const shipTrackingPanelRef = ref(null);
         
         // 当前选中的顶部选项卡（默认：矿区管理）
         const currentTab = ref('矿区管理');
@@ -979,6 +983,7 @@ export default {
         
         // 船舶列表数据
         const shipListData = ref([]);
+        const researchVesselMmsiMap = ref({});
         
         // 气象列表数据
         const weatherListData = ref([]);
@@ -1457,6 +1462,12 @@ export default {
          */
         const toggleResearchVesselList = () => {
             activePanels.value.researchVesselList = !activePanels.value.researchVesselList;
+            // 与船舶追踪左侧面板互斥，避免出现覆盖
+            if (activePanels.value.researchVesselList) {
+                activePanels.value.shipSearch = false;
+                activePanels.value.historyTrack = false;
+                activePanels.value.routePlan = false;
+            }
         };
         
         /**
@@ -2207,9 +2218,65 @@ export default {
         /**
          * 处理科考船选择事件
          */
-        const handleVesselSelect = (vessel) => {
-            console.log('选中科考船:', vessel);
-            // TODO: 实现科考船定位功能
+        const handleVesselSelect = async (payload) => {
+            const vessel = payload?.vessel || payload;
+            const selected = typeof payload?.selected === 'boolean' ? payload.selected : true;
+            console.log(selected ? '选中科考船:' : '取消选中科考船:', vessel);
+            
+            try {
+                let mmsi = researchVesselMmsiMap.value[vessel.id];
+
+                if (!mmsi) {
+                    const result = await searchShipFuzzy(vessel.name);
+                    if (result.success && result.data && result.data.length > 0) {
+                        mmsi = result.data[0].mmsi;
+                        researchVesselMmsiMap.value[vessel.id] = mmsi;
+                        console.log(`成功获取科考船 ${vessel.name} 的 MMSI:`, mmsi);
+                    } else {
+                        console.warn(`未找到科考船 ${vessel.name} 的信息`);
+                        return;
+                    }
+                }
+
+                if (!selected) {
+                    shipToLocate.value = {
+                        action: 'remove',
+                        mmsi,
+                        timestamp: Date.now()
+                    };
+                    trackToDraw.value = {
+                        action: 'remove',
+                        mmsi,
+                        timestamp: Date.now()
+                    };
+                    shipListData.value = shipListData.value.filter(ship => ship.mmsi !== mmsi);
+                    delete researchVesselMmsiMap.value[vessel.id];
+                    return;
+                }
+
+                const shipResult = await getSingleShip(mmsi);
+                if (shipResult.success && shipResult.data) {
+                    handleShipLocate(shipResult.data);
+                    const trackStartTimestamp = 1759248000;
+                    const trackEndTimestamp = Math.floor(Date.now() / 1000);
+                    const trackResult = await getShipTrack(mmsi, trackStartTimestamp, trackEndTimestamp);
+                    if (trackResult.success && trackResult.data && trackResult.data.length > 0) {
+                        handleTrackLoaded({
+                            mmsi,
+                            track: trackResult.data,
+                            startTime: trackStartTimestamp,
+                            endTime: trackEndTimestamp,
+                            shipName: shipResult.data.ship_cnname || shipResult.data.ship_name || vessel.name
+                        });
+                    } else {
+                        console.warn(`获取科考船 ${vessel.name} 历史轨迹失败:`, trackResult.error || '该时间段内没有轨迹数据');
+                    }
+                } else {
+                    console.warn(`获取科考船 ${vessel.name} 实时位置失败:`, shipResult.error || '未知错误');
+                }
+            } catch (error) {
+                console.error(`查询科考船 ${vessel.name} 失败:`, error);
+            }
         };
         
         /**
@@ -2256,6 +2323,7 @@ export default {
             activePanels.value.shipSearch = !activePanels.value.shipSearch;
             if (activePanels.value.shipSearch) {
                 activePanels.value.areaMonitor = false;
+                activePanels.value.researchVesselList = false;
             }
         };
         
@@ -2266,6 +2334,7 @@ export default {
             activePanels.value.routePlan = !activePanels.value.routePlan;
             if (activePanels.value.routePlan) {
                 activePanels.value.areaMonitor = false;
+                activePanels.value.researchVesselList = false;
             }
         };
         
@@ -2293,7 +2362,6 @@ export default {
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
         const leftPanelRef = ref(null);  // 左侧面板引用
-        const shipTrackingRef = ref(null);
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
@@ -2531,6 +2599,9 @@ export default {
          */
         const toggleHistoryTrack = () => {
             activePanels.value.historyTrack = !activePanels.value.historyTrack;
+            if (activePanels.value.historyTrack) {
+                activePanels.value.researchVesselList = false;
+            }
         };
         
         /**
@@ -2657,20 +2728,9 @@ export default {
          * @param {Object} routeData - 路径数据
          */
         const handleRoutePlanned = (routeData) => {
-            console.log('🗺️ 路径规划完成 → 启动航线演示');
-            
-            // 关闭路径规划面板
-            activePanels.value.routePlan = false;
-            
-            // 打开航线动态面板
-            activePanels.value.routeDemo = true;
-            
-            // 通知 MapContainer 初始化航线演示
-            if (mapContainerRef.value && mapContainerRef.value.initRouteDemo) {
-                mapContainerRef.value.initRouteDemo();
-            }
-            
-            console.log('✅ 航线动态面板已打开');
+            console.log('🗺️ 路径规划完成，按常规模式绘制航线');
+            currentRouteData.value = routeData;
+            routeToDraw.value = { ...routeData, action: 'draw', timestamp: Date.now() };
         };
         
         /**
@@ -2744,8 +2804,8 @@ export default {
             }
             
             // 航线规划选点
-            if (pickingPointType.value && shipTrackingRef.value) {
-                shipTrackingRef.value.setPickedPoint(lng, lat, pickingPointType.value);
+            if (pickingPointType.value && shipTrackingPanelRef.value) {
+                shipTrackingPanelRef.value.setPickedPoint(lng, lat, pickingPointType.value);
                 pickingPointType.value = null;
             }
         };
@@ -4399,6 +4459,7 @@ export default {
         };
 
         return {
+            shipTrackingPanelRef,
             currentTheme,
             handleThemeChange,
             currentTab,
@@ -4463,7 +4524,6 @@ export default {
             handlePickPoint,
             handlePointPicked,
             pickingPointType,
-            shipTrackingRef,
             areaMonitorRef,
             mapContainerRef,
             leftPanelRef,

@@ -59,7 +59,7 @@
                 <div class="relative flex items-center justify-between px-4 py-2.5 border-b border-cyan-500/30 bg-gray-900/50">
                     <div class="flex items-center gap-2">
                         <div class="w-1 h-5 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>
-                        <h2 class="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">海底矿物资源产能分析</h2>
+                        <h2 class="text-base font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">海底矿产资源产能与价值分析</h2>
                     </div>
                     <button @click="$emit('close')" class="text-gray-400 hover:text-cyan-400 transition-all hover:rotate-90 duration-300">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

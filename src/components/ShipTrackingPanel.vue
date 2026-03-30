@@ -17,7 +17,7 @@
                 </div>
                 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                <div ref="shipSearchScrollRef" class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
                     <!-- 搜索类型选项卡 -->
                     <div class="flex gap-2 mb-6">
                         <button 
@@ -29,7 +29,7 @@
                                     : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
                             ]"
                         >
-                            🔍 单船搜索
+                            单船搜索
                         </button>
                         <button 
                             @click="searchMode = 'multiple'"
@@ -40,12 +40,46 @@
                                     : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
                             ]"
                         >
-                            📋 多船搜索
+                            多船搜索
                         </button>
                     </div>
 
                     <!-- 单船搜索内容 -->
                     <div v-if="searchMode === 'single'" class="space-y-4">
+                    <!-- 船名输入 -->
+                    <div class="space-y-2">
+                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>船舶名称
+                        </div>
+                        <div class="flex gap-2">
+                            <input
+                                v-model="singleShipName"
+                                type="text"
+                                placeholder="输入船名关键词，如：向阳红、雪龙"
+                                class="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Noto_Sans_SC']"
+                                @keyup.enter="handleSingleNameSearch"
+                            />
+                            <button
+                                @click="handleSingleNameSearch"
+                                :disabled="singleNameLoading || !singleShipName"
+                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/60 text-white font-bold rounded-sm transition-all"
+                            >
+                                {{ singleNameLoading ? '查询中...' : '模糊查询' }}
+                            </button>
+                        </div>
+                        <div v-if="singleNameMatches.length > 0" class="max-h-28 overflow-y-auto custom-scrollbar rounded-sm border border-cyan-500/30 bg-slate-900/60">
+                            <button
+                                v-for="ship in singleNameMatches"
+                                :key="`single-${ship.mmsi}-${ship.ship_name || ''}`"
+                                @click="applySingleShipMatch(ship)"
+                                class="w-full px-3 py-2 text-left hover:bg-cyan-500/15 border-b border-slate-700/60 last:border-b-0 transition-colors"
+                            >
+                                <div class="text-white text-sm font-['Noto_Sans_SC']">{{ getShipDisplayName(ship) }}</div>
+                                <div class="text-cyan-300 text-xs font-mono">MMSI: {{ ship.mmsi }}</div>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- MMSI输入 -->
                     <div class="space-y-2">
                         <div class="text-cyan-400 text-base font-bold flex items-center">
@@ -70,7 +104,7 @@
                     </div>
 
                     <!-- 单船搜索结果 -->
-                    <div v-if="singleResult || singleError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
+                    <div v-if="singleResult || singleError" ref="singleResultSectionRef" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
                         <div class="text-cyan-400 text-base font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>搜索结果
                         </div>
@@ -118,6 +152,32 @@
                 
                     <!-- 多船搜索内容 -->
                     <div v-if="searchMode === 'multiple'" class="space-y-4">
+                    <!-- 船名列表输入 -->
+                    <div class="space-y-2">
+                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>船舶名称列表
+                        </div>
+                        <textarea
+                            v-model="multipleShipNames"
+                            placeholder="输入多个船名关键词，每行一个或用逗号分隔&#10;例如：&#10;向阳红03&#10;雪龙号&#10;海洋地质"
+                            rows="3"
+                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Noto_Sans_SC'] text-sm"
+                        ></textarea>
+                        <button
+                            @click="handleMultipleNameSearch"
+                            :disabled="multipleNameLoading || !multipleShipNames"
+                            class="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/60 text-white font-bold rounded-sm transition-all"
+                        >
+                            {{ multipleNameLoading ? '转换中...' : '船名转MMSI' }}
+                        </button>
+                        <div v-if="multipleNameMatched.length > 0" class="text-xs text-emerald-300">
+                            已匹配 {{ multipleNameMatched.length }} 个名称并自动回填到 MMSI 列表
+                        </div>
+                        <div v-if="multipleNameUnmatched.length > 0" class="text-xs text-amber-300">
+                            未匹配：{{ multipleNameUnmatched.join('、') }}
+                        </div>
+                    </div>
+
                     <!-- MMSI列表输入 -->
                     <div class="space-y-2">
                         <div class="text-cyan-400 text-base font-bold flex items-center">
@@ -139,7 +199,7 @@
                             :disabled="multipleLoading || !multipleMmsis"
                             class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                         >
-                            {{ multipleLoading ? '搜索中...' : '🔍 批量搜索' }}
+                            {{ multipleLoading ? '搜索中...' : '批量搜索' }}
                         </button>
                         <button 
                             v-if="multipleResults.length > 0"
@@ -660,8 +720,42 @@
                 </div>
 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                <div ref="historyTrackScrollRef" class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
                     <div class="space-y-4">
+                        <!-- 船名输入 -->
+                        <div class="space-y-2">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>船舶名称
+                            </div>
+                            <div class="flex gap-2">
+                                <input
+                                    v-model="trackShipName"
+                                    type="text"
+                                    placeholder="输入船名关键词，自动匹配并回填MMSI"
+                                    class="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Noto_Sans_SC']"
+                                    @keyup.enter="handleTrackNameSearch"
+                                />
+                                <button
+                                    @click="handleTrackNameSearch"
+                                    :disabled="trackNameLoading || !trackShipName"
+                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/60 text-white font-bold rounded-sm transition-all"
+                                >
+                                    {{ trackNameLoading ? '查询中...' : '模糊查询' }}
+                                </button>
+                            </div>
+                            <div v-if="trackNameMatches.length > 0" class="max-h-28 overflow-y-auto custom-scrollbar rounded-sm border border-amber-500/30 bg-slate-900/60">
+                                <button
+                                    v-for="ship in trackNameMatches"
+                                    :key="`track-${ship.mmsi}-${ship.ship_name || ''}`"
+                                    @click="applyTrackShipMatch(ship)"
+                                    class="w-full px-3 py-2 text-left hover:bg-amber-500/15 border-b border-slate-700/60 last:border-b-0 transition-colors"
+                                >
+                                    <div class="text-white text-sm font-['Noto_Sans_SC']">{{ getShipDisplayName(ship) }}</div>
+                                    <div class="text-amber-300 text-xs font-mono">MMSI: {{ ship.mmsi }}</div>
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- MMSI输入 -->
                         <div class="space-y-2">
                             <div class="text-amber-400 text-base font-bold flex items-center">
@@ -739,7 +833,7 @@
                                 :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
                                 class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
                             >
-                                {{ trackLoading ? '查询中...' : '🔍 查询轨迹' }}
+                                {{ trackLoading ? '查询中...' : '查询轨迹' }}
                             </button>
                             <button 
                                 v-if="trackResult"
@@ -751,7 +845,7 @@
                         </div>
                         
                         <!-- 轨迹查询结果 -->
-                        <div v-if="trackResult || trackError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
+                        <div v-if="trackResult || trackError" ref="trackResultSectionRef" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
                             <div class="text-amber-400 text-base font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>查询结果
                             </div>
@@ -789,8 +883,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
-import { getSingleShip, getManyShip, planRouteByPort, getShipTrack } from '../utils/shipxyApi.js';
+import { ref, nextTick } from 'vue';
+import { getSingleShip, getManyShip, planRouteByPort, getShipTrack, searchShipFuzzy } from '../utils/shipxyApi.js';
 import { DEFAULT_THRESHOLDS } from '../utils/weatherRiskAssessment.js';
 
 export default {
@@ -818,12 +912,19 @@ export default {
         const searchMode = ref('single'); // 'single' 或 'multiple'
         
         // 单船搜索相关
+        const singleShipName = ref('');
         const singleMmsi = ref('');
         const singleLoading = ref(false);
         const singleResult = ref(null);
         const singleError = ref('');
+        const singleNameLoading = ref(false);
+        const singleNameMatches = ref([]);
         
         // 多船搜索相关
+        const multipleShipNames = ref('');
+        const multipleNameLoading = ref(false);
+        const multipleNameMatched = ref([]);
+        const multipleNameUnmatched = ref([]);
         const multipleMmsis = ref('');
         const multipleLoading = ref(false);
         const multipleResults = ref([]);
@@ -852,12 +953,100 @@ export default {
         let currentRouteData = null; // 保存当前路径数据
         
         // 历史轨迹相关
+        const trackShipName = ref('');
         const trackMmsi = ref('');
         const trackStartTime = ref('');
         const trackEndTime = ref('');
         const trackLoading = ref(false);
         const trackResult = ref(null);
         const trackError = ref('');
+        const trackNameLoading = ref(false);
+        const trackNameMatches = ref([]);
+        const shipSearchScrollRef = ref(null);
+        const historyTrackScrollRef = ref(null);
+        const singleResultSectionRef = ref(null);
+        const trackResultSectionRef = ref(null);
+
+        const scrollToResultSection = async (sectionRef, containerRef) => {
+            await nextTick();
+            if (sectionRef?.value?.scrollIntoView) {
+                sectionRef.value.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest'
+                });
+                return;
+            }
+            if (containerRef?.value) {
+                containerRef.value.scrollTo({
+                    top: containerRef.value.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        };
+
+        const getShipDisplayName = (ship) => ship?.ship_cnname || ship?.ship_name || ship?.name || `MMSI: ${ship?.mmsi || '-'}`;
+
+        const applySingleShipMatch = (ship) => {
+            if (!ship?.mmsi) return;
+            singleMmsi.value = String(ship.mmsi);
+            singleError.value = '';
+        };
+
+        const applyTrackShipMatch = (ship) => {
+            if (!ship?.mmsi) return;
+            trackMmsi.value = String(ship.mmsi);
+            trackError.value = '';
+        };
+
+        const handleSingleNameSearch = async () => {
+            if (!singleShipName.value.trim()) {
+                singleError.value = '请输入船舶名称';
+                return;
+            }
+
+            singleNameLoading.value = true;
+            singleNameMatches.value = [];
+            singleError.value = '';
+
+            try {
+                const result = await searchShipFuzzy(singleShipName.value.trim());
+                if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    singleNameMatches.value = result.data.slice(0, 8);
+                    applySingleShipMatch(singleNameMatches.value[0]);
+                } else {
+                    singleError.value = result.error || '未匹配到船舶，请尝试更完整的名称';
+                }
+            } catch (err) {
+                singleError.value = '名称查询失败: ' + err.message;
+            } finally {
+                singleNameLoading.value = false;
+            }
+        };
+
+        const handleTrackNameSearch = async () => {
+            if (!trackShipName.value.trim()) {
+                trackError.value = '请输入船舶名称';
+                return;
+            }
+
+            trackNameLoading.value = true;
+            trackNameMatches.value = [];
+            trackError.value = '';
+
+            try {
+                const result = await searchShipFuzzy(trackShipName.value.trim());
+                if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    trackNameMatches.value = result.data.slice(0, 8);
+                    applyTrackShipMatch(trackNameMatches.value[0]);
+                } else {
+                    trackError.value = result.error || '未匹配到船舶，请尝试更完整的名称';
+                }
+            } catch (err) {
+                trackError.value = '名称查询失败: ' + err.message;
+            } finally {
+                trackNameLoading.value = false;
+            }
+        };
         
         // 单船搜索
         const handleSingleSearch = async () => {
@@ -887,6 +1076,9 @@ export default {
                 singleError.value = '搜索失败: ' + err.message;
             } finally {
                 singleLoading.value = false;
+                if (singleResult.value || singleError.value) {
+                    await scrollToResultSection(singleResultSectionRef, shipSearchScrollRef);
+                }
             }
         };
         
@@ -897,6 +1089,67 @@ export default {
         };
         
         // 多船搜索
+        const handleMultipleNameSearch = async () => {
+            if (!multipleShipNames.value.trim()) {
+                multipleError.value = '请输入船舶名称列表';
+                return;
+            }
+
+            const keywords = [...new Set(
+                multipleShipNames.value
+                    .split(/[,\n]+/)
+                    .map(name => name.trim())
+                    .filter(Boolean)
+            )];
+
+            if (keywords.length === 0) {
+                multipleError.value = '请输入有效的船舶名称';
+                return;
+            }
+
+            multipleNameLoading.value = true;
+            multipleNameMatched.value = [];
+            multipleNameUnmatched.value = [];
+            multipleError.value = '';
+
+            try {
+                const matchedShips = [];
+
+                for (const keyword of keywords) {
+                    try {
+                        const result = await searchShipFuzzy(keyword);
+                        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                            const ship = result.data[0];
+                            matchedShips.push({
+                                keyword,
+                                mmsi: String(ship.mmsi)
+                            });
+                        } else {
+                            multipleNameUnmatched.value.push(keyword);
+                        }
+                    } catch (error) {
+                        multipleNameUnmatched.value.push(keyword);
+                    }
+                }
+
+                if (matchedShips.length === 0) {
+                    multipleError.value = '未匹配到可用船舶，请调整关键词';
+                    return;
+                }
+
+                multipleNameMatched.value = matchedShips;
+
+                const existingMmsis = multipleMmsis.value
+                    .split(/[,\n\s]+/)
+                    .map(m => m.trim())
+                    .filter(m => m.length === 9 && !isNaN(parseInt(m, 10)));
+                const merged = [...new Set([...existingMmsis, ...matchedShips.map(item => item.mmsi)])].slice(0, 100);
+                multipleMmsis.value = merged.join('\n');
+            } finally {
+                multipleNameLoading.value = false;
+            }
+        };
+
         const handleMultipleSearch = async () => {
             if (!multipleMmsis.value.trim()) {
                 multipleError.value = '请输入MMSI列表';
@@ -949,12 +1202,63 @@ export default {
         const handleClearMultiple = () => {
             multipleResults.value = [];
             multipleError.value = '';
+            multipleNameMatched.value = [];
+            multipleNameUnmatched.value = [];
         };
         
         const formatPosition = (lat, lng) => {
             const latDir = lat >= 0 ? 'N' : 'S';
             const lngDir = lng >= 0 ? 'E' : 'W';
             return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lng).toFixed(4)}°${lngDir}`;
+        };
+
+        const normalizeRoutePoints = (rawRoute, fallbackStart = null, fallbackEnd = null) => {
+            const normalized = [];
+            const pushPoint = (lngValue, latValue) => {
+                const lng = Number(lngValue);
+                const lat = Number(latValue);
+                if (Number.isFinite(lng) && Number.isFinite(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+                    normalized.push({ lng, lat });
+                }
+            };
+
+            if (Array.isArray(rawRoute)) {
+                rawRoute.forEach((point) => {
+                    if (Array.isArray(point) && point.length >= 2) {
+                        pushPoint(point[0], point[1]);
+                        return;
+                    }
+                    if (typeof point === 'string' && point.includes(',')) {
+                        const [lng, lat] = point.split(',');
+                        pushPoint(lng, lat);
+                        return;
+                    }
+                    if (point && typeof point === 'object') {
+                        pushPoint(
+                            point.lng ?? point.lon ?? point.longitude ?? point.x,
+                            point.lat ?? point.latitude ?? point.y
+                        );
+                    }
+                });
+            } else if (typeof rawRoute === 'string') {
+                rawRoute
+                    .split(/;|\|/)
+                    .map(item => item.trim())
+                    .filter(Boolean)
+                    .forEach((item) => {
+                        const [lng, lat] = item.split(',');
+                        pushPoint(lng, lat);
+                    });
+            }
+
+            if (normalized.length >= 2) {
+                return normalized;
+            }
+
+            const safeFallback = [];
+            if (fallbackStart) safeFallback.push(fallbackStart);
+            if (fallbackEnd) safeFallback.push(fallbackEnd);
+            return safeFallback.length >= 2 ? safeFallback : normalized;
         };
         
         // 航线规划
@@ -1027,19 +1331,32 @@ export default {
                 console.log('📦 API 返回结果:', result);
                 
                 if (result.success && result.data) {
+                    const fallbackStartPoint = planMode.value === 'point'
+                        ? { lng: parseFloat(startLng.value), lat: parseFloat(startLat.value) }
+                        : null;
+                    const fallbackEndPoint = planMode.value === 'point'
+                        ? { lng: parseFloat(endLng.value), lat: parseFloat(endLat.value) }
+                        : null;
+                    const normalizedRoute = normalizeRoutePoints(result.data.route, fallbackStartPoint, fallbackEndPoint);
+
+                    if (!normalizedRoute || normalizedRoute.length < 2) {
+                        routeError.value = '路径点解析失败，请重新规划';
+                        return;
+                    }
+
                     console.log('✅ 路径规划成功');
                     console.log('   - 距离:', result.data.distance);
-                    console.log('   - 航点数:', result.data.route?.length);
+                    console.log('   - 航点数:', normalizedRoute.length);
                     
                     routeResult.value = {
                         distance: result.data.distance?.toFixed(2) || 0,
-                        pointCount: result.data.route?.length || 0
+                        pointCount: normalizedRoute.length
                     };
                     
                     // 保存路径数据供气象分析使用
                     if (planMode.value === 'port') {
                         currentRouteData = {
-                            route: result.data.route,
+                            route: normalizedRoute,
                             distance: result.data.distance,
                             startPort: startPort.value,
                             endPort: endPort.value,
@@ -1047,7 +1364,7 @@ export default {
                         };
                     } else {
                         currentRouteData = {
-                            route: result.data.route,
+                            route: normalizedRoute,
                             distance: result.data.distance,
                             startPoint: { lng: parseFloat(startLng.value), lat: parseFloat(startLat.value) },
                             endPoint: { lng: parseFloat(endLng.value), lat: parseFloat(endLat.value) },
@@ -1172,6 +1489,9 @@ export default {
                 trackError.value = '查询失败: ' + err.message;
             } finally {
                 trackLoading.value = false;
+                if (trackResult.value || trackError.value) {
+                    await scrollToResultSection(trackResultSectionRef, historyTrackScrollRef);
+                }
             }
         };
         
@@ -1307,19 +1627,36 @@ export default {
             // 应用成功后折叠高级设置
             showAdvanced.value = false;
         };
+
+        // 暴露给父组件，方便外部自动填充MMSI
+        const setSingleMmsi = (mmsi) => {
+            searchMode.value = 'single';
+            singleMmsi.value = String(mmsi);
+        };
         
         return {
             searchMode,
+            singleShipName,
             singleMmsi,
             singleLoading,
             singleResult,
             singleError,
+            singleNameLoading,
+            singleNameMatches,
+            getShipDisplayName,
+            applySingleShipMatch,
+            handleSingleNameSearch,
             handleSingleSearch,
             handleSingleLocate,
+            multipleShipNames,
+            multipleNameLoading,
+            multipleNameMatched,
+            multipleNameUnmatched,
             multipleMmsis,
             multipleLoading,
             multipleResults,
             multipleError,
+            handleMultipleNameSearch,
             handleMultipleSearch,
             handleMultipleLocate,
             handleClearMultiple,
@@ -1356,19 +1693,29 @@ export default {
             handleClearRoute,
             handleRouteWeather,
             handleCancelRoute,
+            trackShipName,
             trackMmsi,
             trackStartTime,
             trackEndTime,
             trackLoading,
             trackResult,
             trackError,
+            trackNameLoading,
+            trackNameMatches,
+            shipSearchScrollRef,
+            historyTrackScrollRef,
+            singleResultSectionRef,
+            trackResultSectionRef,
+            applyTrackShipMatch,
+            handleTrackNameSearch,
             setQuickTime,
             handleTrackQuery,
             handleClearTrack,
             showAdvanced,
             thresholds,
             resetThresholds,
-            applyThresholds
+            applyThresholds,
+            setSingleMmsi
         };
     }
 };
