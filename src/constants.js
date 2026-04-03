@@ -616,6 +616,7 @@ export const MARITIME_SILK_ROAD = {
     items: [
         { id: 'major_ports', label: '主要港口' },
         { id: 'major_routes', label: '主要航线' },
+        { id: 'mineral_imports', label: '矿产品进口' },
         { id: 'arctic_routes', label: '北极航线' }
     ]
 };

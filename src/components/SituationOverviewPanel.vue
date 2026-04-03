@@ -37,19 +37,81 @@
                         </div>
                         <transition name="slide-down">
                             <div v-if="showMaritimeSilkRoad" class="space-y-2 bg-slate-900/30 p-2 rounded">
-                                <div v-for="item in MARITIME_SILK_ROAD.items" :key="item.id"
-                                     @click="handleItemClick('maritime_silk_road', item.id)"
-                                     class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
-                                     :class="activeItems.includes(item.id) ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-l-4 border-blue-300' : 'bg-slate-800/60 text-white hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-500/50'">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full" 
-                                             :class="activeItems.includes(item.id) ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-blue-400'"></div>
-                                        <span class="font-medium">{{ item.label }}</span>
+                                <template v-for="item in MARITIME_SILK_ROAD.items" :key="item.id">
+                                    <!-- 矿产品进口（带三级结构） -->
+                                    <div v-if="item.id === 'mineral_imports'" class="space-y-2">
+                                        <div
+                                            @click="toggleMineralImports"
+                                            class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
+                                            :class="hasActiveImportCommodity() ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-l-4 border-blue-300' : 'bg-slate-800/60 text-white hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-500/50'"
+                                        >
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="w-2 h-2 rounded-full"
+                                                    :class="hasActiveImportCommodity() ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-blue-400'"
+                                                ></div>
+                                                <span class="font-medium">{{ item.label }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <svg
+                                                    v-if="hasActiveImportCommodity()"
+                                                    class="w-5 h-5 text-yellow-400"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                                                </svg>
+                                                <svg
+                                                    class="w-4 h-4 text-blue-300 transition-transform duration-300"
+                                                    :class="{ 'rotate-180': showMineralImports }"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+
+                                        <transition name="slide-down">
+                                            <div v-if="showMineralImports" class="space-y-2 bg-slate-950/40 rounded p-2 border border-blue-500/20">
+                                                <div v-for="category in MINERAL_IMPORT_CATEGORIES" :key="category.id" class="space-y-2">
+                                                    <div class="text-xs tracking-wider font-bold px-2" :style="{ color: category.color }">
+                                                        {{ category.label }}
+                                                    </div>
+                                                    <div class="grid grid-cols-2 gap-2">
+                                                        <div
+                                                            v-for="commodity in category.items"
+                                                            :key="commodity.id"
+                                                            @click.stop="handleImportCommodityClick(commodity.id)"
+                                                            class="px-3 py-2 rounded-lg text-sm cursor-pointer transition-all duration-300 border"
+                                                            :class="activeItems.includes(commodity.id) ? 'text-white' : 'bg-slate-800/70 text-slate-200 hover:bg-slate-700'"
+                                                            :style="getCommodityButtonStyle(commodity)"
+                                                        >
+                                                            {{ commodity.label }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </transition>
                                     </div>
-                                    <svg v-if="activeItems.includes(item.id)" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                                    </svg>
-                                </div>
+
+                                    <!-- 其余海上丝绸之路子项 -->
+                                    <div
+                                        v-else
+                                        @click="handleItemClick('maritime_silk_road', item.id)"
+                                        class="flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300 group"
+                                        :class="activeItems.includes(item.id) ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-l-4 border-blue-300' : 'bg-slate-800/60 text-white hover:bg-slate-700 border-l-4 border-transparent hover:border-blue-500/50'"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-2 h-2 rounded-full" :class="activeItems.includes(item.id) ? 'bg-yellow-400' : 'bg-slate-600 group-hover:bg-blue-400'"></div>
+                                            <span class="font-medium">{{ item.label }}</span>
+                                        </div>
+                                        <svg v-if="activeItems.includes(item.id)" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                                        </svg>
+                                    </div>
+                                </template>
                             </div>
                         </transition>
                     </div>
@@ -167,6 +229,7 @@ import {
     RESEARCH_INSTITUTIONS, 
     MARINE_EQUIPMENT 
 } from '../constants.js';
+import { MINERAL_IMPORT_CATEGORIES, getAllMineralImportCommodityIds } from '../data/mineralImportData.js';
 
 export default {
     props: {
@@ -179,11 +242,57 @@ export default {
     setup(props, { emit }) {
         // 折叠面板状态
         const showMaritimeSilkRoad = ref(true);  // 默认展开海上丝绸之路
+        const showMineralImports = ref(false);  // 默认收起矿产品进口
         const showSeafloorObservation = ref(true);  // 默认展开海底观测网
         const showResearchInstitutions = ref(false);  // 默认收起主要研究机构
         
         // 选中的项目
         const activeItems = ref([]);
+        const importCommodityIds = getAllMineralImportCommodityIds();
+        
+        // 是否有激活的矿产品
+        const hasActiveImportCommodity = () => {
+            return activeItems.value.some(id => importCommodityIds.includes(id));
+        };
+        
+        // 切换矿产品进口展开状态
+        const toggleMineralImports = () => {
+            showMineralImports.value = !showMineralImports.value;
+        };
+        
+        // 处理矿产品点击（支持多选）
+        const handleImportCommodityClick = (itemId) => {
+            const index = activeItems.value.indexOf(itemId);
+            let isActive = false;
+
+            if (index > -1) {
+                activeItems.value.splice(index, 1);
+            } else {
+                activeItems.value.push(itemId);
+                isActive = true;
+            }
+
+            emit('itemClick', {
+                category: 'maritime_silk_road',
+                itemId,
+                active: isActive
+            });
+        };
+
+        const getCommodityButtonStyle = (commodity) => {
+            const color = commodity?.color || '#0EA5E9';
+            const isActive = activeItems.value.includes(commodity?.id);
+            if (isActive) {
+                return {
+                    background: `linear-gradient(135deg, ${color}D9, rgba(15, 23, 42, 0.90))`,
+                    borderColor: color,
+                    boxShadow: `0 0 12px ${color}70`
+                };
+            }
+            return {
+                borderColor: `${color}55`
+            };
+        };
         
         // 处理项目点击
         const handleItemClick = (category, itemId) => {
@@ -207,7 +316,12 @@ export default {
             
             switch(category) {
                 case 'maritime_silk_road':
-                    categoryItems = MARITIME_SILK_ROAD.items.map(item => item.id);
+                    categoryItems = [
+                        ...MARITIME_SILK_ROAD.items
+                            .filter(item => item.id !== 'mineral_imports')
+                            .map(item => item.id),
+                        ...importCommodityIds
+                    ];
                     break;
                 case 'seafloor_observation':
                     categoryItems = SEAFLOOR_OBSERVATION.countries.map(c => c.id);
@@ -251,15 +365,21 @@ export default {
             SUBMARINE_CABLES,
             RESEARCH_INSTITUTIONS,
             MARINE_EQUIPMENT,
+            MINERAL_IMPORT_CATEGORIES,
             
             // 状态
             showMaritimeSilkRoad,
+            showMineralImports,
             showSeafloorObservation,
             showResearchInstitutions,
             activeItems,
+            hasActiveImportCommodity,
             
             // 方法
             handleItemClick,
+            toggleMineralImports,
+            handleImportCommodityClick,
+            getCommodityButtonStyle,
             getActiveCount,
             getCountryButtonStyle
         };
