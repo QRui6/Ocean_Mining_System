@@ -443,6 +443,13 @@ import { loadGeoJson } from '../utils/geoJsonLoader.js';
 import { getContractorColor } from '../utils/contractorColors.js';
 import { ViewportGeoJsonManager } from '../utils/viewportGeoJsonManager.js';
 import { RARE_EARTH_ZONES, COUNTRY_ATTITUDES } from '../constants.js';
+import {
+    MINERAL_IMPORT_COUNTRY_ALIAS,
+    getMineralImportById,
+    getMineralImportCategoryById,
+    getMineralImportCommodityColor,
+    getMineralImportCountryFlagUrl
+} from '../data/mineralImportData.js';
 // 动态加载气象数据加载器（支持API和本地文件两种模式）
 import { 
     getWindDataLoader, 
@@ -699,6 +706,19 @@ export default {
         
         // 各国态度渲染状态
         let countryAttitudesActive = false;
+        
+        // 矿产品进口渲染状态
+        let mineralImportDataSource = null;
+        let mineralImportLabelEntities = [];
+        let activeMineralImportCommodities = new Set();
+        let mineralImportHighlightedEntities = [];
+        let mineralImportBorderHighlightEntities = [];
+        let mineralImportCountryBoundaryMap = new Map();
+        let mineralImportCountryAggregateMap = new Map();
+        let mineralImportGeojsonCache = null;
+        let mineralImportRenderToken = 0;
+        let lastMineralImportFocusSphere = null;
+        let mineralImportFlagFrameTextureCache = new Map();
 
         const initCesium = async () => {
             viewer = new Cesium.Viewer(cesiumContainer.value, {
@@ -1103,6 +1123,43 @@ export default {
                     
                     // 检查是否点击了科考站（排除海底观测网和研究机构）
                     const entityType = entity.properties?.type?.getValue();
+                    
+                    // 如果点击的是矿产品进口国家或标签
+                    if (entityType === 'mineral_import_country' || entityType === 'mineral_import_label') {
+                        console.log('📦 点击了矿产品进口国家:', entity.id);
+                        const props = entity.properties;
+                        const country = props.importCountry?.getValue?.() || '';
+                        if (country) {
+                            highlightMineralImportCountry(country);
+                            focusMineralImportCountry(country);
+                        }
+                        
+                        const popupData = buildMineralImportPopupData(country) || {
+                            commodityId: props.commodityId?.getValue?.() || '',
+                            commodityName: props.commodityName?.getValue?.() || '矿产品',
+                            categoryId: props.categoryId?.getValue?.() || '',
+                            categoryName: props.categoryName?.getValue?.() || '矿产品进口',
+                            country: country || '未知',
+                            volumeDisplay: props.volumeDisplay?.getValue?.() || '未披露',
+                            share: props.importShare?.getValue?.() || '',
+                            yoy: props.importYoy?.getValue?.() || '',
+                            totalImport: props.totalImport?.getValue?.() || '',
+                            summary: props.summary?.getValue?.() || '',
+                            note: props.importNote?.getValue?.() || '',
+                            dataQualityNote: props.importDataQualityNote?.getValue?.() || '',
+                            themeColor: MINERAL_IMPORT_OVERLAP_COLOR
+                        };
+                        
+                        window.dispatchEvent(new CustomEvent('showMineralImportPopup', {
+                            detail: {
+                                data: popupData,
+                                x: click.position.x,
+                                y: click.position.y
+                            }
+                        }));
+                        return;
+                    }
+                    
                     if (entity.properties && 
                         (entity.properties.stationName || entity.properties.country) &&
                         entityType !== 'seafloor_observation' &&
@@ -2197,6 +2254,11 @@ export default {
             if (!viewer) return;
             viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                },
                 duration: 2
             });
         };
@@ -4801,6 +4863,1055 @@ export default {
             }
         };
         
+        const setEntityProperty = (entity, key, value) => {
+            if (!entity.properties) {
+                entity.properties = new Cesium.PropertyBag();
+            }
+            try {
+                if (!entity.properties.hasProperty(key)) {
+                    entity.properties.addProperty(key);
+                }
+                entity.properties[key] = value;
+            } catch (error) {
+                entity.properties[key] = value;
+            }
+        };
+        
+        const parseShareValue = (share) => {
+            if (!share) return null;
+            const num = parseFloat(String(share).replace('%', '').trim());
+            return Number.isFinite(num) ? num : null;
+        };
+        
+        const resolveCountryName = (countryName) => {
+            if (!countryName) return '';
+            return MINERAL_IMPORT_COUNTRY_ALIAS[countryName] || countryName;
+        };
+
+        const normalizeLongitude = (lon) => {
+            let normalized = Number(lon);
+            while (normalized > 180) normalized -= 360;
+            while (normalized < -180) normalized += 360;
+            return normalized;
+        };
+
+        const splitRingByDateline = (ring) => {
+            if (!Array.isArray(ring) || ring.length < 2) return [];
+            const segments = [];
+            let current = [];
+
+            ring.forEach((point) => {
+                if (!Array.isArray(point) || point.length < 2) return;
+                const lon = normalizeLongitude(point[0]);
+                const lat = Number(point[1]);
+                if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+
+                if (current.length > 0) {
+                    const prevLon = current[current.length - 1][0];
+                    if (Math.abs(lon - prevLon) > 180) {
+                        if (current.length >= 2) segments.push(current);
+                        current = [];
+                    }
+                }
+                current.push([lon, lat]);
+            });
+
+            if (current.length >= 2) {
+                segments.push(current);
+            }
+            return segments;
+        };
+
+        const ensureCountryBoundaryRecord = (countryName) => {
+            if (!mineralImportCountryBoundaryMap.has(countryName)) {
+                mineralImportCountryBoundaryMap.set(countryName, {
+                    rings: [],
+                    cartesianPositions: []
+                });
+            }
+            return mineralImportCountryBoundaryMap.get(countryName);
+        };
+
+        const appendOuterRingsFromGeometry = (countryName, geometry) => {
+            if (!geometry || !geometry.type) return;
+            const record = ensureCountryBoundaryRecord(countryName);
+
+            const appendRing = (ring) => {
+                const segments = splitRingByDateline(ring);
+                segments.forEach((segment) => {
+                    if (segment.length < 2) return;
+                    record.rings.push(segment);
+                    segment.forEach(([lon, lat]) => {
+                        record.cartesianPositions.push(Cesium.Cartesian3.fromDegrees(lon, lat, 60));
+                    });
+                });
+            };
+
+            if (geometry.type === 'Polygon') {
+                if (Array.isArray(geometry.coordinates) && geometry.coordinates.length > 0) {
+                    appendRing(geometry.coordinates[0]);
+                }
+                return;
+            }
+
+            if (geometry.type === 'MultiPolygon') {
+                if (Array.isArray(geometry.coordinates)) {
+                    geometry.coordinates.forEach((polygon) => {
+                        if (Array.isArray(polygon) && polygon.length > 0) {
+                            appendRing(polygon[0]);
+                        }
+                    });
+                }
+            }
+        };
+
+        const rebuildMineralImportCountryBoundaryMap = (features) => {
+            mineralImportCountryBoundaryMap = new Map();
+            if (!Array.isArray(features)) return;
+            features.forEach((feature) => {
+                const countryName = feature?.properties?.FCNAME || feature?.properties?.NAME;
+                if (!countryName) return;
+                appendOuterRingsFromGeometry(countryName, feature.geometry);
+            });
+        };
+
+        const addGlowPolylineForRing = (ring) => {
+            if (!Array.isArray(ring) || ring.length < 2) return;
+            const closed = [...ring];
+            const first = closed[0];
+            const last = closed[closed.length - 1];
+            if (
+                closed.length > 2 &&
+                (first[0] !== last[0] || first[1] !== last[1])
+            ) {
+                closed.push([first[0], first[1]]);
+            }
+            const positions = closed.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, 80));
+
+            // 底层暗边：把边界从复杂底图里“抠”出来，保证可见性
+            const darkEdgeEntity = viewer.entities.add({
+                polyline: {
+                    positions,
+                    width: 18,
+                    clampToGround: true,
+                    material: Cesium.Color.fromCssColorString('#020617').withAlpha(0.92),
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
+
+            // 中层主蓝边：主要视觉层，明显的科技蓝高亮
+            const blueEdgeEntity = viewer.entities.add({
+                polyline: {
+                    positions,
+                    width: 11,
+                    clampToGround: true,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.55,
+                        taperPower: 0.6,
+                        color: Cesium.Color.fromCssColorString('#0ea5ff').withAlpha(1.0)
+                    }),
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
+
+            // 顶层亮芯：增强锐利度和科技感
+            const coreEdgeEntity = viewer.entities.add({
+                polyline: {
+                    positions,
+                    width: 4,
+                    clampToGround: true,
+                    material: Cesium.Color.fromCssColorString('#d8f5ff').withAlpha(0.95),
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
+
+            mineralImportBorderHighlightEntities.push(
+                darkEdgeEntity,
+                blueEdgeEntity,
+                coreEdgeEntity
+            );
+        };
+
+        const createMineralImportLabelTexture = (text, options = {}) => {
+            const lines = String(text || '')
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean);
+            const themeColor = options.themeColor || '#38bdf8';
+            const cornerColor = options.overlap ? '#facc15' : '#f8fafc';
+            const dpr = window.devicePixelRatio || 1;
+            const paddingX = 16;
+            const paddingY = 10;
+            const lineHeight = 18;
+            const font = '600 14px "Noto Sans SC"';
+
+            const measureCanvas = document.createElement('canvas');
+            const measureCtx = measureCanvas.getContext('2d');
+            measureCtx.font = font;
+            const maxTextWidth = Math.max(
+                80,
+                ...lines.map(line => Math.ceil(measureCtx.measureText(line).width))
+            );
+
+            const width = maxTextWidth + paddingX * 2;
+            const height = lines.length * lineHeight + paddingY * 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(width * dpr);
+            canvas.height = Math.ceil(height * dpr);
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, 'rgba(8, 24, 42, 0.92)');
+            bgGradient.addColorStop(1, 'rgba(6, 45, 68, 0.86)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            const borderColor = Cesium.Color.fromCssColorString(themeColor);
+            ctx.strokeStyle = borderColor.withAlpha(0.96).toCssColorString();
+            ctx.lineWidth = 1.4;
+            ctx.strokeRect(0.7, 0.7, width - 1.4, height - 1.4);
+
+            const cornerLen = 8;
+            ctx.strokeStyle = Cesium.Color.fromCssColorString(cornerColor).withAlpha(0.95).toCssColorString();
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            // top-left
+            ctx.moveTo(1.2, cornerLen + 1.2);
+            ctx.lineTo(1.2, 1.2);
+            ctx.lineTo(cornerLen + 1.2, 1.2);
+            // top-right
+            ctx.moveTo(width - cornerLen - 1.2, 1.2);
+            ctx.lineTo(width - 1.2, 1.2);
+            ctx.lineTo(width - 1.2, cornerLen + 1.2);
+            // bottom-left
+            ctx.moveTo(1.2, height - cornerLen - 1.2);
+            ctx.lineTo(1.2, height - 1.2);
+            ctx.lineTo(cornerLen + 1.2, height - 1.2);
+            // bottom-right
+            ctx.moveTo(width - cornerLen - 1.2, height - 1.2);
+            ctx.lineTo(width - 1.2, height - 1.2);
+            ctx.lineTo(width - 1.2, height - cornerLen - 1.2);
+            ctx.stroke();
+
+            const scanGradient = ctx.createLinearGradient(0, 0, width, 0);
+            scanGradient.addColorStop(0, borderColor.withAlpha(0).toCssColorString());
+            scanGradient.addColorStop(0.5, borderColor.withAlpha(0.78).toCssColorString());
+            scanGradient.addColorStop(1, borderColor.withAlpha(0).toCssColorString());
+            ctx.fillStyle = scanGradient;
+            ctx.fillRect(4, 4, width - 8, 1.6);
+
+            ctx.font = font;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#e2f6ff';
+            lines.forEach((line, index) => {
+                const y = paddingY + lineHeight * index + lineHeight * 0.5;
+                ctx.fillText(line, width / 2, y);
+            });
+
+            return {
+                image: canvas.toDataURL('image/png'),
+                width,
+                height
+            };
+        };
+
+        const createMineralImportFlagFrameTexture = (themeColor) => {
+            const cacheKey = themeColor || '#38bdf8';
+            if (mineralImportFlagFrameTextureCache.has(cacheKey)) {
+                return mineralImportFlagFrameTextureCache.get(cacheKey);
+            }
+
+            const width = 30;
+            const height = 22;
+            const dpr = window.devicePixelRatio || 1;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(width * dpr);
+            canvas.height = Math.ceil(height * dpr);
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+
+            const borderColor = Cesium.Color.fromCssColorString(themeColor || '#38bdf8');
+            const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+            bgGradient.addColorStop(0, 'rgba(8, 24, 42, 0.94)');
+            bgGradient.addColorStop(1, 'rgba(6, 45, 68, 0.88)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = borderColor.withAlpha(0.9).toCssColorString();
+            ctx.lineWidth = 1.1;
+            ctx.strokeRect(0.7, 0.7, width - 1.4, height - 1.4);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(2, 6);
+            ctx.lineTo(2, 2);
+            ctx.lineTo(7, 2);
+            ctx.moveTo(width - 7, 2);
+            ctx.lineTo(width - 2, 2);
+            ctx.lineTo(width - 2, 7);
+            ctx.stroke();
+
+            ctx.fillStyle = borderColor.withAlpha(0.85).toCssColorString();
+            ctx.fillRect(4, 4, width - 8, 1.2);
+
+            const texture = {
+                image: canvas.toDataURL('image/png'),
+                width,
+                height
+            };
+            mineralImportFlagFrameTextureCache.set(cacheKey, texture);
+            return texture;
+        };
+
+        const clampMineralImportLabelLatitude = (lat) => {
+            return Math.max(-80, Math.min(80, lat));
+        };
+
+        const getMineralImportLabelPlacement = (countryName, centerLon, centerLat, sphereRadius) => {
+            const preset = MINERAL_IMPORT_LABEL_LAYOUTS[countryName];
+            const useAutoCallout = !preset && sphereRadius < 320000;
+            const lonOffset = preset?.lonOffset ?? (useAutoCallout ? 3.8 : 0);
+            const latOffset = preset?.latOffset ?? (useAutoCallout ? 1.8 : 0);
+            const isCallout = Math.abs(lonOffset) > 0.01 || Math.abs(latOffset) > 0.01;
+
+            return {
+                isCallout,
+                anchorLon: centerLon,
+                anchorLat: centerLat,
+                labelLon: centerLon + lonOffset,
+                labelLat: clampMineralImportLabelLatitude(centerLat + latOffset),
+                labelHeight: preset?.labelHeight ?? (isCallout ? 220000 : 150000),
+                anchorHeight: preset?.anchorHeight ?? 80000,
+                scale: preset?.scale ?? 0.92
+            };
+        };
+
+        const addMineralImportLabelConnector = (placement, themeColor) => {
+            if (!placement?.isCallout) return;
+
+            const connectorEntity = viewer.entities.add({
+                polyline: {
+                    positions: [
+                        Cesium.Cartesian3.fromDegrees(placement.anchorLon, placement.anchorLat, placement.anchorHeight),
+                        Cesium.Cartesian3.fromDegrees(
+                            (placement.anchorLon + placement.labelLon) / 2,
+                            clampMineralImportLabelLatitude((placement.anchorLat + placement.labelLat) / 2 + 0.5),
+                            placement.labelHeight * 0.82
+                        ),
+                        Cesium.Cartesian3.fromDegrees(placement.labelLon, placement.labelLat, placement.labelHeight - 30000)
+                    ],
+                    width: 4.5,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.36,
+                        taperPower: 0.7,
+                        color: Cesium.Color.fromCssColorString(themeColor).withAlpha(0.92)
+                    }),
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
+
+            mineralImportLabelEntities.push(connectorEntity);
+        };
+
+        const resetMineralImportHighlight = () => {
+            if (mineralImportHighlightedEntities.length > 0) {
+                mineralImportHighlightedEntities.forEach((entity) => {
+                    if (!entity?.polygon) return;
+                    if (entity._mineralImportBaseMaterial) {
+                        entity.polygon.material = entity._mineralImportBaseMaterial;
+                    }
+                    if (entity._mineralImportBaseOutlineColor) {
+                        entity.polygon.outlineColor = entity._mineralImportBaseOutlineColor;
+                    }
+                    if (typeof entity._mineralImportBaseOutlineWidth === 'number') {
+                        entity.polygon.outlineWidth = entity._mineralImportBaseOutlineWidth;
+                    }
+                });
+                mineralImportHighlightedEntities = [];
+            }
+
+            if (mineralImportBorderHighlightEntities.length > 0) {
+                mineralImportBorderHighlightEntities.forEach((entity) => viewer.entities.remove(entity));
+                mineralImportBorderHighlightEntities = [];
+            }
+        };
+
+        const MINERAL_IMPORT_OVERLAP_COLOR = '#0ea5ff';
+        const MINERAL_IMPORT_OVERLAP_OUTLINE_COLOR = '#facc15';
+        const MINERAL_IMPORT_LABEL_LAYOUTS = {
+            '科威特': { lonOffset: 5.4, latOffset: 2.2, labelHeight: 230000, anchorHeight: 100000 },
+            '阿联酋': { lonOffset: 5.1, latOffset: 1.7, labelHeight: 230000, anchorHeight: 100000 },
+            '阿曼': { lonOffset: 6.4, latOffset: 0.7, labelHeight: 230000, anchorHeight: 100000 },
+            '卡塔尔': { lonOffset: 4.6, latOffset: 2.5, labelHeight: 230000, anchorHeight: 100000 },
+            '伊拉克': { lonOffset: 4.8, latOffset: 3.3, labelHeight: 220000, anchorHeight: 90000 },
+            '沙特阿拉伯': { lonOffset: 7.2, latOffset: 2.5, labelHeight: 220000, anchorHeight: 90000 },
+            '塞尔维亚': { lonOffset: 4.0, latOffset: 2.0, labelHeight: 210000, anchorHeight: 90000 }
+        };
+
+        const getCommodityThemeColor = (commodityId, category) => {
+            const dataColor = getMineralImportCommodityColor(commodityId);
+            if (dataColor) return dataColor;
+            return category?.color || '#0EA5E9';
+        };
+
+        const joinMineralImportNotes = (...notes) => {
+            const normalized = notes
+                .flatMap((note) => Array.isArray(note) ? note : [note])
+                .map((note) => String(note || '').trim())
+                .filter(Boolean);
+            return Array.from(new Set(normalized)).join('；');
+        };
+
+        const buildMineralImportDataQualityNote = (source) => {
+            const notes = [];
+            if (source?.volumeType === 'derived') {
+                notes.push('进口量为估算/转述值，请结合原文说明理解。');
+            }
+            if (source?.shareType === 'derived') {
+                notes.push('占比为按总量换算估算值。');
+            }
+            return joinMineralImportNotes(notes);
+        };
+
+        const buildMineralImportCountryAggregateMap = (commodityIds) => {
+            mineralImportCountryAggregateMap = new Map();
+            const noDataCommodities = [];
+
+            commodityIds.forEach((commodityId) => {
+                const commodityData = getMineralImportById(commodityId);
+                if (!commodityData) return;
+                const category = getMineralImportCategoryById(commodityData.categoryId);
+                const themeColor = getCommodityThemeColor(commodityId, category);
+
+                if (!commodityData.sources || commodityData.sources.length === 0) {
+                    noDataCommodities.push({
+                        commodityId,
+                        commodityName: commodityData.label,
+                        categoryName: category?.label || '矿产品进口',
+                        totalImport: commodityData.totalImport || '',
+                        yoy: commodityData.yoy || '',
+                        summary: commodityData.summary || '',
+                        note: '当前资料未提供可上图的来源国明细。',
+                        themeColor
+                    });
+                    return;
+                }
+
+                commodityData.sources.forEach((source) => {
+                    const countryName = resolveCountryName(source.country);
+                    if (!countryName) return;
+
+                    if (!mineralImportCountryAggregateMap.has(countryName)) {
+                        mineralImportCountryAggregateMap.set(countryName, {
+                            country: countryName,
+                            commodities: []
+                        });
+                    }
+
+                    const volumeDisplay = source.unit
+                        ? `${source.volume}${source.unit}`
+                        : source.volume || '未披露';
+                    const dataQualityNote = buildMineralImportDataQualityNote(source);
+
+                    mineralImportCountryAggregateMap.get(countryName).commodities.push({
+                        commodityId,
+                        commodityName: commodityData.label,
+                        categoryId: commodityData.categoryId,
+                        categoryName: category?.label || '矿产品进口',
+                        volumeDisplay,
+                        share: source.share || '',
+                        yoy: source.yoy || '',
+                        note: source.note || '',
+                        dataQualityNote,
+                        totalImport: commodityData.totalImport || '',
+                        summary: commodityData.summary || '',
+                        themeColor
+                    });
+                });
+            });
+
+            return noDataCommodities;
+        };
+
+        const buildMineralImportPopupData = (countryName) => {
+            const aggregate = mineralImportCountryAggregateMap.get(countryName);
+            if (!aggregate || !Array.isArray(aggregate.commodities) || aggregate.commodities.length === 0) {
+                return null;
+            }
+
+            const sortedItems = [...aggregate.commodities].sort((a, b) => {
+                const shareA = parseShareValue(a.share) ?? -1;
+                const shareB = parseShareValue(b.share) ?? -1;
+                return shareB - shareA;
+            });
+
+            if (sortedItems.length === 1) {
+                const item = sortedItems[0];
+                return {
+                    commodityId: item.commodityId,
+                    commodityName: item.commodityName,
+                    categoryId: item.categoryId,
+                    categoryName: item.categoryName,
+                    country: countryName,
+                    volumeDisplay: item.volumeDisplay,
+                    share: item.share,
+                    yoy: item.yoy,
+                    totalImport: item.totalImport,
+                    summary: item.summary,
+                    note: item.note,
+                    dataQualityNote: item.dataQualityNote,
+                    themeColor: item.themeColor,
+                    isMulti: false
+                };
+            }
+
+            return {
+                commodityId: '',
+                commodityName: `矿产品进口（${sortedItems.length}类）`,
+                categoryId: 'multi',
+                categoryName: '多矿种叠加',
+                country: countryName,
+                volumeDisplay: '',
+                share: '',
+                yoy: '',
+                totalImport: '',
+                summary: '该国家同时属于多个已选矿种来源国。',
+                note: '',
+                themeColor: MINERAL_IMPORT_OVERLAP_COLOR,
+                isMulti: true,
+                commodityCount: sortedItems.length,
+                items: sortedItems
+            };
+        };
+
+        const cloneMineralImportSphere = (sphere) => {
+            if (!sphere?.center || !Number.isFinite(sphere.radius)) return null;
+            return new Cesium.BoundingSphere(Cesium.Cartesian3.clone(sphere.center), sphere.radius);
+        };
+
+        const collectMineralImportCountryPositions = (countryName) => {
+            const boundaryRecord = mineralImportCountryBoundaryMap.get(countryName);
+            if (boundaryRecord?.cartesianPositions?.length) {
+                return [...boundaryRecord.cartesianPositions];
+            }
+
+            const fallbackPositions = [];
+            const targetEntities = getMineralImportCountryEntities(countryName);
+            targetEntities.forEach((entity) => {
+                const hierarchy = entity.polygon?.hierarchy?.getValue(Cesium.JulianDate.now());
+                if (hierarchy?.positions?.length) {
+                    fallbackPositions.push(...hierarchy.positions);
+                }
+            });
+            return fallbackPositions;
+        };
+
+        const buildMineralImportCountrySphere = (countryName) => {
+            const positions = collectMineralImportCountryPositions(countryName);
+            if (positions.length === 0) return null;
+            return Cesium.BoundingSphere.fromPoints(positions);
+        };
+
+        const buildMineralImportCommoditySphere = (commodityId) => {
+            if (!commodityId) return null;
+
+            const positions = [];
+            mineralImportCountryAggregateMap.forEach((aggregate, countryName) => {
+                if (!aggregate?.commodities?.some(item => item.commodityId === commodityId)) return;
+                positions.push(...collectMineralImportCountryPositions(countryName));
+            });
+
+            if (positions.length === 0) return null;
+            return Cesium.BoundingSphere.fromPoints(positions);
+        };
+
+        const rememberMineralImportFocusSphere = (sphere) => {
+            lastMineralImportFocusSphere = cloneMineralImportSphere(sphere);
+        };
+
+        const focusMineralImportSphere = (sphere, options = {}) => {
+            if (!viewer || !sphere) return;
+
+            const pitch = options.pitch ?? Cesium.Math.toRadians(-50);
+            const rangeMultiplier = options.rangeMultiplier ?? 2.5;
+            const minRange = options.minRange ?? 900000;
+            rememberMineralImportFocusSphere(sphere);
+            viewer.camera.flyToBoundingSphere(sphere, {
+                duration: options.duration ?? 1.35,
+                offset: new Cesium.HeadingPitchRange(
+                    options.heading ?? 0,
+                    pitch,
+                    Math.max(sphere.radius * rangeMultiplier, minRange)
+                )
+            });
+        };
+
+        const getMineralImportPopupData = (countryName) => {
+            return buildMineralImportPopupData(countryName);
+        };
+
+        const getMineralImportCountryEntities = (country) => {
+            if (!country || !mineralImportDataSource) return [];
+            return mineralImportDataSource.entities.values.filter((entity) => {
+                const type = entity.properties?.type?.getValue?.();
+                if (type !== 'mineral_import_country') return false;
+                const entityCountry = entity.properties.importCountry?.getValue?.();
+                return entityCountry === country;
+            });
+        };
+
+        const highlightMineralImportCountry = (country) => {
+            if (!viewer) return;
+            const targetEntities = getMineralImportCountryEntities(country);
+            if (targetEntities.length === 0) return;
+
+            resetMineralImportHighlight();
+
+            const accent = Cesium.Color.fromCssColorString('#0ea5ff');
+            targetEntities.forEach((entity) => {
+                if (!entity?.polygon) return;
+                if (!entity._mineralImportBaseMaterial) {
+                    entity._mineralImportBaseMaterial = entity.polygon.material;
+                }
+                if (!entity._mineralImportBaseOutlineColor) {
+                    entity._mineralImportBaseOutlineColor = entity.polygon.outlineColor;
+                }
+                if (typeof entity._mineralImportBaseOutlineWidth !== 'number') {
+                    entity._mineralImportBaseOutlineWidth = entity.polygon.outlineWidth || 2;
+                }
+
+                entity.polygon.outline = true;
+                entity.polygon.outlineColor = accent.withAlpha(1.0);
+                entity.polygon.outlineWidth = 10;
+                mineralImportHighlightedEntities.push(entity);
+            });
+
+            const boundaryRecord = mineralImportCountryBoundaryMap.get(country);
+            if (boundaryRecord?.rings?.length) {
+                boundaryRecord.rings.forEach((ring) => addGlowPolylineForRing(ring));
+            }
+
+            viewer.scene.requestRender();
+        };
+
+        const focusMineralImportCountry = (country) => {
+            if (!viewer) return;
+            const targetEntities = getMineralImportCountryEntities(country);
+            if (targetEntities.length === 0) return;
+
+            try {
+                const sphere = buildMineralImportCountrySphere(country);
+                if (sphere) {
+                    focusMineralImportSphere(sphere);
+                }
+            } catch (error) {
+                console.warn('⚠️ 聚焦矿产品国家失败:', error);
+            }
+        };
+
+        const focusMineralImportCommodity = (commodityId) => {
+            if (!viewer || !commodityId) return;
+
+            try {
+                const sphere = buildMineralImportCommoditySphere(commodityId);
+                if (sphere) {
+                    focusMineralImportSphere(sphere, {
+                        duration: 1.4,
+                        rangeMultiplier: 2.9,
+                        minRange: 1400000
+                    });
+                }
+            } catch (error) {
+                console.warn('⚠️ 聚焦矿产品类别失败:', error);
+            }
+        };
+
+        const relaxMineralImportView = () => {
+            if (!viewer) return;
+
+            try {
+                if (lastMineralImportFocusSphere?.center) {
+                    const currentDistance = Cesium.Cartesian3.distance(
+                        viewer.camera.positionWC,
+                        lastMineralImportFocusSphere.center
+                    );
+                    const expandedRange = Math.max(
+                        currentDistance * 1.65,
+                        lastMineralImportFocusSphere.radius * 3.6,
+                        1800000
+                    );
+
+                    viewer.camera.flyToBoundingSphere(lastMineralImportFocusSphere, {
+                        duration: 0.95,
+                        offset: new Cesium.HeadingPitchRange(
+                            viewer.camera.heading,
+                            viewer.camera.pitch,
+                            expandedRange
+                        )
+                    });
+                } else {
+                    viewer.camera.zoomOut(Math.max(viewer.camera.positionCartographic.height * 0.65, 800000));
+                }
+            } catch (error) {
+                console.warn('⚠️ 缩小矿产品视角失败:', error);
+            }
+
+            resetMineralImportHighlight();
+            viewer.scene.requestRender();
+        };
+
+        const restoreMineralImportView = () => {
+            if (!viewer) return;
+            resetView();
+            lastMineralImportFocusSphere = null;
+            resetMineralImportHighlight();
+            viewer.scene.requestRender();
+        };
+        
+        const clearMineralImportCommodity = (options = {}) => {
+            const preserveSelection = options.preserveSelection === true;
+            const preserveRenderToken = options.preserveRenderToken === true;
+            if (!viewer) return;
+
+            if (!preserveRenderToken) {
+                mineralImportRenderToken += 1;
+            }
+
+            resetMineralImportHighlight();
+            mineralImportCountryBoundaryMap = new Map();
+            mineralImportCountryAggregateMap = new Map();
+            
+            if (mineralImportDataSource) {
+                viewer.dataSources.remove(mineralImportDataSource);
+                mineralImportDataSource = null;
+            }
+            
+            if (mineralImportLabelEntities.length > 0) {
+                mineralImportLabelEntities.forEach(entity => viewer.entities.remove(entity));
+                mineralImportLabelEntities = [];
+            }
+
+            if (!preserveSelection) {
+                activeMineralImportCommodities.clear();
+                window.dispatchEvent(new CustomEvent('hideMineralImportPopup', {
+                    detail: { mode: 'all' }
+                }));
+            }
+            viewer.scene.requestRender();
+        };
+
+        const showMineralImportNoDataPopup = (noDataCommodities) => {
+            if (!Array.isArray(noDataCommodities) || noDataCommodities.length === 0) return;
+            if (noDataCommodities.length === 1) {
+                const item = noDataCommodities[0];
+                window.dispatchEvent(new CustomEvent('showMineralImportPopup', {
+                    detail: {
+                        data: {
+                            commodityId: item.commodityId,
+                            commodityName: item.commodityName,
+                            categoryId: '',
+                            categoryName: item.categoryName,
+                            country: '暂无国家明细',
+                            volumeDisplay: '暂无统计',
+                            share: '',
+                            yoy: item.yoy,
+                            totalImport: item.totalImport,
+                            summary: item.summary,
+                            note: item.note,
+                            themeColor: item.themeColor,
+                            isMulti: false
+                        },
+                        x: Math.round(window.innerWidth * 0.45),
+                        y: 220
+                    }
+                }));
+                return;
+            }
+
+            window.dispatchEvent(new CustomEvent('showMineralImportPopup', {
+                detail: {
+                    data: {
+                        commodityId: '',
+                        commodityName: `矿产品进口（${noDataCommodities.length}类）`,
+                        categoryId: 'multi',
+                        categoryName: '多矿种叠加',
+                        country: '暂无国家明细',
+                        volumeDisplay: '',
+                        share: '',
+                        yoy: '',
+                        totalImport: '',
+                        summary: '所选矿种暂无可上图来源国明细。',
+                        note: '',
+                        themeColor: MINERAL_IMPORT_OVERLAP_COLOR,
+                        isMulti: true,
+                        commodityCount: noDataCommodities.length,
+                        items: noDataCommodities.map((item) => ({
+                            commodityId: item.commodityId,
+                            commodityName: item.commodityName,
+                            categoryId: '',
+                            categoryName: item.categoryName,
+                            volumeDisplay: '暂无统计',
+                            share: '',
+                            yoy: item.yoy,
+                            totalImport: item.totalImport,
+                            summary: item.summary,
+                            note: item.note,
+                            themeColor: item.themeColor
+                        }))
+                    },
+                    x: Math.round(window.innerWidth * 0.45),
+                    y: 220
+                }
+            }));
+        };
+
+        const renderActiveMineralImportCommodities = async (options = {}) => {
+            if (!viewer) return;
+            const focusCommodityId = options.focusCommodityId || '';
+
+            const selectedCommodityIds = Array.from(activeMineralImportCommodities);
+            clearMineralImportCommodity({ preserveSelection: true, preserveRenderToken: true });
+            const renderToken = ++mineralImportRenderToken;
+
+            if (selectedCommodityIds.length === 0) return;
+
+            const noDataCommodities = buildMineralImportCountryAggregateMap(selectedCommodityIds);
+            if (mineralImportCountryAggregateMap.size === 0) {
+                showMineralImportNoDataPopup(noDataCommodities);
+                return;
+            }
+
+            try {
+                if (!mineralImportGeojsonCache) {
+                    const response = await fetch('/data/World_countries_simply.geojson');
+                    mineralImportGeojsonCache = await response.json();
+                }
+                if (renderToken !== mineralImportRenderToken) return;
+
+                const visibleCountries = new Set(mineralImportCountryAggregateMap.keys());
+                const matchedFeatures = mineralImportGeojsonCache.features.filter((feature) => {
+                    const featureCountry = feature.properties.FCNAME || feature.properties.NAME;
+                    return visibleCountries.has(featureCountry);
+                });
+                
+                if (matchedFeatures.length === 0) {
+                    console.warn('⚠️ 未匹配到矿产品进口国家边界:', selectedCommodityIds);
+                    showMineralImportNoDataPopup(noDataCommodities);
+                    return;
+                }
+
+                rebuildMineralImportCountryBoundaryMap(matchedFeatures);
+                
+                mineralImportDataSource = new Cesium.GeoJsonDataSource('mineral-import');
+                await mineralImportDataSource.load({
+                    type: 'FeatureCollection',
+                    features: matchedFeatures
+                });
+                if (renderToken !== mineralImportRenderToken) return;
+                
+                const entities = mineralImportDataSource.entities.values;
+                const labelCountrySet = new Set();
+                
+                entities.forEach(entity => {
+                    if (!entity.polygon || !entity.properties) return;
+                    
+                    const countryName = entity.properties.FCNAME?.getValue() || entity.properties.NAME?.getValue();
+                    const aggregate = mineralImportCountryAggregateMap.get(countryName);
+                    if (!aggregate || !aggregate.commodities || aggregate.commodities.length === 0) return;
+
+                    const commodityCount = aggregate.commodities.length;
+                    const primary = aggregate.commodities[0];
+                    const isOverlap = commodityCount > 1;
+                    const baseColorCss = isOverlap ? MINERAL_IMPORT_OVERLAP_COLOR : (primary.themeColor || '#0EA5E9');
+                    const baseColor = Cesium.Color.fromCssColorString(baseColorCss);
+                    const shareValue = parseShareValue(primary.share);
+                    const alpha = isOverlap
+                        ? 0.65
+                        : (shareValue !== null
+                            ? Math.min(0.85, Math.max(0.35, 0.28 + shareValue / 120))
+                            : 0.45);
+                    
+                    entity.polygon.material = baseColor.withAlpha(alpha);
+                    entity.polygon.outline = true;
+                    entity.polygon.outlineColor = isOverlap
+                        ? Cesium.Color.fromCssColorString(MINERAL_IMPORT_OVERLAP_OUTLINE_COLOR).withAlpha(0.95)
+                        : Cesium.Color.WHITE.withAlpha(0.95);
+                    entity.polygon.outlineWidth = isOverlap ? 3 : 2;
+                    entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
+                    entity._mineralImportBaseMaterial = baseColor.withAlpha(alpha);
+                    entity._mineralImportBaseOutlineColor = entity.polygon.outlineColor;
+                    entity._mineralImportBaseOutlineWidth = entity.polygon.outlineWidth;
+                    
+                    setEntityProperty(entity, 'type', 'mineral_import_country');
+                    setEntityProperty(entity, 'importCountry', countryName);
+                    setEntityProperty(entity, 'commodityCount', commodityCount);
+                    setEntityProperty(entity, 'isOverlap', isOverlap);
+                    setEntityProperty(entity, 'commodityIds', aggregate.commodities.map(item => item.commodityId).join('|'));
+                    setEntityProperty(entity, 'commodityNames', aggregate.commodities.map(item => item.commodityName).join('|'));
+                    setEntityProperty(entity, 'commodityId', primary.commodityId);
+                    setEntityProperty(entity, 'commodityName', primary.commodityName);
+                    setEntityProperty(entity, 'categoryId', primary.categoryId);
+                    setEntityProperty(entity, 'categoryName', primary.categoryName);
+                    setEntityProperty(entity, 'volumeDisplay', primary.volumeDisplay || '');
+                    setEntityProperty(entity, 'importShare', primary.share || '');
+                    setEntityProperty(entity, 'importYoy', primary.yoy || '');
+                    setEntityProperty(entity, 'importNote', primary.note || '');
+                    setEntityProperty(entity, 'importDataQualityNote', primary.dataQualityNote || '');
+                    setEntityProperty(entity, 'totalImport', primary.totalImport || '');
+                    setEntityProperty(entity, 'summary', primary.summary || '');
+                    setEntityProperty(entity, 'themeColor', baseColorCss);
+                    labelCountrySet.add(countryName);
+                });
+
+                labelCountrySet.forEach((countryName) => {
+                    const aggregate = mineralImportCountryAggregateMap.get(countryName);
+                    if (!aggregate?.commodities?.length) return;
+
+                    const commodityCount = aggregate.commodities.length;
+                    const primary = aggregate.commodities[0];
+                    const isOverlap = commodityCount > 1;
+                    const baseColorCss = isOverlap ? MINERAL_IMPORT_OVERLAP_COLOR : (primary.themeColor || '#0EA5E9');
+                    const sphere = buildMineralImportCountrySphere(countryName);
+                    if (!sphere) return;
+
+                    const cartographic = Cesium.Cartographic.fromCartesian(sphere.center);
+                    const lon = Cesium.Math.toDegrees(cartographic.longitude);
+                    const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                    const labelPlacement = getMineralImportLabelPlacement(countryName, lon, lat, sphere.radius);
+                    const labelText = isOverlap
+                        ? `${countryName}\n${commodityCount}类矿产`
+                        : (primary.share
+                            ? `${countryName}\n${primary.volumeDisplay} (${primary.share})`
+                            : `${countryName}\n${primary.volumeDisplay}`);
+                    const labelTexture = createMineralImportLabelTexture(labelText, {
+                        themeColor: baseColorCss,
+                        overlap: isOverlap
+                    });
+                    const flagImageUrl = getMineralImportCountryFlagUrl(countryName, 40);
+                    const flagFrameTexture = createMineralImportFlagFrameTexture(baseColorCss);
+                    const labelOffsetY = labelPlacement.isCallout ? -8 : -14;
+                    const scaledLabelWidth = labelTexture.width * (labelPlacement.scale || 1);
+                    const scaledLabelHeight = labelTexture.height * (labelPlacement.scale || 1);
+                    const flagAnchorOffset = new Cesium.Cartesian2(
+                        -scaledLabelWidth / 2 + 18,
+                        labelOffsetY - scaledLabelHeight + 18
+                    );
+
+                    addMineralImportLabelConnector(labelPlacement, baseColorCss);
+
+                    const labelEntity = viewer.entities.add({
+                        id: `import_label_${countryName}`,
+                        position: Cesium.Cartesian3.fromDegrees(
+                            labelPlacement.labelLon,
+                            labelPlacement.labelLat,
+                            labelPlacement.labelHeight
+                        ),
+                        billboard: {
+                            image: labelTexture.image,
+                            width: labelTexture.width,
+                            height: labelTexture.height,
+                            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                            pixelOffset: new Cesium.Cartesian2(0, labelOffsetY),
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                            scale: labelPlacement.scale
+                        },
+                        properties: new Cesium.PropertyBag({
+                            type: 'mineral_import_label',
+                            importCountry: countryName,
+                            commodityCount
+                        })
+                    });
+                    mineralImportLabelEntities.push(labelEntity);
+
+                    const flagFrameEntity = viewer.entities.add({
+                        id: `import_label_flag_frame_${countryName}`,
+                        position: Cesium.Cartesian3.fromDegrees(
+                            labelPlacement.labelLon,
+                            labelPlacement.labelLat,
+                            labelPlacement.labelHeight
+                        ),
+                        billboard: {
+                            image: flagFrameTexture.image,
+                            width: flagFrameTexture.width,
+                            height: flagFrameTexture.height,
+                            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                            verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                            pixelOffset: flagAnchorOffset,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                            scale: Math.max(0.84, labelPlacement.scale || 0.92)
+                        },
+                        properties: new Cesium.PropertyBag({
+                            type: 'mineral_import_label_flag_frame',
+                            importCountry: countryName,
+                            commodityCount
+                        })
+                    });
+                    mineralImportLabelEntities.push(flagFrameEntity);
+
+                    if (flagImageUrl) {
+                        const flagEntity = viewer.entities.add({
+                            id: `import_label_flag_${countryName}`,
+                            position: Cesium.Cartesian3.fromDegrees(
+                                labelPlacement.labelLon,
+                                labelPlacement.labelLat,
+                                labelPlacement.labelHeight
+                            ),
+                            billboard: {
+                                image: flagImageUrl,
+                                width: 18,
+                                height: 12,
+                                horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                                verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                                pixelOffset: flagAnchorOffset,
+                                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                                scale: Math.max(0.82, labelPlacement.scale || 0.92)
+                            },
+                            properties: new Cesium.PropertyBag({
+                                type: 'mineral_import_label_flag',
+                                importCountry: countryName,
+                                commodityCount
+                            })
+                        });
+                        mineralImportLabelEntities.push(flagEntity);
+                    }
+                });
+                
+                await viewer.dataSources.add(mineralImportDataSource);
+                if (renderToken !== mineralImportRenderToken) return;
+                viewer.scene.requestRender();
+
+                if (focusCommodityId && activeMineralImportCommodities.has(focusCommodityId)) {
+                    focusMineralImportCommodity(focusCommodityId);
+                }
+            } catch (error) {
+                console.error('❌ 加载矿产品进口国家图层失败:', error);
+            }
+        };
+
+        const toggleMineralImportCommodity = async (commodityId, active = true) => {
+            if (!viewer) return;
+
+            if (!commodityId) {
+                clearMineralImportCommodity();
+                return;
+            }
+
+            if (active) {
+                activeMineralImportCommodities.add(commodityId);
+            } else {
+                activeMineralImportCommodities.delete(commodityId);
+            }
+
+            await renderActiveMineralImportCommodities({
+                focusCommodityId: active ? commodityId : ''
+            });
+        };
+        
         // 监听筛选条件变化
         watch(() => props.filters, () => {
             applyFilters();
@@ -5730,6 +6841,7 @@ export default {
                 windLayer.destroy();
                 windLayer = null;
             }
+            clearMineralImportCommodity();
             if (viewer) {
                 viewer.destroy();
             }
@@ -7240,6 +8352,10 @@ export default {
             flyToRegion,  // 暴露区域定位函数
             flyToMiningArea,  // 暴露矿区定位函数
             toggleCountryAttitudes,  // 暴露各国态度渲染切换函数
+            toggleMineralImportCommodity,  // 暴露矿产品进口渲染切换函数
+            getMineralImportPopupData,  // 暴露矿产品弹窗数据获取函数
+            relaxMineralImportView,  // 暴露矿产品视角缩小函数
+            restoreMineralImportView,  // 暴露矿产品进口视角恢复函数
             toggleExperimentalMining,  // 暴露试验试采标记切换函数
             toggleDrilling,  // 暴露大洋钻探图层切换函数
             updateDrillingFilters,  // 暴露钻孔筛选更新函数

@@ -576,6 +576,17 @@
             @close="closeInstitutionPopup"
         />
         
+        <!-- 矿产品进口信息弹窗 -->
+        <MineralImportPopup
+            v-for="(popup, index) in mineralImportPopups"
+            :key="popup.id"
+            :show="true"
+            :data="popup.data"
+            :position="popup.position"
+            :stack-index="index"
+            @close="closeMineralImportPopup(popup.id, true)"
+        />
+        
         <!-- 区域详情对话框 -->
         <AreaDetailDialog 
             v-if="showAreaDetail && selectedAreaForDetail"
@@ -655,6 +666,7 @@ import IcebreakerStatisticsPanel from './components/IcebreakerStatisticsPanel.vu
 import ResearchInstitutionListTable from './components/ResearchInstitutionListTable.vue';
 import ResearchInstitutionStatisticsPanel from './components/ResearchInstitutionStatisticsPanel.vue';
 import ResearchInstitutionPopup from './components/ResearchInstitutionPopup.vue';
+import MineralImportPopup from './components/MineralImportPopup.vue';
 import TimelineControl from './components/TimelineControl.vue';
 import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
@@ -741,6 +753,7 @@ export default {
         ResearchInstitutionListTable,
         ResearchInstitutionStatisticsPanel,
         ResearchInstitutionPopup,
+        MineralImportPopup,
         TimelineControl,
         WeatherLayerButtons,
         ShipTrackingPanel,
@@ -959,6 +972,9 @@ export default {
         const showInstitutionPopup = ref(false);
         const institutionPopupData = ref(null);
         const institutionPopupPosition = ref({ x: 0, y: 0 });
+        
+        // 矿产品进口信息弹窗状态
+        const mineralImportPopups = ref([]);
 
         // 图层控制状态（从 LeftPanel 同步，用于控制地图上的专题图层）
         const layerState = ref([]);
@@ -1678,6 +1694,16 @@ export default {
                     activePanels.value.routeList = false;
                     activePanels.value.routeStatistics = false;
                 }
+                return;
+            }
+            
+            // 处理海上丝绸之路 - 矿产品进口（具体品类）
+            if (data.category === 'maritime_silk_road' && data.itemId && data.itemId.startsWith('import_')) {
+                console.log('📦 切换矿产品进口显示:', data.itemId, data.active);
+                if (mapContainerRef.value && mapContainerRef.value.toggleMineralImportCommodity) {
+                    await mapContainerRef.value.toggleMineralImportCommodity(data.itemId, data.active);
+                }
+                syncMineralImportPopupsFromMap();
                 return;
             }
             
@@ -3131,6 +3157,94 @@ export default {
         };
         
         /**
+         * 显示矿产品进口信息弹窗
+         */
+        const buildMineralImportPopupId = (data) => {
+            const country = String(data?.country || '').trim();
+            if (country && country !== '暂无国家明细' && country !== '未知') {
+                return `mineral_import_country__${country}`;
+            }
+
+            const popupKeyParts = [];
+            if (country) popupKeyParts.push(country);
+            if (data?.isMulti && Array.isArray(data.items) && data.items.length > 0) {
+                popupKeyParts.push(data.items.map(item => item.commodityId).join('|'));
+            } else if (data?.commodityId) {
+                popupKeyParts.push(data.commodityId);
+            } else if (data?.commodityName) {
+                popupKeyParts.push(data.commodityName);
+            }
+
+            return popupKeyParts.join('__') || `mineral_import_${Date.now()}`;
+        };
+
+        const handleShowMineralImportPopup = (event) => {
+            const { data, x, y } = event.detail || {};
+            if (!data) return;
+
+            const popupId = buildMineralImportPopupId(data);
+            const popupRecord = {
+                id: popupId,
+                data,
+                position: { x, y }
+            };
+
+            const existingIndex = mineralImportPopups.value.findIndex(item => item.id === popupId);
+            if (existingIndex > -1) {
+                mineralImportPopups.value.splice(existingIndex, 1);
+            }
+            mineralImportPopups.value.push(popupRecord);
+        };
+
+        const syncMineralImportPopupsFromMap = () => {
+            if (!mapContainerRef.value?.getMineralImportPopupData) return;
+
+            mineralImportPopups.value = mineralImportPopups.value.flatMap((popup) => {
+                const country = String(popup?.data?.country || '').trim();
+                if (!country || country === '暂无国家明细' || country === '未知') {
+                    return [];
+                }
+
+                const nextData = mapContainerRef.value.getMineralImportPopupData(country);
+                if (!nextData) {
+                    return [];
+                }
+
+                return [{
+                    ...popup,
+                    id: buildMineralImportPopupId(nextData),
+                    data: nextData
+                }];
+            });
+        };
+        
+        /**
+         * 关闭矿产品进口信息弹窗
+         */
+        const closeMineralImportPopup = (popupId = null, restoreView = false) => {
+            if (popupId) {
+                mineralImportPopups.value = mineralImportPopups.value.filter(item => item.id !== popupId);
+            } else {
+                mineralImportPopups.value = [];
+            }
+
+            if (restoreView && mineralImportPopups.value.length === 0) {
+                if (mapContainerRef.value?.relaxMineralImportView) {
+                    mapContainerRef.value.relaxMineralImportView();
+                } else if (mapContainerRef.value?.restoreMineralImportView) {
+                    mapContainerRef.value.restoreMineralImportView();
+                }
+            }
+        };
+        
+        const handleHideMineralImportPopup = (event) => {
+            const mode = event?.detail?.mode || 'all';
+            if (mode === 'all') {
+                closeMineralImportPopup();
+            }
+        };
+        
+        /**
          * 处理海底观测网重置选择事件
          */
         const handleObservationResetSelection = () => {
@@ -3739,6 +3853,10 @@ export default {
             // 监听研究机构信息弹窗事件
             window.addEventListener('showInstitutionPopup', handleShowInstitutionPopup);
             
+            // 监听矿产品进口信息弹窗事件
+            window.addEventListener('showMineralImportPopup', handleShowMineralImportPopup);
+            window.addEventListener('hideMineralImportPopup', handleHideMineralImportPopup);
+            
             // 等待所有组件完全挂载后再设置全局引用
             await nextTick();
             
@@ -4045,6 +4163,8 @@ export default {
             window.removeEventListener('resize', updateScale);
             window.removeEventListener('showSeafloorPopup', handleShowSeafloorPopup);
             window.removeEventListener('showInstitutionPopup', handleShowInstitutionPopup);
+            window.removeEventListener('showMineralImportPopup', handleShowMineralImportPopup);
+            window.removeEventListener('hideMineralImportPopup', handleHideMineralImportPopup);
             
             // 关闭 WebSocket
             if (ws) {
@@ -4673,6 +4793,8 @@ export default {
             seafloorPopupData,
             seafloorPopupPosition,
             closeSeafloorPopup,
+            mineralImportPopups,
+            closeMineralImportPopup,
             handleObservationDataLoaded,
             handleObservationRowClick,
             handleObservationResetSelection,
