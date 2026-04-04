@@ -134,23 +134,23 @@ export const MINERAL_IMPORT_DATA = {
         label: '铁矿石',
         color: '#94A3B8',
         categoryId: 'metal_minerals',
-        totalImport: '（文本未给出精确总量）',
+        totalImport: '12.59亿吨',
         yoy: '',
         summary: '澳大利亚与巴西是两大核心供应国，两国合计超过10亿吨，占比超过80%。',
         validation: {
             summarySourceCount: 10
         },
         sources: [
-            { country: '澳大利亚', volume: '两国合计超过10亿吨', unit: '', volumeType: 'derived', share: '', note: '原文仅给出澳大利亚与巴西合计进口量及合计占比，未提供澳大利亚单独进口量。' },
-            { country: '巴西', volume: '两国合计超过10亿吨', unit: '', volumeType: 'derived', share: '', note: '原文仅给出巴西与澳大利亚合计进口量及合计占比，未提供巴西单独进口量。' },
-            { country: '南非', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '印度', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '加拿大', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '秘鲁', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '阿曼', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '乌克兰', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '塞拉利昂', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '俄罗斯联邦', volume: '第二梯队', unit: '', volumeType: 'source_exact', share: '' }
+            { country: '澳大利亚', volume: '75977.7', unit: '万吨', volumeType: 'derived', share: '60.2%', note: '' },
+            { country: '巴西', volume: '277755.6', unit: '万吨', volumeType: 'derived', share: '22.1%', note: '' },
+            { country: '南非', volume: '4217.1', unit: '万吨', volumeType: 'source_exact', share: '3.3%' },
+            { country: '印度', volume: '2353.3', unit: '万吨', volumeType: 'source_exact', share: '1.5%' },
+            { country: '加拿大', volume: '1834.7', unit: '万吨', volumeType: 'source_exact', share: '1.4%' },
+            { country: '秘鲁', volume: '1718.3', unit: '万吨', volumeType: 'source_exact', share: '1.3%' },
+            { country: '阿曼', volume: '1668.6', unit: '万吨', volumeType: 'source_exact', share: '1.3%' },
+            { country: '乌克兰', volume: '1546.2', unit: '万吨', volumeType: 'source_exact', share: '1.2%' },
+            { country: '塞拉利昂', volume: '1227.6', unit: '万吨', volumeType: 'source_exact', share: '0.9%' },
+            { country: '俄罗斯联邦', volume: '1269.9', unit: '万吨', volumeType: 'source_exact', share: '0.9%' }
         ]
     },
     import_manganese_ore: {
@@ -167,8 +167,8 @@ export const MINERAL_IMPORT_DATA = {
         sources: [
             { country: '南非', volume: '1742', unit: '万吨', volumeType: 'source_exact', share: '53%', shareType: 'source_exact' },
             { country: '澳大利亚', volume: '358', unit: '万吨', volumeType: 'source_exact', share: '10.9%', shareType: 'source_exact' },
-            { country: '加蓬', volume: '379', unit: '万吨', volumeType: 'source_exact', share: '', note: '提供材料同时给出“加蓬占比16.2%”，但该占比与3284万吨总量、379万吨进口量口径不一致，系统暂不直接展示该占比。' },
-            { country: '加纳', volume: '', unit: '', volumeType: 'source_exact', share: '16.2%', shareType: 'source_exact', note: '提供材料仅给出占比16.2%，未给出加纳对应进口量。' }
+            { country: '加蓬', volume: '379', unit: '万吨', volumeType: 'source_exact', share: '16.2%', note: '提供材料同时给出“加蓬占比16.2%”，但该占比与3284万吨总量、379万吨进口量口径不一致，系统暂不直接展示该占比。' },
+            { country: '加纳', volume: '379', unit: '万吨', volumeType: 'source_exact', share: '16.2%', shareType: 'source_exact', note: '提供材料仅给出占比16.2%，未给出加纳对应进口量。' }
         ]
     },
     import_coal: {
@@ -262,8 +262,8 @@ export const MINERAL_IMPORT_DATA = {
         },
         sources: [
             { country: '澳大利亚', volume: '592.3', unit: '万吨', volumeType: 'source_exact', share: '56.8%', shareType: 'source_exact' },
-            { country: '加拿大', volume: '主要来源（未给出具体量）', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '法国', volume: '主要来源（未给出具体量）', unit: '', volumeType: 'source_exact', share: '' }
+            { country: '加拿大', volume: '154.2', unit: '万吨', volumeType: 'source_exact', share: '14.8%' },
+            { country: '法国', volume: '88.3', unit: '万吨', volumeType: 'source_exact', share: '8.5%' }
         ]
     },
     import_sorghum: {
@@ -328,8 +328,8 @@ export const MINERAL_IMPORT_DATA = {
         },
         sources: [
             { country: '巴西', volume: '160.7', unit: '万吨', volumeType: 'source_exact', share: '60.7%', shareType: 'source_exact' },
-            { country: '俄罗斯联邦', volume: '主要来源（未给出具体量）', unit: '', volumeType: 'source_exact', share: '' },
-            { country: '缅甸', volume: '主要来源（未给出具体量）', unit: '', volumeType: 'source_exact', share: '' }
+            { country: '俄罗斯联邦', volume: '44.6', unit: '万吨', volumeType: 'source_exact', share: '28.9%' },
+            { country: '缅甸', volume: '28.9', unit: '万吨', volumeType: 'source_exact', share: '10.9%' }
         ]
     }
 };
