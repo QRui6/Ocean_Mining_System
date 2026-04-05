@@ -6,7 +6,7 @@
             :style="popupStyle"
         >
             <div
-                class="relative w-[22rem] overflow-hidden tech-panel-enhanced"
+                class="relative w-[46rem] max-w-[calc(100vw-1.5rem)] overflow-hidden tech-panel-enhanced"
                 style="clip-path: polygon(0 0, 100% 0, 100% 93%, 93% 100%, 0 100%);"
             >
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
@@ -31,89 +31,117 @@
                     <div class="text-xs mt-1 ml-5 tracking-wide" :style="{ color: `${themeColor}CC` }">{{ data.categoryName }}</div>
                 </div>
 
-                <div class="p-4 space-y-2 font-['Noto_Sans_SC'] relative">
-                    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                <div class="grid gap-4 p-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] font-['Noto_Sans_SC']">
+                    <div class="relative min-w-0 rounded border border-cyan-500/20 bg-slate-950/45 overflow-hidden">
+                        <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
 
-                    <div class="flex items-start gap-2">
-                        <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">来源国：</span>
-                        <div class="flex items-center gap-2 relative z-10 min-w-0">
-                            <span class="country-flag-chip" :style="countryFlagChipStyle">
-                                <span class="country-flag-corner"></span>
-                                <img
-                                    v-if="countryMeta.flagImageUrl && !flagLoadFailed"
-                                    class="country-flag-image"
-                                    :src="countryMeta.flagImageUrl"
-                                    :alt="`${countryMeta.name}国旗`"
-                                    loading="lazy"
-                                    decoding="async"
-                                    referrerpolicy="no-referrer"
-                                    @error="handleFlagLoadError"
-                                />
-                                <span v-else class="country-flag-text">{{ countryMeta.badgeText }}</span>
-                            </span>
-                            <span class="text-sm text-white truncate">{{ countryMeta.name }}</span>
-                        </div>
-                    </div>
-
-                    <template v-if="!isMulti">
-                        <div class="flex items-start gap-2">
-                            <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">进口量：</span>
-                            <span class="text-sm text-white relative z-10">{{ data.volumeDisplay || '未披露' }}</span>
-                        </div>
-                        <div v-if="data.share" class="flex items-start gap-2">
-                            <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">占比：</span>
-                            <span class="text-sm text-white relative z-10">{{ data.share }}</span>
-                        </div>
-                        <div v-if="data.yoy" class="flex items-start gap-2">
-                            <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">同比：</span>
-                            <span class="text-sm text-white relative z-10">{{ data.yoy }}</span>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">总进口：</span>
-                            <span class="text-sm text-white relative z-10">{{ data.totalImport || '未披露' }}</span>
-                        </div>
-                    </template>
-
-                    <template v-else>
-                        <div class="flex items-start gap-2">
-                            <span class="text-sm whitespace-nowrap text-cyan-300 relative z-10">重叠矿种：</span>
-                            <span class="text-sm text-white relative z-10">{{ data.commodityCount || data.items?.length || 0 }} 类</span>
-                        </div>
-                        <div class="space-y-2 mt-1 relative z-10">
-                            <div
-                                v-for="item in (data.items || [])"
-                                :key="`${item.commodityId}_${item.commodityName}`"
-                                class="rounded border bg-slate-900/55 px-3 py-2"
-                                :style="{
-                                    borderColor: `${item.themeColor || themeColor}88`,
-                                    boxShadow: `inset 3px 0 0 ${item.themeColor || themeColor}`
-                                }"
-                            >
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-sm font-semibold text-white">{{ item.commodityName }}</span>
-                                    <span class="text-xs text-cyan-200">{{ item.share || '' }}</span>
-                                </div>
-                                <div class="text-xs text-slate-200 mt-1">
-                                    {{ item.volumeDisplay || '未披露' }}
-                                </div>
-                                <div v-if="item.dataQualityNote" class="text-[11px] leading-4 text-cyan-200/90 mt-1">
-                                    {{ item.dataQualityNote }}
-                                </div>
-                                <div v-if="item.note" class="text-[11px] leading-4 text-yellow-300/90 mt-1">
-                                    {{ item.note }}
+                        <div class="relative z-10 p-4 space-y-2 max-h-[min(68vh,34rem)] overflow-y-auto custom-scrollbar">
+                            <div class="flex items-start gap-2">
+                                <span class="text-sm whitespace-nowrap text-cyan-300">来源国：</span>
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="country-flag-chip" :style="countryFlagChipStyle">
+                                        <span class="country-flag-corner"></span>
+                                        <img
+                                            v-if="countryMeta.flagImageUrl && !flagLoadFailed"
+                                            class="country-flag-image"
+                                            :src="countryMeta.flagImageUrl"
+                                            :alt="`${countryMeta.name}国旗`"
+                                            loading="lazy"
+                                            decoding="async"
+                                            referrerpolicy="no-referrer"
+                                            @error="handleFlagLoadError"
+                                        />
+                                        <span v-else class="country-flag-text">{{ countryMeta.badgeText }}</span>
+                                    </span>
+                                    <span class="text-sm text-white truncate">{{ countryMeta.name }}</span>
                                 </div>
                             </div>
-                        </div>
-                    </template>
 
-                    <div v-if="data.dataQualityNote" class="text-xs leading-5 text-cyan-200 relative z-10">
-                        {{ data.dataQualityNote }}
+                            <template v-if="!isMulti">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-sm whitespace-nowrap text-cyan-300">进口量：</span>
+                                    <span class="text-sm text-white">{{ data.volumeDisplay || '未披露' }}</span>
+                                </div>
+                                <div v-if="data.share" class="flex items-start gap-2">
+                                    <span class="text-sm whitespace-nowrap text-cyan-300">占比：</span>
+                                    <span class="text-sm text-white">{{ data.share }}</span>
+                                </div>
+                                <div v-if="data.yoy" class="flex items-start gap-2">
+                                    <span class="text-sm whitespace-nowrap text-cyan-300">同比：</span>
+                                    <span class="text-sm text-white">{{ data.yoy }}</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="text-sm whitespace-nowrap text-cyan-300">总进口：</span>
+                                    <span class="text-sm text-white">{{ data.totalImport || '未披露' }}</span>
+                                </div>
+                            </template>
+
+                            <template v-else>
+                                <div class="flex items-start gap-2">
+                                    <span class="text-sm whitespace-nowrap text-cyan-300">重叠矿种：</span>
+                                    <span class="text-sm text-white">{{ data.commodityCount || data.items?.length || 0 }} 类</span>
+                                </div>
+                                <div v-if="activeChartItem" class="text-xs text-cyan-200/85 pt-1">
+                                    右侧柱状图当前展示：{{ activeChartItem.commodityName }}
+                                </div>
+                                <div class="space-y-2 mt-1">
+                                    <button
+                                        v-for="item in (data.items || [])"
+                                        :key="`${item.commodityId}_${item.commodityName}`"
+                                        type="button"
+                                        class="w-full rounded border bg-slate-900/55 px-3 py-2 text-left transition-all duration-200"
+                                        :style="getMultiItemStyle(item)"
+                                        @click="setActiveChartCommodity(item.commodityId)"
+                                    >
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-sm font-semibold text-white">{{ item.commodityName }}</span>
+                                            <span class="text-xs text-cyan-200">{{ item.share || '' }}</span>
+                                        </div>
+                                        <div class="text-xs text-slate-200 mt-1">
+                                            {{ item.volumeDisplay || '未披露' }}
+                                        </div>
+                                        <div v-if="item.dataQualityNote" class="text-[11px] leading-4 text-cyan-200/90 mt-1">
+                                            {{ item.dataQualityNote }}
+                                        </div>
+                                        <div v-if="item.note" class="text-[11px] leading-4 text-yellow-300/90 mt-1">
+                                            {{ item.note }}
+                                        </div>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <div v-if="currentDetail?.dataQualityNote" class="text-xs leading-5 text-cyan-200 pt-1">
+                                {{ currentDetail.dataQualityNote }}
+                            </div>
+                            <div v-if="currentDetail?.summary" class="pt-2 border-t border-cyan-500/25 text-xs leading-5 text-slate-200">
+                                {{ currentDetail.summary }}
+                            </div>
+                            <div v-if="currentDetail?.note" class="text-xs leading-5 text-yellow-300/90">
+                                {{ currentDetail.note }}
+                            </div>
+                        </div>
                     </div>
-                    <div v-if="data.summary" class="pt-2 border-t border-cyan-500/25 text-xs leading-5 text-slate-200 relative z-10">
-                        {{ data.summary }}
-                    </div>
-                    <div v-if="data.note" class="text-xs leading-5 text-yellow-300/90 relative z-10">
-                        {{ data.note }}
+
+                    <div class="min-w-0 flex flex-col gap-3">
+                        <div v-if="isMulti && chartTabs.length > 1" class="flex flex-wrap gap-2">
+                            <button
+                                v-for="item in chartTabs"
+                                :key="`tab_${item.commodityId}`"
+                                type="button"
+                                class="px-3 py-1.5 rounded-full text-xs border transition-all duration-200"
+                                :style="getChartTabStyle(item)"
+                                @click="setActiveChartCommodity(item.commodityId)"
+                            >
+                                {{ item.commodityName }}
+                            </button>
+                        </div>
+
+                        <MineralImportCountryBarChart
+                            :commodity-id="chartCommodityId"
+                            :commodity-name="chartCommodityName"
+                            :country-name="countryMeta.name"
+                            :theme-color="chartThemeColor"
+                        />
                     </div>
                 </div>
             </div>
@@ -127,12 +155,17 @@ import {
     getMineralImportCountryFlagUrl,
     normalizeMineralImportCountryName
 } from '../data/mineralImportData.js';
+import MineralImportCountryBarChart from './MineralImportCountryBarChart.vue';
 
 export default {
     name: 'MineralImportPopup',
+    components: {
+        MineralImportCountryBarChart
+    },
     data() {
         return {
-            flagLoadFailed: false
+            flagLoadFailed: false,
+            activeChartCommodityId: ''
         };
     },
     props: {
@@ -158,8 +191,27 @@ export default {
         isMulti() {
             return Boolean(this.data?.isMulti);
         },
+        chartTabs() {
+            return Array.isArray(this.data?.items) ? this.data.items : [];
+        },
+        activeChartItem() {
+            if (!this.isMulti) return null;
+            return this.chartTabs.find(item => item.commodityId === this.activeChartCommodityId) || this.chartTabs[0] || null;
+        },
+        currentDetail() {
+            return this.isMulti ? this.activeChartItem : this.data;
+        },
         themeColor() {
             return this.data?.themeColor || '#22d3ee';
+        },
+        chartThemeColor() {
+            return this.currentDetail?.themeColor || this.themeColor;
+        },
+        chartCommodityId() {
+            return this.currentDetail?.commodityId || '';
+        },
+        chartCommodityName() {
+            return this.currentDetail?.commodityName || this.data?.commodityName || '';
         },
         countryMeta() {
             const rawCountry = this.data?.country || '';
@@ -199,11 +251,11 @@ export default {
             };
         },
         popupStyle() {
-            const panelWidth = 352;
-            const panelHeight = this.isMulti ? 420 : 320;
             const margin = 12;
             const viewportWidth = window.innerWidth || 1920;
             const viewportHeight = window.innerHeight || 1080;
+            const panelWidth = Math.min(736, viewportWidth - margin * 2);
+            const panelHeight = this.isMulti ? 548 : 456;
 
             const targetX = this.position.x + 22;
             const targetY = this.position.y - 120;
@@ -220,11 +272,55 @@ export default {
         }
     },
     watch: {
+        data: {
+            immediate: true,
+            handler(nextData) {
+                if (nextData?.isMulti && Array.isArray(nextData.items) && nextData.items.length > 0) {
+                    const keepCurrent = nextData.items.find(item => item.commodityId === this.activeChartCommodityId);
+                    this.activeChartCommodityId = keepCurrent?.commodityId || nextData.items[0].commodityId;
+                } else {
+                    this.activeChartCommodityId = nextData?.commodityId || '';
+                }
+                this.flagLoadFailed = false;
+            }
+        },
         'data.country'() {
             this.flagLoadFailed = false;
         }
     },
     methods: {
+        setActiveChartCommodity(commodityId) {
+            if (!commodityId) return;
+            this.activeChartCommodityId = commodityId;
+        },
+        getChartTabStyle(item) {
+            const color = item?.themeColor || this.themeColor;
+            const isActive = item?.commodityId === this.activeChartCommodityId;
+            if (isActive) {
+                return {
+                    color: '#ffffff',
+                    borderColor: color,
+                    background: `linear-gradient(135deg, ${this.hexToRgba(color, 0.92)}, rgba(8, 24, 42, 0.92))`,
+                    boxShadow: `0 0 16px ${this.hexToRgba(color, 0.24)}`
+                };
+            }
+
+            return {
+                color: '#cbd5e1',
+                borderColor: `${color}66`,
+                background: 'rgba(15, 23, 42, 0.72)'
+            };
+        },
+        getMultiItemStyle(item) {
+            const color = item?.themeColor || this.themeColor;
+            const isActive = item?.commodityId === this.activeChartCommodityId;
+            return {
+                borderColor: `${color}${isActive ? 'CC' : '88'}`,
+                boxShadow: isActive
+                    ? `inset 4px 0 0 ${color}, 0 0 14px ${this.hexToRgba(color, 0.18)}`
+                    : `inset 3px 0 0 ${color}`
+            };
+        },
         handleFlagLoadError() {
             this.flagLoadFailed = true;
         },
