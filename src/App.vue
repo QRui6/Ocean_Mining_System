@@ -2330,6 +2330,60 @@ export default {
             }
             console.log('🧊 关闭北极主权详情面板');
         };
+
+        const normalizeResearchVesselName = (name = '') =>
+            String(name).replace(/["'“”]/g, '').replace(/\s+/g, '').trim();
+
+        const createFallbackVesselMmsi = (vessel) => {
+            const seed = `${vessel?.id || ''}-${normalizeResearchVesselName(vessel?.name || '')}`;
+            let hash = 0;
+            for (let i = 0; i < seed.length; i += 1) {
+                hash = (hash * 31 + seed.charCodeAt(i)) % 900000000;
+            }
+            return 100000000 + hash;
+        };
+
+        const loadLocalResearchVesselTrack = async (vesselName) => {
+            const normalizedName = normalizeResearchVesselName(vesselName);
+            const filePath = `/data/船舶历史航线数据/${encodeURIComponent(normalizedName)}.json`;
+
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    return { success: false, error: `未找到本地航线文件: ${normalizedName}.json` };
+                }
+
+                const result = await response.json();
+                if (!Array.isArray(result?.data) || result.data.length === 0) {
+                    return { success: false, error: '本地航线文件中没有可用轨迹数据' };
+                }
+
+                return { success: true, data: result.data, source: 'local-file' };
+            } catch (error) {
+                return { success: false, error: error.message || '读取本地航线文件失败' };
+            }
+        };
+
+        const createLocalTrackShipSnapshot = (vessel, mmsi, track = []) => {
+            const latestPoint = track[track.length - 1];
+            if (!latestPoint) {
+                return null;
+            }
+
+            return {
+                mmsi,
+                ship_name: vessel?.name || '',
+                ship_cnname: vessel?.name || '',
+                lat: latestPoint.lat,
+                lng: latestPoint.lng,
+                sog: latestPoint.sog || 0,
+                cog: latestPoint.cog || 0,
+                hdg: latestPoint.cog || 0,
+                ship_type: 0,
+                last_time: latestPoint.utc || null,
+                data_source: 'local-file'
+            };
+        };
         
         /**
          * 处理科考船选择事件
@@ -2341,6 +2395,7 @@ export default {
             
             try {
                 let mmsi = researchVesselMmsiMap.value[vessel.id];
+                const fallbackMmsi = createFallbackVesselMmsi(vessel);
 
                 if (!mmsi) {
                     const result = await searchShipFuzzy(vessel.name);
@@ -2349,8 +2404,9 @@ export default {
                         researchVesselMmsiMap.value[vessel.id] = mmsi;
                         console.log(`成功获取科考船 ${vessel.name} 的 MMSI:`, mmsi);
                     } else {
-                        console.warn(`未找到科考船 ${vessel.name} 的信息`);
-                        return;
+                        console.warn(`未找到科考船 ${vessel.name} 的 MMSI，回退使用本地轨迹文件`);
+                        mmsi = fallbackMmsi;
+                        researchVesselMmsiMap.value[vessel.id] = mmsi;
                     }
                 }
 
@@ -2369,12 +2425,35 @@ export default {
                     delete researchVesselMmsiMap.value[vessel.id];
                     return;
                 }
+                // const trackStartTimestamp = 1759248000;
+                // 2025年11月1日00:00:00
+                const trackStartTimestamp = 1761926400;
+                const trackEndTimestamp = Math.floor(Date.now() / 1000);
+                const tryLoadFallbackTrack = async (reason) => {
+                    const localTrackResult = await loadLocalResearchVesselTrack(vessel.name);
+                    if (localTrackResult.success && localTrackResult.data.length > 0) {
+                        console.log(`📁 科考船 ${vessel.name} 使用本地历史航线回退加载，原因:`, reason);
+                        const localShipSnapshot = createLocalTrackShipSnapshot(vessel, mmsi, localTrackResult.data);
+                        if (localShipSnapshot) {
+                            handleShipLocate(localShipSnapshot);
+                        }
+                        handleTrackLoaded({
+                            mmsi,
+                            track: localTrackResult.data,
+                            startTime: localTrackResult.data[0]?.utc || trackStartTimestamp,
+                            endTime: localTrackResult.data[localTrackResult.data.length - 1]?.utc || trackEndTimestamp,
+                            shipName: vessel.name
+                        });
+                        return true;
+                    }
+
+                    console.warn(`读取科考船 ${vessel.name} 本地历史航线失败:`, localTrackResult.error || '未知错误');
+                    return false;
+                };
 
                 const shipResult = await getSingleShip(mmsi);
                 if (shipResult.success && shipResult.data) {
                     handleShipLocate(shipResult.data);
-                    const trackStartTimestamp = 1759248000;
-                    const trackEndTimestamp = Math.floor(Date.now() / 1000);
                     const trackResult = await getShipTrack(mmsi, trackStartTimestamp, trackEndTimestamp);
                     if (trackResult.success && trackResult.data && trackResult.data.length > 0) {
                         handleTrackLoaded({
@@ -2386,12 +2465,29 @@ export default {
                         });
                     } else {
                         console.warn(`获取科考船 ${vessel.name} 历史轨迹失败:`, trackResult.error || '该时间段内没有轨迹数据');
+                        await tryLoadFallbackTrack(trackResult.error || '历史轨迹API失败');
                     }
                 } else {
                     console.warn(`获取科考船 ${vessel.name} 实时位置失败:`, shipResult.error || '未知错误');
+                    await tryLoadFallbackTrack(shipResult.error || '实时位置API失败');
                 }
             } catch (error) {
                 console.error(`查询科考船 ${vessel.name} 失败:`, error);
+                const mmsi = researchVesselMmsiMap.value[vessel.id] || createFallbackVesselMmsi(vessel);
+                const localTrackResult = await loadLocalResearchVesselTrack(vessel.name);
+                if (localTrackResult.success && localTrackResult.data.length > 0) {
+                    const localShipSnapshot = createLocalTrackShipSnapshot(vessel, mmsi, localTrackResult.data);
+                    if (localShipSnapshot) {
+                        handleShipLocate(localShipSnapshot);
+                    }
+                    handleTrackLoaded({
+                        mmsi,
+                        track: localTrackResult.data,
+                        startTime: localTrackResult.data[0]?.utc || 1761926400,
+                        endTime: localTrackResult.data[localTrackResult.data.length - 1]?.utc || Math.floor(Date.now() / 1000),
+                        shipName: vessel.name
+                    });
+                }
             }
         };
         
