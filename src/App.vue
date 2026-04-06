@@ -66,6 +66,7 @@
                 
                 <!-- 态势总览面板 -->
                 <SituationOverviewPanel 
+                    ref="situationOverviewPanelRef"
                     :show="activePanels.situationOverview"
                     @itemClick="handleSituationOverviewItemClick"
                 />
@@ -1084,6 +1085,7 @@ export default {
             portsVisible: false,
             routesVisible: false
         });
+        const currentSituationOverviewFeatureKey = ref('');
         
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
@@ -1635,9 +1637,68 @@ export default {
         /**
          * 切换态势总览面板的显示状态
          */
-        const toggleSituationOverview = () => {
-            activePanels.value.situationOverview = !activePanels.value.situationOverview;
+        const toggleSituationOverview = async () => {
+            const nextVisible = !activePanels.value.situationOverview;
+            if (!nextVisible) {
+                await clearSituationOverviewEffects();
+            }
+            activePanels.value.situationOverview = nextVisible;
             console.log('🌍 切换态势总览面板:', activePanels.value.situationOverview);
+        };
+
+        const resolveSituationOverviewFeatureKey = (data) => {
+            const category = String(data?.category || '');
+            const itemId = String(data?.itemId || '');
+
+            if (category === 'maritime_silk_road') {
+                if (itemId.startsWith('import_')) return 'maritime_mineral_imports';
+                if (itemId === 'major_ports') return 'maritime_major_ports';
+                if (itemId === 'major_routes') return 'maritime_major_routes';
+                if (itemId === 'arctic_routes') return 'maritime_arctic_routes';
+            }
+
+            if (category === 'marine_protected_areas') return 'marine_protected_areas';
+            if (category === 'submarine_cables') return 'submarine_cables';
+            if (category === 'seafloor_observation') return 'seafloor_observation';
+            if (category === 'research_institutions') return 'research_institutions';
+            if (category === 'marine_equipment') return 'marine_equipment';
+
+            return '';
+        };
+
+        const updateSituationOverviewFeatureKey = (featureKey, active) => {
+            if (!featureKey) {
+                currentSituationOverviewFeatureKey.value = '';
+                return;
+            }
+
+            if (active) {
+                currentSituationOverviewFeatureKey.value = featureKey;
+                return;
+            }
+
+            switch (featureKey) {
+                case 'maritime_mineral_imports':
+                    currentSituationOverviewFeatureKey.value = situationOverviewPanelRef.value?.hasActiveImportCommodity?.()
+                        ? featureKey
+                        : '';
+                    break;
+                case 'seafloor_observation':
+                    currentSituationOverviewFeatureKey.value = activeSeafloorCountries.value.length > 0
+                        ? featureKey
+                        : '';
+                    break;
+                case 'research_institutions':
+                    currentSituationOverviewFeatureKey.value = activeResearchCountries.value.length > 0
+                        ? featureKey
+                        : '';
+                    break;
+                default:
+                    if (currentSituationOverviewFeatureKey.value === featureKey) {
+                        currentSituationOverviewFeatureKey.value = '';
+                    }
+                    break;
+            }
         };
         
         /**
@@ -1646,6 +1707,19 @@ export default {
          */
         const handleSituationOverviewItemClick = async (data) => {
             console.log('🔘 态势总览项目点击:', data);
+
+            const nextSituationFeatureKey = resolveSituationOverviewFeatureKey(data);
+            const shouldSwitchOverviewFeature = data.active
+                && nextSituationFeatureKey
+                && currentSituationOverviewFeatureKey.value
+                && currentSituationOverviewFeatureKey.value !== nextSituationFeatureKey;
+
+            if (shouldSwitchOverviewFeature) {
+                await clearSituationOverviewEffects({
+                    resetPanelSelection: false
+                });
+                situationOverviewPanelRef.value?.resetAllSelections?.([data.itemId]);
+            }
             
             // 处理海上丝绸之路 - 主要港口
             if (data.category === 'maritime_silk_road' && data.itemId === 'major_ports') {
@@ -1666,6 +1740,7 @@ export default {
                     activePanels.value.portList = false;
                     activePanels.value.portStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1694,6 +1769,7 @@ export default {
                     activePanels.value.routeList = false;
                     activePanels.value.routeStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1704,6 +1780,7 @@ export default {
                     await mapContainerRef.value.toggleMineralImportCommodity(data.itemId, data.active);
                 }
                 syncMineralImportPopupsFromMap();
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1721,6 +1798,7 @@ export default {
                     activePanels.value.arcticRouteList = false;
                     activePanels.value.arcticRouteStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1730,6 +1808,7 @@ export default {
                 if (mapContainerRef.value && mapContainerRef.value.loadMarineProtectedAreas) {
                     mapContainerRef.value.loadMarineProtectedAreas(data.active);
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1749,6 +1828,7 @@ export default {
                     activePanels.value.cableList = false;
                     activePanels.value.cableStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1798,6 +1878,7 @@ export default {
                     activePanels.value.observationList = false;
                     activePanels.value.observationStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1819,6 +1900,7 @@ export default {
                     activePanels.value.marineEquipmentList = false;
                     activePanels.value.marineEquipmentStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -1877,6 +1959,7 @@ export default {
                     activePanels.value.researchInstitutionList = false;
                     activePanels.value.researchInstitutionStatistics = false;
                 }
+                updateSituationOverviewFeatureKey(nextSituationFeatureKey, data.active);
                 return;
             }
             
@@ -2388,6 +2471,7 @@ export default {
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
         const leftPanelRef = ref(null);  // 左侧面板引用
+        const situationOverviewPanelRef = ref(null);  // 态势总览面板引用
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
@@ -3243,6 +3327,101 @@ export default {
                 closeMineralImportPopup();
             }
         };
+
+        const clearMineralImportEffects = async (options = {}) => {
+            const resetPanelSelection = options.resetPanelSelection !== false;
+            const closePopups = options.closePopups !== false;
+
+            if (mapContainerRef.value?.clearMineralImportCommodity) {
+                mapContainerRef.value.clearMineralImportCommodity();
+            } else if (mapContainerRef.value?.toggleMineralImportCommodity) {
+                await mapContainerRef.value.toggleMineralImportCommodity(null);
+            }
+
+            if (closePopups) {
+                closeMineralImportPopup();
+            }
+
+            if (resetPanelSelection) {
+                situationOverviewPanelRef.value?.resetMineralImportSelections?.();
+            }
+        };
+
+        const clearSituationOverviewEffects = async (options = {}) => {
+            const resetPanelSelection = options.resetPanelSelection !== false;
+            const preservedPanelItemIds = Array.isArray(options.preservedPanelItemIds)
+                ? options.preservedPanelItemIds.filter(Boolean)
+                : [];
+
+            if (mapContainerRef.value?.togglePorts) {
+                mapContainerRef.value.togglePorts(false);
+            }
+            maritimeSilkRoadState.value.portsVisible = false;
+
+            if (routeManager) {
+                routeManager.clearHighlight?.();
+                routeManager.hide();
+            }
+            maritimeSilkRoadState.value.routesVisible = false;
+
+            if (mapContainerRef.value?.resetArcticRouteHighlight) {
+                mapContainerRef.value.resetArcticRouteHighlight();
+            }
+            if (mapContainerRef.value?.toggleArcticRoutes) {
+                await mapContainerRef.value.toggleArcticRoutes(false);
+            }
+
+            if (mapContainerRef.value?.loadMarineProtectedAreas) {
+                await mapContainerRef.value.loadMarineProtectedAreas(false);
+            }
+
+            if (mapContainerRef.value?.toggleSubmarineCables) {
+                await mapContainerRef.value.toggleSubmarineCables(false);
+            }
+
+            if (mapContainerRef.value?.clearSeafloorObservation) {
+                mapContainerRef.value.clearSeafloorObservation();
+            }
+            activeSeafloorCountries.value = [];
+
+            if (mapContainerRef.value?.toggleMarineEquipment) {
+                await mapContainerRef.value.toggleMarineEquipment(false);
+            }
+
+            if (mapContainerRef.value?.clearResearchInstitution) {
+                mapContainerRef.value.clearResearchInstitution();
+            }
+            activeResearchCountries.value = [];
+
+            await clearMineralImportEffects({
+                resetPanelSelection: false
+            });
+
+            closeObservationImage();
+            closeSeafloorPopup();
+            closeInstitutionPopup();
+
+            activePanels.value.cableList = false;
+            activePanels.value.cableStatistics = false;
+            activePanels.value.arcticRouteList = false;
+            activePanels.value.arcticRouteStatistics = false;
+            activePanels.value.portList = false;
+            activePanels.value.portStatistics = false;
+            activePanels.value.routeList = false;
+            activePanels.value.routeStatistics = false;
+            activePanels.value.observationList = false;
+            activePanels.value.observationStatistics = false;
+            activePanels.value.marineEquipmentList = false;
+            activePanels.value.marineEquipmentStatistics = false;
+            activePanels.value.researchInstitutionList = false;
+            activePanels.value.researchInstitutionStatistics = false;
+
+            if (resetPanelSelection) {
+                situationOverviewPanelRef.value?.resetAllSelections?.(preservedPanelItemIds);
+            }
+
+            currentSituationOverviewFeatureKey.value = '';
+        };
         
         /**
          * 处理海底观测网重置选择事件
@@ -3464,9 +3643,13 @@ export default {
          * 4. 矿区管理和地质调查选项卡切换到2D模式
          * 5. 气象监测选项卡切换到3D模式
          */
-        const handleTabChange = (tab) => {
+        const handleTabChange = async (tab) => {
             console.log('📑 切换选项卡:', tab);
             currentTab.value = tab;
+
+            if (tab !== '态势总览') {
+                await clearSituationOverviewEffects();
+            }
             
             // 根据选项卡切换地图模式
             if (tab === '矿区管理' || tab === '地质调查' || tab === '大洋钻探' || tab === '态势总览') {
@@ -4647,6 +4830,7 @@ export default {
             areaMonitorRef,
             mapContainerRef,
             leftPanelRef,
+            situationOverviewPanelRef,
             miningWeatherMonitorRef,
             routeDemoRef,
             riskWarningRef,

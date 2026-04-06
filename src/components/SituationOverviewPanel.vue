@@ -119,7 +119,7 @@
                     <!-- Level 2: 海洋保护区 -->
                     <div class="space-y-2 pt-2 border-t-2 border-green-500/30">
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
-                             @click="handleItemClick('marine_protected_areas', 'toggle')">
+                             @click="handleItemClick('marine_protected_areas', 'marine_protected_areas')">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-green-400 rotate-45 shadow-[0_0_6px_#4ade80]"></div>
                                 <span class="text-green-400 text-base font-bold">海洋保护区</span>
@@ -160,7 +160,7 @@
                     <!-- Level 4: 海底光缆 -->
                     <div class="space-y-2 pt-2 border-t-2 border-cyan-500/30">
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
-                             @click="handleItemClick('submarine_cables', 'toggle')">
+                             @click="handleItemClick('submarine_cables', 'submarine_cables')">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
                                 <span class="text-cyan-400 text-base font-bold">海底光缆</span>
@@ -201,7 +201,7 @@
                     <!-- Level 6: 海洋装备 -->
                     <div class="space-y-2 pt-2 border-t-2 border-red-500/30">
                         <div class="flex items-center justify-between cursor-pointer hover:bg-slate-800/30 p-2 rounded transition-all"
-                             @click="handleItemClick('marine_equipment', 'toggle')">
+                             @click="handleItemClick('marine_equipment', 'marine_equipment')">
                             <div class="flex items-center gap-2">
                                 <div class="w-2 h-2 bg-red-400 rotate-45 shadow-[0_0_6px_#f87171]"></div>
                                 <span class="text-red-400 text-base font-bold">海洋装备</span>
@@ -258,6 +258,18 @@ export default {
         // 切换矿产品进口展开状态
         const toggleMineralImports = () => {
             showMineralImports.value = !showMineralImports.value;
+        };
+
+        const resetMineralImportSelections = () => {
+            activeItems.value = activeItems.value.filter(id => !importCommodityIds.includes(id));
+        };
+
+        const resetAllSelections = (preservedIds = []) => {
+            const nextIds = Array.isArray(preservedIds)
+                ? preservedIds.filter(Boolean)
+                : [preservedIds].filter(Boolean);
+            const preserved = new Set(nextIds);
+            activeItems.value = activeItems.value.filter(id => preserved.has(id));
         };
         
         // 处理矿产品点击（支持多选）
@@ -378,6 +390,8 @@ export default {
             // 方法
             handleItemClick,
             toggleMineralImports,
+            resetMineralImportSelections,
+            resetAllSelections,
             handleImportCommodityClick,
             getCommodityButtonStyle,
             getActiveCount,
