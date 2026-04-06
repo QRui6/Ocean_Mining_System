@@ -143,7 +143,7 @@
                                     </div>
                                 </template>
                                 <p class="text-white/90 text-sm leading-relaxed">
-                                    TMC USA修订其勘探申请。同年稍晚，NOAA确认这些申请"完全符合"DSHMRA的要求
+                                    TMC USA修订其勘探申请，为后续依据NOAA新规提交合并申请做准备
                                 </p>
                             </el-card>
                         </el-timeline-item>
@@ -220,7 +220,7 @@
                                     </div>
                                 </template>
                                 <p class="text-white/90 text-sm leading-relaxed">
-                                    TMC美国公司根据新规，向NOAA提交了一份合并申请
+                                    TMC美国子公司（TMC USA）依据NOAA新规提交合并申请，整合勘探许可证与商业开发许可证申请流程
                                 </p>
                             </el-card>
                         </el-timeline-item>
@@ -262,6 +262,83 @@
                                 </p>
                             </el-card>
                         </el-timeline-item>
+
+                        <el-timeline-item 
+                            timestamp="2026年2月26日" 
+                            placement="top"
+                            type="success"
+                            size="large"
+                        >
+                            <el-card class="timeline-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span class="text-emerald-400 font-bold">美汤合作声明</span>
+                                        <el-tag type="success" size="small">汤加</el-tag>
+                                    </div>
+                                </template>
+                                <p class="text-white/90 text-sm leading-relaxed">
+                                    美国与汤加正式发表《关于推进海洋科学研究合作的联合声明》，宣布围绕海洋科学研究开展合作，以支持海底矿产资源的负责任勘探，并推动制定适当的全球监管框架与标准
+                                </p>
+                            </el-card>
+                        </el-timeline-item>
+
+                        <el-timeline-item 
+                            timestamp="2026年3月9日" 
+                            placement="top"
+                            type="success"
+                            size="large"
+                        >
+                            <el-card class="timeline-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span class="text-emerald-400 font-bold">TMC申请达实质性合规</span>
+                                        <el-tag type="success" size="small">NOAA</el-tag>
+                                    </div>
+                                </template>
+                                <p class="text-white/90 text-sm leading-relaxed">
+                                    NOAA确认TMC美国子公司（TMC USA）提交的合并申请已达到《深海海底固体矿产资源法》（DSHMRA）“实质性合规”要求。该申请涵盖克拉里昂-克利珀顿区约65000平方公里多金属结核区域
+                                </p>
+                            </el-card>
+                        </el-timeline-item>
+
+                        <el-timeline-item 
+                            timestamp="2026年3月19日" 
+                            placement="top"
+                            type="success"
+                            size="large"
+                        >
+                            <el-card class="timeline-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span class="text-emerald-400 font-bold">美日签署合作备忘录</span>
+                                        <el-tag type="success" size="small">日本</el-tag>
+                                    </div>
+                                </template>
+                                <p class="text-white/90 text-sm leading-relaxed">
+                                    美国总统特朗普与日本首相高市早苗在华盛顿举行峰会，其间美国商务部与日本经济产业省正式签署《关于深海矿产资源开发的合作备忘录》
+                                </p>
+                            </el-card>
+                        </el-timeline-item>
+
+                        <el-timeline-item 
+                            timestamp="2026年3月23日" 
+                            placement="top"
+                            type="success"
+                            size="large"
+                        >
+                            <el-card class="timeline-card">
+                                <template #header>
+                                    <div class="card-header">
+                                        <span class="text-emerald-400 font-bold">SeaX申请进入公示</span>
+                                        <el-tag type="success" size="small">Federal Register</el-tag>
+                                    </div>
+                                </template>
+                                <p class="text-white/90 text-sm leading-relaxed">
+                                    NOAA在《联邦纪事》正式公告受理SeaX, Inc.提交的深海海底采矿勘探许可证申请，并启动公众意见征询，征询期截至2026年5月22日
+                                </p>
+                            </el-card>
+                        </el-timeline-item>
+
                     </el-timeline>
                 </div>
             </div>
@@ -388,6 +465,11 @@ onUnmounted(() => {
 :deep(.el-timeline-item__node--warning) {
     background-color: #f59e0b !important;
     border-color: #f59e0b !important;
+}
+
+:deep(.el-timeline-item__node--success) {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
 }
 
 :deep(.el-timeline-item__tail) {

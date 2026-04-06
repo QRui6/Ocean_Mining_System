@@ -8,9 +8,9 @@ export const US_COOPERATION_DATA = [
         country: '日本',
         countryCode: 'JP',
         coordinates: [139.6917, 35.6895], // 东京
-        cooperationType: '双边贸易与投资协议\n资本与技术的深度绑定',
-        mainAreas: '联合勘探与开发：日本寻求与美国在南鸟岛周边海域联合开发深海稀土',
-        details: '日美领导人计划在2026年3月峰会商讨联合开发深海稀土',
+        cooperationType: '1. 双边贸易与投资协议\n2. 资本与技术的深度绑定\n3. 《关于深海矿产资源开发的合作备忘录》（2026年3月19日）',
+        mainAreas: '1. 联合勘探与开发：日本寻求与美国在南鸟岛周边海域联合开发深海稀土\n2. 深海矿产资源开发合作：围绕深海关键矿产的联合勘探、开发、技术与投资协同推进',
+        details: '1. 既有关键进展：日美领导人计划在2026年3月峰会商讨联合开发深海稀土\n2. 最新进展：2026年3月19日，美国总统特朗普与日本首相高市早苗在华盛顿举行峰会，其间美国商务部与日本经济产业省正式签署《关于深海矿产资源开发的合作备忘录》',
         color: Cesium.Color.fromCssColorString('#3b82f6')
     },
     {
@@ -35,9 +35,9 @@ export const US_COOPERATION_DATA = [
         country: '汤加',
         countryCode: 'TO',
         coordinates: [-175.2018, -21.1789], // 努库阿洛法
-        cooperationType: '《海洋科学研究合作联合声明》',
-        mainAreas: '1. 海洋科学研究：为负责任的深海资源勘探提供科学支撑\n2. 全球监管框架：共同研究制定适合的全球监管框架和标准',
-        details: '合作强调尊重汤加的海洋管理传统和国际法义务；这是继库克群岛后，美国在太平洋岛国签署的第二个海底采矿相关协议',
+        cooperationType: '1. 《海洋科学研究合作联合声明》\n2. 《关于推进海洋科学研究合作的联合声明》（2026年2月26日签署）',
+        mainAreas: '1. 海洋科学研究：为负责任的海底矿产勘探提供科学依据\n2. 全球治理合作：共同研究制定适当的全球监管框架和标准',
+        details: '1. 既有关键内容：合作强调尊重汤加的海洋管理传统和国际法义务；这是继库克群岛后，美国在太平洋岛国签署的第二个海底采矿相关协议\n2. 最新进展：美国已开始与汤加讨论支持必要的海洋科学研究，为海底勘探提供信息支撑，并强调结合汤加在海洋管理方面的长期经验和国际法义务',
         color: Cesium.Color.fromCssColorString('#10b981')
     },
     {
@@ -86,11 +86,11 @@ export class USCooperationLinesManager {
                 name: `US-${cooperation.country}-cooperation`,
                 polyline: {
                     positions: positions,
-                    width: 4,
+                    width: 7,
                     material: new Cesium.PolylineGlowMaterialProperty({
-                        glowPower: 0.25,
-                        taperPower: 0.8,
-                        color: cooperation.color
+                        glowPower: 0.38,
+                        taperPower: 0.9,
+                        color: cooperation.color.withAlpha(0.98)
                     }),
                     clampToGround: false,
                     arcType: Cesium.ArcType.NONE, // 不使用自动弧线，我们已经手动计算了

@@ -1,5 +1,5 @@
 
-export const APP_TITLE = "深海采矿信息监测与管理平台";
+export const APP_TITLE = "海洋地质调查信息监测与管理平台";
 
 // 0. 资源分布类型（新增）
 export const RESOURCE_TYPES = ['多金属结核', '富钴铁锰结壳', '多金属硫化物', '深海稀土'];

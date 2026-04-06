@@ -450,6 +450,41 @@ import {
     getMineralImportCommodityColor,
     getMineralImportCountryFlagUrl
 } from '../data/mineralImportData.js';
+
+const USA_MARINE_LAYER_CONFIG = {
+    marine_shelf_boundary: {
+        name: '大陆架边界',
+        url: new URL('../data/USA/csb.geojson', import.meta.url).href,
+        stroke: Cesium.Color.fromCssColorString('#67e8f9'),
+        fill: Cesium.Color.fromCssColorString('#38bdf8').withAlpha(0.03),
+        strokeWidth: 4.2,
+        zIndex: 12
+    },
+    marine_zone_boundary: {
+        name: '区界',
+        url: new URL('../data/USA/district.geojson', import.meta.url).href,
+        stroke: Cesium.Color.fromCssColorString('#22c55e'),
+        fill: Cesium.Color.fromCssColorString('#22c55e').withAlpha(0.08),
+        strokeWidth: 2.2,
+        zIndex: 8
+    },
+    marine_main_route: {
+        name: '主要航道',
+        url: new URL('../data/USA/Fairways.geojson', import.meta.url).href,
+        stroke: Cesium.Color.fromCssColorString('#fbbf24'),
+        fill: Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.22),
+        strokeWidth: 3.6,
+        zIndex: 18
+    }
+};
+
+const USA_DISTRICT_COLOR_MAP = {
+    1: '#cfa3f3',
+    2: '#dff56d',
+    3: '#74d3f5',
+    4: '#f58ca0',
+    5: '#f6b35f'
+};
 // 动态加载气象数据加载器（支持API和本地文件两种模式）
 import { 
     getWindDataLoader, 
@@ -630,6 +665,7 @@ export default {
         
         // 美国合作关系线管理器
         let usCooperationManager = null;
+        const usaMarineLayerDataSources = new Map();
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -5139,11 +5175,12 @@ export default {
                 .filter(Boolean);
             const themeColor = options.themeColor || '#38bdf8';
             const cornerColor = options.overlap ? '#facc15' : '#f8fafc';
-            const dpr = window.devicePixelRatio || 1;
-            const paddingX = 16;
-            const paddingY = 10;
-            const lineHeight = 18;
-            const font = '600 14px "Noto Sans SC"';
+            const renderScale = 1.8;
+            const dpr = (window.devicePixelRatio || 1) * renderScale;
+            const paddingX = 18;
+            const paddingY = 12;
+            const lineHeight = 20;
+            const font = '700 15px "Noto Sans SC"';
 
             const measureCanvas = document.createElement('canvas');
             const measureCtx = measureCanvas.getContext('2d');
@@ -5162,9 +5199,21 @@ export default {
             const ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
+            const drawSolidWhiteText = (content, x, y) => {
+                ctx.save();
+                ctx.lineJoin = 'round';
+                ctx.miterLimit = 2;
+                ctx.strokeStyle = 'rgba(5, 12, 24, 0.96)';
+                ctx.lineWidth = 3.2;
+                ctx.strokeText(content, x, y);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(content, x, y);
+                ctx.restore();
+            };
+
             const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-            bgGradient.addColorStop(0, 'rgba(8, 24, 42, 0.92)');
-            bgGradient.addColorStop(1, 'rgba(6, 45, 68, 0.86)');
+            bgGradient.addColorStop(0, 'rgba(6, 18, 34, 0.98)');
+            bgGradient.addColorStop(1, 'rgba(5, 32, 54, 0.95)');
             ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, width, height);
 
@@ -5205,10 +5254,9 @@ export default {
             ctx.font = font;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#e2f6ff';
             lines.forEach((line, index) => {
                 const y = paddingY + lineHeight * index + lineHeight * 0.5;
-                ctx.fillText(line, width / 2, y);
+                drawSolidWhiteText(line, width / 2, y);
             });
 
             return {
@@ -5228,7 +5276,8 @@ export default {
                         ratio: Math.max(0, Math.min(1, Number(bar?.ratio) || 0)),
                         color: bar?.color || options.themeColor || '#38bdf8',
                         isFocus: bar?.isFocus === true,
-                        shortLabel: String(bar?.shortLabel || '').trim().slice(0, 3) || '矿种'
+                        shortLabel: String(bar?.shortLabel || '').trim().slice(0, 3) || '矿种',
+                        valueLabel: String(bar?.valueLabel || '').trim()
                     }))
                     .filter((bar) => bar.ratio > 0)
                     .slice(0, 4)
@@ -5239,22 +5288,36 @@ export default {
             const themeColor = options.themeColor || '#38bdf8';
             const borderColor = Cesium.Color.fromCssColorString(themeColor);
             const yAxisTitle = String(chartConfig?.axisTitle || options.axisTitle || '万吨').trim() || '万吨';
-            const xAxisTitle = '矿种';
             const tickValues = Array.isArray(chartConfig?.tickValues) && chartConfig.tickValues.length > 0
                 ? chartConfig.tickValues.slice(0, 3)
                 : ['100', '50', '0'];
-            const dpr = window.devicePixelRatio || 1;
-            const width = [0, 108, 118, 130, 142][bars.length] || 142;
-            const height = Math.max(80, Math.round(options.height || 86));
+            const renderScale = 2;
+            const dpr = (window.devicePixelRatio || 1) * renderScale;
+            const width = [0, 150, 166, 184, 202][bars.length] || 202;
+            const height = Math.max(124, Math.round(options.height || 132));
             const canvas = document.createElement('canvas');
             canvas.width = Math.ceil(width * dpr);
             canvas.height = Math.ceil(height * dpr);
             const ctx = canvas.getContext('2d');
             ctx.scale(dpr, dpr);
 
+            const drawSolidWhiteText = (content, x, y, align = 'left', baseline = 'top', strokeWidth = 2.4) => {
+                ctx.save();
+                ctx.textAlign = align;
+                ctx.textBaseline = baseline;
+                ctx.lineJoin = 'round';
+                ctx.miterLimit = 2;
+                ctx.strokeStyle = 'rgba(5, 12, 24, 0.98)';
+                ctx.lineWidth = strokeWidth;
+                ctx.strokeText(content, x, y);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(content, x, y);
+                ctx.restore();
+            };
+
             const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
-            bgGradient.addColorStop(0, 'rgba(8, 24, 42, 0.94)');
-            bgGradient.addColorStop(1, 'rgba(5, 32, 54, 0.88)');
+            bgGradient.addColorStop(0, 'rgba(6, 18, 34, 0.98)');
+            bgGradient.addColorStop(1, 'rgba(5, 32, 54, 0.95)');
             ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, width, height);
 
@@ -5265,25 +5328,17 @@ export default {
             ctx.fillStyle = borderColor.withAlpha(0.8).toCssColorString();
             ctx.fillRect(4, 4, width - 8, 1.2);
 
-            const plotLeft = 40;
+            const plotLeft = 48;
             const plotRight = width - 10;
-            const plotTop = 20;
+            const plotTop = 18;
             const plotBottom = height - 26;
             const plotHeight = Math.max(30, plotBottom - plotTop);
             const plotWidth = Math.max(34, plotRight - plotLeft);
             const slotWidth = plotWidth / bars.length;
-            const barWidth = Math.max(8, Math.min(16, slotWidth - 8));
+            const barWidth = Math.max(12, Math.min(24, slotWidth - 10));
 
-            ctx.font = '600 9px "Noto Sans SC"';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillStyle = '#d6f4ff';
-            ctx.fillText(yAxisTitle, 6, 6);
-
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'bottom';
-            ctx.fillStyle = borderColor.withAlpha(0.9).toCssColorString();
-            ctx.fillText(xAxisTitle, width - 7, height - 6);
+            ctx.font = '700 11px "Noto Sans SC"';
+            drawSolidWhiteText(yAxisTitle, 7, 7, 'left', 'top', 2.6);
 
             ctx.strokeStyle = borderColor.withAlpha(0.22).toCssColorString();
             ctx.beginPath();
@@ -5308,12 +5363,9 @@ export default {
                 { value: String(tickValues[2] ?? '0'), y: plotBottom }
             ];
 
-            ctx.font = '500 8px "Noto Sans SC"';
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#c6efff';
+            ctx.font = '700 11px "Noto Sans SC"';
             tickLabelValues.forEach((tick) => {
-                ctx.fillText(tick.value, plotLeft - 4, tick.y);
+                drawSolidWhiteText(tick.value, plotLeft - 4, tick.y, 'right', 'middle', 2.2);
             });
 
             bars.forEach((bar, index) => {
@@ -5346,11 +5398,20 @@ export default {
                 ctx.lineTo(tickX, plotBottom + 3.5);
                 ctx.stroke();
 
-                ctx.font = '500 9px "Noto Sans SC"';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = bar.isFocus ? '#ffffff' : '#d7f1ff';
-                ctx.fillText(bar.shortLabel, tickX, plotBottom + 5);
+                if (bar.valueLabel) {
+                    ctx.font = '700 10px "Noto Sans SC"';
+                    drawSolidWhiteText(
+                        bar.valueLabel,
+                        tickX,
+                        Math.max(plotTop + 10, y - 6),
+                        'center',
+                        'bottom',
+                        2.4
+                    );
+                }
+
+                ctx.font = '600 11px "Noto Sans SC"';
+                drawSolidWhiteText(bar.shortLabel, tickX, plotBottom + 6, 'center', 'top', 2.4);
             });
 
             return {
@@ -5366,9 +5427,9 @@ export default {
                 return mineralImportFlagFrameTextureCache.get(cacheKey);
             }
 
-            const width = 30;
-            const height = 22;
-            const dpr = window.devicePixelRatio || 1;
+            const width = 32;
+            const height = 24;
+            const dpr = (window.devicePixelRatio || 1) * 1.6;
             const canvas = document.createElement('canvas');
             canvas.width = Math.ceil(width * dpr);
             canvas.height = Math.ceil(height * dpr);
@@ -5377,8 +5438,8 @@ export default {
 
             const borderColor = Cesium.Color.fromCssColorString(themeColor || '#38bdf8');
             const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-            bgGradient.addColorStop(0, 'rgba(8, 24, 42, 0.94)');
-            bgGradient.addColorStop(1, 'rgba(6, 45, 68, 0.88)');
+            bgGradient.addColorStop(0, 'rgba(6, 18, 34, 0.98)');
+            bgGradient.addColorStop(1, 'rgba(5, 32, 54, 0.95)');
             ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, width, height);
 
@@ -5432,31 +5493,254 @@ export default {
             };
         };
 
+        const rectsOverlap = (rectA, rectB, padding = 10) => {
+            if (!rectA || !rectB) return false;
+            return !(
+                rectA.right + padding < rectB.left ||
+                rectA.left - padding > rectB.right ||
+                rectA.bottom + padding < rectB.top ||
+                rectA.top - padding > rectB.bottom
+            );
+        };
+
+        const isRectInsideViewport = (rect, viewport, padding = 10) => {
+            if (!rect || !viewport) return false;
+            return (
+                rect.left >= padding &&
+                rect.top >= padding &&
+                rect.right <= viewport.width - padding &&
+                rect.bottom <= viewport.height - padding
+            );
+        };
+
+        const getMineralImportPreferredDirections = (countryName, defaultPlacement) => {
+            const preset = MINERAL_IMPORT_LABEL_LAYOUTS[countryName];
+            const preferredX = preset?.lonOffset
+                ? (preset.lonOffset >= 0 ? 1 : -1)
+                : (defaultPlacement?.labelLon >= defaultPlacement?.anchorLon ? 1 : -1);
+            const preferredY = preset?.latOffset
+                ? (preset.latOffset >= 0 ? -1 : 1)
+                : (defaultPlacement?.labelLat >= defaultPlacement?.anchorLat ? -1 : 1);
+
+            return [
+                { x: preferredX, y: preferredY },
+                { x: preferredX, y: -preferredY },
+                { x: -preferredX, y: preferredY },
+                { x: -preferredX, y: -preferredY },
+                { x: preferredX, y: 0 },
+                { x: -preferredX, y: 0 },
+                { x: 0, y: preferredY },
+                { x: 0, y: -preferredY }
+            ];
+        };
+
+        const buildMineralImportLabelCandidates = (countryName, defaultPlacement, dimensions) => {
+            const labelWidth = dimensions?.labelWidth || 120;
+            const labelHeight = dimensions?.labelHeight || 48;
+            const barWidth = dimensions?.barWidth || 0;
+            const barGap = barWidth > 0 ? 12 : 0;
+            const groupWidth = labelWidth + barGap + barWidth;
+            const groupHeight = Math.max(labelHeight, dimensions?.barHeight || 0, 48);
+            const directions = getMineralImportPreferredDirections(countryName, defaultPlacement);
+            const distanceLevels = [0, 34, 72, 110, 156, 210];
+            const verticalLevels = [0, 20, 40];
+            const seen = new Set();
+            const candidates = [];
+
+            distanceLevels.forEach((distance) => {
+                directions.forEach((direction) => {
+                    verticalLevels.forEach((verticalExtra) => {
+                        const dxBase = direction.x === 0
+                            ? 0
+                            : direction.x * (groupWidth / 2 + 20 + distance);
+                        const dyBase = direction.y === 0
+                            ? 0
+                            : direction.y * (groupHeight / 2 + 18 + distance * 0.65 + verticalExtra);
+                        const dx = Math.round(dxBase);
+                        const dy = Math.round(dyBase);
+                        const key = `${dx}_${dy}`;
+                        if (seen.has(key)) return;
+                        seen.add(key);
+                        candidates.push({ dx, dy });
+                    });
+                });
+            });
+
+            candidates.unshift({ dx: 0, dy: 0 });
+            return candidates;
+        };
+
+        const chooseMineralImportLabelPlacement = (countryName, centerLon, centerLat, sphereRadius, dimensions, occupiedRects = []) => {
+            const defaultPlacement = getMineralImportLabelPlacement(countryName, centerLon, centerLat, sphereRadius);
+
+            if (!viewer?.scene?.canvas) {
+                return defaultPlacement;
+            }
+
+            const anchorPosition = Cesium.Cartesian3.fromDegrees(
+                defaultPlacement.anchorLon,
+                defaultPlacement.anchorLat,
+                defaultPlacement.anchorHeight
+            );
+            const anchorWindow = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, anchorPosition);
+            if (!anchorWindow) {
+                return defaultPlacement;
+            }
+
+            const viewport = {
+                width: viewer.scene.canvas.clientWidth || viewer.scene.canvas.width || 0,
+                height: viewer.scene.canvas.clientHeight || viewer.scene.canvas.height || 0
+            };
+            const scale = defaultPlacement.scale || 0.92;
+            const labelWidth = (dimensions?.labelWidth || 120) * scale;
+            const labelHeight = (dimensions?.labelHeight || 48) * scale;
+            const barWidth = (dimensions?.barWidth || 0) * scale;
+            const barHeight = (dimensions?.barHeight || 0) * scale;
+            const barGap = barWidth > 0 ? 12 : 0;
+            const groupWidth = labelWidth + barGap + barWidth;
+            const groupHeight = Math.max(labelHeight, barHeight, 48);
+            const labelOffsetY = defaultPlacement.isCallout ? -8 : -14;
+            const candidates = buildMineralImportLabelCandidates(countryName, defaultPlacement, {
+                labelWidth,
+                labelHeight,
+                barWidth,
+                barHeight
+            });
+            const ellipsoid = viewer.scene.globe?.ellipsoid || Cesium.Ellipsoid.WGS84;
+
+            const tryPlacement = (screenX, screenY, placementOverrides = {}) => {
+                const rect = {
+                    left: screenX - labelWidth / 2,
+                    top: screenY + labelOffsetY - groupHeight,
+                    right: screenX - labelWidth / 2 + groupWidth,
+                    bottom: screenY + labelOffsetY
+                };
+
+                if (!isRectInsideViewport(rect, viewport, 12)) {
+                    return null;
+                }
+
+                const hasOverlap = occupiedRects.some((occupiedRect) => rectsOverlap(rect, occupiedRect, 12));
+                if (hasOverlap) {
+                    return null;
+                }
+
+                const cartesian = viewer.camera.pickEllipsoid(
+                    new Cesium.Cartesian2(screenX, screenY),
+                    ellipsoid
+                );
+                if (!cartesian) {
+                    return null;
+                }
+
+                const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                if (!cartographic) {
+                    return null;
+                }
+
+                const connectorTargetScreenX = screenX + (barWidth > 0 ? (barWidth + barGap) / 2 : 0);
+                const connectorTargetScreenY = screenY + labelOffsetY - 2;
+                const connectorTargetCartesian = viewer.camera.pickEllipsoid(
+                    new Cesium.Cartesian2(connectorTargetScreenX, connectorTargetScreenY),
+                    ellipsoid
+                );
+                const connectorTargetCartographic = connectorTargetCartesian
+                    ? Cesium.Cartographic.fromCartesian(connectorTargetCartesian)
+                    : null;
+
+                occupiedRects.push(rect);
+                return {
+                    ...defaultPlacement,
+                    labelLon: Cesium.Math.toDegrees(cartographic.longitude),
+                    labelLat: clampMineralImportLabelLatitude(Cesium.Math.toDegrees(cartographic.latitude)),
+                    labelHeight: Math.max(defaultPlacement.labelHeight, 180000),
+                    connectorTargetLon: connectorTargetCartographic
+                        ? Cesium.Math.toDegrees(connectorTargetCartographic.longitude)
+                        : Cesium.Math.toDegrees(cartographic.longitude),
+                    connectorTargetLat: connectorTargetCartographic
+                        ? clampMineralImportLabelLatitude(Cesium.Math.toDegrees(connectorTargetCartographic.latitude))
+                        : clampMineralImportLabelLatitude(Cesium.Math.toDegrees(cartographic.latitude)),
+                    ...placementOverrides
+                };
+            };
+
+            const defaultLabelPosition = Cesium.Cartesian3.fromDegrees(
+                defaultPlacement.labelLon,
+                defaultPlacement.labelLat,
+                defaultPlacement.labelHeight
+            );
+            const defaultLabelWindow = Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, defaultLabelPosition);
+            if (defaultLabelWindow) {
+                const preservedPlacement = tryPlacement(defaultLabelWindow.x, defaultLabelWindow.y, {
+                    isCallout: defaultPlacement.isCallout
+                });
+                if (preservedPlacement) {
+                    return preservedPlacement;
+                }
+            }
+
+            for (const candidate of candidates) {
+                const screenX = anchorWindow.x + candidate.dx;
+                const screenY = anchorWindow.y + candidate.dy;
+                const autoPlacement = tryPlacement(screenX, screenY, {
+                    isCallout: candidate.dx !== 0 || candidate.dy !== 0,
+                    screenOffsetX: candidate.dx,
+                    screenOffsetY: candidate.dy
+                });
+                if (autoPlacement) {
+                    return autoPlacement;
+                }
+            }
+
+            return defaultPlacement;
+        };
+
         const addMineralImportLabelConnector = (placement, themeColor) => {
             if (!placement?.isCallout) return;
+
+            const targetLon = placement.connectorTargetLon ?? placement.labelLon;
+            const targetLat = placement.connectorTargetLat ?? placement.labelLat;
+            const midpointLon = (placement.anchorLon + targetLon) / 2;
+            const midpointLat = clampMineralImportLabelLatitude((placement.anchorLat + targetLat) / 2 + 0.35);
+            const backlineEntity = viewer.entities.add({
+                polyline: {
+                    positions: [
+                        Cesium.Cartesian3.fromDegrees(placement.anchorLon, placement.anchorLat, placement.anchorHeight),
+                        Cesium.Cartesian3.fromDegrees(
+                            midpointLon,
+                            midpointLat,
+                            placement.labelHeight * 0.84
+                        ),
+                        Cesium.Cartesian3.fromDegrees(targetLon, targetLat, placement.labelHeight - 25000)
+                    ],
+                    width: 5.2,
+                    material: Cesium.Color.fromCssColorString('#03111f').withAlpha(0.76),
+                    disableDepthTestDistance: Number.POSITIVE_INFINITY
+                }
+            });
 
             const connectorEntity = viewer.entities.add({
                 polyline: {
                     positions: [
                         Cesium.Cartesian3.fromDegrees(placement.anchorLon, placement.anchorLat, placement.anchorHeight),
                         Cesium.Cartesian3.fromDegrees(
-                            (placement.anchorLon + placement.labelLon) / 2,
-                            clampMineralImportLabelLatitude((placement.anchorLat + placement.labelLat) / 2 + 0.5),
-                            placement.labelHeight * 0.82
+                            midpointLon,
+                            midpointLat,
+                            placement.labelHeight * 0.84
                         ),
-                        Cesium.Cartesian3.fromDegrees(placement.labelLon, placement.labelLat, placement.labelHeight - 30000)
+                        Cesium.Cartesian3.fromDegrees(targetLon, targetLat, placement.labelHeight - 25000)
                     ],
-                    width: 4.5,
+                    width: 3.6,
                     material: new Cesium.PolylineGlowMaterialProperty({
-                        glowPower: 0.36,
-                        taperPower: 0.7,
-                        color: Cesium.Color.fromCssColorString(themeColor).withAlpha(0.92)
+                        glowPower: 0.34,
+                        taperPower: 0.74,
+                        color: Cesium.Color.fromCssColorString(themeColor).withAlpha(0.94)
                     }),
                     disableDepthTestDistance: Number.POSITIVE_INFINITY
                 }
             });
 
-            mineralImportLabelEntities.push(connectorEntity);
+            mineralImportLabelEntities.push(backlineEntity, connectorEntity);
         };
 
         const resetMineralImportHighlight = () => {
@@ -5522,6 +5806,7 @@ export default {
         const buildMineralImportCommodityChartMeta = (commodityIds) => {
             const maxVolumeMap = new Map();
             const unitMap = new Map();
+            let overallMaxVolume = 0;
 
             commodityIds.forEach((commodityId) => {
                 const commodityData = getMineralImportById(commodityId);
@@ -5541,6 +5826,7 @@ export default {
 
                 if (maxVolume > 0) {
                     maxVolumeMap.set(commodityId, maxVolume);
+                    overallMaxVolume = Math.max(overallMaxVolume, maxVolume);
                 }
 
                 unitMap.set(commodityId, primaryUnit || '万吨');
@@ -5549,7 +5835,8 @@ export default {
             return {
                 commodityMaxVolumeMap: maxVolumeMap,
                 commodityUnitMap: unitMap,
-                selectedCommodityCount: commodityIds.length
+                selectedCommodityCount: commodityIds.length,
+                overallMaxVolume
             };
         };
 
@@ -5585,8 +5872,9 @@ export default {
                 return Math.max(maxValue, Number(item?.volumeValue) || 0);
             }, 0);
             const singleCommodityMax = commodityMaxVolumeMap.get(limitedCommodities[0]?.commodityId) || localMaxVolume;
+            const overallMaxVolume = Number(chartMeta?.overallMaxVolume) || 0;
             const chartMaxValue = Math.max(
-                isMultiSelection ? localMaxVolume : singleCommodityMax,
+                isMultiSelection ? overallMaxVolume : singleCommodityMax,
                 localMaxVolume,
                 1
             );
@@ -5611,7 +5899,8 @@ export default {
                         ratio: Math.max(0.04, Math.min(1, volumeRatio)),
                         color: item?.themeColor || '#0EA5E9',
                         isFocus: limitedCommodities.length === 1 && index === 0,
-                        shortLabel: getMineralImportCommodityShortLabel(item?.commodityName)
+                        shortLabel: getMineralImportCommodityShortLabel(item?.commodityName),
+                        valueLabel: formatMineralImportAxisTickValue(item?.volumeValue ?? 0)
                     };
                 })
             };
@@ -5914,6 +6203,88 @@ export default {
             resetMineralImportHighlight();
             viewer.scene.requestRender();
         };
+
+        const styleUsaMarineLayerEntities = (dataSource, config) => {
+            if (!dataSource?.entities?.values?.length) return;
+
+            dataSource.entities.values.forEach((entity) => {
+                if (entity.polyline) {
+                    const isShelfBoundary = config.name === '大陆架边界';
+                    entity.polyline.width = config.strokeWidth;
+                    entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: isShelfBoundary ? 0.34 : 0.28,
+                        taperPower: 0.78,
+                        color: config.stroke.withAlpha(isShelfBoundary ? 1.0 : 0.98)
+                    });
+                    entity.polyline.clampToGround = true;
+                    entity.polyline.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+                }
+
+                if (entity.polygon) {
+                    if (config.name === '区界') {
+                        const districtCode = Number(
+                            entity.properties?.DISTRICT_C?.getValue?.() ??
+                            entity.properties?.DISTRICT_I?.getValue?.() ??
+                            0
+                        );
+                        const districtColorHex = USA_DISTRICT_COLOR_MAP[districtCode] || '#f6b35f';
+                        const districtColor = Cesium.Color.fromCssColorString(districtColorHex);
+                        entity.polygon.material = districtColor.withAlpha(0.72);
+                        entity.polygon.outline = true;
+                        entity.polygon.outlineColor = districtColor.withAlpha(0.98);
+                        entity.polygon.outlineWidth = 2.4;
+                        entity.polygon.zIndex = config.zIndex ?? 8;
+                    } else {
+                        entity.polygon.material = config.fill;
+                        entity.polygon.outline = true;
+                        entity.polygon.outlineColor = config.stroke.withAlpha(0.95);
+                        entity.polygon.outlineWidth = config.name === '主要航道' ? 3.2 : config.strokeWidth;
+                        entity.polygon.zIndex = config.zIndex ?? (config.name === '主要航道' ? 18 : 12);
+                    }
+                    entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
+                }
+            });
+        };
+
+        const toggleUsaMarineLayer = async (layerId, show) => {
+            if (!viewer || !USA_MARINE_LAYER_CONFIG[layerId]) return;
+
+            const config = USA_MARINE_LAYER_CONFIG[layerId];
+
+            if (!show) {
+                const existingDataSource = usaMarineLayerDataSources.get(layerId);
+                if (existingDataSource) {
+                    viewer.dataSources.remove(existingDataSource, true);
+                    usaMarineLayerDataSources.delete(layerId);
+                    viewer.scene.requestRender();
+                }
+                return;
+            }
+
+            if (usaMarineLayerDataSources.has(layerId)) {
+                const existingDataSource = usaMarineLayerDataSources.get(layerId);
+                existingDataSource.show = true;
+                viewer.scene.requestRender();
+                return;
+            }
+
+            try {
+                const dataSource = await Cesium.GeoJsonDataSource.load(config.url, {
+                    stroke: config.stroke,
+                    fill: config.fill,
+                    strokeWidth: config.strokeWidth,
+                    clampToGround: true
+                });
+
+                styleUsaMarineLayerEntities(dataSource, config);
+                await viewer.dataSources.add(dataSource);
+                usaMarineLayerDataSources.set(layerId, dataSource);
+                viewer.scene.requestRender();
+                console.log(`✅ 已加载美国海洋空间图层: ${config.name}`);
+            } catch (error) {
+                console.error(`❌ 加载美国海洋空间图层失败: ${config.name}`, error);
+            }
+        };
         
         const clearMineralImportCommodity = (options = {}) => {
             const preserveSelection = options.preserveSelection === true;
@@ -6059,6 +6430,7 @@ export default {
                 const entities = mineralImportDataSource.entities.values;
                 const labelCountrySet = new Set();
                 const mineralImportChartMeta = buildMineralImportCommodityChartMeta(selectedCommodityIds);
+                const occupiedLabelRects = [];
                 
                 entities.forEach(entity => {
                     if (!entity.polygon || !entity.properties) return;
@@ -6125,7 +6497,6 @@ export default {
                     const cartographic = Cesium.Cartographic.fromCartesian(sphere.center);
                     const lon = Cesium.Math.toDegrees(cartographic.longitude);
                     const lat = Cesium.Math.toDegrees(cartographic.latitude);
-                    const labelPlacement = getMineralImportLabelPlacement(countryName, lon, lat, sphere.radius);
                     const labelText = isOverlap
                         ? `${countryName}\n${commodityCount}类矿产`
                         : (primary.share
@@ -6140,6 +6511,19 @@ export default {
                         themeColor: baseColorCss,
                         height: Math.max(80, (labelTexture.height + 8) * 2)
                     });
+                    const labelPlacement = chooseMineralImportLabelPlacement(
+                        countryName,
+                        lon,
+                        lat,
+                        sphere.radius,
+                        {
+                            labelWidth: labelTexture.width,
+                            labelHeight: labelTexture.height,
+                            barWidth: labelBarTexture?.width || 0,
+                            barHeight: labelBarTexture?.height || 0
+                        },
+                        occupiedLabelRects
+                    );
                     const flagImageUrl = getMineralImportCountryFlagUrl(countryName, 40);
                     const flagFrameTexture = createMineralImportFlagFrameTexture(baseColorCss);
                     const labelOffsetY = labelPlacement.isCallout ? -8 : -14;
@@ -6199,7 +6583,7 @@ export default {
                                 verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
                                 pixelOffset: barOffset,
                                 disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                                scale: labelPlacement.scale
+                                scale: Math.max(1.08, (labelPlacement.scale || 0.92) * 1.15)
                             },
                             properties: new Cesium.PropertyBag({
                                 type: 'mineral_import_label_bar',
@@ -8764,6 +9148,7 @@ export default {
             flyToResearchCountry,  // 暴露研究机构国家总览函数
             highlightResearchInstitution,  // 暴露研究机构高亮函数
             resetResearchInstitutionHighlight,  // 暴露研究机构重置高亮函数
+            toggleUsaMarineLayer,  // 暴露美国海洋空间规划图层切换函数
             togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,

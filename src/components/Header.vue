@@ -6,7 +6,7 @@
              style="background: linear-gradient(to right, transparent, var(--accent-cyan), transparent);"></div>
 
         <!-- Center Structure (Reduced Width) -->
-        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1000px] h-[110px] z-10">
+        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1040px] h-[110px] z-10">
             <!-- Main Trapezoid -->
             <div class="w-full h-full border-b-2"
                  style="background-color: var(--header-bg); border-color: var(--header-border); box-shadow: var(--shadow-glow); clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);">
@@ -21,12 +21,12 @@
             </div>
             
             <!-- Title (Adjusted Size) -->
-            <div class="absolute top-5 w-full text-center">
-                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.15em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400" 
+            <div class="absolute top-6 w-full text-center">
+                <h1 class="text-[2.55rem] font-['Noto_Sans_SC'] font-bold tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400" 
                     style="filter: drop-shadow(0 0 15px var(--accent-cyan-glow));">
                     {{ APP_TITLE }}
                 </h1>
-                <div class="text-xs tracking-[0.5em] uppercase opacity-80 mt-2 font-['Orbitron'] font-bold" 
+                <div class="text-[11px] tracking-[0.42em] uppercase opacity-80 mt-1.5 font-['Orbitron'] font-bold" 
                      style="color: var(--accent-cyan);">Deep Sea Mining Meteorological Support System</div>
             </div>
         </div>

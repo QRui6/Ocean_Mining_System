@@ -36,13 +36,23 @@
                 
                 <!-- 基础地质图 -->
                 <div class="survey-category">
-                    <div class="category-header">
+                    <div class="category-header collapsible" @click="toggleBasicGeologyPanel">
                         <div class="flex items-center gap-2">
                             <div class="w-1 h-5" style="background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-purple));"></div>
                             <span>基础地质调查</span>
                         </div>
+                        <svg
+                            class="collapse-arrow"
+                            :class="{ 'expanded': showBasicGeologyPanel }"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
                     </div>
-                    <div class="category-content">
+                    <transition name="expand-fade">
+                    <div v-if="showBasicGeologyPanel" class="category-content">
                         <div v-for="item in basicGeologyLayers" :key="item.id" 
                              class="layer-item"
                              :class="{ 'active': item.active }"
@@ -62,6 +72,45 @@
                             </div>
                         </div>
                     </div>
+                    </transition>
+                </div>
+
+                <!-- 海洋空间规划与行政区域管辖 -->
+                <div class="survey-category">
+                    <div class="category-header collapsible" @click="toggleMarineSpatialPanel">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-5" style="background: linear-gradient(to bottom, #22c55e, #38bdf8);"></div>
+                            <span>海洋空间规划与行政区域管辖</span>
+                        </div>
+                        <svg
+                            class="collapse-arrow"
+                            :class="{ 'expanded': showMarineSpatialPanel }"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <transition name="expand-fade">
+                        <div v-if="showMarineSpatialPanel" class="category-content">
+                            <div v-for="item in marineSpatialLayers" :key="item.id"
+                                 class="layer-item compact"
+                                 :class="{ 'active': item.active }"
+                                 @click="toggleLayer(item)">
+                                <div class="layer-checkbox">
+                                    <div v-if="item.active" class="checkbox-checked">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="layer-info">
+                                    <div class="layer-name">{{ item.label }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
                 </div>
             </div>
         </div>
@@ -98,6 +147,15 @@ export default {
             { id: 'geo_25w', label: '1:25万地质图', scale: '1:25万', active: false },
             { id: 'geo_5w', label: '1:5万地质图', scale: '1:5万', active: false }
         ]);
+
+        const marineSpatialLayers = ref([
+            { id: 'marine_shelf_boundary', label: '大陆架边界', active: false },
+            { id: 'marine_zone_boundary', label: '区界', active: false },
+            { id: 'marine_main_route', label: '主要航道', active: false }
+        ]);
+
+        const showBasicGeologyPanel = ref(true);
+        const showMarineSpatialPanel = ref(false);
         
         const toggleCountry = (country) => {
             country.active = !country.active;
@@ -108,12 +166,25 @@ export default {
             layer.active = !layer.active;
             emit('layerToggle', layer);
         };
+
+        const toggleMarineSpatialPanel = () => {
+            showMarineSpatialPanel.value = !showMarineSpatialPanel.value;
+        };
+
+        const toggleBasicGeologyPanel = () => {
+            showBasicGeologyPanel.value = !showBasicGeologyPanel.value;
+        };
         
         return {
             countries,
             basicGeologyLayers,
+            marineSpatialLayers,
+            showBasicGeologyPanel,
+            showMarineSpatialPanel,
             toggleCountry,
-            toggleLayer
+            toggleLayer,
+            toggleBasicGeologyPanel,
+            toggleMarineSpatialPanel
         };
     }
 };
@@ -141,6 +212,27 @@ export default {
     font-weight: 700;
     font-size: 1.0625rem;
     letter-spacing: 0.02em;
+}
+
+.category-header.collapsible {
+    cursor: pointer;
+    transition: background 0.25s ease;
+}
+
+.category-header.collapsible:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(56, 189, 248, 0.12));
+}
+
+.collapse-arrow {
+    width: 1rem;
+    height: 1rem;
+    color: var(--text-secondary);
+    transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.collapse-arrow.expanded {
+    transform: rotate(180deg);
+    color: var(--accent-cyan);
 }
 
 .category-content {
@@ -198,6 +290,10 @@ export default {
 
 .layer-item:last-child {
     margin-bottom: 0;
+}
+
+.layer-item.compact {
+    padding: 0.75rem 0.9rem;
 }
 
 .layer-item:hover {
@@ -291,5 +387,23 @@ export default {
 .slide-fade-leave-to {
     transform: translateX(-30px);
     opacity: 0;
+}
+
+.expand-fade-enter-active,
+.expand-fade-leave-active {
+    transition: all 0.25s ease;
+    overflow: hidden;
+}
+
+.expand-fade-enter-from,
+.expand-fade-leave-to {
+    opacity: 0;
+    max-height: 0;
+}
+
+.expand-fade-enter-to,
+.expand-fade-leave-from {
+    opacity: 1;
+    max-height: 260px;
 }
 </style>

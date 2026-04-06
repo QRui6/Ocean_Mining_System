@@ -453,7 +453,7 @@ export default {
             default: false
         }
     },
-    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate', 'showTimeline', 'showPolicyDynamics', 'showCountryAttitudes', 'showMiningVehicle', 'showTechnologyMaturity', 'showMiningPlatform', 'showExperimentalMining', 'showEnvironmentalMonitoring', 'showLiftingSystem', 'showModelComparison', 'showEvaluationFormula', 'showFeasibilityAnalysis'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位 & 显示时间线 & 显示政策动态 & 显示各国态度 & 显示采矿车面板 & 显示技术成熟度面板 & 显示采矿平台面板 & 显示试验试采 & 显示环境监测 & 显示提升系统 & 显示模型对比 & 显示评价公式 & 显示可行性分析
+    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate', 'showTimeline', 'showPolicyDynamics', 'showUSCountryPolicyDynamics', 'showCountryAttitudes', 'showMiningVehicle', 'showTechnologyMaturity', 'showMiningPlatform', 'showExperimentalMining', 'showEnvironmentalMonitoring', 'showLiftingSystem', 'showModelComparison', 'showEvaluationFormula', 'showFeasibilityAnalysis'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位 & 显示时间线 & 显示政策动态 & 美国国家政策动态联动 & 显示各国态度 & 显示采矿车面板 & 显示技术成熟度面板 & 显示采矿平台面板 & 显示试验试采 & 显示环境监测 & 显示提升系统 & 显示模型对比 & 显示评价公式 & 显示可行性分析
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -629,6 +629,10 @@ export default {
             showCountryPanel.value = !showCountryPanel.value;
         };
 
+        const syncUSCountryPolicyDynamics = () => {
+            emit('showUSCountryPolicyDynamics', activeCountries.value.includes('美国'), '美国');
+        };
+
         /**
          * 切换国家选择状态（支持多选）
          */
@@ -640,6 +644,9 @@ export default {
                 activeCountries.value.push(country);
             }
             emitFilter();
+            if (country === '美国') {
+                syncUSCountryPolicyDynamics();
+            }
         };
 
         /**
@@ -650,6 +657,9 @@ export default {
             if (index > -1) {
                 activeCountries.value.splice(index, 1);
                 emitFilter();
+                if (country === '美国') {
+                    syncUSCountryPolicyDynamics();
+                }
             }
         };
 
@@ -659,6 +669,7 @@ export default {
         const clearCountries = () => {
             activeCountries.value = [];
             emitFilter();
+            syncUSCountryPolicyDynamics();
         };
 
         /**

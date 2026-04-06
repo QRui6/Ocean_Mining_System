@@ -19,7 +19,7 @@
                 :weatherFilter="weatherFilter"
                 :pickingPointType="pickingPointType"
                 :resourceFilters="filters.resources || []"
-                :showUSCooperation="showPolicyDynamicsTimeline"
+                :showUSCooperation="showUSPolicyDynamicsEffect"
                 @dataLoaded="handleDataLoaded"
                 @cableDataLoaded="handleCableDataLoaded"
                 @arcticRouteDataLoaded="handleArcticRouteDataLoaded"
@@ -49,6 +49,7 @@
                     @regionLocate="handleRegionLocate"
                     @showTimeline="handleShowTimeline"
                     @showPolicyDynamics="handleShowPolicyDynamics"
+                    @showUSCountryPolicyDynamics="handleShowUSCountryPolicyDynamics"
                     @showCountryAttitudes="handleShowCountryAttitudes"
                     @showMiningVehicle="handleShowMiningVehicle"
                     @showTechnologyMaturity="handleShowTechnologyMaturity"
@@ -106,6 +107,7 @@
                 <GeologicalSurveyPanel 
                     :show="activePanels.geologicalSurvey"
                     @layerToggle="handleGeologicalLayerToggle"
+                    @countryToggle="handleGeologicalCountryToggle"
                 />
                 
                 <!-- 大洋钻探面板 -->
@@ -437,7 +439,7 @@
                 
                 <!-- 美国政策动态时间线 - 新版（横向底部） -->
                 <USPolicyTimeline 
-                    :show="showPolicyDynamicsTimeline"
+                    :show="showUSPolicyDynamicsEffect"
                     @close="handleClosePolicyDynamics"
                 />
                 
@@ -1013,6 +1015,7 @@ export default {
         
         // 政策动态时间线显示状态
         const showPolicyDynamicsTimeline = ref(false);
+        const showUSCountryPolicyDynamics = ref(false);
         const policyDynamicsCountry = ref('美国');
         
         // 各国态度显示状态
@@ -1024,6 +1027,10 @@ export default {
         const currentPolarRegion = ref('antarctic');
         
         // ==================== 计算属性 ====================
+
+        const showUSPolicyDynamicsEffect = computed(() =>
+            showPolicyDynamicsTimeline.value || showUSCountryPolicyDynamics.value
+        );
         
         // 过滤后的海底观测网数据（根据激活的国家）
         const filteredObservationData = computed(() => {
@@ -2393,6 +2400,63 @@ export default {
          */
         const handleGeologicalLayerToggle = (layer) => {
             console.log('🗺️ 地质图层切换:', layer);
+            const geologicalMarineLayerIds = [
+                'marine_shelf_boundary',
+                'marine_zone_boundary',
+                'marine_main_route'
+            ];
+
+            if (!geologicalMarineLayerIds.includes(layer.id)) {
+                return;
+            }
+
+            if (layer.active) {
+                activeGeologicalMarineLayers.value.add(layer.id);
+            } else {
+                activeGeologicalMarineLayers.value.delete(layer.id);
+            }
+
+            if (!mapContainerRef.value?.toggleUsaMarineLayer) {
+                console.warn('⚠️ MapContainer.toggleUsaMarineLayer 不可用');
+                return;
+            }
+
+            if (!activeGeologicalCountries.value.has('美国')) {
+                console.log('ℹ️ 当前未选中美国，跳过海洋空间规划图层加载');
+                if (layer.active) {
+                    layer.active = false;
+                }
+                return;
+            }
+
+            mapContainerRef.value.toggleUsaMarineLayer(layer.id, layer.active);
+        };
+
+        const activeGeologicalCountries = ref(new Set());
+        const activeGeologicalMarineLayers = ref(new Set());
+
+        const handleGeologicalCountryToggle = (country) => {
+            console.log('🌍 地质调查国家切换:', country);
+            if (country.active) {
+                activeGeologicalCountries.value.add(country.label);
+            } else {
+                activeGeologicalCountries.value.delete(country.label);
+            }
+
+            if (country.label !== '美国' || !mapContainerRef.value?.toggleUsaMarineLayer) {
+                return;
+            }
+
+            if (!country.active) {
+                ['marine_shelf_boundary', 'marine_zone_boundary', 'marine_main_route'].forEach((layerId) => {
+                    mapContainerRef.value.toggleUsaMarineLayer(layerId, false);
+                });
+                return;
+            }
+
+            activeGeologicalMarineLayers.value.forEach((layerId) => {
+                mapContainerRef.value.toggleUsaMarineLayer(layerId, true);
+            });
         };
         
         /**
@@ -4510,6 +4574,45 @@ export default {
                 policyDynamicsCountry.value = '美国'; // 默认美国
             }
         };
+
+        const focusUSPolicyDynamicsView = () => {
+            if (!mapContainerRef.value) return;
+
+            const focusCamera = () => {
+                if (!mapContainerRef.value?.viewer) return;
+                const viewer = mapContainerRef.value.viewer();
+                if (!viewer?.camera) return;
+
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(-90.0, 30.0, 10800000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    },
+                    duration: 1.8
+                });
+            };
+
+            if (mapContainerRef.value.switchTo2D) {
+                mapContainerRef.value.switchTo2D();
+                setTimeout(focusCamera, 1200);
+            } else {
+                focusCamera();
+            }
+        };
+
+        /**
+         * 处理国家筛选中点击美国后的联动展示
+         */
+        const handleShowUSCountryPolicyDynamics = (show, country = '美国') => {
+            console.log('🇺🇸 国家筛选联动美国政策动态:', show, country);
+            showUSCountryPolicyDynamics.value = show;
+            if (show) {
+                policyDynamicsCountry.value = country || '美国';
+                focusUSPolicyDynamicsView();
+            }
+        };
         
         /**
          * 处理关闭政策动态时间线事件
@@ -4517,6 +4620,7 @@ export default {
         const handleClosePolicyDynamics = () => {
             console.log('❌ 关闭政策动态时间线');
             showPolicyDynamicsTimeline.value = false;
+            showUSCountryPolicyDynamics.value = false;
         };
         
         /**
@@ -4891,6 +4995,7 @@ export default {
             handleTrackLoaded,
             handleTrackCleared,
             shipListData,
+            handleGeologicalCountryToggle,
             handleShipListRowClick,
             handleClearShipList,
             routeWeatherRequest,
@@ -4936,8 +5041,11 @@ export default {
             handleShowScenarioSimulation,
             handleCloseScenarioSimulation,
             showPolicyDynamicsTimeline,
+            showUSCountryPolicyDynamics,
+            showUSPolicyDynamicsEffect,
             policyDynamicsCountry,
             handleShowPolicyDynamics,
+            handleShowUSCountryPolicyDynamics,
             handleClosePolicyDynamics,
             showCountryAttitudes,
             handleShowCountryAttitudes,
