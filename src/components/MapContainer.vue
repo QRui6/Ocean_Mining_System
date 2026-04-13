@@ -485,6 +485,32 @@ const USA_DISTRICT_COLOR_MAP = {
     4: '#f58ca0',
     5: '#f6b35f'
 };
+
+const JAPAN_MARINE_GEOLOGY_LAYER_CONFIG = {
+    geo_japan_marine_20w: {
+        name: '日本1：20万海洋地质',
+        sources: [
+            {
+                id: 'japan_200000',
+                name: '日本1：20万海洋地质面',
+                url: encodeURI('/data/地质调查/Japan/Japan200000.geojson'),
+                stroke: Cesium.Color.fromCssColorString('#ef4444'),
+                fill: Cesium.Color.TRANSPARENT,
+                strokeWidth: 2.5,
+                zIndex: 22
+            },
+            {
+                id: 'japan_area',
+                name: '日本1：20万海洋地质范围',
+                url: encodeURI('/data/地质调查/Japan/JapanArea.geojson'),
+                stroke: Cesium.Color.fromCssColorString('#facc15'),
+                fill: Cesium.Color.fromCssColorString('#facc15').withAlpha(0.04),
+                strokeWidth: 3.4,
+                zIndex: 28
+            }
+        ]
+    }
+};
 // 动态加载气象数据加载器（支持API和本地文件两种模式）
 import { 
     getWindDataLoader, 
@@ -666,6 +692,7 @@ export default {
         // 美国合作关系线管理器
         let usCooperationManager = null;
         const usaMarineLayerDataSources = new Map();
+        const japanMarineGeologyDataSources = new Map();
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -2326,6 +2353,38 @@ export default {
                     roll: 0
                 },
                 duration: 2
+            });
+        };
+
+        const countryOverviewTargets = {
+            '中国': { lng: 104.2, lat: 35.9, height: 5200000 },
+            '美国': { lng: -98.6, lat: 39.8, height: 6200000 },
+            '英国': { lng: -2.5, lat: 54.0, height: 1800000 },
+            '日本': { lng: 138.2, lat: 37.5, height: 3500000 },
+            '俄罗斯': { lng: 105.3, lat: 61.5, height: 8200000 },
+            '法国': { lng: 2.4, lat: 46.3, height: 2200000 },
+            '德国': { lng: 10.4, lat: 51.2, height: 1800000 },
+            '比利时': { lng: 4.5, lat: 50.6, height: 1000000 },
+            '澳大利亚': { lng: 134.5, lat: -25.7, height: 4800000 }
+        };
+
+        const flyToCountryOverview = (countryName) => {
+            if (!viewer || !countryName) return;
+
+            const target = countryOverviewTargets[countryName];
+            if (!target) {
+                console.warn('⚠️ 未配置国家定位视角:', countryName);
+                return;
+            }
+
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(target.lng, target.lat, target.height),
+                orientation: {
+                    heading: 0,
+                    pitch: Cesium.Math.toRadians(-90),
+                    roll: 0
+                },
+                duration: 1.6
             });
         };
 
@@ -6285,6 +6344,143 @@ export default {
                 console.error(`❌ 加载美国海洋空间图层失败: ${config.name}`, error);
             }
         };
+
+        const styleJapanMarineGeologyEntities = (dataSource, sourceConfig) => {
+            if (!dataSource?.entities?.values?.length) return;
+
+            dataSource.entities.values.forEach((entity) => {
+                entity.name = sourceConfig.name;
+
+                if (entity.polyline) {
+                    entity.polyline.width = sourceConfig.strokeWidth;
+                    entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.24,
+                        taperPower: 0.75,
+                        color: sourceConfig.stroke.withAlpha(0.98)
+                    });
+                    entity.polyline.clampToGround = true;
+                    entity.polyline.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+                }
+
+                if (entity.polygon) {
+                    entity.polygon.material = sourceConfig.fill;
+                    entity.polygon.outline = true;
+                    entity.polygon.outlineColor = sourceConfig.stroke.withAlpha(0.92);
+                    entity.polygon.outlineWidth = sourceConfig.strokeWidth;
+                    entity.polygon.zIndex = sourceConfig.zIndex;
+                    entity.polygon.classificationType = Cesium.ClassificationType.TERRAIN;
+
+                    if (sourceConfig.id === 'japan_200000') {
+                        entity.polygon.fill = false;
+                        entity.polygon.outlineColor = sourceConfig.stroke.withAlpha(1);
+                    }
+                }
+            });
+        };
+
+        const getPolylineCenterPosition = (entity) => {
+            const positions = entity.polyline?.positions?.getValue?.(viewer.clock.currentTime);
+            if (!positions?.length) return null;
+
+            let totalLng = 0;
+            let totalLat = 0;
+            positions.forEach((position) => {
+                const cartographic = Cesium.Cartographic.fromCartesian(position);
+                totalLng += Cesium.Math.toDegrees(cartographic.longitude);
+                totalLat += Cesium.Math.toDegrees(cartographic.latitude);
+            });
+
+            return Cesium.Cartesian3.fromDegrees(
+                totalLng / positions.length,
+                totalLat / positions.length,
+                1200
+            );
+        };
+
+        const addJapanAreaLabels = (dataSource) => {
+            if (!dataSource?.entities?.values?.length) return;
+
+            const areaEntities = [...dataSource.entities.values];
+            areaEntities.forEach((entity) => {
+                const areaName = entity.properties?.Name?.getValue?.() || entity.properties?.name?.getValue?.();
+                const position = getPolylineCenterPosition(entity);
+
+                if (!areaName || !position) return;
+
+                dataSource.entities.add({
+                    name: `${areaName} 标注`,
+                    position,
+                    label: {
+                        text: areaName,
+                        font: '700 24px "Noto Sans SC", sans-serif',
+                        fillColor: Cesium.Color.fromCssColorString('#fff7ad'),
+                        outlineColor: Cesium.Color.fromCssColorString('#111827'),
+                        outlineWidth: 4,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+                        verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                        pixelOffset: new Cesium.Cartesian2(0, -10),
+                        scaleByDistance: new Cesium.NearFarScalar(800000, 1.15, 5000000, 0.72),
+                        translucencyByDistance: new Cesium.NearFarScalar(800000, 1.0, 6500000, 0.45)
+                    }
+                });
+            });
+        };
+
+        const toggleJapanMarineGeologyLayer = async (show) => {
+            if (!viewer) return;
+
+            const layerId = 'geo_japan_marine_20w';
+            const config = JAPAN_MARINE_GEOLOGY_LAYER_CONFIG[layerId];
+
+            if (!show) {
+                const existingDataSources = japanMarineGeologyDataSources.get(layerId) || [];
+                existingDataSources.forEach((dataSource) => {
+                    viewer.dataSources.remove(dataSource, true);
+                });
+                japanMarineGeologyDataSources.delete(layerId);
+                viewer.scene.requestRender();
+                return;
+            }
+
+            if (japanMarineGeologyDataSources.has(layerId)) {
+                japanMarineGeologyDataSources.get(layerId).forEach((dataSource) => {
+                    dataSource.show = true;
+                });
+                viewer.scene.requestRender();
+                return;
+            }
+
+            let loadedDataSources = [];
+            try {
+                for (const sourceConfig of config.sources) {
+                    const dataSource = await Cesium.GeoJsonDataSource.load(sourceConfig.url, {
+                        stroke: sourceConfig.stroke,
+                        fill: sourceConfig.fill,
+                        strokeWidth: sourceConfig.strokeWidth,
+                        clampToGround: true
+                    });
+
+                    dataSource.name = sourceConfig.name;
+                    styleJapanMarineGeologyEntities(dataSource, sourceConfig);
+                    if (sourceConfig.id === 'japan_area') {
+                        addJapanAreaLabels(dataSource);
+                    }
+                    await viewer.dataSources.add(dataSource);
+                    loadedDataSources.push(dataSource);
+                }
+
+                japanMarineGeologyDataSources.set(layerId, loadedDataSources);
+                viewer.scene.requestRender();
+                console.log(`✅ 已加载地质调查图层: ${config.name}`);
+            } catch (error) {
+                loadedDataSources.forEach((dataSource) => viewer.dataSources.remove(dataSource, true));
+                japanMarineGeologyDataSources.delete(layerId);
+                console.error(`❌ 加载地质调查图层失败: ${config.name}`, error);
+            }
+        };
         
         const clearMineralImportCommodity = (options = {}) => {
             const preserveSelection = options.preserveSelection === true;
@@ -9149,10 +9345,12 @@ export default {
             highlightResearchInstitution,  // 暴露研究机构高亮函数
             resetResearchInstitutionHighlight,  // 暴露研究机构重置高亮函数
             toggleUsaMarineLayer,  // 暴露美国海洋空间规划图层切换函数
+            toggleJapanMarineGeologyLayer,  // 暴露日本海洋地质图层切换函数
             togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,
             resetView,
+            flyToCountryOverview,
             toggle2D3D,
             switchTo2D,  // 暴露切换到2D的方法
             switchTo3D,  // 暴露切换到3D的方法

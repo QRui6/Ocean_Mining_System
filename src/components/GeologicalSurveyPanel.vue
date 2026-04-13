@@ -1,6 +1,6 @@
 <template>
     <transition name="slide-fade">
-        <div v-if="show" class="absolute left-6 top-[10rem] w-[22rem] z-40 pointer-events-auto overflow-visible flex flex-col"
+        <div v-if="show" class="geological-survey-panel absolute left-6 top-[10rem] w-[22rem] z-40 pointer-events-auto overflow-hidden flex flex-col"
              style="background-color: var(--panel-bg); backdrop-filter: blur(20px); border: 2px solid var(--border-primary); box-shadow: var(--shadow-glow); clip-path: polygon(0 0, 100% 0, 100% 96%, 94% 100%, 0 100%);">
             
             <!-- Header -->
@@ -13,7 +13,7 @@
             </div>
             
             <!-- Content -->
-            <div class="p-5 space-y-4">
+            <div class="survey-content p-5">
                 <!-- 所属国家 -->
                 <div class="survey-category">
                     <div class="category-header">
@@ -35,7 +35,7 @@
                 </div>
                 
                 <!-- 基础地质图 -->
-                <div class="survey-category">
+                <div class="survey-category basic-geology-category">
                     <div class="category-header collapsible" @click="toggleBasicGeologyPanel">
                         <div class="flex items-center gap-2">
                             <div class="w-1 h-5" style="background: linear-gradient(to bottom, var(--accent-cyan), var(--accent-purple));"></div>
@@ -52,7 +52,7 @@
                         </svg>
                     </div>
                     <transition name="expand-fade">
-                    <div v-if="showBasicGeologyPanel" class="category-content">
+                    <div v-if="showBasicGeologyPanel" class="category-content basic-geology-content">
                         <div v-for="item in basicGeologyLayers" :key="item.id" 
                              class="layer-item"
                              :class="{ 'active': item.active }"
@@ -118,7 +118,25 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+
+const DEFAULT_BASIC_GEOLOGY_LAYERS = [
+    { id: 'geo_1m', label: '1:100万地质图', scale: '1:100万' },
+    { id: 'geo_50w', label: '1:50万地质图', scale: '1:50万' },
+    { id: 'geo_25w', label: '1:25万地质图', scale: '1:25万' },
+    { id: 'geo_5w', label: '1:5万地质图', scale: '1:5万' }
+];
+
+const COUNTRY_BASIC_GEOLOGY_LAYERS = {
+    country_japan: [
+        { id: 'geo_japan_marine_20w', label: '1：20万海洋地质', scale: '1：20万' },
+        { id: 'geo_japan_5w', label: '1：5万地质图', scale: '1：5万' },
+        { id: 'geo_japan_7_5w', label: '1：7.5万地质图', scale: '1：7.5万' },
+        { id: 'geo_japan_20w', label: '1：20万地质图', scale: '1：20万' },
+        { id: 'geo_japan_100w', label: '1：100万地质图', scale: '1：100万' },
+        { id: 'geo_japan_200w', label: '1：200万地质图', scale: '1：200万' }
+    ]
+};
 
 export default {
     props: {
@@ -141,12 +159,30 @@ export default {
             { id: 'country_australia', label: '澳大利亚', active: false }
         ]);
         
-        const basicGeologyLayers = ref([
-            { id: 'geo_1m', label: '1:100万地质图', scale: '1:100万', active: false },
-            { id: 'geo_50w', label: '1:50万地质图', scale: '1:50万', active: false },
-            { id: 'geo_25w', label: '1:25万地质图', scale: '1:25万', active: false },
-            { id: 'geo_5w', label: '1:5万地质图', scale: '1:5万', active: false }
-        ]);
+        const activeBasicGeologyLayerIds = ref(new Set());
+
+        const getCountryBasicGeologyLayers = (country) => {
+            return COUNTRY_BASIC_GEOLOGY_LAYERS[country.id] || DEFAULT_BASIC_GEOLOGY_LAYERS;
+        };
+
+        const basicGeologyLayers = computed(() => {
+            const selectedCountries = countries.value.filter(country => country.active);
+            const sourceLayers = selectedCountries.length > 0
+                ? selectedCountries.flatMap(getCountryBasicGeologyLayers)
+                : DEFAULT_BASIC_GEOLOGY_LAYERS;
+
+            const uniqueLayers = new Map();
+            sourceLayers.forEach((layer) => {
+                if (!uniqueLayers.has(layer.id)) {
+                    uniqueLayers.set(layer.id, {
+                        ...layer,
+                        active: activeBasicGeologyLayerIds.value.has(layer.id)
+                    });
+                }
+            });
+
+            return Array.from(uniqueLayers.values());
+        });
 
         const marineSpatialLayers = ref([
             { id: 'marine_shelf_boundary', label: '大陆架边界', active: false },
@@ -161,8 +197,31 @@ export default {
             country.active = !country.active;
             emit('countryToggle', country);
         };
+
+        watch(countries, () => {
+            const visibleLayerIds = new Set(basicGeologyLayers.value.map(layer => layer.id));
+            activeBasicGeologyLayerIds.value.forEach((layerId) => {
+                if (!visibleLayerIds.has(layerId)) {
+                    activeBasicGeologyLayerIds.value.delete(layerId);
+                    emit('layerToggle', { id: layerId, active: false });
+                }
+            });
+        }, { deep: true });
         
         const toggleLayer = (layer) => {
+            const isBasicGeologyLayer = basicGeologyLayers.value.some(item => item.id === layer.id);
+
+            if (isBasicGeologyLayer) {
+                const nextActive = !activeBasicGeologyLayerIds.value.has(layer.id);
+                if (nextActive) {
+                    activeBasicGeologyLayerIds.value.add(layer.id);
+                } else {
+                    activeBasicGeologyLayerIds.value.delete(layer.id);
+                }
+                emit('layerToggle', { ...layer, active: nextActive });
+                return;
+            }
+
             layer.active = !layer.active;
             emit('layerToggle', layer);
         };
@@ -191,11 +250,33 @@ export default {
 </script>
 
 <style scoped>
+.geological-survey-panel {
+    height: calc(100vh - 10.75rem);
+    max-height: calc(100vh - 10.75rem);
+}
+
+.survey-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow: hidden;
+}
+
 .survey-category {
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid var(--border-secondary);
     background: rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.basic-geology-category {
+    flex: 1 1 auto;
+    min-height: 9rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .category-header {
@@ -237,6 +318,29 @@ export default {
 
 .category-content {
     padding: 1rem;
+}
+
+.basic-geology-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-cyan) rgba(15, 23, 42, 0.35);
+}
+
+.basic-geology-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.basic-geology-content::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.35);
+    border-radius: 4px;
+}
+
+.basic-geology-content::-webkit-scrollbar-thumb {
+    background: var(--accent-cyan);
+    border-radius: 4px;
 }
 
 /* 国家标签按钮 - 黄色标签样式（与矿区查询面板一致） */

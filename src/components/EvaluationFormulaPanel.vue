@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
+  <div v-if="show" class="evaluation-formula-panel fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
     <div class="bg-gradient-to-br from-gray-900/98 via-slate-900/98 to-gray-900/98 rounded-xl shadow-2xl w-[75vw] h-[70vh] flex flex-col border border-cyan-500/40 relative overflow-hidden">
       <!-- 装饰性背景 -->
       <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-transparent pointer-events-none"></div>
@@ -14,12 +14,15 @@
           <!-- 评价流程按钮 -->
           <button 
             @click="showFlowChart = true"
-            class="ml-4 px-3 py-1 text-xs bg-gradient-to-r from-cyan-600/80 to-blue-600/80 hover:from-cyan-500 hover:to-blue-500 text-white rounded transition-all flex items-center gap-1.5 border border-cyan-400/30"
+            class="ml-4 rounded-md border border-cyan-400/35 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-cyan-100 shadow-[inset_0_0_12px_rgba(34,211,238,0.08)] transition-all hover:border-cyan-300/70 hover:bg-cyan-400/20 hover:text-white"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
             评价流程
+          </button>
+          <button 
+            @click="showPricePaybackPanel = true"
+            class="rounded-md border border-amber-300/35 bg-amber-400/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-amber-100 shadow-[inset_0_0_12px_rgba(251,191,36,0.08)] transition-all hover:border-amber-200/70 hover:bg-amber-400/20 hover:text-white"
+          >
+            价格回本分析
           </button>
         </div>
         <button @click="$emit('close')" class="text-gray-400 hover:text-cyan-400 transition-all hover:rotate-90 duration-300">
@@ -223,7 +226,7 @@
                 </div>
               </div>
               <div class="bg-gray-800/60 rounded-lg p-1.5 border border-gray-700/50 hover:border-yellow-500/50 transition-all">
-                <div class="text-gray-400 text-xs mb-0.5">投资回收期</div>
+                <div class="text-gray-400 text-xs mb-0.5">动态投资回收期</div>
                 <div class="text-base font-bold text-yellow-400">{{ results.paybackPeriod.toFixed(1) }}</div>
                 <div class="text-xs text-gray-500">年</div>
               </div>
@@ -287,12 +290,19 @@
         <div ref="flowChartRef" class="w-full h-[70vh]"></div>
       </div>
     </div>
+
+    <PricePaybackAnalysisPanel
+      :show="showPricePaybackPanel"
+      :params="params"
+      @close="showPricePaybackPanel = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import * as echarts from 'echarts';
+import PricePaybackAnalysisPanel from './PricePaybackAnalysisPanel.vue';
 
 const props = defineProps({
   show: Boolean
@@ -375,6 +385,7 @@ let chartInstance2 = null;
 
 // 流程图弹窗状态
 const showFlowChart = ref(false);
+const showPricePaybackPanel = ref(false);
 const flowChartRef = ref(null);
 let flowChartInstance = null;
 
@@ -1098,3 +1109,30 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.evaluation-formula-panel :deep(.text-gray-400) {
+  color: rgba(203, 213, 225, 0.92) !important;
+}
+
+.evaluation-formula-panel :deep(.text-gray-500) {
+  color: rgba(148, 163, 184, 0.95) !important;
+}
+
+.evaluation-formula-panel :deep(.text-xs) {
+  font-size: 0.8125rem !important;
+  line-height: 1.25rem !important;
+}
+
+.evaluation-formula-panel :deep(.text-\[10px\]) {
+  font-size: 0.72rem !important;
+  line-height: 1rem !important;
+}
+
+.evaluation-formula-panel :deep(input),
+.evaluation-formula-panel :deep(select) {
+  color: rgba(248, 250, 252, 0.98) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600;
+}
+</style>

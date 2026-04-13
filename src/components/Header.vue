@@ -20,14 +20,12 @@
                       style="background: linear-gradient(to right, transparent, var(--header-highlight), transparent); box-shadow: 0 0 15px var(--header-highlight);"></div>
             </div>
             
-            <!-- Title (Adjusted Size) -->
-            <div class="absolute top-6 w-full text-center">
-                <h1 class="text-[2.55rem] font-['Noto_Sans_SC'] font-bold tracking-[0.1em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400" 
-                    style="filter: drop-shadow(0 0 15px var(--accent-cyan-glow));">
+            <!-- Platform Title -->
+            <div class="absolute top-8 w-full text-center">
+                <h1 class="relative inline-block text-[2.76rem] leading-none font-['Noto_Sans_SC'] font-black tracking-[0.078em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-sky-400"
+                    style="-webkit-text-stroke: 1px rgba(240, 253, 255, 0.68); filter: drop-shadow(0 0 20px var(--accent-cyan-glow)) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.78)); text-shadow: 0 0 28px rgba(34, 211, 238, 0.5), 0 2px 0 rgba(0, 18, 36, 0.85);">
                     {{ APP_TITLE }}
                 </h1>
-                <div class="text-[11px] tracking-[0.42em] uppercase opacity-80 mt-1.5 font-['Orbitron'] font-bold" 
-                     style="color: var(--accent-cyan);">Deep Sea Mining Meteorological Support System</div>
             </div>
         </div>
 
@@ -48,12 +46,12 @@
             </div>
 
             <!-- Left Nav -->
-            <nav class="flex gap-2.5 transform skew-x-[-15deg] pointer-events-auto">
+            <nav class="flex gap-2 transform skew-x-[-15deg] pointer-events-auto">
                 <button v-for="item in leftTabs" :key="item" 
                     @click="selectTab(item)"
                     @mouseenter="hoveredTab = item"
                     @mouseleave="hoveredTab = null"
-                    class="px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px] border-2"
+                    class="px-4 py-2 text-[0.95rem] font-bold transition-all duration-300 min-w-[100px] border-2"
                     :style="{
                         color: activeTab === item ? 'white' : 'var(--text-secondary)',
                         backgroundColor: activeTab === item ? 'var(--header-tab-active-bg)' : (hoveredTab === item ? 'var(--header-tab-hover-bg)' : 'var(--header-tab-bg)'),
@@ -69,12 +67,12 @@
         <!-- Right Area: Nav + Time (与左侧对称) -->
         <div class="absolute top-0 right-0 h-full flex items-center justify-end pr-6 z-20 animate-slideInRight w-[calc(50%-500px)]">
             <!-- Right Nav -->
-            <nav class="flex gap-2.5 transform skew-x-[15deg] pointer-events-auto">
+            <nav class="flex gap-2 transform skew-x-[15deg] pointer-events-auto">
                  <button v-for="item in rightTabs" :key="item" 
                     @click="selectTab(item)"
                     @mouseenter="hoveredTab = item"
                     @mouseleave="hoveredTab = null"
-                    class="px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px] border-2"
+                    class="px-4 py-2 text-[0.95rem] font-bold transition-all duration-300 min-w-[100px] border-2"
                     :style="{
                         color: activeTab === item ? 'white' : 'var(--text-secondary)',
                         backgroundColor: activeTab === item ? 'var(--header-tab-active-bg)' : (hoveredTab === item ? 'var(--header-tab-hover-bg)' : 'var(--header-tab-bg)'),

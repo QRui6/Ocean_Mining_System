@@ -2496,6 +2496,22 @@ export default {
          */
         const handleGeologicalLayerToggle = (layer) => {
             console.log('🗺️ 地质图层切换:', layer);
+            if (layer.id === 'geo_japan_marine_20w') {
+                if (!mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
+                    console.warn('⚠️ MapContainer.toggleJapanMarineGeologyLayer 不可用');
+                    return;
+                }
+
+                if (layer.active && !activeGeologicalCountries.value.has('日本')) {
+                    console.log('ℹ️ 当前未选中日本，跳过日本1：20万海洋地质图加载');
+                    layer.active = false;
+                    return;
+                }
+
+                mapContainerRef.value.toggleJapanMarineGeologyLayer(layer.active);
+                return;
+            }
+
             const geologicalMarineLayerIds = [
                 'marine_shelf_boundary',
                 'marine_zone_boundary',
@@ -2535,8 +2551,15 @@ export default {
             console.log('🌍 地质调查国家切换:', country);
             if (country.active) {
                 activeGeologicalCountries.value.add(country.label);
+                if (mapContainerRef.value?.flyToCountryOverview) {
+                    mapContainerRef.value.flyToCountryOverview(country.label);
+                }
             } else {
                 activeGeologicalCountries.value.delete(country.label);
+            }
+
+            if (country.label === '日本' && !country.active && mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
+                mapContainerRef.value.toggleJapanMarineGeologyLayer(false);
             }
 
             if (country.label !== '美国' || !mapContainerRef.value?.toggleUsaMarineLayer) {

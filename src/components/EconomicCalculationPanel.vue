@@ -1,7 +1,7 @@
 <template>
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
         <!-- 整体容器：包含标签和面板 -->
-        <div class="relative flex items-start" style="width: 80vw; height: 75vh;">
+        <div class="relative flex items-start" style="width: 88vw; height: 78vh; max-width: 1680px;">
             <!-- 左侧标签页：结核类型选择 - 在面板外侧 -->
             <div class="flex flex-col relative pt-16">
                 <!-- 垂直标签 -->
@@ -436,99 +436,134 @@
                 </div>
 
                 <!-- 右侧：图表区域 -->
-                <div class="w-[45%] bg-gray-900/30 p-2 flex flex-col">
+                <div class="w-[48%] bg-gray-900/30 p-2.5 flex flex-col">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-1.5">
                             <div class="w-1 h-4 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full"></div>
-                            <h3 class="text-sm font-bold text-cyan-300">
+                            <h3 class="text-sm font-bold tracking-wide text-cyan-200 drop-shadow-[0_1px_3px_rgba(34,211,238,0.45)]">
                                 {{ chartMode === 'production' ? '金属产量对比图表' : 
                                    chartMode === 'value' ? '金属价值对比图表' : '金属消费对比图表' }}
                             </h3>
                         </div>
                         
-                        <!-- 切换按钮 -->
-                        <div class="flex bg-gray-800/60 rounded-lg p-0.5 border border-cyan-500/30">
-                            <button @click="chartMode = 'consumption'" 
-                                    :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
-                                        chartMode === 'consumption' 
-                                            ? 'bg-cyan-500/80 text-white shadow-md' 
-                                            : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
-                                金属消费
-                            </button>
-                            <button @click="chartMode = 'production'" 
-                                    :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
-                                        chartMode === 'production' 
-                                            ? 'bg-cyan-500/80 text-white shadow-md' 
-                                            : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
-                                金属产量
-                            </button>
-                            <button @click="chartMode = 'value'" 
-                                    :class="['px-2 py-1 text-xs font-medium rounded transition-all duration-200',
-                                        chartMode === 'value' 
-                                            ? 'bg-cyan-500/80 text-white shadow-md' 
-                                            : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']">
-                                金属价值
-                            </button>
+                        <div class="flex items-center gap-2">
+                            <div v-if="getScenarioSelectLabel()" class="flex items-center gap-1.5">
+                                <span class="text-xs text-slate-300">{{ getScenarioSelectLabel() }}</span>
+                                <div class="relative">
+                                    <select
+                                        :value="getActiveScenarioValue()"
+                                        @change="(chartMode === 'production' || chartMode === 'value') ? productionScenario = $event.target.value : consumptionScenario = $event.target.value"
+                                        class="h-8 min-w-[128px] appearance-none rounded-lg border border-cyan-500/30 bg-slate-800/90 pl-3 pr-8 text-xs font-extrabold tracking-wide text-slate-50 focus:outline-none focus:border-cyan-400"
+                                        style="text-shadow: 0 0 4px rgba(255,255,255,0.08), 0 2px 4px rgba(0, 0, 0, 0.7);"
+                                    >
+                                        <option
+                                            v-for="option in getActiveScenarioOptions()"
+                                            :key="option.value"
+                                            :value="option.value"
+                                        >
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 切换按钮 -->
+                            <div class="flex bg-gray-800/60 rounded-lg p-0.5 border border-cyan-500/30">
+                                <button @click="chartMode = 'production'" 
+                                        :class="['px-2 py-1 text-xs font-extrabold tracking-wide rounded transition-all duration-200',
+                                            chartMode === 'production' 
+                                                ? 'bg-cyan-500/80 text-white shadow-md' 
+                                                : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']"
+                                        style="text-shadow: 0 0 4px rgba(255,255,255,0.08), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                    金属产量
+                                </button>
+                                <button @click="chartMode = 'value'" 
+                                        :class="['px-2 py-1 text-xs font-extrabold tracking-wide rounded transition-all duration-200',
+                                            chartMode === 'value' 
+                                                ? 'bg-cyan-500/80 text-white shadow-md' 
+                                                : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']"
+                                        style="text-shadow: 0 0 4px rgba(255,255,255,0.08), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                    金属价值
+                                </button>
+                                <button @click="chartMode = 'consumption'" 
+                                        :class="['px-2 py-1 text-xs font-extrabold tracking-wide rounded transition-all duration-200',
+                                            chartMode === 'consumption' 
+                                                ? 'bg-cyan-500/80 text-white shadow-md' 
+                                                : 'text-cyan-300 hover:text-cyan-200 hover:bg-gray-700/50']"
+                                        style="text-shadow: 0 0 4px rgba(255,255,255,0.08), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                    金属消费
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- 四个图表区域 -->
                     <div class="grid grid-cols-2 gap-2 flex-1">
                         <!-- 钴图表 - 紫色主题 -->
-                        <div class="relative rounded-lg border-2 border-purple-500/50 backdrop-blur-sm hover:border-purple-400/70 transition-all p-2 overflow-hidden" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
+                        <div class="relative rounded-lg border-2 border-purple-500/50 backdrop-blur-sm hover:border-purple-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent"></div>
-                            <div class="text-xs text-white font-bold mb-1 text-center" style="text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);">
+                            <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 钴 (Co) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
                             <div ref="coChartRef" class="w-full" style="height: 200px;"></div>
                         </div>
                         
                         <!-- 镍图表 - 绿色主题 -->
-                        <div class="relative rounded-lg border-2 border-emerald-500/50 backdrop-blur-sm hover:border-emerald-400/70 transition-all p-2 overflow-hidden" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
+                        <div class="relative rounded-lg border-2 border-emerald-500/50 backdrop-blur-sm hover:border-emerald-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
-                            <div class="text-xs text-white font-bold mb-1 text-center" style="text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);">
+                            <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 镍 (Ni) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
                             <div ref="niChartRef" class="w-full" style="height: 200px;"></div>
                         </div>
                         
                         <!-- 铜图表 - 橙色主题 -->
-                        <div class="relative rounded-lg border-2 border-orange-500/50 backdrop-blur-sm hover:border-orange-400/70 transition-all p-2 overflow-hidden" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
+                        <div class="relative rounded-lg border-2 border-orange-500/50 backdrop-blur-sm hover:border-orange-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
-                            <div class="text-xs text-white font-bold mb-1 text-center" style="text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);">
+                            <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 铜 (Cu) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
                             <div ref="cuChartRef" class="w-full" style="height: 200px;"></div>
                         </div>
                         
                         <!-- 锰图表 - 蓝色主题 -->
-                        <div class="relative rounded-lg border-2 border-blue-500/50 backdrop-blur-sm hover:border-blue-400/70 transition-all p-2 overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
+                        <div class="relative rounded-lg border-2 border-blue-500/50 backdrop-blur-sm hover:border-blue-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
-                            <div class="text-xs text-white font-bold mb-1 text-center" style="text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);">
+                            <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 锰 (Mn) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
                             <div ref="mnChartRef" class="w-full" style="height: 200px;"></div>
                         </div>
                     </div>
                     
-                    <!-- 图例说明 - 只在非消费模式下显示 -->
-                    <div v-if="chartMode !== 'consumption'" class="mt-2 flex justify-center gap-4 text-xs">
+                    <div class="mt-2 flex flex-wrap justify-center gap-4 text-xs">
                         <div class="flex items-center gap-1">
                             <div class="w-3 h-3 rounded bg-gradient-to-b from-green-500 to-green-600"></div>
-                            <span class="text-white font-bold" style="text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);">
-                                {{ chartMode === 'production' ? '预测产量' : '预测价值' }}
+                            <span class="text-slate-50 font-extrabold tracking-wide" style="text-shadow: 0 0 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                {{ chartMode === 'production' ? '海洋采矿预测产量' : chartMode === 'consumption' ? '海洋采矿预测消费' : '海洋采矿预测价值' }}
                             </span>
                         </div>
                         <div class="flex items-center gap-1">
                             <div class="w-3 h-3 rounded bg-gradient-to-b from-blue-500 to-blue-600"></div>
-                            <span class="text-white font-bold" style="text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);">
-                                {{ chartMode === 'production' ? '中国产量' : '中国价值' }}
+                            <span class="text-slate-50 font-extrabold tracking-wide" style="text-shadow: 0 0 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                {{ chartMode === 'production' ? '2025年中国产量' : chartMode === 'consumption' ? '2025年中国消费' : '2025年中国价值' }}
                             </span>
                         </div>
                         <div class="flex items-center gap-1">
                             <div class="w-3 h-3 rounded bg-gradient-to-b from-purple-500 to-purple-600"></div>
-                            <span class="text-white font-bold" style="text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);">
-                                {{ chartMode === 'production' ? '全球产量' : '全球价值' }}
+                            <span class="text-slate-50 font-extrabold tracking-wide" style="text-shadow: 0 0 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                {{ chartMode === 'production' ? '2025年全球产量' : chartMode === 'consumption' ? '2025年全球消费' : '2025年全球价值' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div class="w-3 h-3 rounded bg-gradient-to-b from-amber-500 to-amber-600"></div>
+                            <span class="text-slate-50 font-extrabold tracking-wide" style="text-shadow: 0 0 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0, 0, 0, 0.7);">
+                                {{ chartMode === 'production' ? 'IEA预测未来供应数据' : chartMode === 'consumption' ? 'IEA预测未来需求数据' : 'IEA预测未来供应价值' }}
                             </span>
                         </div>
                     </div>
@@ -541,6 +576,7 @@
 
 <script>
 import * as echarts from 'echarts';
+import economicChartData from '../data/economicChartData.json';
 
 export default {
     name: 'EconomicCalculationPanel',
@@ -560,54 +596,15 @@ export default {
             recoveryRate: 92,
             exchangeRate: 6.96,
             chartMode: 'consumption', // 图表模式：'consumption', 'production' 或 'value'
+            productionScenario: 'mining',
+            consumptionScenario: 'statedPolicies',
             metalPricesUsd: {
                 co: 56290,
                 ni: 17266,
                 cu: 12780,
-                mn: 2500
+                mn: 2586
             },
-            
-            // 全球和中国金属产量数据（2023年，万吨）
-            globalProduction: {
-                co: 23,      // 全球钴产量 23万吨
-                ni: 310,     // 全球镍产量 310万吨（消费量）
-                cu: 2200,    // 全球铜产量 2200万吨
-                mn: 1989     // 全球锰产量 1989万吨
-            },
-            chinaProduction: {
-                co: 1.32,    // 中国钴产量 0.22+1.1=1.32万吨
-                ni: 11,      // 中国镍产量 11万吨
-                cu: 170,     // 中国铜产量 170万吨
-                mn: 74       // 中国锰产量 74万吨
-            },
-            
-            // 全球和中国金属消费数据（万吨）
-            globalConsumption: {
-                co: 20.48,   // 全球钴消费量 20.48万吨
-                ni: 355.65,  // 全球镍消费量 355.65万吨
-                cu: 2682.71, // 全球铜消费量 2682.71万吨
-                mn: 2000     // 全球锰消费量 2000万吨
-            },
-            chinaConsumption: {
-                co: 12.31,   // 中国钴消费量 12.31万吨
-                ni: 232.52,  // 中国镍消费量 232.52万吨
-                cu: 1535.75, // 中国铜消费量 1535.75万吨
-                mn: 1198     // 中国锰消费量 1198万吨
-            },
-            
-            // 全球和中国金属价值数据（基于产量和平均价格计算，万元）
-            globalValue: {
-                co: 0,  // 将在computed中计算
-                ni: 0,  // 将在computed中计算
-                cu: 0,  // 将在computed中计算
-                mn: 0   // 将在computed中计算
-            },
-            chinaValue: {
-                co: 0,  // 将在computed中计算
-                ni: 0,  // 将在computed中计算
-                cu: 0,  // 将在computed中计算
-                mn: 0   // 将在computed中计算
-            },
+            chartDataSource: economicChartData,
             
             // ECharts实例
             charts: {
@@ -621,28 +618,28 @@ export default {
                 {
                     name: '多金属结核',
                     metalGrades: { co: 0.20, ni: 1.30, cu: 1.10, mn: 28.70 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '富钴铁锰结壳',
                     metalGrades: { co: 0.80, ni: 0.50, cu: 0.10, mn: 20.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '多金属硫化物',
                     metalGrades: { co: 0.05, ni: 0.20, cu: 0.15, mn: 15.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '深海稀土',
                     metalGrades: { co: 0.10, ni: 0.80, cu: 5.00, mn: 8.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 }
@@ -702,20 +699,20 @@ export default {
         globalMetalValue() {
             const prices = this.currentNoduleData.metalPrices;
             return {
-                co: this.globalProduction.co * 10000 * prices.co / 10000,  // 万吨 * 吨 * 元/吨 / 万元
-                ni: this.globalProduction.ni * 10000 * prices.ni / 10000,
-                cu: this.globalProduction.cu * 10000 * prices.cu / 10000,
-                mn: this.globalProduction.mn * 10000 * prices.mn / 10000
+                co: this.globalProduction.co * prices.co,
+                ni: this.globalProduction.ni * prices.ni,
+                cu: this.globalProduction.cu * prices.cu,
+                mn: this.globalProduction.mn * prices.mn
             };
         },
         // 中国金属价值（万元）
         chinaMetalValue() {
             const prices = this.currentNoduleData.metalPrices;
             return {
-                co: this.chinaProduction.co * 10000 * prices.co / 10000,
-                ni: this.chinaProduction.ni * 10000 * prices.ni / 10000,
-                cu: this.chinaProduction.cu * 10000 * prices.cu / 10000,
-                mn: this.chinaProduction.mn * 10000 * prices.mn / 10000
+                co: this.chinaProduction.co * prices.co,
+                ni: this.chinaProduction.ni * prices.ni,
+                cu: this.chinaProduction.cu * prices.cu,
+                mn: this.chinaProduction.mn * prices.mn
             };
         },
         // 预测消费（万吨）- 假设预测消费等于预测产量
@@ -747,6 +744,33 @@ export default {
         },
         totalProductValue() {
             return this.metalValue.co + this.metalValue.ni + this.metalValue.cu + this.metalValue.mn;
+        },
+        currentDataYear() {
+            return String(this.chartDataSource.current.year);
+        },
+        chinaProduction() {
+            return this.chartDataSource.current.production.china;
+        },
+        globalProduction() {
+            return this.chartDataSource.current.production.global;
+        },
+        chinaConsumption() {
+            return this.chartDataSource.current.consumption.china;
+        },
+        globalConsumption() {
+            return this.chartDataSource.current.consumption.global;
+        },
+        productionScenarioOptions() {
+            return Object.entries(this.chartDataSource.forecast.production.scenarios).map(([value, item]) => ({
+                value,
+                label: item.label
+            }));
+        },
+        consumptionScenarioOptions() {
+            return Object.entries(this.chartDataSource.forecast.consumption.scenarios).map(([value, item]) => ({
+                value,
+                label: item.label
+            }));
         }
     },
     methods: {
@@ -782,73 +806,206 @@ export default {
             this.$forceUpdate();
             this.updateCharts();
         },
+        formatChartValue(value) {
+            if (typeof value === 'object' && value !== null && 'value' in value) {
+                value = value.value;
+            }
+            if (value === null || value === undefined) return '-';
+            const truncateToDecimals = (num, decimals = 1) => {
+                const factor = 10 ** decimals;
+                return Math.trunc(num * factor) / factor;
+            };
+            if (value >= 1000) {
+                return `${truncateToDecimals(value / 1000, 1).toFixed(1)}k`;
+            }
+            return truncateToDecimals(value, 1).toFixed(1);
+        },
+        formatTooltipRawValue(value) {
+            if (value === null || value === undefined) return '-';
+            const stringValue = String(value);
+            if (!stringValue.includes('.')) return stringValue;
+            return stringValue.replace(/\.?0+$/, '');
+        },
+        getTooltipYear(label) {
+            if (!label) return this.currentDataYear;
+            const matchedYear = String(label).match(/20\d{2}/);
+            return matchedYear ? matchedYear[0] : this.currentDataYear;
+        },
+        getTooltipCategoryName(dataCategory, axisLabel) {
+            if (dataCategory === '预测值') return '海洋采矿预测';
+            if (dataCategory === '中国') return '中国';
+            if (dataCategory === '全球') return '全球';
+            if (dataCategory === 'IEA预测') return `IEA未来${this.chartMode === 'production' ? '供应' : '需求'}预测`;
+            if (axisLabel?.includes('预测')) return '预测值';
+            if (axisLabel?.includes('中国')) return '中国';
+            if (axisLabel?.includes('全球')) return '全球';
+            return dataCategory || '数值';
+        },
+        getScenarioSelectLabel() {
+            if (this.chartMode === 'production' || this.chartMode === 'value') {
+                return '供应场景';
+            }
+            if (this.chartMode === 'consumption') {
+                return '需求情景';
+            }
+            return '';
+        },
+        getActiveScenarioValue() {
+            if (this.chartMode === 'production' || this.chartMode === 'value') return this.productionScenario;
+            if (this.chartMode === 'consumption') return this.consumptionScenario;
+            return '';
+        },
+        getActiveScenarioOptions() {
+            if (this.chartMode === 'production' || this.chartMode === 'value') return this.productionScenarioOptions;
+            if (this.chartMode === 'consumption') return this.consumptionScenarioOptions;
+            return [];
+        },
+        getForecastSeries(mode, metal) {
+            const scenarioKey = mode === 'production' ? this.productionScenario : this.consumptionScenario;
+            const scenarioGroup = this.chartDataSource.forecast[mode].scenarios[scenarioKey];
+            return scenarioGroup?.metals?.[metal] || {};
+        },
+        getValueForecastSeries(metal) {
+            const forecastYears = this.chartDataSource.forecast.production.years.map(String);
+            const forecastProduction = this.getForecastSeries('production', metal);
+            const metalPriceCny = this.currentNoduleData.metalPrices[metal];
+
+            return forecastYears.reduce((result, year) => {
+                const forecastAmount = forecastProduction[year] ?? 0;
+                result[year] = forecastAmount * metalPriceCny;
+                return result;
+            }, {});
+        },
+        getTimelineChartData(metal) {
+            const isProduction = this.chartMode === 'production';
+            const isValue = this.chartMode === 'value';
+            const modeKey = isProduction || isValue ? 'production' : 'consumption';
+            const forecastYears = this.chartDataSource.forecast[modeKey].years.map(String);
+            const currentPredicted = isValue
+                ? this.predictedValue[metal]
+                : isProduction
+                    ? this.predictedProduction[metal]
+                    : this.predictedConsumption[metal];
+            const forecastSeries = isValue ? this.getValueForecastSeries(metal) : this.getForecastSeries(modeKey, metal);
+            const chinaBase = isValue
+                ? this.chinaMetalValue[metal]
+                : isProduction
+                    ? this.chinaProduction[metal]
+                    : this.chinaConsumption[metal];
+            const globalBase = isValue
+                ? this.globalMetalValue[metal]
+                : isProduction
+                    ? this.globalProduction[metal]
+                    : this.globalConsumption[metal];
+            const labels = [
+                '海洋采矿预测',
+                `${this.currentDataYear}\n中国`,
+                `${this.currentDataYear}\n全球`,
+                ...forecastYears.map(year => `${year}\nIEA预测`)
+            ];
+            const values = [
+                currentPredicted,
+                chinaBase,
+                globalBase,
+                ...forecastYears.map(year => forecastSeries[year] ?? 0)
+            ];
+            const categories = [
+                '预测值',
+                '中国',
+                '全球',
+                ...forecastYears.map(() => 'IEA预测')
+            ];
+
+            return {
+                labels,
+                values,
+                categories
+            };
+        },
         
         // 创建ECharts配置
         createChartOption(metal) {
             const metalNames = { co: '钴', ni: '镍', cu: '铜', mn: '锰' };
             const isValueMode = this.chartMode === 'value';
             const isConsumptionMode = this.chartMode === 'consumption';
-            
-            const metalUnits = isValueMode ? 
-                { co: '万元', ni: '万元', cu: '万元', mn: '万元' } : 
-                { co: '万吨', ni: '万吨', cu: '万吨', mn: '万吨' };
-            
-            // 产量、价值和消费模式均使用柱状图
-            let data;
-            if (isValueMode) {
-                data = [
-                    this.predictedValue[metal],
-                    this.chinaMetalValue[metal],
-                    this.globalMetalValue[metal]
-                ];
-            } else if (isConsumptionMode) {
-                data = [
-                    this.predictedProduction[metal],
-                    this.chinaConsumption[metal],
-                    this.globalConsumption[metal]
-                ];
-            } else {
-                data = [
-                    this.predictedProduction[metal],
-                    this.chinaProduction[metal],
-                    this.globalProduction[metal]
-                ];
-            }
-            
-            const maxValue = Math.max(...data);
+            const unit = isValueMode ? '万元' : '万吨';
+            const axisUnitLabel = isValueMode ? '单位：万元（人民币）' : '单位：万吨';
+            const isTimelineMode = true;
+
+            let xAxisData = [];
+            let series = [];
+            let allValues = [];
+
+            const timelineData = this.getTimelineChartData(metal);
+            xAxisData = timelineData.labels;
+            const timelineColors = [
+                ['#22c55e', '#16a34a'],
+                ['#3b82f6', '#2563eb'],
+                ['#a855f7', '#9333ea']
+            ];
+            const futureForecastColors = ['#f59e0b', '#d97706'];
+            series = [{
+                name: '数值',
+                type: 'bar',
+                data: timelineData.values.map((value, index) => {
+                    const colorPair = timelineColors[index] || futureForecastColors;
+                    return {
+                        value,
+                        category: timelineData.categories[index],
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: colorPair[0] },
+                                { offset: 1, color: colorPair[1] }
+                            ])
+                        }
+                    };
+                })
+            }];
+            allValues = timelineData.values.filter(value => value !== null && value !== undefined);
+
+            const maxValue = Math.max(...allValues, 0);
             const yAxisMax = maxValue * 1.08;
-            
-            let xAxisData = ['预测', '中国', '全球'];
-            if (isConsumptionMode) {
-                xAxisData = ['预测产量', '中国消费量', '世界消费量'];
-            } else if (isValueMode) {
-                xAxisData = ['预测价值', '中国价值', '全球价值'];
-            } else {
-                xAxisData = ['预测产量', '中国产量', '全球产量'];
-            }
 
             return {
                 backgroundColor: 'transparent',
+                graphic: {
+                    type: 'text',
+                    left: '6%',
+                    top: 0,
+                    silent: true,
+                    style: {
+                        text: axisUnitLabel,
+                        fill: '#cbd5e1',
+                        font: '800 11px "Noto Sans SC", sans-serif',
+                        textShadowColor: 'rgba(15, 23, 42, 0.95)',
+                        textShadowBlur: 5,
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 2
+                    }
+                },
                 grid: {
-                    left: '8%',
-                    right: '5%',
-                    top: '8%',
-                    bottom: '8%',
-                    containLabel: false
+                    left: '6%',
+                    right: '4%',
+                    top: isTimelineMode ? '13%' : '12%',
+                    bottom: isTimelineMode ? 6 : 4,
+                    containLabel: true
                 },
                 xAxis: {
                     type: 'category',
                     data: xAxisData,
                     axisLabel: {
-                        color: '#ffffff',
-                        fontSize: 10,
-                        fontWeight: 'bold',
-                        rotate: 0,
+                        color: '#f8fafc',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        fontFamily: '"Rajdhani", "Noto Sans SC", sans-serif',
+                        margin: isTimelineMode ? 7 : 8,
+                        lineHeight: 12,
                         interval: 0,
-                        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                        textShadowBlur: 3,
-                        textShadowOffsetX: 1,
-                        textShadowOffsetY: 1
+                        textShadowColor: 'rgba(15, 23, 42, 0.95)',
+                        textShadowBlur: 5,
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 2,
+                        formatter: value => isTimelineMode && value === '海洋采矿预测' ? '海洋采矿\n预测' : value
                     },
                     axisLine: {
                         lineStyle: {
@@ -863,24 +1020,15 @@ export default {
                     type: 'value',
                     max: yAxisMax,
                     axisLabel: {
-                        color: '#ffffff',
-                        fontSize: 10,
-                        fontWeight: 'bold',
-                        textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                        textShadowBlur: 3,
-                        textShadowOffsetX: 1,
-                        textShadowOffsetY: 1,
-                        formatter: function(value) {
-                            if (value >= 1000) {
-                                return (value / 1000).toFixed(0) + 'k';
-                            } else if (value >= 100) {
-                                return Math.round(value);
-                            } else if (value >= 10) {
-                                return value.toFixed(1);
-                            } else {
-                                return value.toFixed(2);
-                            }
-                        }
+                        color: '#f8fafc',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        fontFamily: '"Rajdhani", "Noto Sans SC", sans-serif',
+                        textShadowColor: 'rgba(15, 23, 42, 0.95)',
+                        textShadowBlur: 5,
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 2,
+                        formatter: value => this.formatChartValue(value)
                     },
                     axisLine: {
                         show: false
@@ -895,61 +1043,30 @@ export default {
                         }
                     }
                 },
-                series: [{
-                    type: 'bar',
-                    data: [
-                        {
-                            value: data[0], // 预测数据
-                            itemStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: '#22c55e' },
-                                    { offset: 1, color: '#16a34a' }
-                                ])
-                            }
-                        },
-                        {
-                            value: data[1], // 中国数据
-                            itemStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: '#3b82f6' },
-                                    { offset: 1, color: '#2563eb' }
-                                ])
-                            }
-                        },
-                        {
-                            value: data[2], // 全球数据
-                            itemStyle: {
-                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                                    { offset: 0, color: '#a855f7' },
-                                    { offset: 1, color: '#9333ea' }
-                                ])
-                            }
-                        }
-                    ],
-                    barWidth: '55%',
-                    barMaxWidth: 40,
+                series: series.map(item => ({
+                    ...item,
+                    barWidth: isTimelineMode ? '45%' : '55%',
+                    barMaxWidth: isTimelineMode ? 24 : 40,
+                    barCategoryGap: isTimelineMode ? '18%' : '20%',
                     label: {
                         show: true,
                         position: 'top',
-                        color: '#e2e8f0',
-                        fontSize: 10,
-                        fontWeight: 'bold',
-                        formatter: function(params) {
-                            const value = params.value;
-                            if (value >= 1000) {
-                                return (value / 1000).toFixed(1) + 'k';
-                            } else if (value >= 100) {
-                                return Math.round(value);
-                            } else if (value >= 10) {
-                                return value.toFixed(1);
-                            } else {
-                                return value.toFixed(2);
-                            }
+                        color: '#f8fafc',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        fontFamily: '"Rajdhani", "Noto Sans SC", sans-serif',
+                        textShadowColor: 'rgba(15, 23, 42, 0.98)',
+                        textShadowBlur: 6,
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 2,
+                        formatter: params => {
+                            if (params.value === null || params.value === undefined) return '';
+                            return this.formatChartValue(params.value);
                         }
                     }
-                }],
+                })),
                 tooltip: {
-                    trigger: 'axis',
+                    trigger: 'item',
                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     borderColor: '#06b6d4',
                     borderWidth: 1,
@@ -958,11 +1075,17 @@ export default {
                         fontSize: 12
                     },
                     formatter: (params) => {
-                        const param = params[0];
                         const modeText = isValueMode ? '价值对比' : isConsumptionMode ? '消费对比' : '产量对比';
+                        const rawValue = typeof params.value === 'object' ? params.value.value : params.value;
+                        const dataCategory = typeof params.value === 'object' ? params.value.category : params.seriesName;
+                        const tooltipYear = this.getTooltipYear(params.name);
+                        const tooltipCategory = this.getTooltipCategoryName(dataCategory, params.name);
                         return `<div style="padding: 6px;">
                                 <div style="color: #06b6d4; font-weight: bold; margin-bottom: 6px; font-size: 13px;">${metalNames[metal]}${modeText}</div>
-                                <div style="font-size: 12px;">${param.name}: <span style="color: #22c55e; font-weight: bold;">${param.value.toLocaleString()}</span> ${metalUnits[metal]}</div>
+                                <div style="font-size: 12px; color: #cbd5e1;">年份：${tooltipYear}</div>
+                                <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">金属类别：${metalNames[metal]}</div>
+                                <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">数据类型：${tooltipCategory}</div>
+                                <div style="font-size: 12px; margin-top: 6px;">${params.marker}数值：<span style="color: #f8fafc; font-weight: bold;">${this.formatTooltipRawValue(rawValue)}</span> ${unit}</div>
                                 </div>`;
                     }
                 }
@@ -1071,39 +1194,41 @@ export default {
             this.recoveryRate = 92;
             this.exchangeRate = 6.96;
             this.chartMode = 'production'; // 重置图表模式
+            this.productionScenario = 'mining';
+            this.consumptionScenario = 'statedPolicies';
             this.metalPricesUsd = {
                 co: 56290,
                 ni: 17266,
                 cu: 12780,
-                mn: 2500
+                mn: 2586
             };
             
             this.noduleTypes = [
                 {
                     name: '多金属结核',
                     metalGrades: { co: 0.20, ni: 1.30, cu: 1.10, mn: 28.70 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '富钴结壳',
                     metalGrades: { co: 0.80, ni: 0.50, cu: 0.10, mn: 20.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '多金属软泥',
                     metalGrades: { co: 0.05, ni: 0.20, cu: 0.15, mn: 15.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 },
                 {
                     name: '海底热液硫化物',
                     metalGrades: { co: 0.10, ni: 0.80, cu: 5.00, mn: 8.00 },
-                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 17400 },
+                    metalPrices: { co: 391780, ni: 120215, cu: 88989, mn: 18000 },
                     productGrades: { co: 21, ni: 22, cu: 25.5, mn: 70 },
                     productPrices: { co: 98000, ni: 32000, cu: 26000, mn: 6000 }
                 }
@@ -1153,6 +1278,12 @@ export default {
                 });
             });
         },
+        productionScenario() {
+            this.updateCharts();
+        },
+        consumptionScenario() {
+            this.updateCharts();
+        },
         predictedProduction: {
             handler() {
                 this.updateCharts();
@@ -1164,6 +1295,12 @@ export default {
             this.$nextTick(() => {
                 this.updateCharts();
             });
+        },
+        currentNoduleData: {
+            handler() {
+                this.updateCharts();
+            },
+            deep: true
         }
     }
 };
