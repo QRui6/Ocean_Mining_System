@@ -1,5 +1,7 @@
 
 export const APP_TITLE = "海洋地质调查信息监测与管理平台";
+export const APP_TITLE_EN = "Marine Geological Survey Information Monitoring and Management Platform";
+export const APP_TITLE_EN_SHORT = "Marine Geological Survey Platform";
 
 // 0. 资源分布类型（新增）
 export const RESOURCE_TYPES = ['多金属结核', '富钴铁锰结壳', '多金属硫化物', '深海稀土'];
