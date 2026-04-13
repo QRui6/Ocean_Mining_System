@@ -26,8 +26,8 @@
                     style="filter: drop-shadow(0 0 15px var(--accent-cyan-glow));">
                     {{ APP_TITLE }}
                 </h1>
-                <div class="text-[11px] tracking-[0.42em] uppercase opacity-80 mt-1.5 font-['Orbitron'] font-bold" 
-                     style="color: var(--accent-cyan);">Deep Sea Mining Meteorological Support System</div>
+                <div class="text-[11px] tracking-[0.18em] opacity-85 mt-2 font-['Rajdhani'] font-semibold" 
+                     style="color: var(--accent-cyan);">{{ APP_TITLE_EN_SHORT }}</div>
             </div>
         </div>
 
@@ -109,7 +109,7 @@
 
 <script>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { APP_TITLE, TOP_TABS } from '../constants.js';
+import { APP_TITLE, APP_TITLE_EN_SHORT, TOP_TABS } from '../constants.js';
 
 export default {
     emits: ['tabChange'], // 向父组件发送选项卡切换事件
@@ -199,6 +199,7 @@ export default {
             formatDate,
             formatTime,
             APP_TITLE,
+            APP_TITLE_EN_SHORT,
             activeTab,
             hoveredTab,
             leftTabs,
