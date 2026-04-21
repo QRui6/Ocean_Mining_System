@@ -23,6 +23,13 @@ export default defineConfig(({ mode }) => {
             secure: false,
             timeout: 30000
           },
+          '/auth-api': {
+            target: 'http://172.20.23.235:8081',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/auth-api/, ''),
+            secure: false,
+            timeout: 30000
+          },
           // 代理所有其他/api请求到后端
           '/api': {
             target: 'http://121.194.93.61:8081',
