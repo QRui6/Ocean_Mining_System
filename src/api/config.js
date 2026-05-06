@@ -8,7 +8,7 @@
 // 生产环境：使用完整URL
 export const API_BASE_URL = import.meta.env.DEV 
     ? ''  // 开发环境：相对路径，通过Vite代理
-    : (import.meta.env.VITE_API_BASE_URL || 'http://121.194.93.61:8081');  // 生产环境：完整URL
+    : (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8081');  // 生产环境：完整URL
 
 // API端点配置
 export const API_ENDPOINTS = {
@@ -44,7 +44,7 @@ export const API_ENDPOINTS = {
     },
     
     // WebSocket连接
-    WEBSOCKET: `ws://121.194.93.61:8081/ws`
+    WEBSOCKET: `ws://127.0.0.1:8081/ws`
 };
 
 // 请求超时配置（毫秒）

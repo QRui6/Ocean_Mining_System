@@ -7,10 +7,10 @@
                     v-for="layer in weatherLayers"
                     :key="layer.id"
                     @click="toggleLayer(layer)"
-                    class="group relative flex items-center transition-all duration-200"
+                    class="weather-layer-btn group relative flex items-center"
                 >
                     <!-- 整体容器：圆形图标在左，文字在右 -->
-                    <div class="flex items-center shadow-lg">
+                    <div class="flex items-center">
                         <!-- 圆形图标（左侧） -->
                         <div 
                             :class="[
@@ -177,9 +177,18 @@ export default {
 </script>
 
 <style scoped>
-button { transition: all 0.2s ease; }
-button:hover > div { transform: scale(1.05); }
-button:active > div { transform: scale(0.98); }
+.weather-layer-btn:hover {
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.weather-layer-btn:hover > div {
+    transform: none !important;
+}
+
+.weather-layer-btn:active > div {
+    transform: none !important;
+}
 
 .slide-right-enter-active, .slide-right-leave-active {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

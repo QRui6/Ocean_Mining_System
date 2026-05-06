@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
           },
           // 代理所有其他/api请求到后端
           '/api': {
-            target: 'http://121.194.93.61:8081',
+            target: 'http://127.0.0.1:8081',
             changeOrigin: true,
             secure: false,
             timeout: 30000

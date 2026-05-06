@@ -1,5 +1,5 @@
 <template>
-    <div class="relative w-screen h-screen overflow-hidden bg-slate-950 text-white font-sans selection:bg-cyan-500 selection:text-white">
+    <div class="relative w-screen h-screen overflow-hidden text-white font-sans selection:bg-cyan-400 selection:text-white" style="background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #0d1b2a 100%);">
         
         <!-- Scaled Container -->
         <div id="screen-container" class="absolute top-0 left-0 overflow-hidden shadow-2xl transition-transform duration-75 ease-linear" :style="containerStyle">
@@ -151,13 +151,6 @@
                 <WaypointWeatherPopup ref="waypointWeatherPopupRef" />
             </div>
 
-            <!-- Decorative Overlay Effects -->
-            <div class="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-30 bg-[radial-gradient(circle_at_center,transparent_50%,#000_100%)]"></div>
-            
-            <!-- Corner Decors -->
-            <div class="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-cyan-500/10 to-transparent pointer-events-none" style="clip-path: polygon(0 0, 100% 0, 0 100%)"></div>
-            <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-cyan-500/10 to-transparent pointer-events-none" style="clip-path: polygon(0 0, 100% 0, 100% 100%)"></div>
-            <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none"></div>
         </div>
         
         <!-- 区域详情对话框 -->
@@ -1166,7 +1159,7 @@ export default {
          * 3. 非"一图一表"选项卡时，关闭所有面板
          */
         const handleTabChange = (tab) => {
-            console.log('📑 切换选项卡:', tab);
+            console.log('切换选项卡:', tab);
             currentTab.value = tab;
             
             // 根据选项卡切换右侧功能面板
@@ -1178,7 +1171,10 @@ export default {
                     mapTools: false,
                     query: true,          // 自动打开矿区查询
                     layers: true,         // 自动打开图层控制
-                    weatherLayers: false  // 关闭气象图层
+                    weatherLayers: false, // 关闭气象图层
+                    shipSearch: false,
+                    historyTrack: false,
+                    routePlan: false
                 };
             } else if (tab === '态势总览') {
                 // 态势总览：保持当前状态
@@ -1192,10 +1188,12 @@ export default {
                     query: false,         // 关闭矿区查询
                     layers: false,        // 关闭图层控制
                     weatherLayers: true,  // 自动打开气象图层
-                    shipSearch: false     // 关闭船舶搜索
+                    shipSearch: false,    // 关闭船舶搜索
+                    historyTrack: false,
+                    routePlan: false
                 };
             } else if (tab === '船舶追踪') {
-                // 船舶追踪：关闭船舶搜索面板（默认不打开）
+                // 船舶追踪：默认打开船舶搜索和历史轨迹
                 showTimeline.value = false;
                 activePanels.value = {
                     list: false,
@@ -1203,9 +1201,9 @@ export default {
                     query: false,
                     layers: false,
                     weatherLayers: false,
-                    shipSearch: false,    // 默认关闭船舶搜索
+                    shipSearch: true,
                     routePlan: false,
-                    historyTrack: false
+                    historyTrack: true
                 };
             } else {
                 // 其他选项卡：关闭所有面板
@@ -1216,7 +1214,9 @@ export default {
                     query: false,
                     layers: false,
                     weatherLayers: false,
-                    shipSearch: false
+                    shipSearch: false,
+                    historyTrack: false,
+                    routePlan: false
                 };
             }
         };
@@ -1278,7 +1278,7 @@ export default {
         
         // WebSocket 连接函数
         const connectWebSocket = () => {
-            const WS_URL = 'ws://121.194.93.61:8081';
+            const WS_URL = 'ws://127.0.0.1:8081';
             
             console.log('🔌 连接 WebSocket:', WS_URL);
             

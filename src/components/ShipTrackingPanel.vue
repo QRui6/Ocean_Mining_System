@@ -29,7 +29,7 @@
                                     : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
                             ]"
                         >
-                            🔍 单船搜索
+                            单船搜索
                         </button>
                         <button 
                             @click="searchMode = 'multiple'"
@@ -40,7 +40,7 @@
                                     : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
                             ]"
                         >
-                            📋 多船搜索
+                            多船搜索
                         </button>
                     </div>
 
@@ -139,7 +139,7 @@
                             :disabled="multipleLoading || !multipleMmsis"
                             class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                         >
-                            {{ multipleLoading ? '搜索中...' : '🔍 批量搜索' }}
+                            {{ multipleLoading ? '搜索中...' : '批量搜索' }}
                         </button>
                         <button 
                             v-if="multipleResults.length > 0"
@@ -739,7 +739,7 @@
                                 :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
                                 class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
                             >
-                                {{ trackLoading ? '查询中...' : '🔍 查询轨迹' }}
+                                {{ trackLoading ? '查询中...' : '查询轨迹' }}
                             </button>
                             <button 
                                 v-if="trackResult"

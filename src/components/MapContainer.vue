@@ -3,9 +3,6 @@
         <!-- Cesium Container -->
         <div ref="cesiumContainer" class="w-full h-full"></div>
 
-        <!-- Grid Overlay -->
-        <div class="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(6,182,212,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.2)_1px,transparent_1px)] bg-[size:100px_100px] z-10"></div>
-
         <!-- 自定义地图工具栏 -->
         <transition name="toolbar-slide">
             <div v-if="showToolbar" class="absolute top-[10rem] right-[15.5rem] z-[100] flex flex-col gap-2 pointer-events-auto">
@@ -467,14 +464,19 @@ export default {
             // 场景优化
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#020617');
             viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#000000');
-            viewer.scene.skyAtmosphere.show = true;
-            viewer.scene.skyAtmosphere.hueShift = -0.1;
+            viewer.scene.skyAtmosphere.show = false;
             viewer.scene.globe.enableLighting = false;
             viewer.scene.globe.showGroundAtmosphere = false;
+            viewer.scene.globe.showWaterEffect = false;
+            viewer.scene.globe.atmosphereHueShift = 0;
+            viewer.scene.globe.atmosphereSaturationShift = -1;
+            viewer.scene.globe.atmosphereBrightnessShift = -1;
             viewer.scene.fog.enabled = false;
             viewer.scene.sun.show = false;
             viewer.scene.moon.show = false;
-            viewer.scene.skyBox.show = true;
+            viewer.scene.skyBox.show = false;
+            viewer.scene.highDynamicRange = false;
+            viewer.scene.postProcessStages.fxaa.enabled = false;
             
             // ⭐ 关键：禁用按需渲染，始终保持持续渲染
             // 这样可以避免粒子动画（风场、波浪、洋流、内波）出现卡顿
@@ -609,27 +611,6 @@ export default {
                     miningData: miningData,
                     regionCounts: regionCounts
                 });
-
-                // 添加上海港标记（⚓ emoji）- 使用深红色/橙红色，始终醒目
-                viewer.entities.add({
-                    name: 'shanghai-port',
-                    position: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 0),
-                    label: {
-                        text: '⚓\n上海港',
-                        font: 'bold 40px sans-serif',
-                        fillColor: Cesium.Color.fromCssColorString('#FF4500'),  // 橙红色 (OrangeRed)
-                        outlineColor: Cesium.Color.BLACK,
-                        outlineWidth: 6,
-                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                        pixelOffset: new Cesium.Cartesian2(0, 0),
-                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                        scaleByDistance: new Cesium.NearFarScalar(1000000, 2.0, 10000000, 0.5),
-                        // 移除 translucencyByDistance，保持始终不透明
-                        disableDepthTestDistance: Number.POSITIVE_INFINITY
-                    }
-                });
-                console.log('⚓ 上海港标记已添加（橙红色，始终醒目）');
 
                 // 改进的点击事件处理（修正 CSS scale 导致的坐标偏差）
                 const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -1950,7 +1931,7 @@ export default {
                 console.log('📂 从后端API获取可用时间索引:', dataType);
                 
                 // 1. 获取可用的时间索引列表
-                const availableResponse = await fetch(`http://121.194.93.61:8081/api/weather/available/${dataType}`);
+                const availableResponse = await fetch(`http://127.0.0.1:8081/api/weather/available/${dataType}`);
                 if (!availableResponse.ok) {
                     throw new Error(`获取可用索引失败: ${availableResponse.status}`);
                 }
@@ -1973,7 +1954,7 @@ export default {
                 }
                 
                 // 2. 获取元数据（用于获取起始时间和时间间隔）
-                const metaResponse = await fetch(`http://121.194.93.61:8081/api/weather/metadata/${dataType}`);
+                const metaResponse = await fetch(`http://127.0.0.1:8081/api/weather/metadata/${dataType}`);
                 if (!metaResponse.ok) {
                     throw new Error(`获取元数据失败: ${metaResponse.status}`);
                 }

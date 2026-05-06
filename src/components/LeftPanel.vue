@@ -9,10 +9,10 @@
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
-            <div class="flex items-center mb-6 border-b-2 border-cyan-500/30 pb-3">
-                <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
-                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">矿区查询分类</h3>
-                <div class="text-xs font-['Orbitron'] text-cyan-500 opacity-80 font-bold tracking-widest">QUERY SYSTEM</div>
+            <div class="flex items-center mb-6 border-b-2 pb-3" style="border-color: rgba(0, 212, 255, 0.4);">
+                <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
+                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区查询分类</h3>
+                <div class="text-xs font-['Orbitron'] font-bold tracking-widest" style="color: #00d4ff; opacity: 0.9;">QUERY SYSTEM</div>
             </div>
 
             <div class="space-y-5">
@@ -146,10 +146,10 @@
                 <div class="corner-decoration corner-bl scale-125"></div>
                 <div class="corner-decoration corner-br scale-125"></div>
              
-             <div class="flex items-center mb-4 border-b-2 border-cyan-500/30 pb-3">
-                <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
-                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">矿区图层控制</h3>
-                <span class="text-sm text-cyan-400 font-mono border border-cyan-500/30 px-2 py-0.5 rounded bg-cyan-900/30">REGIONS</span>
+             <div class="flex items-center mb-4 border-b-2 pb-3" style="border-color: rgba(0, 212, 255, 0.4);">
+                <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
+                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区图层控制</h3>
+                <span class="text-sm font-mono px-2 py-0.5 rounded" style="color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.4); background: rgba(0, 212, 255, 0.1);">REGIONS</span>
             </div>
              
              <div class="space-y-3 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">

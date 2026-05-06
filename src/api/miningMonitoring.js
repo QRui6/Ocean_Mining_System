@@ -2,7 +2,7 @@
  * 矿区气象监测API
  */
 
-const API_BASE_URL = 'http://121.194.93.61:8081/api/mining-monitoring';
+const API_BASE_URL = 'http://127.0.0.1:8081/api/mining-monitoring';
 
 /**
  * 添加矿区到监测列表

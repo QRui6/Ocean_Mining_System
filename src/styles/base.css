@@ -1,16 +1,47 @@
 /* 基础样式和全局变量 */
 
 :root {
-  --color-cyan-glow: #06b6d4;
-  --color-blue-dark: #0f172a;
+  /* 主色调 - 参考大数据可视化大屏 */
+  --color-primary-bg: #0a1628;           /* 深蓝色背景（更亮） */
+  --color-secondary-bg: #0d1b2a;         /* 次级背景 */
+  --color-panel-bg: rgba(13, 27, 42, 0.85); /* 面板背景（半透明） */
+  
+  /* 高亮色 */
+  --color-cyan-bright: #00d4ff;          /* 亮青色（主要高亮） */
+  --color-cyan-glow: #06b6d4;            /* 青色发光 */
+  --color-blue-bright: #1e90ff;          /* 亮蓝色 */
+  --color-yellow-bright: #ffd700;        /* 亮黄色（重要提示） */
+  --color-pink-bright: #ff1493;          /* 亮粉色（警告） */
+  --color-green-bright: #00ff88;         /* 亮绿色（安全） */
+  
+  /* 边框和线条 */
+  --color-border-primary: rgba(0, 212, 255, 0.5);   /* 主边框 */
+  --color-border-secondary: rgba(30, 144, 255, 0.3); /* 次级边框 */
+  --color-border-accent: rgba(255, 215, 0, 0.6);     /* 强调边框 */
+  
+  /* 文字颜色 - 全部改为不透明的亮白色 */
+  --color-text-primary: #ffffff;         /* 主要文字（纯白） */
+  --color-text-secondary: #e8f4f8;       /* 次要文字（亮白） */
+  --color-text-muted: #d0e7f0;           /* 弱化文字（亮灰白） */
+  --color-text-highlight: #00d4ff;       /* 高亮文字 */
+  
+  /* 阴影和发光 */
+  --shadow-cyan-glow: 0 0 20px rgba(0, 212, 255, 0.4);
+  --shadow-blue-glow: 0 0 15px rgba(30, 144, 255, 0.3);
+  --shadow-yellow-glow: 0 0 15px rgba(255, 215, 0, 0.4);
+  
+  /* 渐变 */
+  --gradient-primary: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%);
+  --gradient-panel: linear-gradient(180deg, rgba(13, 27, 42, 0.9) 0%, rgba(10, 22, 40, 0.85) 100%);
+  --gradient-highlight: linear-gradient(90deg, #00d4ff 0%, #1e90ff 100%);
 }
 
 html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #000510;
-  color: #fff;
+  background: var(--gradient-primary);  /* 使用渐变背景 */
+  color: #ffffff;  /* 纯白色文字 */
   margin: 0;
   padding: 0;
   font-family: 'Noto Sans SC', 'Rajdhani', sans-serif;
@@ -20,6 +51,16 @@ html, body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1;
   font-kerning: normal;
+}
+
+/* 全局文字颜色 - 纯白色 */
+* {
+  color: inherit;
+}
+
+/* 确保所有文字都是亮白色 */
+body, div, span, p, a, button, input, select, textarea, label, h1, h2, h3, h4, h5, h6 {
+  color: #ffffff !important;
 }
 
 /* 字体清晰度增强 */

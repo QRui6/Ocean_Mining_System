@@ -1,0 +1,573 @@
+/* 高级大屏主题样式 - 参考大数据可视化大屏 */
+
+/* ==================== 按钮样式增强 ==================== */
+
+/* 主要按钮 - 更亮的青色 */
+button, .btn-primary {
+  transition: all 0.3s ease;
+}
+
+button:hover, .btn-primary:hover {
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.6),
+    0 0 40px rgba(0, 212, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ==================== 文字颜色增强 ==================== */
+
+/* 标题文字 - 更亮 */
+h1, h2, h3, .text-title {
+  color: var(--color-text-primary);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* 高亮数字 - 亮青色 */
+.text-highlight-number {
+  color: var(--color-cyan-bright);
+  font-weight: 700;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+/* 警告文字 - 亮黄色 */
+.text-warning {
+  color: var(--color-yellow-bright);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* 危险文字 - 亮粉色 */
+.text-danger {
+  color: var(--color-pink-bright);
+  text-shadow: 0 0 10px rgba(255, 20, 147, 0.4);
+}
+
+/* 成功文字 - 亮绿色 */
+.text-success {
+  color: var(--color-green-bright);
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+}
+
+/* ==================== 图表容器增强 ==================== */
+
+.chart-container {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 27, 42, 0.6) 0%,
+    rgba(10, 22, 40, 0.4) 100%
+  );
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.2),
+    inset 0 0 30px rgba(0, 212, 255, 0.05);
+}
+
+/* ==================== 数据卡片 ==================== */
+
+.data-card {
+  background: linear-gradient(
+    135deg,
+    rgba(13, 27, 42, 0.9) 0%,
+    rgba(10, 22, 40, 0.85) 100%
+  );
+  border: 2px solid var(--color-border-primary);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 
+    0 0 30px rgba(0, 212, 255, 0.3),
+    inset 0 0 40px rgba(0, 212, 255, 0.08);
+  transition: all 0.3s ease;
+}
+
+.data-card:hover {
+  border-color: var(--color-cyan-bright);
+  box-shadow: 
+    0 0 40px rgba(0, 212, 255, 0.5),
+    inset 0 0 50px rgba(0, 212, 255, 0.12);
+  transform: translateY(-4px);
+}
+
+/* 数据卡片标题 */
+.data-card-title {
+  color: var(--color-cyan-bright);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  border-bottom: 2px solid var(--color-border-primary);
+  padding-bottom: 8px;
+}
+
+/* 数据卡片数值 */
+.data-card-value {
+  color: var(--color-text-primary);
+  font-size: 32px;
+  font-weight: 700;
+  font-family: 'Orbitron', monospace;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+/* 数据卡片单位 */
+.data-card-unit {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+/* ==================== 状态指示器 ==================== */
+
+.status-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  box-shadow: 0 0 10px currentColor;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-safe {
+  background: var(--color-green-bright);
+  box-shadow: 0 0 15px var(--color-green-bright);
+}
+
+.status-warning {
+  background: var(--color-yellow-bright);
+  box-shadow: 0 0 15px var(--color-yellow-bright);
+}
+
+.status-danger {
+  background: var(--color-pink-bright);
+  box-shadow: 0 0 15px var(--color-pink-bright);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* ==================== 进度条 ==================== */
+
+.progress-bar {
+  height: 8px;
+  background: rgba(13, 27, 42, 0.8);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-secondary);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-cyan-bright) 0%, var(--color-blue-bright) 100%);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==================== 表格增强 ==================== */
+
+.table-enhanced {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-enhanced thead {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 212, 255, 0.2) 0%,
+    rgba(0, 212, 255, 0.1) 100%
+  );
+}
+
+.table-enhanced th {
+  color: var(--color-cyan-bright);
+  font-weight: 700;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid var(--color-border-primary);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.table-enhanced tbody tr {
+  background: rgba(13, 27, 42, 0.4);
+  transition: all 0.3s ease;
+}
+
+.table-enhanced tbody tr:hover {
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.table-enhanced td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+}
+
+/* ==================== 标签/徽章 ==================== */
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-primary {
+  background: linear-gradient(135deg, var(--color-cyan-bright) 0%, var(--color-blue-bright) 100%);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+.badge-warning {
+  background: var(--color-yellow-bright);
+  color: #000000;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.badge-danger {
+  background: var(--color-pink-bright);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(255, 20, 147, 0.5);
+}
+
+.badge-success {
+  background: var(--color-green-bright);
+  color: #000000;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+}
+
+/* ==================== 分隔线 ==================== */
+
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-border-primary) 50%,
+    transparent 100%
+  );
+  margin: 16px 0;
+}
+
+.divider-vertical {
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--color-border-primary) 50%,
+    transparent 100%
+  );
+  margin: 0 16px;
+}
+
+/* ==================== 工具提示 ==================== */
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: rgba(13, 27, 42, 0.95);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* ==================== 加载动画 ==================== */
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 212, 255, 0.2);
+  border-top-color: var(--color-cyan-bright);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==================== 扫描线动画 ==================== */
+
+.scan-line {
+  display: none !important;
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+
+/* ==================== 全局颜色覆盖（针对Tailwind类） ==================== */
+
+/* 覆盖cyan颜色 - 使用更亮的青色 */
+.text-cyan-400,
+.text-cyan-500 {
+  color: #00d4ff !important;
+}
+
+.bg-cyan-400,
+.bg-cyan-500 {
+  background-color: #00d4ff !important;
+}
+
+.border-cyan-400,
+.border-cyan-500 {
+  border-color: #00d4ff !important;
+}
+
+/* 覆盖yellow颜色 - 使用更亮的金色 */
+.bg-yellow-400 {
+  background-color: #ffd700 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6) !important;
+}
+
+.text-yellow-400 {
+  color: #ffd700 !important;
+}
+
+/* 覆盖slate背景 - 使用更亮的深蓝色 */
+.bg-slate-800 {
+  background-color: rgba(13, 27, 42, 0.6) !important;
+}
+
+.bg-slate-900 {
+  background-color: rgba(10, 22, 40, 0.8) !important;
+}
+
+.bg-slate-950 {
+  background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 50%, #0d1b2a 100%) !important;
+}
+
+/* 覆盖边框颜色 */
+.border-slate-700 {
+  border-color: rgba(30, 144, 255, 0.2) !important;
+}
+
+/* 覆盖文字颜色 */
+.text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.text-slate-500 {
+  color: #6b8caf !important;
+}
+
+/* 标题文字增强 */
+h1, h2, h3, h4, h5, h6 {
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+/* 扫描线增强 */
+.animate-pulse {
+  animation: pulse-bright 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-bright {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 角落装饰增强 */
+.corner-decoration {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6) !important;
+}
+
+/* 悬停效果增强 */
+.hover\:border-cyan-500\/50:hover {
+  border-color: rgba(0, 212, 255, 0.6) !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
+}
+
+.hover\:text-cyan-200:hover {
+  color: #b3ecff !important;
+}
+
+/* 阴影增强 */
+.shadow-\[0_0_10px_cyan\] {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6) !important;
+}
+
+.shadow-\[0_0_10px_\#facc15\] {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8) !important;
+}
+
+.shadow-\[0_0_8px_cyan\] {
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.7) !important;
+}
+
+/* 开关按钮增强 */
+.bg-cyan-600 {
+  background: linear-gradient(135deg, #00d4ff 0%, #1e90ff 100%) !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
+}
+
+.bg-cyan-700 {
+  background: linear-gradient(135deg, #00b8e6 0%, #0080ff 100%) !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6) !important;
+}
+
+/* 按钮渐变增强 */
+.bg-gradient-to-r.from-blue-600.to-blue-500 {
+  background: linear-gradient(90deg, #1e90ff 0%, #00d4ff 100%) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+}
+
+
+/* ==================== 全局文字颜色强制覆盖 ==================== */
+
+/* 所有文字默认为纯白色，无透明度 */
+.text-white,
+.text-slate-100,
+.text-slate-200,
+.text-slate-300,
+.text-slate-400,
+.text-slate-500,
+.text-slate-600 {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 青色文字保持亮青色 */
+.text-cyan-300,
+.text-cyan-400,
+.text-cyan-500 {
+  color: #00d4ff !important;
+  opacity: 1 !important;
+}
+
+/* 黄色文字保持亮黄色 */
+.text-yellow-300,
+.text-yellow-400,
+.text-yellow-500 {
+  color: #ffd700 !important;
+  opacity: 1 !important;
+}
+
+/* 移除所有opacity类的透明度效果 */
+.opacity-90,
+.opacity-80,
+.opacity-70,
+.opacity-60,
+.opacity-50,
+.opacity-40 {
+  opacity: 1 !important;
+}
+
+/* 确保所有按钮和链接文字都是纯白色 */
+button,
+button *,
+a,
+a * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 标题强制纯白色 */
+h1, h2, h3, h4, h5, h6,
+h1 *, h2 *, h3 *, h4 *, h5 *, h6 * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 表格文字纯白色 */
+table,
+table *,
+td,
+th {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 输入框文字纯白色 */
+input,
+select,
+textarea,
+input::placeholder,
+textarea::placeholder {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 列表文字纯白色 */
+li,
+li * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* 段落文字纯白色 */
+p,
+p *,
+span,
+div {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}

@@ -5,13 +5,10 @@
         <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-60 z-20"></div>
 
         <!-- Center Structure (Increased Width) -->
-        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1200px] h-[110px] z-10">
+        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-[1120px] h-[110px] z-10">
             <!-- Main Trapezoid -->
             <div class="w-full h-full bg-slate-950/90 border-b-2 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
                  style="clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%); backdrop-filter: blur(10px);">
-                 
-                 <!-- Inner Grid Texture -->
-                 <div class="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_50%,rgba(6,182,212,0.2)_50%)] bg-[size:6px_6px]"></div>
                  
                  <!-- Bottom Highlight Line -->
                  <div class="absolute bottom-0 left-[15%] w-[70%] h-[3px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent shadow-[0_0_15px_#facc15]"></div>
@@ -19,7 +16,7 @@
             
             <!-- Title (Adjusted Size) -->
             <div class="absolute top-5 w-full text-center">
-                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.15em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
+                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.19em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
                     {{ APP_TITLE }}
                 </h1>
                 <div class="text-xs text-cyan-400 tracking-[0.5em] uppercase opacity-80 mt-2 font-['Orbitron'] font-bold">Deep Sea Mining Meteorological Support System</div>
@@ -27,9 +24,9 @@
         </div>
 
         <!-- Left Area: Logo + Nav -->
-        <div class="absolute top-0 left-0 h-full flex items-center pl-6 z-20 animate-slideInLeft w-[calc(50%-600px)]">
+        <div class="absolute top-0 left-0 h-full flex items-center pl-6 z-20 animate-slideInLeft w-[calc(50%-390px)]">
             <!-- Logo Block -->
-            <div class="flex items-center mr-6 pr-5 border-r-2 border-cyan-500/30 pointer-events-auto">
+            <div class="flex w-[112px] items-center pr-5 pointer-events-auto flex-shrink-0">
                 <!-- Logo 图标 - 纯图标，无背景 -->
                 <div class="w-20 h-20 flex items-center justify-center relative">
                     <!-- Logo 图标 - 海洋/地球主题 -->
@@ -40,15 +37,16 @@
             </div>
 
             <!-- Left Nav -->
-            <nav class="flex gap-2.5 transform skew-x-[-15deg] pointer-events-auto">
+            <nav class="flex-1 min-w-0 flex justify-end gap-3 pr-6 transform skew-x-[-15deg] pointer-events-auto">
                 <button v-for="item in leftTabs" :key="item" 
                     @click="selectTab(item)"
                     :class="[
-                        'px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px]',
+                        'px-4 py-2 text-base font-bold transition-all duration-300',
                         activeTab === item 
                             ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
                             : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
                     ]"
+                    :style="getTabButtonStyle(leftTabs.length, 'left')"
                 >
                     <span class="block transform skew-x-[15deg] drop-shadow-md">{{ item }}</span>
                 </button>
@@ -56,24 +54,25 @@
         </div>
 
         <!-- Right Area: Nav + Time (与左侧对称) -->
-        <div class="absolute top-0 right-0 h-full flex items-center justify-end pr-6 z-20 animate-slideInRight w-[calc(50%-600px)]">
+        <div class="absolute top-0 right-0 h-full flex items-center pr-6 z-20 animate-slideInRight w-[calc(50%-390px)]">
             <!-- Right Nav -->
-            <nav class="flex gap-2.5 transform skew-x-[15deg] pointer-events-auto">
+            <nav class="flex-1 min-w-0 flex justify-start gap-3 pl-6 transform skew-x-[15deg] pointer-events-auto">
                  <button v-for="item in rightTabs" :key="item" 
                     @click="selectTab(item)"
                     :class="[
-                        'px-5 py-2 text-base font-bold transition-all duration-300 min-w-[110px]',
+                        'px-4 py-2 text-base font-bold transition-all duration-300',
                         activeTab === item 
                             ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
                             : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
                     ]"
+                    :style="getTabButtonStyle(rightTabs.length, 'right')"
                 >
                     <span class="block transform skew-x-[-15deg] drop-shadow-md">{{ item }}</span>
                 </button>
             </nav>
             
             <!-- Time Block - 与左侧 Logo 区域对称 -->
-            <div class="flex items-center gap-3 ml-6 pl-5 border-l-2 border-cyan-500/30 pointer-events-auto flex-shrink-0">
+            <div class="flex w-[112px] items-center justify-end gap-3 ml-2 pl-4 pointer-events-auto flex-shrink-0">
                 <!-- Time Display -->
                 <div class="flex flex-col leading-tight text-right">
                     <span class="text-base tracking-widest opacity-80 text-cyan-200 font-bold font-['Rajdhani']">{{ formatDate(time) }}</span>
@@ -101,13 +100,24 @@ export default {
         const time = ref(new Date());
         
         // 当前激活的选项卡（默认：矿区管理）
-        const activeTab = ref(TOP_TABS[1]);
+        const activeTab = ref(TOP_TABS[0]);
         
-        // 左侧选项卡列表（前3个）
-        const leftTabs = computed(() => TOP_TABS.slice(0, 3));
+        const SIDE_WIDTH = 570;
+        const LEFT_RESERVED_WIDTH = 112;
+        const RIGHT_RESERVED_WIDTH = 112;
+        const NAV_HORIZONTAL_PADDING = 24;
+        const TAB_GAP = 12;
+        const TAB_MAX_WIDTH = 132;
+        const TAB_MIN_WIDTH = 84;
+
+        // 顶部选项卡按数量自动左右二分，奇数时左侧多一个
+        const splitIndex = computed(() => Math.ceil(TOP_TABS.length / 2));
+
+        // 左侧选项卡列表
+        const leftTabs = computed(() => TOP_TABS.slice(0, splitIndex.value));
         
-        // 右侧选项卡列表（后3个）
-        const rightTabs = computed(() => TOP_TABS.slice(3));
+        // 右侧选项卡列表
+        const rightTabs = computed(() => TOP_TABS.slice(splitIndex.value));
         
         // 定时器（用于更新时间）
         let timer = null;
@@ -125,6 +135,31 @@ export default {
         const selectTab = (tab) => {
             activeTab.value = tab;
             emit('tabChange', tab);
+        };
+
+        /**
+         * 根据左右两侧可用空间，动态计算顶部按钮宽度
+         * 右侧会额外为时间区域预留宽度，避免标签把时间顶出布局
+         */
+        const getTabButtonStyle = (count, side) => {
+            if (!count) {
+                return {
+                    width: `${TAB_MAX_WIDTH}px`,
+                    minWidth: `${TAB_MIN_WIDTH}px`
+                };
+            }
+
+            const reservedWidth = side === 'right' ? RIGHT_RESERVED_WIDTH : LEFT_RESERVED_WIDTH;
+            const availableWidth = SIDE_WIDTH - reservedWidth - NAV_HORIZONTAL_PADDING - TAB_GAP * Math.max(count - 1, 0);
+            const buttonWidth = Math.max(
+                TAB_MIN_WIDTH,
+                Math.min(TAB_MAX_WIDTH, Math.floor(availableWidth / count))
+            );
+
+            return {
+                width: `${buttonWidth}px`,
+                minWidth: `${buttonWidth}px`
+            };
         };
 
         // ==================== 生命周期钩子 ====================
@@ -180,7 +215,8 @@ export default {
             activeTab,
             leftTabs,
             rightTabs,
-            selectTab
+            selectTab,
+            getTabButtonStyle
         };
     }
 };
