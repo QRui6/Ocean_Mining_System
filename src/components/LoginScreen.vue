@@ -13,14 +13,50 @@
 
         <section class="login-overview" aria-label="系统模块">
             <div class="login-overview__card">
-                <div class="login-overview__grid">
-                    <div
-                        v-for="item in overviewItems"
-                        :key="item.key"
-                        class="overview-module"
-                    >
-                        <span class="overview-module__name" :data-text="item.title">{{ item.title }}</span>
+                <div class="login-overview__halo"></div>
+                <div class="login-overview__radar"></div>
+
+                <div class="login-overview__center">
+                    <div class="overview-core">
+                        <div class="overview-core__ring overview-core__ring--outer"></div>
+                        <div class="overview-core__ring overview-core__ring--middle"></div>
+                        <div class="overview-core__ring overview-core__ring--inner"></div>
+                        <div class="overview-core__pulse"></div>
+                        <div class="overview-core__grid"></div>
+                        <div class="overview-core__globe">
+                            <div class="overview-core__meridian overview-core__meridian--v"></div>
+                            <div class="overview-core__meridian overview-core__meridian--h"></div>
+                            <div class="overview-core__meridian overview-core__meridian--d1"></div>
+                            <div class="overview-core__meridian overview-core__meridian--d2"></div>
+                        </div>
                     </div>
+                    <span
+                        v-for="dot in connectorDots"
+                        :key="dot.key"
+                        class="login-overview__dot"
+                        :style="dot.style"
+                    ></span>
+                </div>
+
+                <div
+                    v-for="item in positionedOverviewItems"
+                    :key="item.key"
+                    class="overview-module"
+                    :class="[`overview-module--${item.side}`, `overview-module--${item.positionClass}`]"
+                >
+                    <span class="overview-module__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path
+                                v-for="(path, pathIndex) in item.iconPaths"
+                                :key="`${item.key}-${pathIndex}`"
+                                :d="path"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                            />
+                        </svg>
+                    </span>
+                    <span class="overview-module__name" :data-text="item.title">{{ item.title }}</span>
                 </div>
             </div>
         </section>
@@ -81,10 +117,36 @@ export default {
             password: ''
         });
         const isSubmitting = ref(false);
+        const iconPathMap = [
+            ['M12 7v5l3 3', 'M21 12a9 9 0 11-18 0 9 9 0 0118 0', 'M9 2h6'],
+            ['M4.5 10.5l7.5-4.5 7.5 4.5', 'M5.5 10.5V18l6.5 3.5 6.5-3.5v-7.5', 'M12 6v7.5'],
+            ['M3 18h18', 'M5 16l3-5 3 3 4-7 4 9', 'M5 18V7'],
+            ['M8 19c0-3 1.5-5.5 4-8 2.5 2.5 4 5 4 8', 'M12 3v8', 'M7 19h10'],
+            ['M3 16h18', 'M5 13h6l2-3 2 3h4', 'M7 10l1.5-2 1.5 2', 'M17 8h.01'],
+            ['M6 15a4 4 0 117.75-1.25A3.5 3.5 0 1118 19H7', 'M9 19l1.5-3', 'M13 16.5L11.5 19'],
+            ['M12 4v16', 'M4 12h16', 'M7 7c4 2 6 8 10 10', 'M17 7c-4 2-6 8-10 10'],
+            ['M5 6h14', 'M5 12h14', 'M5 18h14', 'M7 8v8', 'M17 8v8']
+        ];
         const overviewItems = TOP_TABS.map((tab, index) => ({
             key: `tab-${index}`,
-            title: tab
+            title: tab,
+            iconPaths: iconPathMap[index] || iconPathMap[0]
         }));
+        const positionedOverviewItems = computed(() => overviewItems.map((item, index) => ({
+            ...item,
+            side: index < 4 ? 'left' : 'right',
+            positionClass: `p${index}`
+        })));
+        const connectorDots = [
+            { key: 'top-left', style: { top: '92px', left: '246px' } },
+            { key: 'upper-left', style: { top: '168px', left: '198px' } },
+            { key: 'lower-left', style: { top: '274px', left: '198px' } },
+            { key: 'bottom-left', style: { top: '350px', left: '246px' } },
+            { key: 'top-right', style: { top: '92px', right: '246px' } },
+            { key: 'upper-right', style: { top: '168px', right: '198px' } },
+            { key: 'lower-right', style: { top: '274px', right: '198px' } },
+            { key: 'bottom-right', style: { top: '350px', right: '246px' } }
+        ];
 
         let timer = null;
 
@@ -165,7 +227,8 @@ export default {
             currentDateTime,
             form,
             isSubmitting,
-            overviewItems,
+            positionedOverviewItems,
+            connectorDots,
             submitLogin
         };
     }
@@ -322,38 +385,22 @@ export default {
 
 .login-overview {
     position: absolute;
-    top: calc(var(--login-panel-top) + 28px);
-    left: clamp(8px, 1.2vw, 24px);
+    top: auto;
+    bottom: 53vh;
+    left: -40px;
     z-index: 3;
-    width: clamp(286px, 18vw, 344px);
-    height: auto;
+    width: clamp(500px, 34vw, 620px);
+    height: 368px;
 }
 
 .login-overview::before {
     content: '';
     position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: -12px;
-    width: 2px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, transparent, rgba(221, 236, 247, 0.52), rgba(118, 184, 227, 0.34), transparent);
-    box-shadow:
-        0 0 16px rgba(111, 201, 251, 0.2),
-        0 0 30px rgba(71, 162, 218, 0.12);
-    pointer-events: none;
-}
-
-.login-overview::after {
-    content: '';
-    position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: -22px;
-    width: 34px;
+    inset: 0;
+    border-radius: 50%;
     background:
-        repeating-linear-gradient(180deg, rgba(221, 236, 247, 0.14) 0 2px, transparent 2px 30px);
-    opacity: 0.46;
+        radial-gradient(circle at center, rgba(90, 185, 255, 0.14) 0%, rgba(90, 185, 255, 0.06) 38%, transparent 66%);
+    filter: blur(16px);
     pointer-events: none;
 }
 
@@ -361,44 +408,259 @@ export default {
     position: relative;
     box-sizing: border-box;
     width: 100%;
+    height: 100%;
     overflow: visible;
 }
 
-.login-overview__grid {
+.login-overview__halo,
+.login-overview__radar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.login-overview__halo {
+    width: 296px;
+    height: 296px;
+    border: 1px solid rgba(128, 207, 255, 0.12);
+    background:
+        radial-gradient(circle, rgba(140, 212, 255, 0.08) 0%, rgba(140, 212, 255, 0.03) 46%, transparent 72%);
+    box-shadow:
+        0 0 46px rgba(61, 177, 248, 0.12),
+        inset 0 0 32px rgba(84, 189, 255, 0.06);
+}
+
+.login-overview__radar {
+    width: 232px;
+    height: 232px;
+    border: 1px solid rgba(128, 207, 255, 0.14);
+    background:
+        repeating-radial-gradient(circle, rgba(163, 225, 255, 0.1) 0 1px, transparent 1px 26px),
+        repeating-linear-gradient(0deg, rgba(157, 223, 255, 0.08) 0 1px, transparent 1px 36px),
+        repeating-linear-gradient(90deg, rgba(157, 223, 255, 0.08) 0 1px, transparent 1px 36px);
+    opacity: 0.76;
+}
+
+.login-overview__center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: 144px;
+    height: 144px;
+    transform: translate(-50%, -50%);
+}
+
+.login-overview__dot {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid rgba(188, 236, 255, 0.9);
+    border-radius: 50%;
+    background: rgba(114, 209, 255, 0.9);
+    box-shadow:
+        0 0 16px rgba(114, 209, 255, 0.55),
+        0 0 28px rgba(114, 209, 255, 0.24);
+}
+
+.overview-core {
     position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 11px;
     width: 100%;
-    padding: 4px 0;
+    height: 100%;
+}
+
+.overview-core::before,
+.overview-core::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+}
+
+.overview-core::before {
+    width: 124px;
+    height: 124px;
+    background:
+        radial-gradient(circle, rgba(102, 205, 255, 0.2) 0%, rgba(102, 205, 255, 0.06) 54%, transparent 72%);
+    box-shadow: 0 0 42px rgba(60, 177, 248, 0.2);
+}
+
+.overview-core::after {
+    width: 160px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(176, 232, 255, 0.76), transparent);
+    opacity: 0.4;
+}
+
+.overview-core__ring,
+.overview-core__pulse,
+.overview-core__globe,
+.overview-core__grid {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+}
+
+.overview-core__ring {
+    border: 1px solid rgba(138, 217, 255, 0.3);
+    box-shadow: inset 0 0 20px rgba(82, 188, 255, 0.1);
+}
+
+.overview-core__ring--outer {
+    width: 126px;
+    height: 126px;
+}
+
+.overview-core__ring--middle {
+    width: 100px;
+    height: 100px;
+}
+
+.overview-core__ring--inner {
+    width: 72px;
+    height: 72px;
+}
+
+.overview-core__pulse {
+    width: 36px;
+    height: 36px;
+    background: radial-gradient(circle, rgba(188, 238, 255, 0.96) 0%, rgba(102, 205, 255, 0.74) 34%, rgba(30, 105, 154, 0.3) 76%, transparent 100%);
+    box-shadow:
+        0 0 22px rgba(121, 219, 255, 0.55),
+        0 0 42px rgba(74, 190, 255, 0.24);
+}
+
+.overview-core__grid {
+    width: 88px;
+    height: 88px;
+    border: 1px solid rgba(162, 228, 255, 0.18);
+    background:
+        repeating-linear-gradient(0deg, rgba(156, 225, 255, 0.12) 0 1px, transparent 1px 16px),
+        repeating-linear-gradient(90deg, rgba(156, 225, 255, 0.12) 0 1px, transparent 1px 16px);
+    opacity: 0.8;
+}
+
+.overview-core__globe {
+    width: 58px;
+    height: 58px;
+    border: 1px solid rgba(185, 237, 255, 0.65);
+    background:
+        radial-gradient(circle at 50% 32%, rgba(217, 246, 255, 0.88), rgba(113, 208, 255, 0.4) 44%, rgba(12, 58, 92, 0.6) 100%);
+    box-shadow:
+        inset 0 0 18px rgba(255, 255, 255, 0.16),
+        0 0 26px rgba(91, 200, 255, 0.26);
+}
+
+.overview-core__meridian {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: rgba(225, 247, 255, 0.42);
+    transform-origin: center;
+}
+
+.overview-core__meridian--v {
+    width: 1px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+}
+
+.overview-core__meridian--h {
+    width: 44px;
+    height: 1px;
+    transform: translate(-50%, -50%);
+}
+
+.overview-core__meridian--d1 {
+    width: 36px;
+    height: 1px;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.overview-core__meridian--d2 {
+    width: 36px;
+    height: 1px;
+    transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .overview-module {
-    position: relative;
+    position: absolute;
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 58px;
-    padding: 0 38px 0 44px;
-    border: 0;
-    border-radius: 0;
+    gap: 10px;
+    width: 148px;
+    min-height: 52px;
+    padding: 0 16px;
+    border: 1px solid rgba(159, 225, 255, 0.3);
+    border-radius: 18px;
     background:
-        linear-gradient(105deg, rgba(206, 235, 249, 0.54) 0%, rgba(126, 191, 228, 0.5) 32%, rgba(48, 110, 154, 0.54) 100%);
-    clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+        linear-gradient(135deg, rgba(166, 223, 252, 0.18) 0%, rgba(59, 124, 171, 0.22) 44%, rgba(6, 31, 56, 0.48) 100%);
+    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%);
     filter:
-        drop-shadow(0 14px 22px rgba(2, 12, 22, 0.16))
-        drop-shadow(0 0 12px rgba(95, 179, 245, 0.14));
+        drop-shadow(0 12px 22px rgba(2, 12, 22, 0.18))
+        drop-shadow(0 0 16px rgba(95, 179, 245, 0.18));
     overflow: hidden;
-    text-align: center;
     isolation: isolate;
 }
 
-.overview-module:nth-child(3n) {
-    background:
-        linear-gradient(105deg, rgba(196, 228, 245, 0.5) 0%, rgba(104, 174, 216, 0.48) 38%, rgba(35, 88, 128, 0.56) 100%);
+.overview-module--left {
+    justify-content: flex-start;
+}
+
+.overview-module--right {
+    justify-content: flex-start;
+}
+
+.overview-module--p0 {
+    top: 30px;
+    left: 118px;
+    transform: scale(0.97);
+}
+
+.overview-module--p1 {
+    top: 106px;
+    left: 58px;
+}
+
+.overview-module--p2 {
+    top: 194px;
+    left: 58px;
+}
+
+.overview-module--p3 {
+    top: 270px;
+    left: 118px;
+    transform: scale(0.97);
+}
+
+.overview-module--p4 {
+    top: 30px;
+    right: 118px;
+    transform: scale(0.97);
+}
+
+.overview-module--p5 {
+    top: 106px;
+    right: 58px;
+}
+
+.overview-module--p6 {
+    top: 194px;
+    right: 58px;
+}
+
+.overview-module--p7 {
+    top: 270px;
+    right: 118px;
+    transform: scale(0.97);
 }
 
 .overview-module::before {
@@ -407,9 +669,9 @@ export default {
     inset: 1px;
     z-index: 0;
     background:
-        linear-gradient(180deg, rgba(118, 184, 227, 0.42) 0%, rgba(35, 88, 128, 0.52) 100%),
-        linear-gradient(105deg, rgba(255, 255, 255, 0.16) 0%, rgba(120, 192, 230, 0.1) 36%, rgba(6, 29, 48, 0.16) 100%);
-    clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+        linear-gradient(180deg, rgba(130, 203, 244, 0.2) 0%, rgba(18, 60, 94, 0.42) 100%),
+        linear-gradient(115deg, rgba(255, 255, 255, 0.14) 0%, transparent 32%, rgba(7, 31, 53, 0.22) 100%);
+    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.28),
         inset 0 -10px 18px rgba(3, 20, 34, 0.16);
@@ -422,12 +684,33 @@ export default {
     inset: 1px;
     z-index: 1;
     background:
-        linear-gradient(90deg, transparent 8%, rgba(248, 253, 255, 0.62) 36%, rgba(154, 223, 255, 0.26) 74%, transparent 96%) top / 100% 1px no-repeat,
-        linear-gradient(90deg, transparent 0%, rgba(2, 12, 22, 0.24) 18%, transparent 42%) bottom / 100% 1px no-repeat,
-        linear-gradient(118deg, transparent 0 70%, rgba(245, 251, 255, 0.34) 70% 72%, rgba(14, 58, 88, 0.18) 72% 100%),
-        linear-gradient(105deg, rgba(255, 255, 255, 0.1), transparent 24%, rgba(4, 24, 39, 0.14) 100%);
-    clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+        linear-gradient(90deg, transparent 0%, rgba(247, 252, 255, 0.62) 18%, rgba(154, 223, 255, 0.2) 52%, transparent 96%) top / 100% 1px no-repeat,
+        linear-gradient(90deg, rgba(115, 210, 255, 0.18), transparent 32%, rgba(115, 210, 255, 0.14) 68%, transparent) center / 100% 100% no-repeat;
+    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%);
     pointer-events: none;
+}
+
+.overview-module__icon {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(176, 231, 255, 0.34);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(174, 232, 255, 0.12) 0%, rgba(67, 143, 193, 0.06) 70%, transparent 100%);
+    color: rgba(234, 248, 255, 0.92);
+    box-shadow:
+        inset 0 0 12px rgba(255, 255, 255, 0.08),
+        0 0 18px rgba(95, 179, 245, 0.18);
+}
+
+.overview-module__icon svg {
+    width: 15px;
+    height: 15px;
 }
 
 .overview-module__name {
@@ -436,15 +719,14 @@ export default {
     display: block;
     margin: 0;
     color: transparent;
-    transform: translateX(-12px);
     background: linear-gradient(180deg, #ffffff 0%, #ffffff 34%, #f8fdff 72%, #edf9ff 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-stroke: 0.45px rgba(255, 255, 255, 0.34);
-    font-size: 1.3rem;
+    font-size: 0.8rem;
     line-height: 1.2;
     font-weight: 700;
-    letter-spacing: 0.035em;
+    letter-spacing: 0.045em;
     text-shadow:
         0 1px 0 rgba(255, 255, 255, 0.44),
         0 4px 10px rgba(0, 0, 0, 0.14),

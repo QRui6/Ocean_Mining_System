@@ -1,13 +1,16 @@
 <template>
-    <LoginScreen v-if="!isAuthenticated" @loginSuccess="handleLoginSuccess" />
-    <SystemShell v-else />
+    <LoginScreen v-show="!isAuthenticated" @loginSuccess="handleLoginSuccess" />
+    <SystemShell v-if="hasInitializedShell" v-show="isAuthenticated" @logout="handleLogout" />
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import LoginScreen from './components/LoginScreen.vue';
 import SystemShell from './SystemShell.vue';
 import { AUTH_SESSION_KEY } from './config/auth.js';
+
+const LOGIN_HASH = '#login';
+const APP_HASH = '#app';
 
 export default {
     name: 'App',
@@ -17,6 +20,7 @@ export default {
     },
     setup() {
         const isAuthenticated = ref(false);
+        const hasInitializedShell = ref(false);
 
         const applyStoredTheme = () => {
             if (typeof window === 'undefined') {
@@ -26,21 +30,67 @@ export default {
             document.documentElement.setAttribute('data-theme', savedTheme);
         };
 
-        const restoreSession = () => {
+        const hasStoredSession = () => {
             if (typeof window === 'undefined') {
-                return;
+                return false;
             }
             const rawSession = sessionStorage.getItem(AUTH_SESSION_KEY);
             if (!rawSession) {
-                return;
+                return false;
             }
 
             try {
                 JSON.parse(rawSession);
-                isAuthenticated.value = true;
+                return true;
             } catch (error) {
                 sessionStorage.removeItem(AUTH_SESSION_KEY);
+                return false;
             }
+        };
+
+        const syncHistoryState = (authenticated, replace = false) => {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            const hash = authenticated ? APP_HASH : LOGIN_HASH;
+            const state = { screen: authenticated ? 'app' : 'login' };
+
+            if (window.location.hash === hash) {
+                return;
+            }
+
+            const historyMethod = replace ? 'replaceState' : 'pushState';
+            window.history[historyMethod](state, '', hash);
+        };
+
+        const syncScreenFromLocation = (replace = false) => {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            const hasSession = hasStoredSession();
+            const currentHash = window.location.hash;
+
+            if (currentHash === LOGIN_HASH) {
+                isAuthenticated.value = false;
+                return;
+            }
+
+            if (currentHash === APP_HASH) {
+                if (hasSession) {
+                    isAuthenticated.value = true;
+                    hasInitializedShell.value = true;
+                } else {
+                    isAuthenticated.value = false;
+                    syncHistoryState(false, true);
+                }
+                return;
+            }
+
+            isAuthenticated.value = hasSession;
+            hasInitializedShell.value = hasSession;
+            syncHistoryState(hasSession, replace);
         };
 
         const handleLoginSuccess = (user) => {
@@ -52,16 +102,40 @@ export default {
                 })
             );
             isAuthenticated.value = true;
+            hasInitializedShell.value = true;
+            syncHistoryState(true);
         };
 
-        if (typeof window !== 'undefined') {
+        const handleLogout = () => {
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem(AUTH_SESSION_KEY);
+            }
+            isAuthenticated.value = false;
+            syncHistoryState(false);
+        };
+
+        const handlePopState = () => {
+            syncScreenFromLocation();
+        };
+
+        onMounted(() => {
             applyStoredTheme();
-            restoreSession();
-        }
+            syncScreenFromLocation(true);
+            window.addEventListener('popstate', handlePopState);
+        });
+
+        onUnmounted(() => {
+            if (typeof window === 'undefined') {
+                return;
+            }
+            window.removeEventListener('popstate', handlePopState);
+        });
 
         return {
             isAuthenticated,
-            handleLoginSuccess
+            hasInitializedShell,
+            handleLoginSuccess,
+            handleLogout
         };
     }
 };

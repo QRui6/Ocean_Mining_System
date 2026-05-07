@@ -128,13 +128,18 @@ const DEFAULT_BASIC_GEOLOGY_LAYERS = [
 ];
 
 const COUNTRY_BASIC_GEOLOGY_LAYERS = {
+    country_uk: [
+        { id: 'geo_uk_1w', label: '1：10000地质图', scale: '1：10000' },
+        { id: 'geo_uk_2_5w', label: '1：25000地质图', scale: '1：25000' },
+        { id: 'geo_uk_5w', label: '1：50000地质图', scale: '1：50000' }
+    ],
     country_japan: [
         { id: 'geo_japan_marine_20w', label: '1：20万海洋地质', scale: '1：20万' },
+        { id: 'geo_japan_marine_sediment_20w', label: '1：20万沉积图', scale: '1：20万' },
         { id: 'geo_japan_5w', label: '1：5万地质图', scale: '1：5万' },
         { id: 'geo_japan_7_5w', label: '1：7.5万地质图', scale: '1：7.5万' },
         { id: 'geo_japan_20w', label: '1：20万地质图', scale: '1：20万' },
-        { id: 'geo_japan_100w', label: '1：100万地质图', scale: '1：100万' },
-        { id: 'geo_japan_200w', label: '1：200万地质图', scale: '1：200万' }
+        { id: 'geo_japan_50w', label: '1：50万地质图', scale: '1：50万' }
     ]
 };
 

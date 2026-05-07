@@ -32,7 +32,7 @@
             
             <!-- UI Layer (Z-10+) -->
             <div class="absolute inset-0 pointer-events-none">
-                <Header @tabChange="handleTabChange" />
+                <Header @tabChange="handleTabChange" @logout="handleLogoutRequest" />
                 
                 <!-- 主题切换按钮 -->
                 <ThemeToggle @themeChange="handleThemeChange" />
@@ -731,6 +731,7 @@ import { RouteManager } from './utils/routeManager.js';
 import { searchShipFuzzy, getSingleShip, getShipTrack } from './utils/shipxyApi.js';
 
 export default {
+    emits: ['logout'],
     components: {
         Header,
         LeftPanel,
@@ -812,7 +813,7 @@ export default {
         FeasibilityAnalysisPanel,
         ScenarioSimulationPanel
     },
-    setup() {
+    setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
         // 当前主题
@@ -826,6 +827,10 @@ export default {
         
         // 航线管理器
         let routeManager = null;
+
+        const handleLogoutRequest = () => {
+            emit('logout');
+        };
 
         // 组件引用
         const shipTrackingPanelRef = ref(null);
@@ -2496,19 +2501,50 @@ export default {
          */
         const handleGeologicalLayerToggle = (layer) => {
             console.log('🗺️ 地质图层切换:', layer);
-            if (layer.id === 'geo_japan_marine_20w') {
-                if (!mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
-                    console.warn('⚠️ MapContainer.toggleJapanMarineGeologyLayer 不可用');
+            const geologyTileLayerCountryMap = {
+                geo_uk_1w: '英国',
+                geo_uk_2_5w: '英国',
+                geo_uk_5w: '英国',
+                geo_japan_marine_20w: '日本',
+                geo_japan_marine_sediment_20w: '日本',
+                geo_japan_5w: '日本',
+                geo_japan_7_5w: '日本',
+                geo_japan_20w: '日本',
+                geo_japan_50w: '日本'
+            };
+
+            // 原先的日本1：20万海洋地质使用 GeoJSON 手工勾绘数据加载。
+            // 现在已改为加载配准后切片得到的本地瓦片，统一走下方 tile layer 逻辑。
+            // if (layer.id === 'geo_japan_marine_20w') {
+            //     if (!mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
+            //         console.warn('⚠️ MapContainer.toggleJapanMarineGeologyLayer 不可用');
+            //         return;
+            //     }
+            //
+            //     if (layer.active && !activeGeologicalCountries.value.has('日本')) {
+            //         console.log('ℹ️ 当前未选中日本，跳过日本1：20万海洋地质图加载');
+            //         layer.active = false;
+            //         return;
+            //     }
+            //
+            //     mapContainerRef.value.toggleJapanMarineGeologyLayer(layer.active);
+            //     return;
+            // }
+
+            if (geologyTileLayerCountryMap[layer.id]) {
+                if (!mapContainerRef.value?.toggleJapanGeologyTileLayer) {
+                    console.warn('⚠️ MapContainer.toggleJapanGeologyTileLayer 不可用');
                     return;
                 }
 
-                if (layer.active && !activeGeologicalCountries.value.has('日本')) {
-                    console.log('ℹ️ 当前未选中日本，跳过日本1：20万海洋地质图加载');
+                const requiredCountry = geologyTileLayerCountryMap[layer.id];
+                if (layer.active && !activeGeologicalCountries.value.has(requiredCountry)) {
+                    console.log(`ℹ️ 当前未选中${requiredCountry}，跳过地质图加载`);
                     layer.active = false;
                     return;
                 }
 
-                mapContainerRef.value.toggleJapanMarineGeologyLayer(layer.active);
+                mapContainerRef.value.toggleJapanGeologyTileLayer(layer.id, layer.active);
                 return;
             }
 
@@ -2558,8 +2594,32 @@ export default {
                 activeGeologicalCountries.value.delete(country.label);
             }
 
-            if (country.label === '日本' && !country.active && mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
-                mapContainerRef.value.toggleJapanMarineGeologyLayer(false);
+            // 日本1：20万海洋地质已从 GeoJSON 改为本地瓦片加载，旧 GeoJSON 图层关闭逻辑停用。
+            // if (country.label === '日本' && !country.active && mapContainerRef.value?.toggleJapanMarineGeologyLayer) {
+            //     mapContainerRef.value.toggleJapanMarineGeologyLayer(false);
+            // }
+
+            if (country.label === '日本' && !country.active && mapContainerRef.value?.toggleJapanGeologyTileLayer) {
+                [
+                    'geo_japan_marine_20w',
+                    'geo_japan_marine_sediment_20w',
+                    'geo_japan_5w',
+                    'geo_japan_7_5w',
+                    'geo_japan_20w',
+                    'geo_japan_50w'
+                ].forEach((layerId) => {
+                    mapContainerRef.value.toggleJapanGeologyTileLayer(layerId, false);
+                });
+            }
+
+            if (country.label === '英国' && !country.active && mapContainerRef.value?.toggleJapanGeologyTileLayer) {
+                [
+                    'geo_uk_1w',
+                    'geo_uk_2_5w',
+                    'geo_uk_5w'
+                ].forEach((layerId) => {
+                    mapContainerRef.value.toggleJapanGeologyTileLayer(layerId, false);
+                });
             }
 
             if (country.label !== '美国' || !mapContainerRef.value?.toggleUsaMarineLayer) {
@@ -4985,6 +5045,7 @@ export default {
         };
 
         return {
+            handleLogoutRequest,
             shipTrackingPanelRef,
             currentTheme,
             handleThemeChange,

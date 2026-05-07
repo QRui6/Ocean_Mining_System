@@ -486,29 +486,113 @@ const USA_DISTRICT_COLOR_MAP = {
     5: '#f6b35f'
 };
 
-const JAPAN_MARINE_GEOLOGY_LAYER_CONFIG = {
+// const JAPAN_MARINE_GEOLOGY_LAYER_CONFIG = {
+//     geo_japan_marine_20w: {
+//         name: '日本1：20万海洋地质',
+//         sources: [
+//             {
+//                 id: 'japan_200000',
+//                 name: '日本1：20万海洋地质面',
+//                 url: encodeURI('/data/地质调查/Japan/Japan200000.geojson'),
+//                 stroke: Cesium.Color.fromCssColorString('#ef4444'),
+//                 fill: Cesium.Color.TRANSPARENT,
+//                 strokeWidth: 2.5,
+//                 zIndex: 22
+//             },
+//             {
+//                 id: 'japan_area',
+//                 name: '日本1：20万海洋地质范围',
+//                 url: encodeURI('/data/地质调查/Japan/JapanArea.geojson'),
+//                 stroke: Cesium.Color.fromCssColorString('#facc15'),
+//                 fill: Cesium.Color.fromCssColorString('#facc15').withAlpha(0.04),
+//                 strokeWidth: 3.4,
+//                 zIndex: 28
+//             }
+//         ]
+//     }
+// };
+
+const JAPAN_GEOLOGY_TILE_LAYER_CONFIG = {
+    geo_uk_1w: {
+        name: '英国1：10000地质图',
+        url: '/data/geology/uk/10k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_uk_2_5w: {
+        name: '英国1：25000地质图',
+        url: '/data/geology/uk/25k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_uk_5w: {
+        name: '英国1：50000地质图',
+        url: '/data/geology/uk/50k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
     geo_japan_marine_20w: {
         name: '日本1：20万海洋地质',
-        sources: [
-            {
-                id: 'japan_200000',
-                name: '日本1：20万海洋地质面',
-                url: encodeURI('/data/地质调查/Japan/Japan200000.geojson'),
-                stroke: Cesium.Color.fromCssColorString('#ef4444'),
-                fill: Cesium.Color.TRANSPARENT,
-                strokeWidth: 2.5,
-                zIndex: 22
-            },
-            {
-                id: 'japan_area',
-                name: '日本1：20万海洋地质范围',
-                url: encodeURI('/data/地质调查/Japan/JapanArea.geojson'),
-                stroke: Cesium.Color.fromCssColorString('#facc15'),
-                fill: Cesium.Color.fromCssColorString('#facc15').withAlpha(0.04),
-                strokeWidth: 3.4,
-                zIndex: 28
-            }
-        ]
+        url: '/data/geology/japan/marine20w/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_japan_marine_sediment_20w: {
+        name: '日本1：20万沉积图',
+        url: '/data/geology/japan/marine_sediment20w/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_japan_5w: {
+        name: '日本1：5万地质图',
+        url: '/data/geology/japan/50k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_japan_7_5w: {
+        name: '日本1：7.5万地质图',
+        url: '/data/geology/japan/75k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_japan_20w: {
+        name: '日本1：20万地质图',
+        url: '/data/geology/japan/200k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
+    },
+    geo_japan_50w: {
+        name: '日本1：50万地质图',
+        url: '/data/geology/japan/500k/{z}/{x}/{y}.png',
+        minimumLevel: 0,
+        maximumLevel: 8,
+        alpha: 0.86,
+        brightness: 1.05,
+        contrast: 1.08
     }
 };
 // 动态加载气象数据加载器（支持API和本地文件两种模式）
@@ -693,6 +777,7 @@ export default {
         let usCooperationManager = null;
         const usaMarineLayerDataSources = new Map();
         const japanMarineGeologyDataSources = new Map();
+        const japanGeologyTileLayers = new Map();
         
         // 渲染模式管理：跟踪需要持续渲染的图层
         const activeAnimationLayers = ref(new Set());
@@ -6481,6 +6566,53 @@ export default {
                 console.error(`❌ 加载地质调查图层失败: ${config.name}`, error);
             }
         };
+
+        const toggleJapanGeologyTileLayer = (layerId, show) => {
+            if (!viewer) return;
+
+            const config = JAPAN_GEOLOGY_TILE_LAYER_CONFIG[layerId];
+            if (!config) {
+                console.warn(`⚠️ 未找到日本地质瓦片图层配置: ${layerId}`);
+                return;
+            }
+
+            if (!show) {
+                const existingLayer = japanGeologyTileLayers.get(layerId);
+                if (existingLayer) {
+                    viewer.imageryLayers.remove(existingLayer, true);
+                    japanGeologyTileLayers.delete(layerId);
+                    viewer.scene.requestRender();
+                }
+                return;
+            }
+
+            if (japanGeologyTileLayers.has(layerId)) {
+                const existingLayer = japanGeologyTileLayers.get(layerId);
+                existingLayer.show = true;
+                viewer.scene.requestRender();
+                return;
+            }
+
+            try {
+                const provider = new Cesium.UrlTemplateImageryProvider({
+                    url: config.url,
+                    minimumLevel: config.minimumLevel,
+                    maximumLevel: config.maximumLevel,
+                    credit: new Cesium.Credit(config.name)
+                });
+                const imageryLayer = viewer.imageryLayers.addImageryProvider(provider);
+                imageryLayer.name = config.name;
+                imageryLayer.alpha = config.alpha ?? 1;
+                imageryLayer.brightness = config.brightness ?? 1;
+                imageryLayer.contrast = config.contrast ?? 1;
+                japanGeologyTileLayers.set(layerId, imageryLayer);
+                viewer.scene.requestRender();
+                console.log(`✅ 已加载地质调查瓦片图层: ${config.name}`);
+            } catch (error) {
+                japanGeologyTileLayers.delete(layerId);
+                console.error(`❌ 加载地质调查瓦片图层失败: ${config.name}`, error);
+            }
+        };
         
         const clearMineralImportCommodity = (options = {}) => {
             const preserveSelection = options.preserveSelection === true;
@@ -9346,6 +9478,7 @@ export default {
             resetResearchInstitutionHighlight,  // 暴露研究机构重置高亮函数
             toggleUsaMarineLayer,  // 暴露美国海洋空间规划图层切换函数
             toggleJapanMarineGeologyLayer,  // 暴露日本海洋地质图层切换函数
+            toggleJapanGeologyTileLayer,  // 暴露日本地质图瓦片图层切换函数
             togglePorts,  // 暴露港口标记切换函数
             zoomIn,
             zoomOut,

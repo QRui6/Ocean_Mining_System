@@ -472,6 +472,18 @@
                                 </div>
                             </div>
 
+                            <button
+                                @click="exportAllCharts"
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25 hover:border-amber-300 transition-all"
+                                style="text-shadow: 0 0 4px rgba(255,255,255,0.08), 0 2px 4px rgba(0, 0, 0, 0.7);"
+                                title="导出当前四个金属图表"
+                                aria-label="导出当前四个金属图表"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v11m0 0l4-4m-4 4l-4-4M5 17v2a2 2 0 002 2h10a2 2 0 002-2v-2" />
+                                </svg>
+                            </button>
+
                             <!-- 切换按钮 -->
                             <div class="flex bg-gray-800/60 rounded-lg p-0.5 border border-cyan-500/30">
                                 <button @click="chartMode = 'production'" 
@@ -507,6 +519,13 @@
                         <!-- 钴图表 - 紫色主题 -->
                         <div class="relative rounded-lg border-2 border-purple-500/50 backdrop-blur-sm hover:border-purple-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent"></div>
+                            <button
+                                @click="exportChart('co')"
+                                class="absolute right-2 top-2 z-10 rounded border border-purple-300/40 bg-slate-950/55 px-2 py-0.5 text-[10px] font-extrabold text-purple-100 hover:bg-purple-500/25 transition-all"
+                                title="下载钴图表"
+                            >
+                                下载
+                            </button>
                             <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 钴 (Co) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
@@ -516,6 +535,13 @@
                         <!-- 镍图表 - 绿色主题 -->
                         <div class="relative rounded-lg border-2 border-emerald-500/50 backdrop-blur-sm hover:border-emerald-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+                            <button
+                                @click="exportChart('ni')"
+                                class="absolute right-2 top-2 z-10 rounded border border-emerald-300/40 bg-slate-950/55 px-2 py-0.5 text-[10px] font-extrabold text-emerald-100 hover:bg-emerald-500/25 transition-all"
+                                title="下载镍图表"
+                            >
+                                下载
+                            </button>
                             <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 镍 (Ni) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
@@ -525,6 +551,13 @@
                         <!-- 铜图表 - 橙色主题 -->
                         <div class="relative rounded-lg border-2 border-orange-500/50 backdrop-blur-sm hover:border-orange-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
+                            <button
+                                @click="exportChart('cu')"
+                                class="absolute right-2 top-2 z-10 rounded border border-orange-300/40 bg-slate-950/55 px-2 py-0.5 text-[10px] font-extrabold text-orange-100 hover:bg-orange-500/25 transition-all"
+                                title="下载铜图表"
+                            >
+                                下载
+                            </button>
                             <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 铜 (Cu) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
@@ -534,6 +567,13 @@
                         <!-- 锰图表 - 蓝色主题 -->
                         <div class="relative rounded-lg border-2 border-blue-500/50 backdrop-blur-sm hover:border-blue-400/70 transition-all p-1.5 overflow-hidden" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
                             <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+                            <button
+                                @click="exportChart('mn')"
+                                class="absolute right-2 top-2 z-10 rounded border border-blue-300/40 bg-slate-950/55 px-2 py-0.5 text-[10px] font-extrabold text-blue-100 hover:bg-blue-500/25 transition-all"
+                                title="下载锰图表"
+                            >
+                                下载
+                            </button>
                             <div class="text-xs text-slate-50 font-extrabold mb-1 text-center tracking-wide" style="text-shadow: 0 0 5px rgba(255,255,255,0.12), 0 2px 4px rgba(0, 0, 0, 0.78);">
                                 锰 (Mn) {{ chartMode === 'production' ? '产量对比' : chartMode === 'value' ? '价值对比' : '消费对比' }}
                             </div>
@@ -806,6 +846,9 @@ export default {
             this.$forceUpdate();
             this.updateCharts();
         },
+        getCurrentDataYear(metal) {
+            return String(this.chartDataSource.current.metalYears?.[metal] ?? this.chartDataSource.current.year);
+        },
         formatChartValue(value) {
             if (typeof value === 'object' && value !== null && 'value' in value) {
                 value = value.value;
@@ -897,10 +940,11 @@ export default {
                 : isProduction
                     ? this.globalProduction[metal]
                     : this.globalConsumption[metal];
+            const currentYear = this.getCurrentDataYear(metal);
             const labels = [
                 '海洋采矿预测',
-                `${this.currentDataYear}\n中国`,
-                `${this.currentDataYear}\n全球`,
+                `${currentYear}\n中国`,
+                `${currentYear}\n全球`,
                 ...forecastYears.map(year => `${year}\nIEA预测`)
             ];
             const values = [
@@ -1184,6 +1228,170 @@ export default {
                         });
                     }
                 });
+            });
+        },
+        getChartModeName() {
+            if (this.chartMode === 'production') return '金属产量';
+            if (this.chartMode === 'value') return '金属价值';
+            return '金属消费';
+        },
+        getActiveScenarioLabel() {
+            const activeValue = this.getActiveScenarioValue();
+            const activeOption = this.getActiveScenarioOptions().find(option => option.value === activeValue);
+            return activeOption?.label || '';
+        },
+        sanitizeFileName(name) {
+            return String(name)
+                .replace(/[\\/:*?"<>|]/g, '_')
+                .replace(/\s+/g, '_');
+        },
+        downloadDataUrl(dataUrl, fileName) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
+        getMetalChartTitle(metal) {
+            const metalNames = { co: '钴 (Co)', ni: '镍 (Ni)', cu: '铜 (Cu)', mn: '锰 (Mn)' };
+            const modeName = this.chartMode === 'production'
+                ? '产量对比'
+                : this.chartMode === 'value'
+                    ? '价值对比'
+                    : '消费对比';
+            return `${metalNames[metal] || metal} ${modeName}`;
+        },
+        createExportChartOption(metal) {
+            const option = this.createChartOption(metal);
+            const titleText = this.getMetalChartTitle(metal);
+
+            return {
+                ...option,
+                animation: false,
+                backgroundColor: '#ffffff',
+                title: {
+                    text: titleText,
+                    left: 'center',
+                    top: 12,
+                    textStyle: {
+                        color: '#0f172a',
+                        fontSize: 18,
+                        fontWeight: 800,
+                        fontFamily: '"Noto Sans SC", "Microsoft YaHei", sans-serif'
+                    }
+                },
+                graphic: {
+                    ...option.graphic,
+                    top: 42,
+                    style: {
+                        ...option.graphic.style,
+                        fill: '#334155',
+                        textShadowBlur: 0,
+                        textShadowColor: 'transparent',
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 0
+                    }
+                },
+                grid: {
+                    ...option.grid,
+                    top: '24%',
+                    bottom: 12
+                },
+                xAxis: {
+                    ...option.xAxis,
+                    axisLabel: {
+                        ...option.xAxis.axisLabel,
+                        color: '#0f172a',
+                        textShadowBlur: 0,
+                        textShadowColor: 'transparent',
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 0
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#cbd5e1'
+                        }
+                    }
+                },
+                yAxis: {
+                    ...option.yAxis,
+                    axisLabel: {
+                        ...option.yAxis.axisLabel,
+                        color: '#0f172a',
+                        textShadowBlur: 0,
+                        textShadowColor: 'transparent',
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 0
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#e2e8f0',
+                            opacity: 1
+                        }
+                    }
+                },
+                series: option.series.map(item => ({
+                    ...item,
+                    animation: false,
+                    label: {
+                        ...item.label,
+                        color: '#0f172a',
+                        textShadowBlur: 0,
+                        textShadowColor: 'transparent',
+                        textShadowOffsetX: 0,
+                        textShadowOffsetY: 0
+                    }
+                }))
+            };
+        },
+        exportChart(metal) {
+            const chart = this.charts[metal];
+            if (!chart) return;
+
+            const metalNames = { co: '钴Co', ni: '镍Ni', cu: '铜Cu', mn: '锰Mn' };
+            const scenarioLabel = this.getActiveScenarioLabel();
+            const fileName = this.sanitizeFileName([
+                '产能与价值分析',
+                this.getChartModeName(),
+                scenarioLabel,
+                metalNames[metal] || metal
+            ].filter(Boolean).join('_'));
+
+            const chartDom = this.$refs[`${metal}ChartRef`];
+            const exportDom = document.createElement('div');
+            const rect = chartDom?.getBoundingClientRect();
+            exportDom.style.cssText = [
+                'position: fixed',
+                'left: -99999px',
+                'top: -99999px',
+                `width: ${Math.max(rect?.width || 360, 360)}px`,
+                `height: ${Math.max(rect?.height || 220, 240)}px`,
+                'background: #ffffff'
+            ].join(';');
+            document.body.appendChild(exportDom);
+
+            const exportChart = echarts.init(exportDom, null, { renderer: 'canvas' });
+            exportChart.setOption(this.createExportChartOption(metal), {
+                notMerge: true,
+                lazyUpdate: false
+            });
+
+            const dataUrl = exportChart.getDataURL({
+                type: 'png',
+                pixelRatio: 3,
+                backgroundColor: '#ffffff',
+                excludeComponents: ['toolbox']
+            });
+            exportChart.dispose();
+            document.body.removeChild(exportDom);
+            this.downloadDataUrl(dataUrl, `${fileName}.png`);
+        },
+        exportAllCharts() {
+            ['co', 'ni', 'cu', 'mn'].forEach((metal, index) => {
+                window.setTimeout(() => {
+                    this.exportChart(metal);
+                }, index * 120);
             });
         },
         resetData() {

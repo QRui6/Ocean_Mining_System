@@ -95,7 +95,38 @@
                           style="filter: drop-shadow(0 0 10px var(--accent-cyan-glow));">{{ formatTime(time) }}</span>
                 </div>
             </div>
+
         </div>
+
+        <button
+            class="absolute top-3 left-4 w-9 h-9 flex items-center justify-center border pointer-events-auto transition-all duration-300 z-30"
+            title="退出登录"
+            aria-label="退出登录"
+            @click="handleLogout"
+            @mouseenter="isLogoutHovered = true"
+            @mouseleave="isLogoutHovered = false"
+            :style="{
+                color: isLogoutHovered ? 'white' : 'var(--text-secondary)',
+                backgroundColor: isLogoutHovered ? 'var(--header-tab-hover-bg)' : 'rgba(8, 20, 54, 0.88)',
+                borderColor: isLogoutHovered ? 'var(--header-highlight)' : 'rgba(103, 232, 249, 0.38)',
+                boxShadow: isLogoutHovered ? '0 0 18px var(--accent-cyan-glow)' : '0 0 10px rgba(34, 211, 238, 0.18)'
+            }"
+        >
+            <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.8"
+                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-7.5-3h11.25m0 0l-3-3m3 3l-3 3"
+                />
+            </svg>
+        </button>
         
         <!-- Decoration Lines under Nav -->
         <div class="absolute top-[100px] left-0 w-[30%] h-[1px]" 
@@ -110,7 +141,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { APP_TITLE, TOP_TABS } from '../constants.js';
 
 export default {
-    emits: ['tabChange'], // 向父组件发送选项卡切换事件
+    emits: ['tabChange', 'logout'], // 向父组件发送选项卡切换和退出事件
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
@@ -122,6 +153,9 @@ export default {
         
         // 当前悬停的选项卡
         const hoveredTab = ref(null);
+
+        // 退出按钮悬停状态
+        const isLogoutHovered = ref(false);
         
         // 左侧选项卡列表（前4个）
         const leftTabs = computed(() => TOP_TABS.slice(0, 4));
@@ -145,6 +179,10 @@ export default {
         const selectTab = (tab) => {
             activeTab.value = tab;
             emit('tabChange', tab);
+        };
+
+        const handleLogout = () => {
+            emit('logout');
         };
 
         // ==================== 生命周期钩子 ====================
@@ -199,9 +237,11 @@ export default {
             APP_TITLE,
             activeTab,
             hoveredTab,
+            isLogoutHovered,
             leftTabs,
             rightTabs,
-            selectTab
+            selectTab,
+            handleLogout
         };
     }
 };
