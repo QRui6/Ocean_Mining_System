@@ -13,11 +13,47 @@
                 <div class="flex items-center mb-3 border-b-2 border-cyan-500/30 pb-2 px-4 pt-4 flex-shrink-0">
                     <div class="w-1.5 h-5 bg-yellow-400 mr-2 shadow-[0_0_10px_#facc15]"></div>
                     <h3 class="text-xl font-bold text-white tracking-wider flex-1">船舶搜索</h3>
-                    <div class="text-xs font-['Orbitron'] text-cyan-500 opacity-80 font-bold tracking-widest">SHIP SEARCH</div>
                 </div>
                 
                 <!-- 可滚动内容区域 -->
                 <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                    <div class="flex gap-2 mb-4">
+                        <button
+                            @click="shipPanelTab = 'query'"
+                            :class="[
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                shipPanelTab === 'query'
+                                    ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.45)]'
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            ]"
+                        >
+                            船舶搜索
+                        </button>
+                        <button
+                            @click="shipPanelTab = 'history'"
+                            :class="[
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                shipPanelTab === 'history'
+                                    ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(251,191,36,0.4)]'
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            ]"
+                        >
+                            历史轨迹
+                        </button>
+                        <button
+                            @click="shipPanelTab = 'list'"
+                            :class="[
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                shipPanelTab === 'list'
+                                    ? 'bg-sky-600 text-white shadow-[0_0_15px_rgba(14,165,233,0.4)]'
+                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            ]"
+                        >
+                            船舶列表
+                        </button>
+                    </div>
+
+                    <div v-if="shipPanelTab === 'query'">
                     <!-- 搜索类型选项卡 -->
                     <div class="flex gap-2 mb-6">
                         <button 
@@ -180,6 +216,140 @@
                         </div>
                     </div>
                     </div>
+                    </div>
+                    
+                    <div v-else-if="shipPanelTab === 'history'" class="space-y-4">
+                        <div class="space-y-2">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>船舶MMSI
+                            </div>
+                            <input 
+                                v-model="trackMmsi"
+                                type="text"
+                                placeholder="输入9位MMSI，如：413961925"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>快捷选择
+                            </div>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button @click="setQuickTime(1)" class="quick-track-btn">1小时</button>
+                                <button @click="setQuickTime(6)" class="quick-track-btn">6小时</button>
+                                <button @click="setQuickTime(24)" class="quick-track-btn">24小时</button>
+                                <button @click="setQuickTime(168)" class="quick-track-btn">7天</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>开始时间
+                            </div>
+                            <input 
+                                v-model="trackStartTime"
+                                type="datetime-local"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>结束时间
+                            </div>
+                            <input 
+                                v-model="trackEndTime"
+                                type="datetime-local"
+                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                            />
+                        </div>
+
+                        <div class="flex gap-2 pt-4 border-t border-dashed border-slate-700/50">
+                            <button 
+                                @click="handleTrackQuery"
+                                :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
+                                class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
+                            >
+                                {{ trackLoading ? '查询中...' : '查询轨迹' }}
+                            </button>
+                            <button 
+                                v-if="trackResult"
+                                @click="handleClearTrack"
+                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                            >
+                                清除
+                            </button>
+                        </div>
+
+                        <div v-if="trackResult || trackError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>查询结果
+                            </div>
+
+                            <div v-if="trackError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
+                                <div class="text-red-400 text-sm">{{ trackError }}</div>
+                            </div>
+
+                            <div v-else-if="trackResult" class="bg-slate-800/40 border border-amber-500/50 rounded-sm p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-400 text-sm">轨迹点数</span>
+                                    <span class="text-amber-400 font-bold text-lg font-['Rajdhani']">{{ trackResult.pointCount }} 个</span>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                    <span class="text-slate-400 text-sm">MMSI</span>
+                                    <span class="text-white font-['Rajdhani']">{{ trackResult.mmsi }}</span>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                    <span class="text-slate-400 text-sm">开始时间</span>
+                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                    <span class="text-slate-400 text-sm">结束时间</span>
+                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-dashed border-slate-700/50 pb-3">
+                            <div class="text-sky-400 text-base font-bold flex items-center">
+                                <div class="w-1.5 h-1.5 bg-sky-400 rounded-full mr-2.5"></div>已搜索船舶
+                            </div>
+                            <button
+                                v-if="shipListData.length > 0"
+                                @click="handleClearShipList"
+                                class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
+                            >
+                                清空列表
+                            </button>
+                        </div>
+
+                        <div v-if="shipListData.length === 0" class="text-sm text-slate-500 text-center py-8 border border-dashed border-slate-700/50 rounded-sm">
+                            暂无船舶，请先执行船舶搜索
+                        </div>
+
+                        <div v-else class="space-y-2 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
+                            <button
+                                v-for="ship in shipListData"
+                                :key="ship.mmsi"
+                                @click="handleShipListRowClick(ship)"
+                                class="w-full text-left bg-slate-800/40 border border-sky-500/25 rounded-sm p-3 hover:border-sky-400/50 transition-all"
+                            >
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="text-white font-bold truncate">{{ ship.ship_cnname || ship.ship_name || `MMSI ${ship.mmsi}` }}</div>
+                                        <div class="text-xs text-slate-400 mt-1">{{ ship.mmsi }}</div>
+                                    </div>
+                                    <div class="text-right text-xs text-slate-400">
+                                        <div>{{ ship.sog ? `${ship.sog} kn` : '航速未知' }}</div>
+                                        <div class="mt-1">{{ ship.last_time || '暂无更新时间' }}</div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </transition>
@@ -196,7 +366,6 @@
                 <div class="flex items-center mb-3 border-b-2 border-purple-500/30 pb-2 px-4 pt-4 flex-shrink-0">
                     <div class="w-1.5 h-5 bg-purple-400 mr-2 shadow-[0_0_10px_#a855f7]"></div>
                     <h3 class="text-xl font-bold text-white tracking-wider flex-1">航线规划</h3>
-                    <div class="text-xs font-['Orbitron'] text-purple-500 opacity-80 font-bold tracking-widest">ROUTE PLANNING</div>
                 </div>
 
                 <!-- 可滚动内容区域 -->
@@ -656,7 +825,6 @@
                 <div class="flex items-center mb-3 border-b-2 border-amber-500/30 pb-2 px-4 pt-4 flex-shrink-0">
                     <div class="w-1.5 h-5 bg-amber-400 mr-2 shadow-[0_0_10px_#fbbf24]"></div>
                     <h3 class="text-xl font-bold text-white tracking-wider flex-1">历史轨迹</h3>
-                    <div class="text-xs font-['Orbitron'] text-amber-500 opacity-80 font-bold tracking-widest">HISTORY TRACK</div>
                 </div>
 
                 <!-- 可滚动内容区域 -->
@@ -799,6 +967,10 @@ export default {
             type: Boolean,
             default: false
         },
+        shipListData: {
+            type: Array,
+            default: () => []
+        },
         showRoutePlan: {
             type: Boolean,
             default: false
@@ -808,11 +980,12 @@ export default {
             default: false
         }
     },
-    emits: ['locate', 'routePlanned', 'routeCleared', 'trackLoaded', 'trackCleared', 'routeWeatherAnalysis', 'thresholdsChanged'],
+    emits: ['locate', 'routePlanned', 'routeCleared', 'trackLoaded', 'trackCleared', 'routeWeatherAnalysis', 'thresholdsChanged', 'shipListRowClick', 'clearShipList'],
     setup(props, { emit }) {
         // 高级设置
         const showAdvanced = ref(false);
         const thresholds = ref(JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)));
+        const shipPanelTab = ref('query');
         
         // 搜索模式
         const searchMode = ref('single'); // 'single' 或 'multiple'
@@ -949,6 +1122,14 @@ export default {
         const handleClearMultiple = () => {
             multipleResults.value = [];
             multipleError.value = '';
+        };
+
+        const handleShipListRowClick = (ship) => {
+            emit('shipListRowClick', ship);
+        };
+
+        const handleClearShipList = () => {
+            emit('clearShipList');
         };
         
         const formatPosition = (lat, lng) => {
@@ -1309,6 +1490,7 @@ export default {
         };
         
         return {
+            shipPanelTab,
             searchMode,
             singleMmsi,
             singleLoading,
@@ -1323,6 +1505,8 @@ export default {
             handleMultipleSearch,
             handleMultipleLocate,
             handleClearMultiple,
+            handleShipListRowClick,
+            handleClearShipList,
             formatPosition,
             planMode,
             startPort,
@@ -1411,5 +1595,22 @@ export default {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, rgba(6, 182, 212, 0.9), rgba(6, 182, 212, 0.6));
+}
+
+.quick-track-btn {
+    padding: 0.5rem 0.75rem;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.8);
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 0.125rem;
+    transition: all 0.2s ease;
+}
+
+.quick-track-btn:hover {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.55);
+    background: rgba(217, 119, 6, 0.15);
 }
 </style>

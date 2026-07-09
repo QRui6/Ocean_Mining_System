@@ -14,19 +14,31 @@
                 :shipToLocate="shipToLocate"
                 :routeToDraw="routeToDraw"
                 :trackToDraw="trackToDraw"
+                :typhoonTrackRequest="typhoonTrackRequest"
                 :routeWeatherRequest="routeWeatherRequest"
                 :weatherFilter="weatherFilter"
                 :pickingPointType="pickingPointType"
                 @dataLoaded="handleDataLoaded"
                 @weatherDataLoaded="handleWeatherDataLoaded"
                 @pointPicked="handlePointPicked"
+                @areaSelected="handleMapAreaSelected"
             />
             
             <!-- UI Layer (Z-10+) -->
             <div class="absolute inset-0 pointer-events-none">
-                <Header @tabChange="handleTabChange" />
-                <LeftPanel 
+                <Header
+                    :currentTab="currentTab"
+                    :showMenuShortcut="false"
+                    @tabChange="handleTabChange"
+                    @menuShortcut="isRightPanelCollapsed = false"
+                />
+                <LeftPanel
                     :availableCountries="availableCountries"
+                    :regionOptions="miningOverviewRegionOptions"
+                    :selectedRegionId="selectedMiningRegionId"
+                    :regionLoading="loadingMiningOverviewRegions"
+                    :miningAreas="filteredMiningData"
+                    :selectedAreaId="selectedMiningAreaId"
                     :showQueryPanel="activePanels.query"
                     :showLayersPanel="activePanels.layers"
                     :showWeatherLayersPanel="activePanels.weatherLayers"
@@ -34,12 +46,86 @@
                     @layersChange="handleLayersChange"
                     @weatherLayersChange="handleWeatherLayersChange"
                     @regionLocate="handleRegionLocate"
+                    @areaSelect="handleMiningAreaSelect"
+                    @regionSelect="handleMiningRegionSelect"
+                />
+
+                <HistoricalTyphoonPanel
+                    :show="currentTab === '历史数据' && activePanels.historyTyphoon"
+                    :loading="loadingHistoricalTyphoon"
+                    :loadingTrack="loadingHistoricalTyphoonTrack"
+                    :quickAreas="historicalTyphoonQuickAreas"
+                    :selectedArea="selectedHistoricalTyphoonArea"
+                    :summary="historicalTyphoonSummary"
+                    :yearlyStats="historicalTyphoonYearly"
+                    :events="historicalTyphoonEvents"
+                    :totalEvents="historicalTyphoonTotal"
+                    :page="historicalTyphoonFilters.page"
+                    :pageSize="historicalTyphoonFilters.pageSize"
+                    :filters="historicalTyphoonFilters"
+                    :errorMessage="historicalTyphoonError"
+                    :selectedEvent="selectedHistoricalTyphoonEvent"
+                    :selectedTrack="historicalTyphoonTrack"
+                    @selectArea="handleHistoricalTyphoonAreaSelect"
+                    @selectEvent="handleHistoricalTyphoonEventSelect"
+                    @pageChange="handleHistoricalTyphoonPageChange"
+                    @filtersChange="handleHistoricalTyphoonFiltersChange"
+                />
+
+                <HistoricalTyphoonWorkspace
+                    :show="currentTab === '历史数据' && activePanels.historyTyphoon"
+                    :loading="loadingHistoricalTyphoon"
+                    :loadingTrack="loadingHistoricalTyphoonTrack"
+                    :selectedArea="selectedHistoricalTyphoonArea"
+                    :summary="historicalTyphoonSummary"
+                    :yearlyStats="historicalTyphoonYearly"
+                    :windowStats="historicalTyphoonWindow"
+                    :selectedEvent="selectedHistoricalTyphoonEvent"
+                    :selectedTrack="historicalTyphoonTrack"
+                    :filters="historicalTyphoonFilters"
+                    :errorMessage="historicalTyphoonError"
+                    :loadingWindow="loadingHistoricalTyphoonWindow"
+                    :windowErrorMessage="historicalTyphoonWindowError"
+                    @close="closeHistoricalTyphoon"
+                />
+
+                <HistoricalSeaStatePanel
+                    :show="currentTab === '历史数据' && activePanels.historySeaState"
+                    :loading="loadingHistoricalSeaState"
+                    :quickAreas="historicalSeaStateQuickAreas"
+                    :selectedArea="selectedHistoricalSeaStateArea"
+                    :selectedPoint="selectedHistoricalSeaStatePoint"
+                    :records="historicalSeaStatePagedRecords"
+                    :totalRecords="historicalSeaStateTotal"
+                    :page="historicalSeaStateFilters.page"
+                    :pageSize="historicalSeaStateFilters.pageSize"
+                    :filters="historicalSeaStateFilters"
+                    :errorMessage="historicalSeaStateError"
+                    :selectedRecord="selectedHistoricalSeaStateRecord"
+                    @selectArea="handleHistoricalSeaStateAreaSelect"
+                    @selectRecord="handleHistoricalSeaStateRecordSelect"
+                    @pageChange="handleHistoricalSeaStatePageChange"
+                    @filtersChange="handleHistoricalSeaStateFiltersChange"
+                />
+
+                <HistoricalSeaStateWorkspace
+                    :show="currentTab === '历史数据' && activePanels.historySeaState"
+                    :loading="loadingHistoricalSeaState"
+                    :selectedArea="selectedHistoricalSeaStateArea"
+                    :selectedPoint="selectedHistoricalSeaStatePoint"
+                    :summary="historicalSeaStateDisplaySummary"
+                    :records="historicalSeaStateFilteredRecords"
+                    :selectedRecord="selectedHistoricalSeaStateRecord"
+                    :filters="historicalSeaStateFilters"
+                    :errorMessage="historicalSeaStateError"
+                    @close="closeHistoricalSeaState"
                 />
                 
                 <!-- 船舶追踪面板（包含船舶搜索和航线规划） -->
                 <ShipTrackingPanel 
                     ref="shipTrackingRef"
                     :showShipSearch="activePanels.shipSearch"
+                    :shipListData="shipListData"
                     :showRoutePlan="activePanels.routePlan"
                     :showHistoryTrack="activePanels.historyTrack"
                     @locate="handleShipLocate"
@@ -50,6 +136,19 @@
                     @routeWeatherAnalysis="handleRouteWeatherAnalysis"
                     @thresholdsChanged="handleThresholdsChanged"
                     @pickPoint="handlePickPoint"
+                    @shipListRowClick="handleShipListRowClick"
+                    @clearShipList="handleClearShipList"
+                />
+
+                <LiftingPipeSelectionPanel
+                    :show="currentTab === '采矿系统' && activePanels.pipeSelection"
+                    @close="closePipeSelection"
+                    @locate-site="handleLocateMiningArea"
+                />
+
+                <PipelineWarningPanel
+                    :show="currentTab === '预警中心' && activePanels.pipelineWarning"
+                    @close="closePipelineWarning"
                 />
                 
                 <!-- 区域监控面板 -->
@@ -67,35 +166,64 @@
                     @show-detail="showAreaDetailDialog"
                 />
                 
-                <RightPanel 
-                    @toggleList="toggleList"
+                <RightPanel
                     @toggleMapTools="toggleMapTools"
                     @toggleQuery="toggleQuery"
                     @toggleLayers="toggleLayers"
                     @toggleWeatherLayers="toggleWeatherLayers"
                     @toggleShipSearch="toggleShipSearch"
+                    @togglePipeSelection="togglePipeSelection"
                     @toggleRoutePlan="toggleRoutePlan"
                     @toggleAreaMonitor="toggleAreaMonitor"
-                    @toggleHistoryTrack="toggleHistoryTrack"
-                    @toggleShipList="toggleShipList"
-                    @toggleRouteWeather="handleRouteWeatherAnalysis"
                     @toggleMiningWeatherMonitor="toggleMiningWeatherMonitor"
+                    @toggleMiningScience="toggleMiningScience"
                     @toggleRouteDemo="toggleRouteDemo"
+                    @toggleHistoricalTyphoon="toggleHistoricalTyphoon"
+                    @toggleHistoricalSeaState="toggleHistoricalSeaState"
+                    @togglePipelineWarning="togglePipelineWarning"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
+                    :weatherLayerGroups="weatherLayerState"
+                    :collapsed="isRightPanelCollapsed"
+                    @layerToggle="handleWeatherLayerToggle"
+                    @collapseChange="isRightPanelCollapsed = $event"
                 />
-                
-                <div v-if="activePanels.list" class="pointer-events-auto">
-                     <BottomTable :miningData="filteredMiningData" />
-                </div>
-                
-                <div v-if="activePanels.shipList" class="pointer-events-auto">
-                     <ShipListTable 
-                        :shipData="shipListData" 
-                        @rowClick="handleShipListRowClick"
-                        @clear="handleClearShipList"
-                    />
-                </div>
+
+                <MiningAreaOverviewPanel
+                    :show="showMiningAreaOverview && !showMiningRegionOverview"
+                    :loading="loadingMiningAreaOverview"
+                    :area="selectedMiningArea"
+                    :panelPosition="miningAreaOverviewPosition"
+                    @close="closeMiningAreaOverview"
+                    @addMonitoring="handleAddMiningAreaToMonitoring"
+                />
+
+                <MiningRegionOverviewWorkspace
+                    :show="showMiningRegionOverview"
+                    :loading="loadingMiningRegionOverview"
+                    :loadingHourly="loadingMiningRegionHourly"
+                    :loadingSite="loadingMiningRegionSite"
+                    :loadingSiteHourly="loadingMiningRegionSiteHourly"
+                    :region="selectedMiningRegion"
+                    :dailyForecast="selectedMiningRegionDaily"
+                    :hourlyForecast="selectedMiningRegionHourly"
+                    :selectedForecastDate="selectedMiningRegionDate"
+                    :sites="selectedMiningRegionSites"
+                    :selectedSite="selectedMiningRegionSite"
+                    :siteDailyForecast="selectedMiningRegionSiteDaily"
+                    :siteHourlyForecast="selectedMiningRegionSiteHourly"
+                    @close="closeMiningRegionOverview"
+                    @forecastDateChange="handleMiningRegionDateChange"
+                />
+
+                <MiningScienceWorkspace
+                    ref="miningScienceRef"
+                    :show="currentTab === '矿区总览' && activePanels.miningScience"
+                    :metoceanPreset="miningSciencePreset"
+                    @close="closeMiningScience"
+                    @pickPoint="handlePickPoint"
+                    @routeChange="handleMiningScienceRouteChange"
+                />
                 
                 <!-- 气象数据列表 -->
                 <WeatherListTable 
@@ -114,13 +242,6 @@
                     :activeWeatherLayers="activeWeatherLayers"
                     @close="showTimeline = false"
                     @timeChange="handleTimeChange"
-                />
-                
-                <!-- Windy 风格气象图层按钮（左侧垂直排列，由右侧按钮控制） -->
-                <WeatherLayerButtons 
-                    :show="activePanels.weatherLayers"
-                    :weatherLayerGroups="weatherLayerState"
-                    @layerToggle="handleWeatherLayerToggle"
                 />
                 
                 <!-- 矿区气象监测面板 -->
@@ -165,19 +286,50 @@
 <script>
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import * as Cesium from 'cesium';
+import { WEATHER_LAYER_GROUPS } from './constants.js';
+import { fetchMiningAreaOverview } from './api/miningAreaOverview.js';
+import {
+    fetchMiningOverviewRegions,
+    fetchMiningOverviewRegionDaily,
+    fetchMiningOverviewRegionHourly,
+    fetchMiningOverviewSites,
+    fetchMiningOverviewSiteDaily,
+    fetchMiningOverviewSiteHourly
+} from './api/miningRegionOverview.js';
+import {
+    fetchMiningRegionTyphoonEvents,
+    fetchMiningRegionTyphoonAllEvents,
+    fetchTyphoonTrack
+} from './api/typhoonHistory.js';
+import {
+    calculateSeaStateSummary,
+    createEmptySeaStateSummary,
+    fetchHistoricalSeaStatePoint,
+    filterSeaStateRecords
+} from './api/historicalSeaState.js';
+import {
+    calculateTyphoonWindowSummary,
+    createEmptyTyphoonWindowSummary
+} from './utils/typhoonWindowService.js';
 import Header from './components/Header.vue';
 import LeftPanel from './components/LeftPanel.vue';
 import RightPanel from './components/RightPanel.vue';
 import MapContainer from './components/MapContainer.vue';
-import BottomTable from './components/BottomTable.vue';
+import HistoricalTyphoonPanel from './components/HistoricalTyphoonPanel.vue';
+import HistoricalTyphoonWorkspace from './components/HistoricalTyphoonWorkspace.vue';
+import HistoricalSeaStatePanel from './components/HistoricalSeaStatePanel.vue';
+import HistoricalSeaStateWorkspace from './components/HistoricalSeaStateWorkspace.vue';
 import TimelineControl from './components/TimelineControl.vue';
-import WeatherLayerButtons from './components/WeatherLayerButtons.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
+import LiftingPipeSelectionPanel from './components/LiftingPipeSelectionPanel.vue';
+import PipelineWarningPanel from './components/pipelineSafety/PipelineWarningPanel.vue';
 import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
 import AreaDetailDialog from './components/AreaDetailDialog.vue';
-import ShipListTable from './components/ShipListTable.vue';
 import WeatherListTable from './components/WeatherListTable.vue';
 import MiningAreaWeatherMonitor from './components/MiningAreaWeatherMonitor.vue';
+import MiningAreaOverviewPanel from './components/MiningAreaOverviewPanel.vue';
+import MiningRegionOverviewWorkspace from './components/MiningRegionOverviewWorkspace.vue';
+import MiningScienceWorkspace from './components/MiningScienceWorkspace.vue';
 import RouteDemoPanel from './components/RouteDemoPanel.vue';
 import RouteRiskWarning from './components/RouteRiskWarning.vue';
 import MiningAreaWeatherCard from './components/MiningAreaWeatherCard.vue';
@@ -189,15 +341,21 @@ export default {
         LeftPanel,
         RightPanel,
         MapContainer,
-        BottomTable,
+        HistoricalTyphoonPanel,
+        HistoricalTyphoonWorkspace,
+        HistoricalSeaStatePanel,
+        HistoricalSeaStateWorkspace,
         TimelineControl,
-        WeatherLayerButtons,
         ShipTrackingPanel,
+        LiftingPipeSelectionPanel,
+        PipelineWarningPanel,
         AreaMonitorPanel,
         AreaDetailDialog,
-        ShipListTable,
         WeatherListTable,
         MiningAreaWeatherMonitor,
+        MiningAreaOverviewPanel,
+        MiningRegionOverviewWorkspace,
+        MiningScienceWorkspace,
         RouteDemoPanel,
         RouteRiskWarning,
         MiningAreaWeatherCard,
@@ -209,29 +367,103 @@ export default {
         // WebSocket 连接
         let ws = null;
         
-        // 当前选中的顶部选项卡（默认：矿区管理）
-        const currentTab = ref('矿区管理');
-        
-        // 各个功能面板的显示状态
-        const activePanels = ref({
-            list: false,          // 矿区列表（底部表格）
-            mapTools: false,      // 地图工具栏
-            query: true,          // 矿区查询面板（左侧）
-            layers: true,         // 图层控制面板（左侧）
-            weatherLayers: false, // 气象图层面板（左侧）
-            shipSearch: false,    // 船舶搜索面板（左侧）
-            routePlan: false,     // 航线规划面板（左侧）
-            areaMonitor: false,    // 区域监控面板（左侧）
-            historyTrack: false,  // 历史轨迹面板（左侧）
-            shipList: false,      // 船舶列表（底部表格）
-            routeWeather: false,   // 航线气象（右侧按钮高亮）
-            miningWeatherMonitor: false,  // 矿区气象监测（右侧面板）
-            routeDemo: false      // 航线演示（左侧面板）
+        const createActivePanels = (overrides = {}) => ({
+            list: false,
+            mapTools: false,
+            query: false,
+            layers: false,
+            weatherLayers: false,
+            pipeSelection: false,
+            shipSearch: false,
+            routePlan: false,
+            areaMonitor: false,
+            historyTrack: false,
+            shipList: false,
+            routeWeather: false,
+            miningWeatherMonitor: false,
+            miningScience: false,
+            routeDemo: false,
+            historyTyphoon: false,
+            historySeaState: false,
+            pipelineWarning: false,
+            ...overrides
         });
+
+        // 当前选中的顶部选项卡（默认：矿区总览）
+        const currentTab = ref('矿区总览');
+        
+        const cloneWeatherLayerGroups = () => JSON.parse(JSON.stringify(WEATHER_LAYER_GROUPS));
+
+        // 各个功能面板的显示状态
+        const activePanels = ref(createActivePanels({
+            query: true
+        }));
         
         // 区域详情对话框状态
         const showAreaDetail = ref(false);
         const selectedAreaForDetail = ref(null);
+        const selectedMiningArea = ref(null);
+        const selectedMiningAreaId = ref('');
+        const showMiningAreaOverview = ref(false);
+        const loadingMiningAreaOverview = ref(false);
+        const miningAreaOverviewPosition = ref({
+            left: 1268,
+            top: 244
+        });
+        const miningOverviewRegions = ref([]);
+        const loadingMiningOverviewRegions = ref(false);
+        const selectedMiningRegion = ref(null);
+        const selectedMiningRegionId = ref('');
+        const selectedMiningRegionDaily = ref([]);
+        const selectedMiningRegionHourly = ref([]);
+        const selectedMiningRegionSites = ref([]);
+        const selectedMiningRegionDate = ref('');
+        const selectedMiningRegionSite = ref(null);
+        const selectedMiningRegionSiteDaily = ref([]);
+        const selectedMiningRegionSiteHourly = ref([]);
+        const showMiningRegionOverview = ref(false);
+        const loadingMiningRegionOverview = ref(false);
+        const loadingMiningRegionHourly = ref(false);
+        const loadingMiningRegionSite = ref(false);
+        const loadingMiningRegionSiteHourly = ref(false);
+        const isRightPanelCollapsed = ref(false);
+        const selectedHistoricalTyphoonArea = ref(null);
+        const historicalTyphoonSummary = ref(null);
+        const historicalTyphoonEvents = ref([]);
+        const historicalTyphoonYearly = ref([]);
+        const historicalTyphoonWindow = ref(createEmptyTyphoonWindowSummary());
+        const historicalTyphoonTrack = ref(null);
+        const historicalTyphoonTotal = ref(0);
+        const historicalTyphoonError = ref('');
+        const historicalTyphoonWindowError = ref('');
+        const selectedHistoricalTyphoonEvent = ref(null);
+        const loadingHistoricalTyphoon = ref(false);
+        const loadingHistoricalTyphoonTrack = ref(false);
+        const loadingHistoricalTyphoonWindow = ref(false);
+        const typhoonTrackRequest = ref(null);
+        const historicalTyphoonFilters = ref({
+            startYear: 2000,
+            endYear: new Date().getFullYear(),
+            bufferKm: 300,
+            impactLevel: '',
+            page: 1,
+            pageSize: 6,
+            sort: 'min_distance'
+        });
+        const selectedHistoricalSeaStateArea = ref(null);
+        const selectedHistoricalSeaStatePoint = ref(null);
+        const historicalSeaStateRecords = ref([]);
+        const historicalSeaStateSummary = ref(createEmptySeaStateSummary());
+        const historicalSeaStateError = ref('');
+        const selectedHistoricalSeaStateRecord = ref(null);
+        const loadingHistoricalSeaState = ref(false);
+        const historicalSeaStateFilters = ref({
+            startYear: 2000,
+            endYear: 2006,
+            dataType: 'all',
+            page: 1,
+            pageSize: 8
+        });
         
         // 时间轴显示状态（当切换到气象监测选项卡时自动显示）
         const showTimeline = ref(false);
@@ -256,7 +488,7 @@ export default {
         const layerState = ref([]);
         
         // 气象图层状态（从 LeftPanel 同步，用于控制地图上的气象图层）
-        const weatherLayerState = ref([]);
+        const weatherLayerState = ref(cloneWeatherLayerGroups());
         
         // 船舶定位请求（传递给地图组件）
         const shipToLocate = ref(null);
@@ -281,13 +513,617 @@ export default {
         const showWeatherList = ref(false);
         const weatherFilter = ref(null);
         const currentThresholds = ref(null); // 当前使用的阈值
-        
+
+        const invokeMapMethod = (methodName) => {
+            if (mapContainerRef.value && typeof mapContainerRef.value[methodName] === 'function') {
+                mapContainerRef.value[methodName]();
+            }
+        };
+
+        const closeRouteDemoAuxiliaryUi = () => {
+            invokeMapMethod('closeShipInfo');
+            invokeMapMethod('closeWeatherInfo');
+
+            if (riskWarningRef.value && typeof riskWarningRef.value.close === 'function') {
+                riskWarningRef.value.close();
+            }
+
+            if (weatherCardRef.value && typeof weatherCardRef.value.close === 'function') {
+                weatherCardRef.value.close();
+            }
+
+            if (waypointWeatherPopupRef.value && typeof waypointWeatherPopupRef.value.hideWeather === 'function') {
+                waypointWeatherPopupRef.value.hideWeather();
+            }
+        };
+
+        const clearRouteWeatherState = () => {
+            showWeatherList.value = false;
+            weatherListData.value = [];
+            weatherFilter.value = null;
+            activePanels.value.routeWeather = false;
+            routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
+            invokeMapMethod('closeWeatherInfo');
+        };
+
+        const clearRouteDemoState = ({ hidePanel = true } = {}) => {
+            if (mapContainerRef.value && typeof mapContainerRef.value.clearRouteDemo === 'function') {
+                mapContainerRef.value.clearRouteDemo();
+            }
+
+            closeRouteDemoAuxiliaryUi();
+
+            if (hidePanel) {
+                activePanels.value.routeDemo = false;
+            }
+        };
+
+        const resetEnvironmentMonitoringState = ({ hidePanel = false } = {}) => {
+            weatherLayerState.value = cloneWeatherLayerGroups();
+            invokeMapMethod('closeWeatherPicker');
+            invokeMapMethod('closeWeatherInfo');
+
+            if (hidePanel) {
+                activePanels.value.weatherLayers = false;
+            }
+        };
+
+        const closeMiningAreaSelection = () => {
+            miningAreaOverviewRequestId += 1;
+            invokeMapMethod('closeInfo');
+            loadingMiningAreaOverview.value = false;
+            showMiningAreaOverview.value = false;
+            selectedMiningArea.value = null;
+            selectedMiningAreaId.value = '';
+        };
+
+        const closeMiningRegionOverview = ({ restoreMenu = true, clearMapFocus = true } = {}) => {
+            showMiningRegionOverview.value = false;
+            selectedMiningRegion.value = null;
+            selectedMiningRegionId.value = '';
+            selectedMiningRegionDaily.value = [];
+            selectedMiningRegionHourly.value = [];
+            selectedMiningRegionSites.value = [];
+            selectedMiningRegionDate.value = '';
+            clearMiningRegionSiteSelection({ clearAreaId: true });
+
+            if (restoreMenu) {
+                isRightPanelCollapsed.value = false;
+            }
+
+            if (clearMapFocus) {
+                invokeMapMethod('clearMiningRegionFocus');
+            }
+        };
+
+        const normalizeMiningAreaSelection = (payload) => {
+            if (!payload) {
+                return {
+                    area: null,
+                    screenPosition: null
+                };
+            }
+
+            if (payload.area) {
+                return {
+                    area: payload.area,
+                    screenPosition: payload.screenPosition || null
+                };
+            }
+
+            return {
+                area: payload,
+                screenPosition: payload.screenPosition || null
+            };
+        };
+
+        const normalizeOverviewScreenPosition = (screenPosition) => {
+            if (
+                !screenPosition
+                || !Number.isFinite(Number(screenPosition.x))
+                || !Number.isFinite(Number(screenPosition.y))
+            ) {
+                return null;
+            }
+
+            const safeScaleX = scale.value.x || 1;
+            const safeScaleY = scale.value.y || 1;
+
+            return {
+                x: Number(screenPosition.x) / safeScaleX,
+                y: Number(screenPosition.y) / safeScaleY
+            };
+        };
+
+        const updateMiningAreaOverviewPosition = (screenPosition) => {
+            const normalizedPosition = normalizeOverviewScreenPosition(screenPosition);
+
+            if (!normalizedPosition) {
+                miningAreaOverviewPosition.value = {
+                    left: 1268,
+                    top: 244
+                };
+                return;
+            }
+
+            const panelWidth = 416;
+            const panelHeight = 520;
+            const horizontalOffset = 24;
+            const verticalOffset = 48;
+            const margin = 20;
+            const minTop = 110;
+            const leftGuard = activePanels.value.query ? 476 : margin;
+
+            let left = normalizedPosition.x + horizontalOffset;
+            if (left + panelWidth > baseWidth - margin) {
+                left = normalizedPosition.x - panelWidth - horizontalOffset;
+            }
+
+            let top = normalizedPosition.y - verticalOffset;
+            if (top + panelHeight > baseHeight - margin) {
+                top = baseHeight - panelHeight - margin;
+            }
+
+            miningAreaOverviewPosition.value = {
+                left: Math.min(Math.max(left, leftGuard), baseWidth - panelWidth - margin),
+                top: Math.min(Math.max(top, minTop), baseHeight - panelHeight - margin)
+            };
+        };
+
+        const buildPendingMiningAreaOverview = (area = {}) => ({
+            ...area,
+            id: area.id || area.areaKey || area.businessId || 'unknown',
+            name: area.name || area.contractor || '未命名矿区',
+            contractor: area.contractor || '未知',
+            sponsor: area.sponsor || '未知',
+            mineral: area.mineral || '未知',
+            location: area.location || '未知',
+            dateRange: area.dateRange || '未知',
+            areaSize: area.areaSize || area.area || '未知',
+            polygon: area.polygon || [],
+            waterDepth: {
+                average: null,
+                min: null,
+                max: null,
+                unit: 'm'
+            },
+            historical: {
+                timestamps: [],
+                windSpeed: [],
+                waveHeight: [],
+                currentSpeed: [],
+                unitMap: {
+                    windSpeed: 'm/s',
+                    waveHeight: 'm',
+                    currentSpeed: 'm/s'
+                }
+            },
+            currentForecast: null,
+            dataStatus: 'loading'
+        });
+
+        const normalizeMiningMatchText = (value) => (
+            String(value || '')
+                .trim()
+                .toLowerCase()
+        );
+
+        const extractBracketCode = (value) => {
+            const match = String(value || '').match(/\(([A-Za-z0-9-]+)\)\s*$/);
+            return match?.[1] || '';
+        };
+
+        const getMiningAreaBusinessId = (area) => {
+            const candidates = [
+                area?.businessId,
+                area?.areaId,
+                typeof area?.id === 'string' ? area.id : '',
+                area?.siteCode,
+                extractBracketCode(area?.name),
+                extractBracketCode(area?.contractor)
+            ];
+
+            return candidates.find((value) => String(value || '').trim()) || '';
+        };
+
+        const getMiningAreaPolygonBounds = (area) => {
+            if (!Array.isArray(area?.polygon) || !area.polygon.length) {
+                return null;
+            }
+
+            return area.polygon.reduce((bounds, point) => {
+                if (!Array.isArray(point) || point.length < 2) {
+                    return bounds;
+                }
+
+                const lng = Number(point[0]);
+                const lat = Number(point[1]);
+
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+                    return bounds;
+                }
+
+                return {
+                    minLng: Math.min(bounds.minLng, lng),
+                    maxLng: Math.max(bounds.maxLng, lng),
+                    minLat: Math.min(bounds.minLat, lat),
+                    maxLat: Math.max(bounds.maxLat, lat)
+                };
+            }, {
+                minLng: Number.POSITIVE_INFINITY,
+                maxLng: Number.NEGATIVE_INFINITY,
+                minLat: Number.POSITIVE_INFINITY,
+                maxLat: Number.NEGATIVE_INFINITY
+            });
+        };
+
+        const findMiningRegionSiteForArea = (area, sites) => {
+            if (!area || !Array.isArray(sites) || !sites.length) {
+                return null;
+            }
+
+            const businessId = normalizeMiningMatchText(getMiningAreaBusinessId(area));
+            const areaKeys = new Set([
+                businessId,
+                normalizeMiningMatchText(area?.name),
+                normalizeMiningMatchText(area?.contractor),
+                normalizeMiningMatchText(extractBracketCode(area?.name)),
+                normalizeMiningMatchText(extractBracketCode(area?.contractor))
+            ].filter(Boolean));
+
+            if (businessId) {
+                const exactCodeMatch = sites.find((site) => normalizeMiningMatchText(site.siteCode) === businessId);
+                if (exactCodeMatch) {
+                    return exactCodeMatch;
+                }
+            }
+
+            const exactNameMatch = sites.find((site) => (
+                areaKeys.has(normalizeMiningMatchText(site.siteCode))
+                || areaKeys.has(normalizeMiningMatchText(site.siteName))
+            ));
+            if (exactNameMatch) {
+                return exactNameMatch;
+            }
+
+            const fuzzyMatch = sites.find((site) => {
+                const siteCode = normalizeMiningMatchText(site.siteCode);
+                const siteName = normalizeMiningMatchText(site.siteName);
+
+                return [...areaKeys].some((key) => (
+                    (siteCode && (key.includes(siteCode) || siteCode.includes(key)))
+                    || (siteName && (key.includes(siteName) || siteName.includes(key)))
+                ));
+            });
+            if (fuzzyMatch) {
+                return fuzzyMatch;
+            }
+
+            const polygonBounds = getMiningAreaPolygonBounds(area);
+            if (!polygonBounds) {
+                return null;
+            }
+
+            return sites.find((site) => {
+                const lng = Number(site.lng);
+                const lat = Number(site.lat);
+
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+                    return false;
+                }
+
+                return (
+                    lng >= polygonBounds.minLng - 0.5
+                    && lng <= polygonBounds.maxLng + 0.5
+                    && lat >= polygonBounds.minLat - 0.5
+                    && lat <= polygonBounds.maxLat + 0.5
+                );
+            }) || null;
+        };
+
+        const buildSelectedMiningRegionSite = (area, site) => ({
+            areaKey: area?.areaKey || '',
+            areaId: getMiningAreaBusinessId(area),
+            displayName: area?.contractor || area?.name || site?.siteName || site?.siteCode || '未命名矿区',
+            contractor: area?.contractor || '',
+            sponsor: area?.sponsor || '',
+            mineral: area?.mineral || '',
+            location: area?.location || site?.regionName || '',
+            siteId: site?.id ? String(site.id) : '',
+            siteCode: site?.siteCode || getMiningAreaBusinessId(area),
+            siteName: site?.siteName || area?.name || area?.contractor || '',
+            regionId: site?.regionId ? String(site.regionId) : String(selectedMiningRegion.value?.id || ''),
+            regionName: site?.regionName || selectedMiningRegion.value?.regionName || selectedMiningRegion.value?.regionCode || '',
+            lng: Number.isFinite(Number(site?.lng)) ? Number(site.lng) : null,
+            lat: Number.isFinite(Number(site?.lat)) ? Number(site.lat) : null,
+            depthMeters: Number.isFinite(Number(site?.depthMeters)) ? Number(site.depthMeters) : null,
+            elevationMeters: Number.isFinite(Number(site?.elevationMeters)) ? Number(site.elevationMeters) : null,
+            matched: Boolean(site)
+        });
+
+        let miningRegionSiteSelectionRequestId = 0;
+        let miningRegionSiteHourlyRequestId = 0;
+
+        const clearMiningRegionSiteSelection = ({ clearAreaId = false } = {}) => {
+            miningRegionSiteSelectionRequestId += 1;
+            miningRegionSiteHourlyRequestId += 1;
+            selectedMiningRegionSite.value = null;
+            selectedMiningRegionSiteDaily.value = [];
+            selectedMiningRegionSiteHourly.value = [];
+            loadingMiningRegionSite.value = false;
+            loadingMiningRegionSiteHourly.value = false;
+
+            if (clearAreaId) {
+                selectedMiningAreaId.value = '';
+            }
+        };
+
+        const ensureMiningRegionSitesLoaded = async () => {
+            if (selectedMiningRegionSites.value.length || !selectedMiningRegion.value?.id) {
+                return selectedMiningRegionSites.value;
+            }
+
+            try {
+                const sites = await fetchMiningOverviewSites(selectedMiningRegion.value.id);
+                selectedMiningRegionSites.value = sites;
+                return sites;
+            } catch (error) {
+                console.error('❌ 加载区域矿区站点失败:', error);
+                return [];
+            }
+        };
+
+        const loadMiningRegionSiteHourlyData = async (siteId, forecastDate) => {
+            if (!siteId || !forecastDate) {
+                selectedMiningRegionSiteHourly.value = [];
+                loadingMiningRegionSiteHourly.value = false;
+                return;
+            }
+
+            const requestId = ++miningRegionSiteHourlyRequestId;
+            const targetSiteId = String(siteId);
+            loadingMiningRegionSiteHourly.value = true;
+
+            try {
+                const hourlyForecast = await fetchMiningOverviewSiteHourly(targetSiteId, forecastDate);
+
+                if (
+                    requestId !== miningRegionSiteHourlyRequestId
+                    || String(selectedMiningRegionSite.value?.siteId || '') !== targetSiteId
+                ) {
+                    return;
+                }
+
+                selectedMiningRegionSiteHourly.value = hourlyForecast;
+            } catch (error) {
+                console.error('❌ 加载单矿区逐小时风浪失败:', error);
+
+                if (
+                    requestId !== miningRegionSiteHourlyRequestId
+                    || String(selectedMiningRegionSite.value?.siteId || '') !== targetSiteId
+                ) {
+                    return;
+                }
+
+                selectedMiningRegionSiteHourly.value = [];
+            } finally {
+                if (
+                    requestId === miningRegionSiteHourlyRequestId
+                    && String(selectedMiningRegionSite.value?.siteId || '') === targetSiteId
+                ) {
+                    loadingMiningRegionSiteHourly.value = false;
+                }
+            }
+        };
+
+        const loadMiningRegionSiteSelection = async (area) => {
+            if (!area || !selectedMiningRegion.value) {
+                clearMiningRegionSiteSelection();
+                return;
+            }
+
+            const requestId = ++miningRegionSiteSelectionRequestId;
+            const forecastDate = selectedMiningRegionDate.value;
+            const sites = await ensureMiningRegionSitesLoaded();
+
+            if (requestId !== miningRegionSiteSelectionRequestId) {
+                return;
+            }
+
+            const matchedSite = findMiningRegionSiteForArea(area, sites);
+            selectedMiningRegionSite.value = buildSelectedMiningRegionSite(area, matchedSite);
+            selectedMiningRegionSiteDaily.value = [];
+            selectedMiningRegionSiteHourly.value = [];
+
+            if (!matchedSite?.id) {
+                loadingMiningRegionSite.value = false;
+                loadingMiningRegionSiteHourly.value = false;
+                return;
+            }
+
+            const targetSiteId = String(matchedSite.id);
+            loadingMiningRegionSite.value = true;
+            loadingMiningRegionSiteHourly.value = Boolean(forecastDate);
+
+            try {
+                const [dailyForecast, hourlyForecast] = await Promise.all([
+                    fetchMiningOverviewSiteDaily(targetSiteId),
+                    forecastDate ? fetchMiningOverviewSiteHourly(targetSiteId, forecastDate) : Promise.resolve([])
+                ]);
+
+                if (
+                    requestId !== miningRegionSiteSelectionRequestId
+                    || String(selectedMiningRegionSite.value?.siteId || '') !== targetSiteId
+                ) {
+                    return;
+                }
+
+                selectedMiningRegionSiteDaily.value = dailyForecast;
+                selectedMiningRegionSiteHourly.value = hourlyForecast;
+            } catch (error) {
+                console.error('❌ 加载单矿区风浪信息失败:', error);
+
+                if (
+                    requestId !== miningRegionSiteSelectionRequestId
+                    || String(selectedMiningRegionSite.value?.siteId || '') !== targetSiteId
+                ) {
+                    return;
+                }
+
+                selectedMiningRegionSiteDaily.value = [];
+                selectedMiningRegionSiteHourly.value = [];
+            } finally {
+                if (
+                    requestId === miningRegionSiteSelectionRequestId
+                    && String(selectedMiningRegionSite.value?.siteId || '') === targetSiteId
+                ) {
+                    loadingMiningRegionSite.value = false;
+                    loadingMiningRegionSiteHourly.value = false;
+                }
+            }
+        };
+
+        const loadMiningOverviewRegions = async () => {
+            loadingMiningOverviewRegions.value = true;
+
+            try {
+                miningOverviewRegions.value = await fetchMiningOverviewRegions();
+            } catch (error) {
+                console.error('❌ 加载大矿区列表失败:', error);
+                miningOverviewRegions.value = [];
+            } finally {
+                loadingMiningOverviewRegions.value = false;
+            }
+        };
+
+        const loadMiningRegionHourlyData = async (regionId, forecastDate) => {
+            if (!regionId || !forecastDate) {
+                selectedMiningRegionHourly.value = [];
+                return;
+            }
+
+            loadingMiningRegionHourly.value = true;
+
+            try {
+                selectedMiningRegionHourly.value = await fetchMiningOverviewRegionHourly(regionId, forecastDate);
+            } catch (error) {
+                console.error('❌ 加载区域逐小时统计失败:', error);
+                selectedMiningRegionHourly.value = [];
+            } finally {
+                loadingMiningRegionHourly.value = false;
+            }
+        };
+
+        const getMiningRegionCode = (region) => (
+            String(region?.regionCode || region?.regionName || '').trim()
+        );
+
+        const matchesMiningRegion = (area, region) => {
+            const regionCode = getMiningRegionCode(region);
+            if (!regionCode) return true;
+
+            return String(area?.location || '').trim() === regionCode;
+        };
+
+        const toNumberOrNull = (value) => {
+            if (value === null || value === undefined || value === '') {
+                return null;
+            }
+
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue) ? numericValue : null;
+        };
+
+        const getForecastMetric = (record, primaryKey, fallbackKey) => (
+            toNumberOrNull(record?.[primaryKey] ?? record?.[fallbackKey])
+        );
+
+        const findMiningRegionForArea = (area) => (
+            miningOverviewRegions.value.find((region) => matchesMiningRegion(area, region)) || null
+        );
+
+        const resolveMiningAreaOverviewContext = async (area) => {
+            if (!area) {
+                return { region: null, site: null };
+            }
+
+            const region = findMiningRegionForArea(area);
+            if (!region?.id) {
+                return { region: null, site: null };
+            }
+
+            let sites = [];
+            if (selectedMiningRegion.value?.id && String(selectedMiningRegion.value.id) === String(region.id)) {
+                sites = selectedMiningRegionSites.value.length
+                    ? selectedMiningRegionSites.value
+                    : await ensureMiningRegionSitesLoaded();
+            } else {
+                sites = await fetchMiningOverviewSites(region.id);
+            }
+
+            return {
+                region,
+                site: findMiningRegionSiteForArea(area, sites)
+            };
+        };
+
+        const miningSciencePreset = computed(() => {
+            const areaForecast = selectedMiningArea.value?.currentForecast || null;
+            const siteHourlyRecord = selectedMiningRegionSiteHourly.value[0] || null;
+            const siteDailyRecord = selectedMiningRegionSiteDaily.value[0] || null;
+            const regionHourlyRecord = selectedMiningRegionHourly.value[0] || null;
+            const regionDailyRecord = selectedMiningRegionDaily.value[0] || null;
+
+            const sourceArea = selectedMiningArea.value || null;
+            const sourceSite = selectedMiningRegionSite.value?.matched ? selectedMiningRegionSite.value : null;
+            const sourceRegion = selectedMiningRegion.value || null;
+
+            const waterDepth = toNumberOrNull(
+                sourceArea?.waterDepth?.point
+                ?? sourceArea?.waterDepth?.average
+                ?? sourceArea?.waterDepth?.center
+                ?? sourceSite?.depthMeters
+                ?? sourceRegion?.depthAvgMeters
+                ?? sourceRegion?.centerDepthMeters
+            );
+            const windSpeedMs = getForecastMetric(areaForecast || siteHourlyRecord || siteDailyRecord || regionHourlyRecord || regionDailyRecord, 'windSpeed', 'windSpeedAvg');
+            const waveHeight = getForecastMetric(areaForecast || siteHourlyRecord || siteDailyRecord || regionHourlyRecord || regionDailyRecord, 'waveHeight', 'waveHeightAvg');
+            const currentSpeedMs = getForecastMetric(areaForecast || siteHourlyRecord || siteDailyRecord || regionHourlyRecord || regionDailyRecord, 'currentSpeed', 'currentSpeedAvg');
+
+            const sourceKey = sourceArea?.id
+                || sourceSite?.siteId
+                || sourceRegion?.id
+                || '';
+
+            if (!sourceKey) {
+                return null;
+            }
+
+            return {
+                sourceKey: `${sourceKey}:${selectedMiningRegionDate.value || 'default'}`,
+                waterDepth,
+                windSpeedMs,
+                waveHeight,
+                currentSpeedMs
+            };
+        });
+
+        const miningOverviewRegionOptions = computed(() => (
+            miningOverviewRegions.value
+                .map((region) => ({
+                    ...region,
+                    miningAreaCount: allMiningData.value.filter(area => matchesMiningRegion(area, region)).length
+                }))
+                .filter((region) => region.miningAreaCount > 0)
+        ));
+
         // 根据筛选条件过滤后的矿区数据（用于底部表格显示）
         const filteredMiningData = computed(() => {
             if (!allMiningData.value.length) return [];
             
             const { minerals, oceans, countries } = filters.value;
-            const hasFilter = minerals.length > 0 || oceans.length > 0 || countries.length > 0;
+            const hasRegionFilter = Boolean(selectedMiningRegion.value?.id);
+            const hasFilter = minerals.length > 0 || oceans.length > 0 || countries.length > 0 || hasRegionFilter;
             
             if (!hasFilter) {
                 return allMiningData.value;
@@ -320,6 +1156,11 @@ export default {
                 if (countries.length > 0) {
                     const countryMatch = countries.some(country => item.sponsor === country);
                     if (!countryMatch) matches = false;
+                }
+
+                // 区域查询筛选
+                if (hasRegionFilter && !matchesMiningRegion(item, selectedMiningRegion.value)) {
+                    matches = false;
                 }
                 
                 return matches;
@@ -393,7 +1234,12 @@ export default {
          * 切换气象图层面板的显示状态
          */
         const toggleWeatherLayers = () => {
-            activePanels.value.weatherLayers = !activePanels.value.weatherLayers;
+            const nextOpen = !activePanels.value.weatherLayers;
+            activePanels.value.weatherLayers = nextOpen;
+
+            if (!nextOpen) {
+                resetEnvironmentMonitoringState();
+            }
         };
         
         /**
@@ -432,8 +1278,29 @@ export default {
         const toggleShipSearch = () => {
             activePanels.value.shipSearch = !activePanels.value.shipSearch;
             if (activePanels.value.shipSearch) {
+                activePanels.value.pipeSelection = false;
                 activePanels.value.areaMonitor = false;
+                clearRouteDemoState();
             }
+        };
+
+        const togglePipeSelection = () => {
+            const nextOpen = !activePanels.value.pipeSelection;
+            activePanels.value.pipeSelection = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+
+            if (activePanels.value.pipeSelection) {
+                activePanels.value.shipSearch = false;
+                activePanels.value.routePlan = false;
+                activePanels.value.areaMonitor = false;
+                clearRouteWeatherState();
+                clearRouteDemoState();
+            }
+        };
+
+        const closePipeSelection = () => {
+            activePanels.value.pipeSelection = false;
+            isRightPanelCollapsed.value = false;
         };
         
         /**
@@ -442,7 +1309,11 @@ export default {
         const toggleRoutePlan = () => {
             activePanels.value.routePlan = !activePanels.value.routePlan;
             if (activePanels.value.routePlan) {
+                activePanels.value.pipeSelection = false;
                 activePanels.value.areaMonitor = false;
+                clearRouteDemoState();
+            } else {
+                clearRouteWeatherState();
             }
         };
         
@@ -457,8 +1328,11 @@ export default {
                 activePanels.value.query = false;
                 activePanels.value.layers = false;
                 activePanels.value.weatherLayers = false;
+                activePanels.value.pipeSelection = false;
                 activePanels.value.shipSearch = false;
                 activePanels.value.routePlan = false;
+                clearRouteWeatherState();
+                clearRouteDemoState();
                 
                 nextTick(() => {
                     // 面板会自动调用loadAreas，然后通过area-loaded事件显示区域
@@ -470,6 +1344,7 @@ export default {
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
         const shipTrackingRef = ref(null);
+        const miningScienceRef = ref(null);
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
@@ -477,6 +1352,590 @@ export default {
         const waypointWeatherPopupRef = ref(null);  // 航点气象弹窗引用
         let currentDrawingTool = null;
         const areaEntities = ref(new Map()); // 存储区域实体
+        let miningAreaOverviewRequestId = 0;
+        let historicalTyphoonOverviewRequestId = 0;
+        let historicalTyphoonSupplementaryRequestId = 0;
+        let historicalTyphoonTrackRequestId = 0;
+        let historicalTyphoonAutoSelecting = false;
+        let historicalSeaStateRequestId = 0;
+        let historicalSeaStateAutoSelecting = false;
+        const historicalTyphoonRegionOrder = ['太平洋 (CCZ)', '太平洋', '大西洋', '西太平洋', '印度洋'];
+
+        const historicalTyphoonQuickAreas = computed(() => {
+            const regionMap = new Map(
+                miningOverviewRegionOptions.value.map((region) => [getMiningRegionCode(region), region])
+            );
+
+            const orderedRegions = [];
+
+            historicalTyphoonRegionOrder.forEach((regionCode) => {
+                const region = regionMap.get(regionCode);
+                if (region) {
+                    orderedRegions.push(region);
+                    regionMap.delete(regionCode);
+                }
+            });
+
+            orderedRegions.push(...regionMap.values());
+
+            return orderedRegions
+                .map((region) => ({
+                    ...region,
+                    name: region.regionName || region.regionCode || `区域 ${region.id}`,
+                    location: region.regionCode || region.regionName || '--'
+                }))
+                .slice(0, 5);
+        });
+
+        const historicalSeaStateQuickAreas = historicalTyphoonQuickAreas;
+
+        const historicalSeaStateFilteredRecords = computed(() => (
+            filterSeaStateRecords(historicalSeaStateRecords.value, historicalSeaStateFilters.value.dataType)
+        ));
+
+        const historicalSeaStateDisplaySummary = computed(() => (
+            calculateSeaStateSummary(historicalSeaStateFilteredRecords.value)
+        ));
+
+        const historicalSeaStateTotal = computed(() => historicalSeaStateFilteredRecords.value.length);
+
+        const historicalSeaStatePagedRecords = computed(() => {
+            const pageSize = Math.max(1, Number(historicalSeaStateFilters.value.pageSize) || 8);
+            const page = Math.max(1, Number(historicalSeaStateFilters.value.page) || 1);
+            const startIndex = (page - 1) * pageSize;
+
+            return historicalSeaStateFilteredRecords.value.slice(startIndex, startIndex + pageSize);
+        });
+
+        const getHistoricalTyphoonRegionId = (region) => String(region?.id ?? '').trim();
+
+        const findHistoricalTyphoonRegion = (target) => {
+            const targetId = getHistoricalTyphoonRegionId(target);
+            const targetCode = getMiningRegionCode(target);
+
+            return historicalTyphoonQuickAreas.value.find((region) => (
+                (targetId && getHistoricalTyphoonRegionId(region) === targetId)
+                || (targetCode && getMiningRegionCode(region) === targetCode)
+                || matchesMiningRegion(target, region)
+            )) || null;
+        };
+
+        const clearHistoricalTyphoonTrack = ({ clearEvent = false } = {}) => {
+            historicalTyphoonTrackRequestId += 1;
+            loadingHistoricalTyphoonTrack.value = false;
+            historicalTyphoonTrack.value = null;
+            typhoonTrackRequest.value = {
+                action: 'clear',
+                timestamp: Date.now()
+            };
+
+            if (clearEvent) {
+                selectedHistoricalTyphoonEvent.value = null;
+            }
+        };
+
+        const syncHistoricalTyphoonMapFocus = (area) => {
+            if (!area || !mapContainerRef.value) {
+                return;
+            }
+
+            if (typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(area);
+                return;
+            }
+
+            if (typeof mapContainerRef.value.focusMiningArea === 'function') {
+                const focused = mapContainerRef.value.focusMiningArea(area, null, false);
+                if (focused) {
+                    return;
+                }
+            }
+
+            if (typeof mapContainerRef.value.flyToMiningArea === 'function') {
+                mapContainerRef.value.flyToMiningArea(area);
+            }
+        };
+
+        const loadHistoricalTyphoonTrack = async (event, area = selectedHistoricalTyphoonArea.value) => {
+            if (!event?.sid || !area) {
+                clearHistoricalTyphoonTrack();
+                return;
+            }
+
+            const requestId = ++historicalTyphoonTrackRequestId;
+            const regionId = getHistoricalTyphoonRegionId(area);
+
+            loadingHistoricalTyphoonTrack.value = true;
+
+            try {
+                const track = await fetchTyphoonTrack(event.sid);
+
+                if (
+                    requestId !== historicalTyphoonTrackRequestId
+                    || selectedHistoricalTyphoonEvent.value?.sid !== event.sid
+                    || getHistoricalTyphoonRegionId(selectedHistoricalTyphoonArea.value) !== regionId
+                ) {
+                    return;
+                }
+
+                historicalTyphoonTrack.value = track;
+                typhoonTrackRequest.value = {
+                    action: 'draw',
+                    track,
+                    timestamp: Date.now()
+                };
+            } catch (error) {
+                console.error('❌ 加载台风轨迹失败:', error);
+
+                if (requestId !== historicalTyphoonTrackRequestId) {
+                    return;
+                }
+
+                historicalTyphoonTrack.value = null;
+                typhoonTrackRequest.value = {
+                    action: 'clear',
+                    timestamp: Date.now()
+                };
+            } finally {
+                if (requestId === historicalTyphoonTrackRequestId) {
+                    loadingHistoricalTyphoonTrack.value = false;
+                }
+            }
+        };
+
+        const isHistoricalTyphoonTimeoutError = (error) => (
+            error?.name === 'TimeoutError'
+            || /timeout|timed out|aborted|signal/i.test(String(error?.message || ''))
+        );
+
+        const getHistoricalTyphoonAreaTitle = (area) => (
+            area?.regionName || area?.regionCode || area?.contractor || area?.name || '当前区域'
+        );
+
+        const getHistoricalTyphoonListError = (area, regionId, error) => {
+            if (isHistoricalTyphoonTimeoutError(error)) {
+                return `${getHistoricalTyphoonAreaTitle(area)} 历史台风查询超时。后端区域接口 ${regionId} 暂未返回，请稍后重试。`;
+            }
+
+            return `${getHistoricalTyphoonAreaTitle(area)} 暂未取得历史台风列表。后端区域接口 ${regionId} 当前返回失败。`;
+        };
+
+        const loadHistoricalTyphoonSupplementaryData = async (regionId) => {
+            const requestId = ++historicalTyphoonSupplementaryRequestId;
+            loadingHistoricalTyphoonWindow.value = true;
+            historicalTyphoonWindowError.value = '';
+            historicalTyphoonSummary.value = null;
+            historicalTyphoonYearly.value = [];
+            historicalTyphoonWindow.value = createEmptyTyphoonWindowSummary();
+
+            const { startYear, endYear, bufferKm } = historicalTyphoonFilters.value;
+            const allEventsResult = await Promise.allSettled([
+                fetchMiningRegionTyphoonAllEvents(regionId, { startYear, endYear, bufferKm })
+            ]);
+
+            if (
+                requestId !== historicalTyphoonSupplementaryRequestId
+                || getHistoricalTyphoonRegionId(selectedHistoricalTyphoonArea.value) !== regionId
+            ) {
+                return;
+            }
+
+            if (allEventsResult[0].status === 'fulfilled') {
+                historicalTyphoonWindow.value = calculateTyphoonWindowSummary(allEventsResult[0].value);
+            } else {
+                console.error('❌ 加载历史台风窗口统计失败:', allEventsResult[0].reason);
+                historicalTyphoonWindowError.value = isHistoricalTyphoonTimeoutError(allEventsResult[0].reason)
+                    ? '历史台风窗口统计加载超时，请稍后重试。'
+                    : '历史台风窗口统计暂不可用。';
+            }
+
+            loadingHistoricalTyphoonWindow.value = false;
+        };
+
+        const loadHistoricalTyphoonOverview = async (
+            region,
+            { resetPage = false, preserveSelection = false, refreshSupplementary = true } = {}
+        ) => {
+            const resolvedRegion = findHistoricalTyphoonRegion(region) || region;
+            const regionId = getHistoricalTyphoonRegionId(resolvedRegion);
+            selectedHistoricalTyphoonArea.value = resolvedRegion;
+
+            if (!regionId) {
+                historicalTyphoonSupplementaryRequestId += 1;
+                historicalTyphoonSummary.value = null;
+                historicalTyphoonYearly.value = [];
+                historicalTyphoonWindow.value = createEmptyTyphoonWindowSummary();
+                historicalTyphoonEvents.value = [];
+                historicalTyphoonTotal.value = 0;
+                historicalTyphoonError.value = '该区域暂无可用于历史台风查询的区域编号。';
+                historicalTyphoonWindowError.value = '';
+                loadingHistoricalTyphoonWindow.value = false;
+                clearHistoricalTyphoonTrack({ clearEvent: true });
+                return;
+            }
+
+            if (resetPage) {
+                historicalTyphoonFilters.value = {
+                    ...historicalTyphoonFilters.value,
+                    page: 1
+                };
+            }
+
+            const requestId = ++historicalTyphoonOverviewRequestId;
+            const {
+                startYear,
+                endYear,
+                bufferKm,
+                impactLevel,
+                page,
+                pageSize,
+                sort
+            } = historicalTyphoonFilters.value;
+
+            loadingHistoricalTyphoon.value = true;
+            historicalTyphoonError.value = '';
+            historicalTyphoonEvents.value = [];
+            historicalTyphoonTotal.value = 0;
+            clearHistoricalTyphoonTrack({ clearEvent: !preserveSelection });
+
+            if (refreshSupplementary) {
+                historicalTyphoonSupplementaryRequestId += 1;
+                loadingHistoricalTyphoonWindow.value = true;
+                historicalTyphoonWindowError.value = '';
+                historicalTyphoonSummary.value = null;
+                historicalTyphoonYearly.value = [];
+                historicalTyphoonWindow.value = createEmptyTyphoonWindowSummary();
+            }
+
+            try {
+                const eventsResult = await fetchMiningRegionTyphoonEvents(regionId, {
+                    startYear,
+                    endYear,
+                    bufferKm,
+                    impactLevel,
+                    page,
+                    pageSize,
+                    sort
+                });
+
+                if (
+                    requestId !== historicalTyphoonOverviewRequestId
+                    || getHistoricalTyphoonRegionId(selectedHistoricalTyphoonArea.value) !== regionId
+                ) {
+                    return;
+                }
+
+                historicalTyphoonEvents.value = eventsResult.items;
+                historicalTyphoonTotal.value = eventsResult.total;
+                historicalTyphoonError.value = '';
+
+                if (refreshSupplementary) {
+                    void loadHistoricalTyphoonSupplementaryData(regionId);
+                }
+
+                const previousSid = preserveSelection ? selectedHistoricalTyphoonEvent.value?.sid : '';
+                const nextSelectedEvent = eventsResult.items.find((item) => item.sid === previousSid)
+                    || eventsResult.items[0]
+                    || null;
+
+                selectedHistoricalTyphoonEvent.value = nextSelectedEvent;
+
+                if (nextSelectedEvent) {
+                    await loadHistoricalTyphoonTrack(nextSelectedEvent, resolvedRegion);
+                } else {
+                    clearHistoricalTyphoonTrack();
+                }
+            } catch (error) {
+                console.error('❌ 加载历史台风总览失败:', error);
+
+                if (requestId !== historicalTyphoonOverviewRequestId) {
+                    return;
+                }
+
+                historicalTyphoonEvents.value = [];
+                historicalTyphoonTotal.value = 0;
+                historicalTyphoonError.value = getHistoricalTyphoonListError(resolvedRegion, regionId, error);
+                if (refreshSupplementary) {
+                    loadingHistoricalTyphoonWindow.value = false;
+                    historicalTyphoonWindowError.value = '历史台风窗口统计将在列表查询恢复后加载。';
+                }
+                clearHistoricalTyphoonTrack({ clearEvent: true });
+            } finally {
+                if (requestId === historicalTyphoonOverviewRequestId) {
+                    loadingHistoricalTyphoon.value = false;
+                }
+            }
+        };
+
+        const initializeHistoricalTyphoonView = async () => {
+            if (
+                currentTab.value !== '历史数据'
+                || !activePanels.value.historyTyphoon
+                || selectedHistoricalTyphoonArea.value
+                || !historicalTyphoonQuickAreas.value.length
+                || historicalTyphoonAutoSelecting
+            ) {
+                return;
+            }
+
+            historicalTyphoonAutoSelecting = true;
+
+            try {
+                await handleHistoricalTyphoonAreaSelect(historicalTyphoonQuickAreas.value[0], {
+                    focusMap: true,
+                    resetPage: true
+                });
+            } finally {
+                historicalTyphoonAutoSelecting = false;
+            }
+        };
+
+        const getHistoricalSeaStateAreaKey = (area) => String(
+            area?.areaKey
+            || area?.id
+            || area?.regionCode
+            || area?.regionName
+            || area?.name
+            || ''
+        ).trim();
+
+        const findHistoricalSeaStateArea = (target) => {
+            const targetId = String(target?.id ?? '').trim();
+            const targetCode = getMiningRegionCode(target);
+
+            return historicalSeaStateQuickAreas.value.find((region) => (
+                (targetId && String(region?.id ?? '').trim() === targetId)
+                || (targetCode && getMiningRegionCode(region) === targetCode)
+                || matchesMiningRegion(target, region)
+            )) || target || null;
+        };
+
+        const normalizeSeaStatePolygon = (polygon) => {
+            if (!polygon) {
+                return [];
+            }
+
+            let normalized = polygon;
+            if (typeof normalized === 'string') {
+                try {
+                    normalized = JSON.parse(normalized);
+                } catch (error) {
+                    console.warn('⚠️ 历史海况多边形解析失败:', error);
+                    return [];
+                }
+            }
+
+            if (normalized?.type === 'Polygon' && Array.isArray(normalized.coordinates)) {
+                normalized = normalized.coordinates[0];
+            } else if (normalized?.type === 'MultiPolygon' && Array.isArray(normalized.coordinates)) {
+                normalized = normalized.coordinates[0]?.[0] || [];
+            } else if (normalized?.coordinates && Array.isArray(normalized.coordinates)) {
+                normalized = normalized.coordinates[0] || [];
+            }
+
+            if (Array.isArray(normalized) && Array.isArray(normalized[0]) && Array.isArray(normalized[0][0])) {
+                normalized = normalized[0];
+            }
+
+            return Array.isArray(normalized) ? normalized : [];
+        };
+
+        const getHistoricalSeaStatePoint = (area) => {
+            if (!area) {
+                return null;
+            }
+
+            const coordinateCandidates = [
+                {
+                    lon: toNumberOrNull(area.centerLng),
+                    lat: toNumberOrNull(area.centerLat),
+                    source: '区域中心'
+                },
+                {
+                    lon: toNumberOrNull(area.lng ?? area.lon ?? area.longitude),
+                    lat: toNumberOrNull(area.lat ?? area.latitude),
+                    source: '点位坐标'
+                }
+            ];
+
+            const directPoint = coordinateCandidates.find((point) => (
+                point.lon !== null && point.lat !== null
+            ));
+
+            if (directPoint) {
+                return directPoint;
+            }
+
+            const polygon = normalizeSeaStatePolygon(area.boundaryPolygon || area.polygon);
+            const validPoints = polygon
+                .map((point) => {
+                    if (!Array.isArray(point) || point.length < 2) {
+                        return null;
+                    }
+
+                    const lon = toNumberOrNull(point[0]);
+                    const lat = toNumberOrNull(point[1]);
+                    return lon === null || lat === null ? null : { lon, lat };
+                })
+                .filter(Boolean);
+
+            if (!validPoints.length) {
+                return null;
+            }
+
+            const sum = validPoints.reduce((accumulator, point) => ({
+                lon: accumulator.lon + point.lon,
+                lat: accumulator.lat + point.lat
+            }), { lon: 0, lat: 0 });
+
+            return {
+                lon: sum.lon / validPoints.length,
+                lat: sum.lat / validPoints.length,
+                source: '几何中心'
+            };
+        };
+
+        const syncHistoricalSeaStateMapFocus = (area) => {
+            if (!area || !mapContainerRef.value) {
+                return;
+            }
+
+            if (typeof mapContainerRef.value.focusMiningRegion === 'function' && area.centerLng !== undefined && area.centerLat !== undefined) {
+                mapContainerRef.value.focusMiningRegion(area);
+                return;
+            }
+
+            if (typeof mapContainerRef.value.focusMiningArea === 'function') {
+                const focused = mapContainerRef.value.focusMiningArea(area, null, false);
+                if (focused) {
+                    return;
+                }
+            }
+
+            if (typeof mapContainerRef.value.flyToMiningArea === 'function') {
+                mapContainerRef.value.flyToMiningArea(area);
+            }
+        };
+
+        const resetHistoricalSeaStateSelection = () => {
+            historicalSeaStateRecords.value = [];
+            historicalSeaStateSummary.value = createEmptySeaStateSummary();
+            selectedHistoricalSeaStateRecord.value = null;
+        };
+
+        const getHistoricalSeaStateAreaTitle = (area) => (
+            area?.regionName || area?.regionCode || area?.contractor || area?.name || '当前区域'
+        );
+
+        const getHistoricalSeaStateError = (area, error) => {
+            if (isHistoricalTyphoonTimeoutError(error)) {
+                return `${getHistoricalSeaStateAreaTitle(area)} 历史海况查询超时，请稍后重试。`;
+            }
+
+            return `${getHistoricalSeaStateAreaTitle(area)} 暂未取得历史海况数据。`;
+        };
+
+        const selectHistoricalSeaStateRecordFrom = (records, previousKey = '') => {
+            const filteredRecords = filterSeaStateRecords(records, historicalSeaStateFilters.value.dataType);
+            selectedHistoricalSeaStateRecord.value = filteredRecords.find((record) => record.key === previousKey)
+                || filteredRecords[0]
+                || records[0]
+                || null;
+        };
+
+        const loadHistoricalSeaStateOverview = async (
+            area,
+            { resetPage = false, preserveSelection = false } = {}
+        ) => {
+            const resolvedArea = findHistoricalSeaStateArea(area);
+            const point = getHistoricalSeaStatePoint(resolvedArea);
+            selectedHistoricalSeaStateArea.value = resolvedArea;
+            selectedHistoricalSeaStatePoint.value = point;
+
+            if (resetPage) {
+                historicalSeaStateFilters.value = {
+                    ...historicalSeaStateFilters.value,
+                    page: 1
+                };
+            }
+
+            if (!point) {
+                historicalSeaStateRequestId += 1;
+                loadingHistoricalSeaState.value = false;
+                historicalSeaStateError.value = '该区域暂无可用于历史海况查询的经纬度。';
+                resetHistoricalSeaStateSelection();
+                return;
+            }
+
+            const requestId = ++historicalSeaStateRequestId;
+            const previousKey = preserveSelection ? selectedHistoricalSeaStateRecord.value?.key : '';
+            const { startYear, endYear } = historicalSeaStateFilters.value;
+
+            loadingHistoricalSeaState.value = true;
+            historicalSeaStateError.value = '';
+            resetHistoricalSeaStateSelection();
+
+            try {
+                const result = await fetchHistoricalSeaStatePoint({
+                    lat: point.lat,
+                    lon: point.lon,
+                    startYear,
+                    endYear
+                });
+
+                if (
+                    requestId !== historicalSeaStateRequestId
+                    || getHistoricalSeaStateAreaKey(selectedHistoricalSeaStateArea.value) !== getHistoricalSeaStateAreaKey(resolvedArea)
+                ) {
+                    return;
+                }
+
+                historicalSeaStateRecords.value = result.records || [];
+                historicalSeaStateSummary.value = result.summary || createEmptySeaStateSummary();
+
+                if (!historicalSeaStateRecords.value.length) {
+                    historicalSeaStateError.value = '当前查询点暂无历史海况月均记录。';
+                }
+
+                selectHistoricalSeaStateRecordFrom(historicalSeaStateRecords.value, previousKey);
+            } catch (error) {
+                console.error('❌ 加载历史海况失败:', error);
+
+                if (requestId !== historicalSeaStateRequestId) {
+                    return;
+                }
+
+                historicalSeaStateError.value = getHistoricalSeaStateError(resolvedArea, error);
+                resetHistoricalSeaStateSelection();
+            } finally {
+                if (requestId === historicalSeaStateRequestId) {
+                    loadingHistoricalSeaState.value = false;
+                }
+            }
+        };
+
+        const initializeHistoricalSeaStateView = async () => {
+            if (
+                currentTab.value !== '历史数据'
+                || !activePanels.value.historySeaState
+                || selectedHistoricalSeaStateArea.value
+                || !historicalSeaStateQuickAreas.value.length
+                || historicalSeaStateAutoSelecting
+            ) {
+                return;
+            }
+
+            historicalSeaStateAutoSelecting = true;
+
+            try {
+                await handleHistoricalSeaStateAreaSelect(historicalSeaStateQuickAreas.value[0], {
+                    focusMap: true,
+                    resetPage: true
+                });
+            } finally {
+                historicalSeaStateAutoSelecting = false;
+            }
+        };
         
         // 地图选点状态
         const pickingPointType = ref(null); // 'start', 'end', 或 null
@@ -719,6 +2178,43 @@ export default {
         const toggleMiningWeatherMonitor = () => {
             activePanels.value.miningWeatherMonitor = !activePanels.value.miningWeatherMonitor;
         };
+
+        const toggleMiningScience = () => {
+            const nextOpen = !activePanels.value.miningScience;
+            activePanels.value.miningScience = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+
+            if (nextOpen) {
+                activePanels.value.query = false;
+                activePanels.value.layers = false;
+                activePanels.value.miningWeatherMonitor = false;
+                closeMiningAreaSelection();
+                closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            } else {
+                pickingPointType.value = null;
+            }
+        };
+
+        const closeMiningScience = () => {
+            activePanels.value.miningScience = false;
+            pickingPointType.value = null;
+            isRightPanelCollapsed.value = false;
+            routeToDraw.value = {
+                action: 'clear',
+                timestamp: Date.now()
+            };
+        };
+
+        const handleMiningScienceRouteChange = (routeData) => {
+            if (!routeData) {
+                return;
+            }
+
+            routeToDraw.value = {
+                ...routeData,
+                timestamp: Date.now()
+            };
+        };
         
         /**
          * 切换航线演示面板的显示状态
@@ -727,16 +2223,237 @@ export default {
             activePanels.value.routeDemo = !activePanels.value.routeDemo;
             
             if (activePanels.value.routeDemo) {
+                activePanels.value.pipeSelection = false;
+                activePanels.value.shipSearch = false;
+                activePanels.value.routePlan = false;
+                activePanels.value.areaMonitor = false;
+                clearRouteWeatherState();
+
                 // 打开演示面板时，通知地图组件初始化演示
                 if (mapContainerRef.value && mapContainerRef.value.initRouteDemo) {
                     mapContainerRef.value.initRouteDemo();
                 }
             } else {
-                // 关闭演示面板时，清除演示
-                if (mapContainerRef.value && mapContainerRef.value.clearRouteDemo) {
-                    mapContainerRef.value.clearRouteDemo();
-                }
+                clearRouteDemoState({ hidePanel: false });
             }
+        };
+
+        const closeHistoricalTyphoon = () => {
+            activePanels.value.historyTyphoon = false;
+            isRightPanelCollapsed.value = false;
+            historicalTyphoonOverviewRequestId += 1;
+            historicalTyphoonSupplementaryRequestId += 1;
+            loadingHistoricalTyphoon.value = false;
+            loadingHistoricalTyphoonWindow.value = false;
+            clearHistoricalTyphoonTrack({ clearEvent: true });
+        };
+
+        const toggleHistoricalTyphoon = async () => {
+            const nextOpen = !activePanels.value.historyTyphoon;
+            activePanels.value.historyTyphoon = nextOpen;
+
+            if (!nextOpen) {
+                closeHistoricalTyphoon();
+                return;
+            }
+
+            activePanels.value.historySeaState = false;
+            historicalSeaStateRequestId += 1;
+            loadingHistoricalSeaState.value = false;
+            isRightPanelCollapsed.value = true;
+
+            if (selectedHistoricalTyphoonArea.value) {
+                await loadHistoricalTyphoonOverview(selectedHistoricalTyphoonArea.value, {
+                    preserveSelection: true
+                });
+                return;
+            }
+
+            await initializeHistoricalTyphoonView();
+        };
+
+        const closeHistoricalSeaState = () => {
+            activePanels.value.historySeaState = false;
+            isRightPanelCollapsed.value = false;
+            historicalSeaStateRequestId += 1;
+            loadingHistoricalSeaState.value = false;
+        };
+
+        const toggleHistoricalSeaState = async () => {
+            const nextOpen = !activePanels.value.historySeaState;
+            activePanels.value.historySeaState = nextOpen;
+
+            if (!nextOpen) {
+                closeHistoricalSeaState();
+                return;
+            }
+
+            activePanels.value.historyTyphoon = false;
+            historicalTyphoonOverviewRequestId += 1;
+            historicalTyphoonSupplementaryRequestId += 1;
+            loadingHistoricalTyphoon.value = false;
+            loadingHistoricalTyphoonWindow.value = false;
+            clearHistoricalTyphoonTrack({ clearEvent: true });
+            isRightPanelCollapsed.value = true;
+
+            if (selectedHistoricalSeaStateArea.value) {
+                await loadHistoricalSeaStateOverview(selectedHistoricalSeaStateArea.value, {
+                    preserveSelection: true
+                });
+                return;
+            }
+
+            await initializeHistoricalSeaStateView();
+        };
+
+        const togglePipelineWarning = () => {
+            const nextOpen = !activePanels.value.pipelineWarning;
+            activePanels.value.pipelineWarning = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+        };
+
+        const closePipelineWarning = () => {
+            activePanels.value.pipelineWarning = false;
+            isRightPanelCollapsed.value = false;
+        };
+
+        const handleHistoricalTyphoonAreaSelect = async (area, options = {}) => {
+            const resolvedRegion = findHistoricalTyphoonRegion(area);
+            if (!resolvedRegion) {
+                return;
+            }
+
+            const { focusMap = true, resetPage = true, preserveSelection = false } = options;
+
+            if (focusMap) {
+                syncHistoricalTyphoonMapFocus(resolvedRegion);
+            }
+
+            selectedMiningAreaId.value = '';
+            await loadHistoricalTyphoonOverview(resolvedRegion, {
+                resetPage,
+                preserveSelection
+            });
+        };
+
+        const handleHistoricalTyphoonEventSelect = async (event) => {
+            if (!event) {
+                clearHistoricalTyphoonTrack({ clearEvent: true });
+                return;
+            }
+
+            selectedHistoricalTyphoonEvent.value = event;
+            await loadHistoricalTyphoonTrack(event);
+        };
+
+        const handleHistoricalTyphoonPageChange = async (page) => {
+            if (page === historicalTyphoonFilters.value.page) {
+                return;
+            }
+
+            historicalTyphoonFilters.value = {
+                ...historicalTyphoonFilters.value,
+                page
+            };
+
+            if (selectedHistoricalTyphoonArea.value) {
+                await loadHistoricalTyphoonOverview(selectedHistoricalTyphoonArea.value, {
+                    preserveSelection: false,
+                    refreshSupplementary: false
+                });
+            }
+        };
+
+        const handleHistoricalTyphoonFiltersChange = async (nextFilters) => {
+            const shouldRefreshSupplementary = ['startYear', 'endYear', 'bufferKm'].some(
+                (key) => nextFilters[key] !== undefined
+                    && nextFilters[key] !== historicalTyphoonFilters.value[key]
+            );
+
+            historicalTyphoonFilters.value = {
+                ...historicalTyphoonFilters.value,
+                ...nextFilters
+            };
+
+            if (selectedHistoricalTyphoonArea.value) {
+                await loadHistoricalTyphoonOverview(selectedHistoricalTyphoonArea.value, {
+                    preserveSelection: false,
+                    refreshSupplementary: shouldRefreshSupplementary
+                });
+            }
+        };
+
+        const handleHistoricalSeaStateAreaSelect = async (area, options = {}) => {
+            const resolvedArea = findHistoricalSeaStateArea(area);
+            if (!resolvedArea) {
+                return;
+            }
+
+            const { focusMap = true, resetPage = true, preserveSelection = false } = options;
+
+            if (focusMap) {
+                syncHistoricalSeaStateMapFocus(resolvedArea);
+            }
+
+            selectedMiningAreaId.value = '';
+            await loadHistoricalSeaStateOverview(resolvedArea, {
+                resetPage,
+                preserveSelection
+            });
+        };
+
+        const handleHistoricalSeaStateRecordSelect = (record) => {
+            selectedHistoricalSeaStateRecord.value = record || null;
+        };
+
+        const handleHistoricalSeaStatePageChange = (page) => {
+            if (page === historicalSeaStateFilters.value.page) {
+                return;
+            }
+
+            historicalSeaStateFilters.value = {
+                ...historicalSeaStateFilters.value,
+                page
+            };
+        };
+
+        const handleHistoricalSeaStateFiltersChange = async (nextFilters) => {
+            const shouldReload = ['startYear', 'endYear'].some(
+                (key) => nextFilters[key] !== undefined
+                    && nextFilters[key] !== historicalSeaStateFilters.value[key]
+            );
+
+            const mergedFilters = {
+                ...historicalSeaStateFilters.value,
+                ...nextFilters
+            };
+
+            historicalSeaStateFilters.value = mergedFilters;
+
+            if (shouldReload && selectedHistoricalSeaStateArea.value) {
+                await loadHistoricalSeaStateOverview(selectedHistoricalSeaStateArea.value, {
+                    preserveSelection: false
+                });
+                return;
+            }
+
+            const filteredRecords = filterSeaStateRecords(historicalSeaStateRecords.value, mergedFilters.dataType);
+            const maxPage = Math.max(1, Math.ceil(filteredRecords.length / (Number(mergedFilters.pageSize) || 1)));
+            if (mergedFilters.page > maxPage) {
+                historicalSeaStateFilters.value = {
+                    ...historicalSeaStateFilters.value,
+                    page: maxPage
+                };
+            }
+
+            if (
+                selectedHistoricalSeaStateRecord.value
+                && filteredRecords.some((record) => record.key === selectedHistoricalSeaStateRecord.value?.key)
+            ) {
+                return;
+            }
+
+            selectedHistoricalSeaStateRecord.value = filteredRecords[0] || null;
         };
         
         /**
@@ -777,6 +2494,7 @@ export default {
             if (mapContainerRef.value && mapContainerRef.value.stopRouteDemo) {
                 mapContainerRef.value.stopRouteDemo();
             }
+            closeRouteDemoAuxiliaryUi();
         };
         
         /**
@@ -793,7 +2511,7 @@ export default {
          * 处理矿区定位
          */
         const handleLocateMiningArea = (area) => {
-            console.log('📍 定位到矿区:', area.name);
+            console.log('📍 定位到矿区:', area.name || area.displayName || area.siteName || area.siteCode);
             // 通知 MapContainer 飞到矿区位置
             if (mapContainerRef.value && mapContainerRef.value.flyToMiningArea) {
                 mapContainerRef.value.flyToMiningArea(area);
@@ -831,9 +2549,14 @@ export default {
          */
         const handleRoutePlanned = (routeData) => {
             console.log('🗺️ 路径规划完成 → 启动航线演示');
+
+            currentRouteData.value = routeData;
+            clearRouteWeatherState();
             
             // 关闭路径规划面板
             activePanels.value.routePlan = false;
+            activePanels.value.shipSearch = false;
+            activePanels.value.areaMonitor = false;
             
             // 打开航线动态面板
             activePanels.value.routeDemo = true;
@@ -857,13 +2580,10 @@ export default {
                 // 清除所有：航线 + 气象线段 + 数据面板 + 取消选中状态
                 console.log('🗑️ 清除所有内容（航线+气象）');
                 currentRouteData.value = null;
-                activePanels.value.routeWeather = false;
-                showWeatherList.value = false;
-                weatherListData.value = [];
-                weatherFilter.value = null;
+                clearRouteWeatherState();
+                clearRouteDemoState();
                 // 通知地图组件清除航线和气象线段
                 routeToDraw.value = { action: 'clear', timestamp: Date.now() };
-                routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
             } else {
                 // 只清除航线（保留气象数据）
                 console.log('🗑️ 只清除航线');
@@ -909,6 +2629,16 @@ export default {
          */
         const handlePointPicked = (lng, lat) => {
             console.log('✅ 地图选点完成:', { lng, lat, type: pickingPointType.value });
+            if (
+                pickingPointType.value
+                && String(pickingPointType.value).startsWith('miningScience')
+                && miningScienceRef.value
+            ) {
+                miningScienceRef.value.setPickedPoint(lng, lat, pickingPointType.value);
+                pickingPointType.value = null;
+                return;
+            }
+
             if (pickingPointType.value && shipTrackingRef.value) {
                 shipTrackingRef.value.setPickedPoint(lng, lat, pickingPointType.value);
                 pickingPointType.value = null;
@@ -941,12 +2671,7 @@ export default {
             // 如果已经显示气象列表，则关闭它（切换功能）
             if (showWeatherList.value && activePanels.value.routeWeather) {
                 console.log('🗑️ 关闭航线气象（只清除气象线段，保留原始航线）');
-                showWeatherList.value = false;
-                weatherListData.value = [];
-                weatherFilter.value = null;
-                activePanels.value.routeWeather = false;
-                // 通知地图组件清除气象线段（保留原始航线）
-                routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
+                clearRouteWeatherState();
                 return;
             }
             
@@ -959,6 +2684,7 @@ export default {
             }
             
             console.log('🌦️ 开始航线气象分析:', dataToAnalyze);
+            currentRouteData.value = dataToAnalyze;
             // 设置航线气象为激活状态（橙色高亮）
             activePanels.value.routeWeather = true;
             // 通知地图组件进行气象分析
@@ -1014,13 +2740,7 @@ export default {
          */
         const handleClearWeatherList = () => {
             console.log('🗑️ 清除气象列表和气象线段');
-            showWeatherList.value = false;
-            weatherListData.value = [];
-            weatherFilter.value = null;
-            // 同时取消右侧按钮的高亮状态
-            activePanels.value.routeWeather = false;
-            // 通知地图组件清除气象数据
-            routeWeatherRequest.value = { action: 'clear', timestamp: Date.now() };
+            clearRouteWeatherState();
         };
 
         // ==================== 数据处理函数 ====================
@@ -1050,6 +2770,14 @@ export default {
                 miningData: data.miningData?.length,
                 regionCounts: data.regionCounts
             });
+
+            if (currentTab.value === '历史数据' && activePanels.value.historyTyphoon) {
+                initializeHistoricalTyphoonView();
+            }
+
+            if (currentTab.value === '历史数据' && activePanels.value.historySeaState) {
+                initializeHistoricalSeaStateView();
+            }
         };
 
         /**
@@ -1084,6 +2812,194 @@ export default {
                 mapContainerRef.value.flyToRegion(region);
             }
         };
+
+        const handleMiningRegionDateChange = async (forecastDate) => {
+            if (!selectedMiningRegion.value || !forecastDate || forecastDate === selectedMiningRegionDate.value) {
+                return;
+            }
+
+            selectedMiningRegionDate.value = forecastDate;
+            await Promise.all([
+                loadMiningRegionHourlyData(selectedMiningRegion.value.id, forecastDate),
+                selectedMiningRegionSite.value?.siteId
+                    ? loadMiningRegionSiteHourlyData(selectedMiningRegionSite.value.siteId, forecastDate)
+                    : Promise.resolve()
+            ]);
+        };
+
+        const handleMiningRegionSelect = async (region) => {
+            if (!region?.id) {
+                return;
+            }
+
+            closeMiningAreaSelection();
+
+            selectedMiningRegionId.value = String(region.id);
+            selectedMiningRegion.value = region;
+            selectedMiningRegionDaily.value = [];
+            selectedMiningRegionHourly.value = [];
+            selectedMiningRegionSites.value = [];
+            selectedMiningRegionDate.value = '';
+            clearMiningRegionSiteSelection({ clearAreaId: true });
+            showMiningRegionOverview.value = true;
+            loadingMiningRegionOverview.value = true;
+            loadingMiningRegionHourly.value = true;
+            isRightPanelCollapsed.value = true;
+
+            if (mapContainerRef.value && typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(region);
+            }
+
+            try {
+                const [dailyForecast, sites] = await Promise.all([
+                    fetchMiningOverviewRegionDaily(region.id),
+                    fetchMiningOverviewSites(region.id)
+                ]);
+
+                selectedMiningRegionDaily.value = dailyForecast;
+                selectedMiningRegionSites.value = sites;
+
+                const defaultForecastDate = dailyForecast[0]?.forecastDate || '';
+                selectedMiningRegionDate.value = defaultForecastDate;
+
+                if (defaultForecastDate) {
+                    await loadMiningRegionHourlyData(region.id, defaultForecastDate);
+                } else {
+                    selectedMiningRegionHourly.value = [];
+                    loadingMiningRegionHourly.value = false;
+                }
+            } catch (error) {
+                console.error('❌ 加载区域总览失败:', error);
+                selectedMiningRegionDaily.value = [];
+                selectedMiningRegionHourly.value = [];
+                selectedMiningRegionSites.value = [];
+                clearMiningRegionSiteSelection({ clearAreaId: true });
+                loadingMiningRegionHourly.value = false;
+            } finally {
+                loadingMiningRegionOverview.value = false;
+            }
+        };
+
+        const loadMiningAreaOverview = async (area, screenPosition = null) => {
+            const requestId = ++miningAreaOverviewRequestId;
+            updateMiningAreaOverviewPosition(screenPosition);
+            selectedMiningArea.value = buildPendingMiningAreaOverview(area);
+            selectedMiningAreaId.value = String(area.areaKey || area.businessId || area.id || '');
+            showMiningAreaOverview.value = true;
+            loadingMiningAreaOverview.value = true;
+
+            try {
+                const context = await resolveMiningAreaOverviewContext(area);
+                if (requestId !== miningAreaOverviewRequestId) {
+                    return;
+                }
+
+                const overview = await fetchMiningAreaOverview(area, context);
+                if (requestId !== miningAreaOverviewRequestId) {
+                    return;
+                }
+
+                selectedMiningArea.value = {
+                    ...selectedMiningArea.value,
+                    ...area,
+                    ...overview,
+                    polygon: area.polygon || overview.polygon || []
+                };
+                selectedMiningAreaId.value = String(selectedMiningArea.value.areaKey || selectedMiningArea.value.id || area.id || '');
+            } catch (error) {
+                if (requestId === miningAreaOverviewRequestId) {
+                    console.error('❌ 加载矿区总览失败:', error);
+                }
+            } finally {
+                if (requestId === miningAreaOverviewRequestId) {
+                    loadingMiningAreaOverview.value = false;
+                }
+            }
+        };
+
+        const handleMiningAreaSelect = async (payload) => {
+            const { area, screenPosition } = normalizeMiningAreaSelection(payload);
+            if (!area) return;
+
+            selectedMiningAreaId.value = String(area.areaKey || area.businessId || area.id || '');
+
+            if (showMiningRegionOverview.value) {
+                if (mapContainerRef.value && mapContainerRef.value.focusMiningArea) {
+                    const focused = mapContainerRef.value.focusMiningArea(area, screenPosition);
+                    if (focused) {
+                        return;
+                    }
+                }
+
+                await loadMiningRegionSiteSelection(area);
+                return;
+            }
+
+            if (mapContainerRef.value && mapContainerRef.value.focusMiningArea) {
+                const focused = mapContainerRef.value.focusMiningArea(area, screenPosition);
+                if (focused) {
+                    return;
+                }
+            }
+
+            await loadMiningAreaOverview(area, screenPosition);
+        };
+
+        const handleMapAreaSelected = async (payload) => {
+            const { area, screenPosition } = normalizeMiningAreaSelection(payload);
+            if (!area) {
+                if (showMiningRegionOverview.value) {
+                    clearMiningRegionSiteSelection({ clearAreaId: true });
+                    return;
+                }
+
+                closeMiningAreaOverview();
+                return;
+            }
+
+            if (currentTab.value === '历史数据') {
+                if (activePanels.value.historyTyphoon) {
+                    await handleHistoricalTyphoonAreaSelect(area, {
+                        focusMap: false,
+                        resetPage: true
+                    });
+                }
+                if (activePanels.value.historySeaState) {
+                    await handleHistoricalSeaStateAreaSelect(area, {
+                        focusMap: false,
+                        resetPage: true
+                    });
+                }
+                return;
+            }
+
+            if (!['矿区总览', '态势总览'].includes(currentTab.value)) {
+                return;
+            }
+
+            if (showMiningRegionOverview.value) {
+                selectedMiningAreaId.value = String(area.areaKey || area.businessId || area.id || '');
+                await loadMiningRegionSiteSelection(area);
+                return;
+            }
+
+            await loadMiningAreaOverview(area, screenPosition);
+        };
+
+        const closeMiningAreaOverview = () => {
+            closeMiningAreaSelection();
+        };
+
+        const handleAddMiningAreaToMonitoring = async (area) => {
+            if (!area) return;
+
+            activePanels.value.miningWeatherMonitor = true;
+
+            await nextTick();
+            if (miningWeatherMonitorRef.value && typeof miningWeatherMonitorRef.value.addArea === 'function') {
+                miningWeatherMonitorRef.value.addArea(area);
+            }
+        };
         
         /**
          * 处理气象图层变化事件
@@ -1111,6 +3027,15 @@ export default {
                     // 触发更新
                     weatherLayerState.value = [...weatherLayerState.value];
                     console.log('✅ 图层已更新:', layer.label, layer.active);
+
+                    const hasActiveWeatherLayer = weatherLayerState.value.some(group =>
+                        (group.subLayers || []).some(subLayer => subLayer.active)
+                    );
+
+                    if (!hasActiveWeatherLayer) {
+                        invokeMapMethod('closeWeatherPicker');
+                        invokeMapMethod('closeWeatherInfo');
+                    }
                 }
             }
         };
@@ -1160,64 +3085,75 @@ export default {
          */
         const handleTabChange = (tab) => {
             console.log('切换选项卡:', tab);
+
+            if (currentTab.value === '采矿系统' && tab !== '采矿系统') {
+                clearRouteWeatherState();
+                clearRouteDemoState();
+            }
+
+            if (currentTab.value === '环境监测' && tab !== '环境监测') {
+                resetEnvironmentMonitoringState();
+            }
+
+            if (currentTab.value === '矿区总览' && tab !== '矿区总览') {
+                closeMiningScience();
+                closeMiningRegionOverview();
+            }
+
+            if (currentTab.value === '历史数据' && tab !== '历史数据') {
+                clearHistoricalTyphoonTrack({ clearEvent: true });
+                historicalSeaStateRequestId += 1;
+                loadingHistoricalSeaState.value = false;
+            }
+
+            if (!['矿区总览', '态势总览'].includes(tab)) {
+                closeMiningAreaSelection();
+            }
+
             currentTab.value = tab;
             
             // 根据选项卡切换右侧功能面板
-            if (tab === '矿区管理') {
-                // 矿区管理：自动打开矿区查询和图层控制，关闭气象图层
+            if (tab === '矿区总览') {
                 showTimeline.value = false;
-                activePanels.value = {
-                    list: false,
-                    mapTools: false,
-                    query: true,          // 自动打开矿区查询
-                    layers: true,         // 自动打开图层控制
-                    weatherLayers: false, // 关闭气象图层
-                    shipSearch: false,
-                    historyTrack: false,
-                    routePlan: false
-                };
+                activePanels.value = createActivePanels({
+                    query: true
+                });
+                isRightPanelCollapsed.value = false;
             } else if (tab === '态势总览') {
-                // 态势总览：保持当前状态
                 showTimeline.value = false;
-            } else if (tab === '气象监测') {
-                // 气象监测：显示时间轴 + 自动打开气象图层面板，关闭矿区相关面板
+                activePanels.value = createActivePanels();
+                isRightPanelCollapsed.value = false;
+            } else if (tab === '环境监测') {
                 showTimeline.value = true;
-                activePanels.value = {
-                    list: false,
-                    mapTools: false,
-                    query: false,         // 关闭矿区查询
-                    layers: false,        // 关闭图层控制
-                    weatherLayers: true,  // 自动打开气象图层
-                    shipSearch: false,    // 关闭船舶搜索
-                    historyTrack: false,
-                    routePlan: false
-                };
-            } else if (tab === '船舶追踪') {
-                // 船舶追踪：默认打开船舶搜索和历史轨迹
+                activePanels.value = createActivePanels({
+                    weatherLayers: true
+                });
+                isRightPanelCollapsed.value = false;
+            } else if (tab === '采矿系统') {
                 showTimeline.value = false;
-                activePanels.value = {
-                    list: false,
-                    mapTools: false,
-                    query: false,
-                    layers: false,
-                    weatherLayers: false,
-                    shipSearch: true,
-                    routePlan: false,
-                    historyTrack: true
-                };
+                activePanels.value = createActivePanels({
+                    pipeSelection: true
+                });
+                isRightPanelCollapsed.value = true;
+            } else if (tab === '预警中心') {
+                showTimeline.value = false;
+                activePanels.value = createActivePanels({
+                    pipelineWarning: true
+                });
+                isRightPanelCollapsed.value = true;
+            } else if (tab === '历史数据') {
+                showTimeline.value = false;
+                activePanels.value = createActivePanels({
+                    historyTyphoon: true
+                });
+                isRightPanelCollapsed.value = true;
+                nextTick(() => {
+                    initializeHistoricalTyphoonView();
+                });
             } else {
-                // 其他选项卡：关闭所有面板
                 showTimeline.value = false;
-                activePanels.value = {
-                    list: false,
-                    mapTools: false,
-                    query: false,
-                    layers: false,
-                    weatherLayers: false,
-                    shipSearch: false,
-                    historyTrack: false,
-                    routePlan: false
-                };
+                activePanels.value = createActivePanels();
+                isRightPanelCollapsed.value = false;
             }
         };
 
@@ -1234,11 +3170,17 @@ export default {
             
             // 连接 WebSocket
             connectWebSocket();
+
+            // 加载区域总览的大矿区列表
+            loadMiningOverviewRegions();
             
             // 监听来自 MapContainer 的打开航线演示事件
             window.addEventListener('openRouteDemo', () => {
                 console.log('📡 收到打开航线演示事件');
                 activePanels.value.routePlan = false;
+                activePanels.value.shipSearch = false;
+                activePanels.value.areaMonitor = false;
+                clearRouteWeatherState();
                 activePanels.value.routeDemo = true;
             });
             
@@ -1278,7 +3220,7 @@ export default {
         
         // WebSocket 连接函数
         const connectWebSocket = () => {
-            const WS_URL = 'ws://127.0.0.1:8081';
+            const WS_URL = 'ws://172.25.113.128:8082';
             
             console.log('🔌 连接 WebSocket:', WS_URL);
             
@@ -1546,12 +3488,24 @@ export default {
             toggleLayers,
             toggleWeatherLayers,
             toggleShipSearch,
+            togglePipeSelection,
+            closePipeSelection,
             toggleRoutePlan,
             toggleAreaMonitor,
             toggleHistoryTrack,
             toggleShipList,
             toggleMiningWeatherMonitor,
+            toggleMiningScience,
+            closeMiningScience,
+            handleMiningScienceRouteChange,
+            miningSciencePreset,
             toggleRouteDemo,
+            toggleHistoricalTyphoon,
+            closeHistoricalTyphoon,
+            toggleHistoricalSeaState,
+            closeHistoricalSeaState,
+            togglePipelineWarning,
+            closePipelineWarning,
             handleDemoPlay,
             handleDemoPause,
             handleDemoResume,
@@ -1563,11 +3517,78 @@ export default {
             handleRegionLocate,
             handleWeatherLayersChange,
             handleWeatherLayerToggle,
+            handleMiningRegionSelect,
+            handleMiningRegionDateChange,
+            handleMiningAreaSelect,
+            handleMapAreaSelected,
+            handleHistoricalTyphoonAreaSelect,
+            handleHistoricalTyphoonEventSelect,
+            handleHistoricalTyphoonPageChange,
+            handleHistoricalTyphoonFiltersChange,
+            handleHistoricalSeaStateAreaSelect,
+            handleHistoricalSeaStateRecordSelect,
+            handleHistoricalSeaStatePageChange,
+            handleHistoricalSeaStateFiltersChange,
+            closeMiningAreaOverview,
+            closeMiningRegionOverview,
+            handleAddMiningAreaToMonitoring,
             handleTabChange,
             filters,
             availableCountries,
             allMiningData,
             filteredMiningData,
+            miningOverviewRegions,
+            miningOverviewRegionOptions,
+            loadingMiningOverviewRegions,
+            selectedMiningArea,
+            selectedMiningAreaId,
+            showMiningAreaOverview,
+            loadingMiningAreaOverview,
+            miningAreaOverviewPosition,
+            selectedMiningRegion,
+            selectedMiningRegionId,
+            selectedMiningRegionDaily,
+            selectedMiningRegionHourly,
+            selectedMiningRegionSites,
+            selectedMiningRegionDate,
+            selectedMiningRegionSite,
+            selectedMiningRegionSiteDaily,
+            selectedMiningRegionSiteHourly,
+            showMiningRegionOverview,
+            loadingMiningRegionOverview,
+            loadingMiningRegionHourly,
+            loadingMiningRegionSite,
+            loadingMiningRegionSiteHourly,
+            selectedHistoricalTyphoonArea,
+            historicalTyphoonSummary,
+            historicalTyphoonEvents,
+            historicalTyphoonYearly,
+            historicalTyphoonWindow,
+            historicalTyphoonTrack,
+            historicalTyphoonTotal,
+            historicalTyphoonError,
+            historicalTyphoonWindowError,
+            selectedHistoricalTyphoonEvent,
+            loadingHistoricalTyphoon,
+            loadingHistoricalTyphoonTrack,
+            loadingHistoricalTyphoonWindow,
+            historicalTyphoonFilters,
+            historicalTyphoonQuickAreas,
+            selectedHistoricalSeaStateArea,
+            selectedHistoricalSeaStatePoint,
+            historicalSeaStateRecords,
+            historicalSeaStateSummary,
+            historicalSeaStateDisplaySummary,
+            historicalSeaStateFilteredRecords,
+            historicalSeaStatePagedRecords,
+            historicalSeaStateTotal,
+            historicalSeaStateError,
+            selectedHistoricalSeaStateRecord,
+            loadingHistoricalSeaState,
+            historicalSeaStateFilters,
+            historicalSeaStateQuickAreas,
+            typhoonTrackRequest,
+            isRightPanelCollapsed,
             layerState,
             weatherLayerState,
             activeWeatherLayers,
@@ -1585,6 +3606,7 @@ export default {
             handlePointPicked,
             pickingPointType,
             shipTrackingRef,
+            miningScienceRef,
             areaMonitorRef,
             mapContainerRef,
             miningWeatherMonitorRef,

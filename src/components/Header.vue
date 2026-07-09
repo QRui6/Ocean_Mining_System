@@ -19,7 +19,6 @@
                 <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.19em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
                     {{ APP_TITLE }}
                 </h1>
-                <div class="text-xs text-cyan-400 tracking-[0.5em] uppercase opacity-80 mt-2 font-['Orbitron'] font-bold">Deep Sea Mining Meteorological Support System</div>
             </div>
         </div>
 
@@ -72,7 +71,20 @@
             </nav>
             
             <!-- Time Block - 与左侧 Logo 区域对称 -->
-            <div class="flex w-[112px] items-center justify-end gap-3 ml-2 pl-4 pointer-events-auto flex-shrink-0">
+            <div
+                :class="[
+                    'flex items-center justify-end gap-3 ml-2 pl-4 pointer-events-auto flex-shrink-0',
+                    showMenuShortcut ? 'w-[188px]' : 'w-[112px]'
+                ]"
+            >
+                <button
+                    v-if="showMenuShortcut"
+                    @click="emitMenuShortcut"
+                    class="flex h-10 items-center justify-center rounded-sm border border-cyan-500/35 bg-slate-950/85 px-4 text-sm font-bold tracking-[0.2em] text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.12)] transition-all hover:border-cyan-300 hover:bg-cyan-500 hover:text-slate-950"
+                    title="展开右侧菜单"
+                >
+                    菜单
+                </button>
                 <!-- Time Display -->
                 <div class="flex flex-col leading-tight text-right">
                     <span class="text-base tracking-widest opacity-80 text-cyan-200 font-bold font-['Rajdhani']">{{ formatDate(time) }}</span>
@@ -92,19 +104,29 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { APP_TITLE, TOP_TABS } from '../constants.js';
 
 export default {
-    emits: ['tabChange'], // 向父组件发送选项卡切换事件
+    props: {
+        currentTab: {
+            type: String,
+            default: ''
+        },
+        showMenuShortcut: {
+            type: Boolean,
+            default: false
+        }
+    },
+    emits: ['tabChange', 'menuShortcut'], // 向父组件发送选项卡切换事件
     setup(props, { emit }) {
         // ==================== 状态管理 ====================
         
         // 当前时间（用于右上角时间显示）
         const time = ref(new Date());
         
-        // 当前激活的选项卡（默认：矿区管理）
-        const activeTab = ref(TOP_TABS[0]);
+        // 当前激活的选项卡由父组件驱动，避免头部高亮和页面状态不一致
+        const activeTab = computed(() => props.currentTab || TOP_TABS[0]);
         
         const SIDE_WIDTH = 570;
         const LEFT_RESERVED_WIDTH = 112;
-        const RIGHT_RESERVED_WIDTH = 112;
+        const RIGHT_RESERVED_WIDTH = computed(() => (props.showMenuShortcut ? 188 : 112));
         const NAV_HORIZONTAL_PADDING = 24;
         const TAB_GAP = 12;
         const TAB_MAX_WIDTH = 132;
@@ -133,8 +155,11 @@ export default {
          * 2. 向父组件发送 tabChange 事件
          */
         const selectTab = (tab) => {
-            activeTab.value = tab;
             emit('tabChange', tab);
+        };
+
+        const emitMenuShortcut = () => {
+            emit('menuShortcut');
         };
 
         /**
@@ -149,7 +174,7 @@ export default {
                 };
             }
 
-            const reservedWidth = side === 'right' ? RIGHT_RESERVED_WIDTH : LEFT_RESERVED_WIDTH;
+            const reservedWidth = side === 'right' ? RIGHT_RESERVED_WIDTH.value : LEFT_RESERVED_WIDTH;
             const availableWidth = SIDE_WIDTH - reservedWidth - NAV_HORIZONTAL_PADDING - TAB_GAP * Math.max(count - 1, 0);
             const buttonWidth = Math.max(
                 TAB_MIN_WIDTH,
@@ -216,7 +241,8 @@ export default {
             leftTabs,
             rightTabs,
             selectTab,
-            getTabButtonStyle
+            getTabButtonStyle,
+            emitMenuShortcut
         };
     }
 };

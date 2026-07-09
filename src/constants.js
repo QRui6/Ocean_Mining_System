@@ -33,10 +33,7 @@ export const getLayersByOcean = () => {
             active: true,
             subLayers: [
                 { id: 'typhoon', label: '台风路径预警', active: false },
-                { id: 'surge', label: '风暴潮预警', active: false },
                 { id: 'tsunami', label: '海啸传播预警', active: false },
-                { id: 'extreme_ocean', label: '极端海洋环境', active: false },
-                { id: 'extreme_atmosphere', label: '极端大气环境', active: false },
                 { id: 'internal_wave', label: '内波', active: false },
             ]
         },
@@ -130,55 +127,51 @@ export const MOCK_MINING_INFO = {
 
 // 顶部选项卡（4个，左2右2）
 export const TOP_TABS = [
-    '态势总览',
-    '矿区管理',
-    '船舶追踪',
-    '气象监测',
+    '矿区总览',
+    '采矿系统',
+    '环境监测',
     '预警中心',
-    '数据中心',
+    '历史数据',
+    '态势总览'
 ];
 
 // 选项卡图标
 export const TAB_ICONS = {
-    '矿区管理': '',
-    '船舶追踪': '',
-    '气象监测': '',
-    '数据中心': ''
+    '矿区总览': '',
+    '采矿系统': '',
+    '环境监测': '',
+    '历史数据': ''
 };
 
 // 选项卡与右侧功能的映射关系
 export const TAB_TOOLS_MAPPING = {
-    '矿区管理': [
+    '矿区总览': [
         '地图工具',
         '矿区查询',
         '图层控制',
-        '矿区列表',
-        '矿区气象'
+        '矿区气象',
+        '矿区科普'
     ],
-    '船舶追踪': [
+    '采矿系统': [
         '地图工具',
+        '管道评估',
         '船舶搜索',
-        '船舶列表',
-        '历史轨迹',
         '航线规划',
-        '航线气象',
         '航线动态',
         '区域监控'
     ],
-    '气象监测': [
+    '预警中心': [
         '地图工具',
-        '气象图层',
-        '气象分析',
-        '预警列表',
-        '风险评估',
-        '台风预警',
-        '预警设置'
+        '管道预警'
     ],
-    '数据中心': [
+    '环境监测': [
         '地图工具',
-        '统计报表',
-        '数据导出',
-        '历史查询'
+        '气象图层'
+    ],
+    '历史数据': [
+        '地图工具',
+        '历史台风',
+        '历史海况'
     ],
     '数据导出': [
         '地图工具',
@@ -236,15 +229,6 @@ export const WEATHER_LAYER_GROUPS = [
                 url: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
             },
             { 
-                id: 'owm_wind', 
-                label: '风速分布', 
-                active: false, 
-                hasTimeline: false, 
-                dataSource: 'OpenWeatherMap',
-                type: 'imagery',
-                url: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPENWEATHERMAP_API_KEY}`
-            },
-            { 
                 id: 'owm_pressure', 
                 label: '气压分布', 
                 active: false, 
@@ -262,16 +246,6 @@ export const WEATHER_LAYER_GROUPS = [
         subLayers: [
             { id: 'typhoon', label: '台风路径预警', active: false, hasTimeline: false, dataSource: '船讯网API' },
             { id: 'tsunami', label: '海啸传播预警', active: false, hasTimeline: true, dataSource: 'NOAA PTWC' },
-            { id: 'storm_surge', label: '风暴潮预警', active: false, hasTimeline: true, dataSource: 'NOAA' }
-        ]
-    },
-    {
-        id: 'extreme_environment',
-        label: '极端环境',
-        active: true,
-        subLayers: [
-            { id: 'extreme_ocean', label: '极端海洋环境', active: false, hasTimeline: true, dataSource: 'NOAA' },
-            { id: 'extreme_atmosphere', label: '极端大气环境', active: false, hasTimeline: true, dataSource: 'ECMWF' },
             { id: 'internal_wave', label: '内波', active: false, hasTimeline: true, dataSource: 'NASA HRET14' }
         ]
     }

@@ -15,8 +15,6 @@
             <div class="flex items-center mb-6 border-b-2 border-orange-500/30 pb-3">
                 <div class="w-1.5 h-6 bg-orange-400 mr-3 shadow-[0_0_10px_#fb923c]"></div>
                 <h3 class="text-2xl font-bold text-white tracking-wider flex-1">矿区气象监测</h3>
-                <div class="text-xs font-['Orbitron'] text-orange-500 opacity-80 font-bold tracking-widest">WEATHER
-                    MONITOR</div>
             </div>
 
             <!-- 阈值设置 -->
@@ -567,7 +565,7 @@ export default {
                 console.log('📊 加载气象统计数据:', area.monitoringId);
 
                 // 调用新的气象统计API
-                const response = await fetch(`http://127.0.0.1:8081/api/mining-monitoring/${area.monitoringId}/weather-stats`);
+                const response = await fetch(`http://172.25.113.128:8082/api/mining-monitoring/${area.monitoringId}/weather-stats`);
                 const result = await response.json();
 
                 if (result.success && result.data) {

@@ -1248,6 +1248,9 @@ setInterval(async () => {
 
 // ==================== Copernicus 数据服务 ====================
 
+const miningAreaOverviewRoutes = require('./routes/miningAreaOverviewRoutes');
+app.use('/api/mining-areas', miningAreaOverviewRoutes);
+
 // 初始化 Copernicus 数据服务
 const CopernicusDataService = require('./services/copernicusDataService');
 const copernicusService = new CopernicusDataService();

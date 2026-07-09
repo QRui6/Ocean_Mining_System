@@ -11,7 +11,6 @@
                 <div class="flex items-center mb-4 border-b-2 border-purple-500/30 pb-3 flex-shrink-0">
                     <div class="w-1.5 h-6 bg-purple-400 mr-3 shadow-[0_0_10px_#a855f7]"></div>
                     <h3 class="text-2xl font-bold text-white tracking-wider flex-1">区域监控</h3>
-                    <div class="text-xs font-['Orbitron'] text-purple-500 opacity-80 font-bold tracking-widest">AREA MONITOR</div>
                 </div>
                 
                 <!-- 可滚动内容 -->

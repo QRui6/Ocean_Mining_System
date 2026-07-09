@@ -310,6 +310,11 @@ export default {
             type: Object,
             default: null
         },
+        // 历史台风轨迹绘制请求
+        typhoonTrackRequest: {
+            type: Object,
+            default: null
+        },
         // 航线气象分析请求
         routeWeatherRequest: {
             type: Object,
@@ -326,7 +331,7 @@ export default {
             default: null
         }
     },
-    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked'],
+    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked', 'areaSelected'],
     setup(props, { emit }) {
         const cesiumContainer = ref(null);
         const selectedArea = ref(null);
@@ -337,6 +342,7 @@ export default {
         const is3D = ref(true);
         let allEntities = []; // 存储所有实体
         let previousEntity = null; // 存储上一个选中的实体
+        let regionFocusEntity = null; // 大矿区高亮实体
         let windLayer = null; // 风场图层实例
         const showWind = ref(false); // 风场显示状态
         let waveLayer = null; // 波浪图层实例
@@ -353,6 +359,69 @@ export default {
         const shipInfoPosition = ref({ x: 0, y: 0 }); // 船舶信息窗口位置
         const selectedWeather = ref(null); // 选中的气象信息
         const weatherInfoPosition = ref({ x: 0, y: 0 }); // 气象信息窗口位置
+
+        const getEntityProperty = (entity, propertyName, fallback = '') => (
+            entity?.properties?.[propertyName]?.getValue?.() ?? fallback
+        );
+
+        const normalizeMiningLocation = (areaId, location) => {
+            if (String(areaId) === 'COMRAPMS1') {
+                return '印度洋';
+            }
+
+            return location || '未知';
+        };
+
+        const buildMiningAreaKey = (areaId, location) => `${areaId || 'unknown'}::${location || '未知'}`;
+
+        const selectPreferredMineral = (values) => {
+            const knownValues = [...values].filter(value => value && value !== '未知');
+            return knownValues.find(value => !value.includes('保留区')) || knownValues[0] || '未知';
+        };
+
+        const buildMiningAreaList = (entities) => {
+            const groupedAreas = new Map();
+
+            entities.forEach((entity, index) => {
+                if (!entity.properties) return;
+
+                const id = getEntityProperty(entity, 'id', entity.id || `area-${index}`);
+                const rawLocation = getEntityProperty(entity, 'location', '未知');
+                const location = normalizeMiningLocation(id, rawLocation);
+                const areaKey = buildMiningAreaKey(id, location);
+
+                entity._normalizedLocation = location;
+                entity._miningAreaKey = areaKey;
+
+                if (!groupedAreas.has(areaKey)) {
+                    groupedAreas.set(areaKey, {
+                        areaKey,
+                        id,
+                        businessId: id,
+                        name: entity.name || getEntityProperty(entity, 'contractor', `矿区 ${groupedAreas.size + 1}`),
+                        contractor: getEntityProperty(entity, 'contractor', '未知'),
+                        sponsor: getEntityProperty(entity, 'sponsor', '未知'),
+                        mineral: getEntityProperty(entity, 'mineral', '未知'),
+                        location,
+                        dateRange: getEntityProperty(entity, 'date_range', '未知'),
+                        area: getEntityProperty(entity, 'area_km2', 0),
+                        featureCount: 0,
+                        entityIds: [],
+                        mineralValues: new Set()
+                    });
+                }
+
+                const groupedArea = groupedAreas.get(areaKey);
+                groupedArea.featureCount += 1;
+                groupedArea.entityIds.push(entity.id);
+                groupedArea.mineralValues.add(getEntityProperty(entity, 'mineral', '未知'));
+            });
+
+            return [...groupedAreas.values()].map(({ mineralValues, ...area }) => ({
+                ...area,
+                mineral: selectPreferredMineral(mineralValues)
+            }));
+        };
         let shipLayer = null; // 船舶图层实例
         const showRoutePlan = ref(false); // 路径规划面板显示状态
         let routeLayer = null; // 航线图层实例
@@ -587,22 +656,10 @@ export default {
                 console.log('🎨 已应用官方图例配色方案');
                 console.log('📊 提取到的国家:', Array.from(countries).sort());
                 
-                // 提取矿区数据用于表格显示
-                const miningData = entities.map((entity, index) => {
-                    if (!entity.properties) return null;
-                    
-                    return {
-                        id: entity.properties.id?.getValue() || `area-${index}`,
-                        contractor: entity.properties.contractor?.getValue() || '未知',
-                        sponsor: entity.properties.sponsor?.getValue() || '未知',
-                        mineral: entity.properties.mineral?.getValue() || '未知',
-                        location: entity.properties.location?.getValue() || '未知',
-                        dateRange: entity.properties.date_range?.getValue() || '未知',
-                        area: entity.properties.area_km2?.getValue() || 0
-                    };
-                }).filter(item => item !== null);
+                // 提取矿区数据用于列表显示，同一矿区的多个 polygon 片段合并为一条。
+                const miningData = buildMiningAreaList(entities);
                 
-                console.log('📋 提取到的矿区数据:', miningData.length, '条');
+                console.log('📋 提取到的矿区数据:', miningData.length, '条唯一矿区');
                 
                 // 发送数据给父组件(包含区域统计)
                 const regionCounts = calculateRegionCounts(entities);
@@ -888,85 +945,12 @@ export default {
                     
                     if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polygon) {
                         const entity = pickedObject.id;
-                        previousEntity = entity;
-                        
-                        // 高亮选中的实体（增强效果：更亮的颜色 + 青色发光边框）
-                        // 方案1: 让原色更亮（提高亮度）
-                        const brightColor = entity._originalColor.brighten(0.3, new Cesium.Color());
-                        entity.polygon.material = brightColor.withAlpha(1.0);
-                        
-                        // 方案2: 青色发光边框
-                        entity.polygon.outlineColor = Cesium.Color.CYAN;
-                        entity.polygon.outlineWidth = 6;
-                        
-                        // 获取属性
-                        const props = {};
-                        if (entity.properties) {
-                            entity.properties.propertyNames.forEach(name => {
-                                props[name] = entity.properties[name]?.getValue();
-                            });
-                        }
-                        
-                        console.log('✅ 点击成功:', props);
-                        
-                        // 计算信息面板位置（点击位置作为左上角）
-                        const panelWidth = 320; // 20rem = 320px
-                        const panelHeight = 280; // 估计高度
-                        const margin = 10; // 容器边缘安全距离
-                        
-                        // 使用原始屏幕坐标
-                        const containerWidth = window.innerWidth;
-                        const containerHeight = window.innerHeight;
-                        
-                        // 默认：点击位置作为面板左上角
-                        let x = click.position.x;
-                        let y = click.position.y;
-                        
-                        // 边界检测：防止超出右边界
-                        if (x + panelWidth > containerWidth - margin) {
-                            x = containerWidth - panelWidth - margin;
-                        }
-                        
-                        // 边界检测：防止超出下边界
-                        if (y + panelHeight > containerHeight - margin) {
-                            y = containerHeight - panelHeight - margin;
-                        }
-                        
-                        // 边界检测：防止超出左边界
-                        if (x < margin) {
-                            x = margin;
-                        }
-                        
-                        // 边界检测：防止超出上边界
-                        if (y < margin) {
-                            y = margin;
-                        }
-                        
-                        console.log('📍 面板位置:', { 
-                            x, y, 
-                            originalClickX: click.position.x,
-                            originalClickY: click.position.y,
-                            scale: { scaleX, scaleY }
-                        });
-                        
-                        infoPosition.value = { x, y };
-                        
-                        // 显示信息（使用正确的字段名）
-                        selectedArea.value = {
-                            id: props.id || '未知',
-                            contractor: props.contractor || '未知',
-                            sponsor: props.sponsor || '未知',
-                            mineral: props.mineral || '未知',
-                            location: props.location || '未知',
-                            dateRange: props.date_range || '未知',
-                            area: props.area_km2 ? `${props.area_km2.toLocaleString()} km²` : '未知'
-                        };
-                        
-                        // 强制渲染
-                        viewer.scene.requestRender();
+                        const areaData = selectMiningAreaEntity(entity, click.position);
+                        console.log('✅ 点击矿区成功:', areaData);
                     } else {
                         // 点击空白处，关闭信息面板
                         selectedArea.value = null;
+                        emit('areaSelected', null);
                         console.log('❌ 未点击到矿区，修正后坐标:', correctedPosition);
                     }
                 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -1007,6 +991,139 @@ export default {
             }
         };
 
+        const extractPolygonFromEntity = (entity) => {
+            if (!entity?.polygon?.hierarchy) {
+                return [];
+            }
+
+            const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
+            const positions = hierarchy?.positions || [];
+
+            return positions.map((pos) => {
+                const cartographic = Cesium.Cartographic.fromCartesian(pos);
+                return [
+                    Cesium.Math.toDegrees(cartographic.longitude),
+                    Cesium.Math.toDegrees(cartographic.latitude)
+                ];
+            });
+        };
+
+        const extractMiningAreaFromEntity = (entity) => {
+            const props = {};
+
+            if (entity?.properties) {
+                entity.properties.propertyNames.forEach((name) => {
+                    props[name] = entity.properties[name]?.getValue();
+                });
+            }
+
+            const polygon = extractPolygonFromEntity(entity);
+            const businessId = props.id || entity?.id || 'unknown';
+            const dbId = props.dbId || null;
+            const location = entity?._normalizedLocation || normalizeMiningLocation(businessId, props.location || '未知');
+            const areaKey = entity?._miningAreaKey || buildMiningAreaKey(businessId, location);
+
+            return {
+                areaKey,
+                id: businessId,
+                businessId,
+                dbId,
+                name: entity?.name || props.name || props.contractor || '未命名矿区',
+                contractor: props.contractor || '未知',
+                sponsor: props.sponsor || '未知',
+                mineral: props.mineral || '未知',
+                location,
+                dateRange: props.date_range || '未知',
+                area: props.area_km2 ? `${props.area_km2.toLocaleString()} km²` : '未知',
+                areaSize: props.area_km2 ? `${props.area_km2.toLocaleString()} km²` : '未知',
+                polygon
+            };
+        };
+
+        const normalizeRegionBoundaryPolygon = (boundaryPolygon) => {
+            if (!boundaryPolygon) {
+                return [];
+            }
+
+            let polygon = boundaryPolygon;
+
+            if (typeof polygon === 'string') {
+                try {
+                    polygon = JSON.parse(polygon);
+                } catch (error) {
+                    console.warn('⚠️ 区域边界 JSON 解析失败:', error);
+                    return [];
+                }
+            }
+
+            if (polygon?.type === 'Polygon' && Array.isArray(polygon.coordinates)) {
+                polygon = polygon.coordinates[0];
+            } else if (polygon?.type === 'MultiPolygon' && Array.isArray(polygon.coordinates)) {
+                polygon = polygon.coordinates[0]?.[0] || [];
+            } else if (polygon?.coordinates && Array.isArray(polygon.coordinates)) {
+                polygon = polygon.coordinates[0] || [];
+            }
+
+            if (Array.isArray(polygon) && Array.isArray(polygon[0]) && Array.isArray(polygon[0][0])) {
+                polygon = polygon[0];
+            }
+
+            if (!Array.isArray(polygon)) {
+                return [];
+            }
+
+            return polygon
+                .map((point) => {
+                    if (!Array.isArray(point) || point.length < 2) {
+                        return null;
+                    }
+
+                    const lng = Number(point[0]);
+                    const lat = Number(point[1]);
+
+                    if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+                        return null;
+                    }
+
+                    return [lng, lat];
+                })
+                .filter(Boolean);
+        };
+
+        const highlightMiningAreaEntity = (entity) => {
+            if (!entity?.polygon || !entity._originalColor) {
+                return;
+            }
+
+            if (previousEntity && previousEntity !== entity && previousEntity.polygon && previousEntity._originalColor) {
+                previousEntity.polygon.material = previousEntity._originalColor.withAlpha(0.5);
+                previousEntity.polygon.outlineColor = Cesium.Color.WHITE.withAlpha(0.9);
+                previousEntity.polygon.outlineWidth = 1;
+            }
+
+            previousEntity = entity;
+            const brightColor = entity._originalColor.brighten(0.3, new Cesium.Color());
+            entity.polygon.material = brightColor.withAlpha(1.0);
+            entity.polygon.outlineColor = Cesium.Color.CYAN;
+            entity.polygon.outlineWidth = 6;
+        };
+
+        const selectMiningAreaEntity = (entity, screenPosition = null) => {
+            highlightMiningAreaEntity(entity);
+            const areaData = extractMiningAreaFromEntity(entity);
+            selectedArea.value = null;
+            emit('areaSelected', {
+                area: areaData,
+                screenPosition
+            });
+
+            if (viewer) {
+                viewer.scene.requestRender();
+            }
+
+            return areaData;
+        };
+
         const closeInfo = () => {
             // 恢复上一个选中实体的样式
             if (previousEntity && previousEntity.polygon && previousEntity._originalColor) {
@@ -1022,6 +1139,249 @@ export default {
             if (viewer) {
                 viewer.scene.requestRender();
             }
+        };
+
+        const clearMiningRegionFocus = () => {
+            if (viewer && regionFocusEntity) {
+                viewer.entities.remove(regionFocusEntity);
+            }
+
+            regionFocusEntity = null;
+
+            if (viewer) {
+                viewer.scene.requestRender();
+            }
+        };
+
+        const clearTyphoonTrack = () => {
+            if (!viewer) {
+                return;
+            }
+
+            [
+                'typhoon-track-line',
+                'typhoon-track-start',
+                'typhoon-track-end',
+                'typhoon-track-impact-points',
+                'typhoon-track-closest-point'
+            ].forEach((entityId) => {
+                const entity = viewer.entities.getById(entityId);
+                if (entity) {
+                    viewer.entities.remove(entity);
+                }
+            });
+
+            viewer.scene.requestRender();
+        };
+
+        const getTyphoonFocusSegment = (points) => {
+            if (!Array.isArray(points) || !points.length) {
+                return {
+                    focusPoints: [],
+                    closestPoint: null
+                };
+            }
+
+            let longestImpactSegment = [];
+            let currentImpactSegment = [];
+
+            points.forEach((point) => {
+                if (point.inBuffer) {
+                    currentImpactSegment.push(point);
+                    if (currentImpactSegment.length > longestImpactSegment.length) {
+                        longestImpactSegment = [...currentImpactSegment];
+                    }
+                } else {
+                    currentImpactSegment = [];
+                }
+            });
+
+            if (longestImpactSegment.length) {
+                const middlePoint = longestImpactSegment[Math.floor(longestImpactSegment.length / 2)] || null;
+                return {
+                    focusPoints: longestImpactSegment,
+                    closestPoint: middlePoint
+                };
+            }
+
+            const nearestPointMeta = points.reduce((best, point, index) => {
+                const distance = Number(point.distanceToAreaKm);
+                if (!Number.isFinite(distance)) {
+                    return best;
+                }
+
+                if (!best || distance < best.distance) {
+                    return {
+                        point,
+                        index,
+                        distance
+                    };
+                }
+
+                return best;
+            }, null);
+
+            if (nearestPointMeta) {
+                const startIndex = Math.max(0, nearestPointMeta.index - 2);
+                const endIndex = Math.min(points.length, nearestPointMeta.index + 3);
+
+                return {
+                    focusPoints: points.slice(startIndex, endIndex),
+                    closestPoint: nearestPointMeta.point
+                };
+            }
+
+            const midIndex = Math.floor(points.length / 2);
+            const fallbackStartIndex = Math.max(0, midIndex - 2);
+            const fallbackEndIndex = Math.min(points.length, midIndex + 3);
+
+            return {
+                focusPoints: points.slice(fallbackStartIndex, fallbackEndIndex),
+                closestPoint: points[midIndex] || points[0] || null
+            };
+        };
+
+        const showTyphoonTrack = (track) => {
+            if (!viewer || !track?.points?.length) {
+                clearTyphoonTrack();
+                return;
+            }
+
+            clearTyphoonTrack();
+
+            const validPoints = track.points.filter((point) => (
+                Number.isFinite(Number(point.lon))
+                && Number.isFinite(Number(point.lat))
+            ));
+
+            if (!validPoints.length) {
+                return;
+            }
+
+            const positions = validPoints.map((point) => (
+                Cesium.Cartesian3.fromDegrees(Number(point.lon), Number(point.lat), 2000)
+            ));
+
+            const trackLineEntity = viewer.entities.add({
+                id: 'typhoon-track-line',
+                name: `${track.name || track.sid || '台风'}轨迹`,
+                polyline: {
+                    positions,
+                    width: 3,
+                    material: new Cesium.PolylineGlowMaterialProperty({
+                        glowPower: 0.12,
+                        taperPower: 0.4,
+                        color: Cesium.Color.CYAN.withAlpha(0.5)
+                    }),
+                    clampToGround: false
+                }
+            });
+
+            const startPoint = validPoints[0];
+            const endPoint = validPoints[validPoints.length - 1];
+
+            viewer.entities.add({
+                id: 'typhoon-track-start',
+                position: Cesium.Cartesian3.fromDegrees(Number(startPoint.lon), Number(startPoint.lat), 4000),
+                point: {
+                    pixelSize: 12,
+                    color: Cesium.Color.GREEN,
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2
+                },
+                label: {
+                    text: `${track.name || '台风'} 起点`,
+                    font: '14px sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                    pixelOffset: new Cesium.Cartesian2(0, -12)
+                }
+            });
+
+            viewer.entities.add({
+                id: 'typhoon-track-end',
+                position: Cesium.Cartesian3.fromDegrees(Number(endPoint.lon), Number(endPoint.lat), 4000),
+                point: {
+                    pixelSize: 12,
+                    color: Cesium.Color.RED,
+                    outlineColor: Cesium.Color.WHITE,
+                    outlineWidth: 2
+                },
+                label: {
+                    text: `${track.name || '台风'} 终点`,
+                    font: '14px sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                    pixelOffset: new Cesium.Cartesian2(0, -12)
+                }
+            });
+
+            const { focusPoints, closestPoint } = getTyphoonFocusSegment(validPoints);
+            const impactPositions = focusPoints
+                .filter((point) => Number.isFinite(Number(point.lon)) && Number.isFinite(Number(point.lat)))
+                .map((point) => Cesium.Cartesian3.fromDegrees(Number(point.lon), Number(point.lat), 3500));
+
+            if (impactPositions.length >= 2) {
+                viewer.entities.add({
+                    id: 'typhoon-track-impact-points',
+                    position: impactPositions[0],
+                    point: {
+                        pixelSize: 0
+                    },
+                    polyline: {
+                        positions: impactPositions,
+                        width: 10,
+                        material: new Cesium.PolylineGlowMaterialProperty({
+                            glowPower: 0.45,
+                            taperPower: 0.2,
+                            color: Cesium.Color.RED.withAlpha(0.82)
+                        }),
+                        clampToGround: false
+                    }
+                });
+            }
+
+            if (closestPoint && Number.isFinite(Number(closestPoint.lon)) && Number.isFinite(Number(closestPoint.lat))) {
+                viewer.entities.add({
+                    id: 'typhoon-track-closest-point',
+                    position: Cesium.Cartesian3.fromDegrees(Number(closestPoint.lon), Number(closestPoint.lat), 4500),
+                    point: {
+                        pixelSize: 13,
+                        color: Cesium.Color.YELLOW,
+                        outlineColor: Cesium.Color.WHITE,
+                        outlineWidth: 2
+                    },
+                    label: {
+                        text: '最近点',
+                        font: '14px sans-serif',
+                        fillColor: Cesium.Color.WHITE,
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 2,
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        pixelOffset: new Cesium.Cartesian2(0, -12)
+                    }
+                });
+            }
+
+            if (trackLineEntity) {
+                viewer.flyTo(trackLineEntity, {
+                    duration: 1.8,
+                    offset: new Cesium.HeadingPitchRange(
+                        0,
+                        Cesium.Math.toRadians(-85),
+                        0
+                    )
+                });
+            }
+
+            viewer.scene.requestRender();
         };
         
         /**
@@ -1931,7 +2291,7 @@ export default {
                 console.log('📂 从后端API获取可用时间索引:', dataType);
                 
                 // 1. 获取可用的时间索引列表
-                const availableResponse = await fetch(`http://127.0.0.1:8081/api/weather/available/${dataType}`);
+                const availableResponse = await fetch(`http://172.25.113.128:8082/api/weather/available/${dataType}`);
                 if (!availableResponse.ok) {
                     throw new Error(`获取可用索引失败: ${availableResponse.status}`);
                 }
@@ -1954,7 +2314,7 @@ export default {
                 }
                 
                 // 2. 获取元数据（用于获取起始时间和时间间隔）
-                const metaResponse = await fetch(`http://127.0.0.1:8081/api/weather/metadata/${dataType}`);
+                const metaResponse = await fetch(`http://172.25.113.128:8082/api/weather/metadata/${dataType}`);
                 if (!metaResponse.ok) {
                     throw new Error(`获取元数据失败: ${metaResponse.status}`);
                 }
@@ -2275,12 +2635,18 @@ export default {
                 atlantic_ocean: 0,
                 apei: 0
             };
+            const countedAreaKeys = new Set();
             
             entities.forEach(entity => {
                 if (!entity.properties) return;
                 
-                const location = entity.properties.location?.getValue() || '';
-                const category = entity.properties.category?.getValue() || '';
+                const areaId = getEntityProperty(entity, 'id', entity.id);
+                const location = entity._normalizedLocation || normalizeMiningLocation(areaId, getEntityProperty(entity, 'location', ''));
+                const category = getEntityProperty(entity, 'category', '');
+                const areaKey = entity._miningAreaKey || buildMiningAreaKey(areaId, location);
+
+                if (countedAreaKeys.has(areaKey)) return;
+                countedAreaKeys.add(areaKey);
                 
                 // 环境保护区
                 if (category === 'APEI') {
@@ -2317,8 +2683,9 @@ export default {
         const matchRegionFilter = (entity, filter) => {
             if (!entity.properties) return false;
             
-            const location = entity.properties.location?.getValue() || '';
-            const category = entity.properties.category?.getValue() || '';
+            const areaId = getEntityProperty(entity, 'id', entity.id);
+            const location = entity._normalizedLocation || normalizeMiningLocation(areaId, getEntityProperty(entity, 'location', ''));
+            const category = getEntityProperty(entity, 'category', '');
             
             // 检查 category 筛选
             if (filter.category && filter.category.length > 0) {
@@ -2453,9 +2820,10 @@ export default {
                 }
                 
                 // 获取实体属性
-                const entityMineral = entity.properties.mineral?.getValue();
-                const entityLocation = entity.properties.location?.getValue();
-                const entitySponsor = entity.properties.sponsor?.getValue();
+                const entityId = getEntityProperty(entity, 'id', entity.id);
+                const entityMineral = getEntityProperty(entity, 'mineral');
+                const entityLocation = entity._normalizedLocation || normalizeMiningLocation(entityId, getEntityProperty(entity, 'location'));
+                const entitySponsor = getEntityProperty(entity, 'sponsor');
                 
                 // 判断是否匹配筛选条件（联级筛选，多选为OR关系）
                 let matches = true;
@@ -2581,7 +2949,8 @@ export default {
                     endPort: routeData.endPort,
                     lineColor: Cesium.Color.PURPLE.withAlpha(0.8),
                     lineWidth: 4,
-                    showArrows: true
+                    showArrows: routeData.showArrows !== false,
+                    showLabels: routeData.showLabels !== false
                 });
                 
                 // 飞到航线视角
@@ -2727,6 +3096,21 @@ export default {
                 if (existingEnd) viewer.entities.remove(existingEnd);
                 
                 console.log('🗑️ 轨迹已清除');
+            }
+        }, { deep: true });
+
+        watch(() => props.typhoonTrackRequest, (request) => {
+            if (!request || !viewer) {
+                return;
+            }
+
+            if (request.action === 'clear') {
+                clearTyphoonTrack();
+                return;
+            }
+
+            if (request.action === 'draw' && request.track) {
+                showTyphoonTrack(request.track);
             }
         }, { deep: true });
         
@@ -2987,6 +3371,15 @@ export default {
             if (!viewer) return;
             
             console.log('🌦️ 更新气象图层显示状态:', weatherLayers);
+
+            const activeLayerIds = new Set();
+            weatherLayers.forEach((group) => {
+                (group.subLayers || []).forEach((subLayer) => {
+                    if (subLayer.active) {
+                        activeLayerIds.add(subLayer.id);
+                    }
+                });
+            });
             
             // 处理 Windy 图层
             for (const group of weatherLayers) {
@@ -3119,44 +3512,30 @@ export default {
                     }
                 }
                 
-                // 处理极端环境图层（内波）
-                if (group.id === 'extreme_environment' && group.active && group.subLayers) {
-                    // 处理内波图层
-                    const internalWaveSub = group.subLayers.find(s => s.id === 'internal_wave');
-                    console.log('🔍 检查内波图层:', { 
-                        groupId: group.id, 
-                        found: !!internalWaveSub, 
-                        active: internalWaveSub?.active 
-                    });
-                    if (internalWaveSub && internalWaveSub.active) {
-                        console.log('✅ 内波图层需要显示');
-                        // 需要显示内波
-                        if (!internalWaveLayer) {
-                            console.log('⏳ 初始化内波图层...');
-                            // 未初始化，初始化内波
-                            await initInternalWaveLayer();
-                            if (internalWaveLayer) {
-                                internalWaveLayer.show = true;
-                                showInternalWave.value = true;
-                                viewer.scene.requestRenderMode = false;
-                                console.log('✅ 内波图层已显示');
-                            }
-                        } else {
-                            console.log('✅ 内波图层已存在，直接显示');
-                            // 已初始化，显示内波
-                            internalWaveLayer.show = true;
-                            showInternalWave.value = true;
-                            viewer.scene.requestRenderMode = false;
-                        }
-                    } else if (internalWaveLayer) {
-                        console.log('🙈 隐藏内波图层');
-                        // 不需要显示，隐藏内波
-                        internalWaveLayer.show = false;
-                        showInternalWave.value = false;
-                        viewer.scene.requestRenderMode = true;
-                    }
-                }
             }
+
+            const internalWaveEnabled = activeLayerIds.has('internal_wave');
+            if (internalWaveEnabled) {
+                if (!internalWaveLayer) {
+                    console.log('⏳ 初始化内波图层...');
+                    await initInternalWaveLayer();
+                }
+
+                if (internalWaveLayer) {
+                    internalWaveLayer.show = true;
+                    showInternalWave.value = true;
+                }
+            } else if (internalWaveLayer) {
+                internalWaveLayer.show = false;
+                showInternalWave.value = false;
+            }
+
+            viewer.scene.requestRenderMode = !(
+                showWind.value ||
+                showWave.value ||
+                showOceanCurrent.value ||
+                showInternalWave.value
+            );
         };
 
         onMounted(() => {
@@ -3495,11 +3874,35 @@ export default {
         
         /**
          * 飞到矿区位置
-         * @param {Object} area - 矿区信息 { polygon: [[lon, lat], ...] }
+         * @param {Object} area - 矿区信息 { polygon: [[lon, lat], ...] } 或站点经纬度
          */
         const flyToMiningArea = (area) => {
-            if (!viewer || !area || !area.polygon || area.polygon.length === 0) {
+            if (!viewer || !area) {
                 console.warn('⚠️ 无法定位到矿区：缺少必要信息');
+                return;
+            }
+
+            const siteLon = Number(area.lng ?? area.lon ?? area.longitude);
+            const siteLat = Number(area.lat ?? area.latitude);
+            const hasSitePosition = Number.isFinite(siteLon) && Number.isFinite(siteLat);
+
+            if ((!area.polygon || area.polygon.length === 0) && hasSitePosition) {
+                console.log('🎯 飞到矿区站点:', area.displayName || area.siteName || area.siteCode || area.id);
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(siteLon, siteLat, 650000),
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    },
+                    duration: 2,
+                    easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
+                });
+                return;
+            }
+
+            if (!area.polygon || area.polygon.length === 0) {
+                console.warn('⚠️ 无法定位到矿区：缺少多边形或站点经纬度');
                 return;
             }
             
@@ -3551,7 +3954,110 @@ export default {
                 easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT
             });
         };
-        
+
+        const focusMiningRegion = (region) => {
+            if (!viewer || !region) {
+                console.warn('⚠️ 无法聚焦区域：缺少 Viewer 或区域信息');
+                return;
+            }
+
+            const polygon = normalizeRegionBoundaryPolygon(region.boundaryPolygon || region.polygon);
+
+            clearMiningRegionFocus();
+
+            if (polygon.length > 2) {
+                const polygonPositions = polygon.map(([lng, lat]) => (
+                    Cesium.Cartesian3.fromDegrees(lng, lat, 0)
+                ));
+                const firstPoint = polygon[0];
+                const lastPoint = polygon[polygon.length - 1];
+                const isClosed = firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1];
+                const polylineCoordinates = isClosed ? polygon : [...polygon, firstPoint];
+
+                regionFocusEntity = viewer.entities.add({
+                    id: `mining-region-${region.id || region.regionCode || Date.now()}`,
+                    name: region.regionName || region.regionCode || '矿区区域',
+                    polygon: {
+                        hierarchy: polygonPositions,
+                        material: Cesium.Color.CYAN.withAlpha(0.12),
+                        outline: true,
+                        outlineColor: Cesium.Color.CYAN.withAlpha(0.7),
+                        outlineWidth: 2,
+                        classificationType: Cesium.ClassificationType.TERRAIN
+                    },
+                    polyline: {
+                        positions: polylineCoordinates.map(([lng, lat]) => (
+                            Cesium.Cartesian3.fromDegrees(lng, lat, 50)
+                        )),
+                        width: 3,
+                        material: new Cesium.PolylineGlowMaterialProperty({
+                            glowPower: 0.18,
+                            taperPower: 0.4,
+                            color: Cesium.Color.CYAN.withAlpha(0.92)
+                        }),
+                        clampToGround: false
+                    }
+                });
+
+                flyToMiningArea({
+                    id: region.id,
+                    name: region.regionName || region.regionCode,
+                    polygon
+                });
+                return;
+            }
+
+            if (Number.isFinite(Number(region.centerLng)) && Number.isFinite(Number(region.centerLat))) {
+                viewer.camera.flyTo({
+                    destination: Cesium.Cartesian3.fromDegrees(
+                        Number(region.centerLng),
+                        Number(region.centerLat),
+                        3500000
+                    ),
+                    duration: 2,
+                    orientation: {
+                        heading: 0,
+                        pitch: Cesium.Math.toRadians(-90),
+                        roll: 0
+                    }
+                });
+            }
+        };
+
+        const focusMiningArea = (areaOrId, screenPosition = null, emitSelection = true) => {
+            const areaId = typeof areaOrId === 'object' ? areaOrId?.id : areaOrId;
+            const areaKey = typeof areaOrId === 'object' ? areaOrId?.areaKey : '';
+
+            if (!areaId || !allEntities.length) {
+                console.warn('⚠️ 无法聚焦矿区：缺少矿区ID或矿区数据未加载');
+                return false;
+            }
+
+            const targetEntity = allEntities.find((entity) => {
+                if (areaKey && entity._miningAreaKey === areaKey) {
+                    return true;
+                }
+
+                const entityId = entity.properties?.id?.getValue?.() || entity.id;
+                return String(entityId) === String(areaId);
+            });
+
+            if (!targetEntity) {
+                console.warn('⚠️ 未找到目标矿区实体:', areaId);
+                return false;
+            }
+
+            let areaData;
+            if (emitSelection) {
+                areaData = selectMiningAreaEntity(targetEntity, screenPosition);
+            } else {
+                highlightMiningAreaEntity(targetEntity);
+                areaData = extractMiningAreaFromEntity(targetEntity);
+            }
+            flyToMiningArea(areaData);
+            return true;
+        };
+
         // ==================== 航线演示控制函数 ====================
         
         /**
@@ -3859,32 +4365,13 @@ export default {
         const stopRouteDemo = () => {
             if (routeDemoLayer) {
                 routeDemoLayer.stop();
+                routeDemoLayer.closeWaypointWeatherPopup?.();
+                routeDemoLayer.closeRiskWarning?.();
                 hideAnimationLayer('routeDemo');
-                
-                // 船舶到达矿区，切换到作业模式
-                console.log('🎯 船舶已到达矿区，切换气象面板到作业模式');
-                
-                // 显示到达提示
-                window.dispatchEvent(new CustomEvent('showRouteRiskWarning', {
-                    detail: {
-                        type: 'arrival',
-                        name: '中国五矿集团 (CMC)',
-                        weather: {
-                            windSpeed: 8.5,
-                            windBeaufort: 5,
-                            waveHeight: 2.2,
-                            visibility: 15000
-                        }
-                    }
-                }));
-                
-                // 切换气象面板到作业模式
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('switchWeatherCardMode', {
-                        detail: { mode: 'working' }
-                    }));
-                }, 500);  // 延迟500ms，让提示先显示
             }
+
+            selectedShip.value = null;
+            selectedWeather.value = null;
         };
         
         /**
@@ -3905,6 +4392,9 @@ export default {
                 routeDemoLayer = null;
                 hideAnimationLayer('routeDemo');
             }
+
+            selectedShip.value = null;
+            selectedWeather.value = null;
         };
         
         return {
@@ -3941,6 +4431,9 @@ export default {
             updateWeatherTime,  // 暴露时间更新函数
             flyToRegion,  // 暴露区域定位函数
             flyToMiningArea,  // 暴露矿区定位函数
+            focusMiningRegion,  // 暴露大矿区聚焦函数
+            clearMiningRegionFocus,  // 暴露大矿区高亮清理函数
+            focusMiningArea,  // 暴露矿区聚焦函数
             zoomIn,
             zoomOut,
             resetView,

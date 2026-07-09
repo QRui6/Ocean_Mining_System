@@ -11,6 +11,7 @@ export class RouteLayer {
         this.routeEntity = null;
         this.startMarker = null;
         this.endMarker = null;
+        this.arrowMarkers = [];
     }
     
     /**
@@ -24,7 +25,8 @@ export class RouteLayer {
             endPort = '到达港',
             lineColor = Cesium.Color.PURPLE,
             lineWidth = 3,
-            showArrows = true
+            showArrows = true,
+            showLabels = true
         } = options;
         
         if (!routePoints || routePoints.length < 2) {
@@ -59,45 +61,47 @@ export class RouteLayer {
             this.addDirectionArrows(routePoints, lineColor);
         }
         
-        // 添加起点标记（仅文字标签）
-        const startPoint = routePoints[0];
-        this.startMarker = this.viewer.entities.add({
-            name: `start_${startPort}`,
-            position: Cesium.Cartesian3.fromDegrees(startPoint.lng, startPoint.lat),
-            label: {
-                text: startPort,
-                font: '14px bold sans-serif',
-                fillColor: Cesium.Color.WHITE,
-                outlineColor: Cesium.Color.BLACK,
-                outlineWidth: 2,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -10),
-                showBackground: true,
-                backgroundColor: Cesium.Color.fromCssColorString('rgba(16, 185, 129, 0.8)'),
-                backgroundPadding: new Cesium.Cartesian2(8, 4),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-            }
-        });
-        
-        // 添加终点标记（仅文字标签）
-        const endPoint = routePoints[routePoints.length - 1];
-        this.endMarker = this.viewer.entities.add({
-            name: `end_${endPort}`,
-            position: Cesium.Cartesian3.fromDegrees(endPoint.lng, endPoint.lat),
-            label: {
-                text: endPort,
-                font: '14px bold sans-serif',
-                fillColor: Cesium.Color.WHITE,
-                outlineColor: Cesium.Color.BLACK,
-                outlineWidth: 2,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -10),
-                showBackground: true,
-                backgroundColor: Cesium.Color.fromCssColorString('rgba(239, 68, 68, 0.8)'),
-                backgroundPadding: new Cesium.Cartesian2(8, 4),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-            }
-        });
+        if (showLabels) {
+            // 添加起点标记（仅文字标签）
+            const startPoint = routePoints[0];
+            this.startMarker = this.viewer.entities.add({
+                name: `start_${startPort}`,
+                position: Cesium.Cartesian3.fromDegrees(startPoint.lng, startPoint.lat),
+                label: {
+                    text: startPort,
+                    font: '14px bold sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    pixelOffset: new Cesium.Cartesian2(0, -10),
+                    showBackground: true,
+                    backgroundColor: Cesium.Color.fromCssColorString('rgba(16, 185, 129, 0.8)'),
+                    backgroundPadding: new Cesium.Cartesian2(8, 4),
+                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                }
+            });
+            
+            // 添加终点标记（仅文字标签）
+            const endPoint = routePoints[routePoints.length - 1];
+            this.endMarker = this.viewer.entities.add({
+                name: `end_${endPort}`,
+                position: Cesium.Cartesian3.fromDegrees(endPoint.lng, endPoint.lat),
+                label: {
+                    text: endPort,
+                    font: '14px bold sans-serif',
+                    fillColor: Cesium.Color.WHITE,
+                    outlineColor: Cesium.Color.BLACK,
+                    outlineWidth: 2,
+                    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                    pixelOffset: new Cesium.Cartesian2(0, -10),
+                    showBackground: true,
+                    backgroundColor: Cesium.Color.fromCssColorString('rgba(239, 68, 68, 0.8)'),
+                    backgroundPadding: new Cesium.Cartesian2(8, 4),
+                    heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                }
+            });
+        }
         
         console.log(`✅ 航线绘制完成: ${startPort} → ${endPort}, ${routePoints.length} 个航点`);
     }
@@ -126,7 +130,7 @@ export class RouteLayer {
             const dLat = nextPoint.lat - currentPoint.lat;
             const angle = Math.atan2(dLng, dLat);
             
-            this.viewer.entities.add({
+            const arrowMarker = this.viewer.entities.add({
                 position: Cesium.Cartesian3.fromDegrees(currentPoint.lng, currentPoint.lat),
                 billboard: {
                     image: this.createArrowCanvas(color),
@@ -136,6 +140,7 @@ export class RouteLayer {
                     heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
                 }
             });
+            this.arrowMarkers.push(arrowMarker);
         }
     }
     
@@ -224,17 +229,10 @@ export class RouteLayer {
             this.endMarker = null;
         }
         
-        // 清除所有箭头
-        const entitiesToRemove = [];
-        this.viewer.entities.values.forEach(entity => {
-            if (entity.billboard && !entity.label) {
-                entitiesToRemove.push(entity);
-            }
+        this.arrowMarkers.forEach((marker) => {
+            this.viewer.entities.remove(marker);
         });
-        
-        entitiesToRemove.forEach(entity => {
-            this.viewer.entities.remove(entity);
-        });
+        this.arrowMarkers = [];
         
         console.log('🗑️ 航线已清除');
     }
