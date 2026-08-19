@@ -565,7 +565,7 @@ export default {
                 console.log('📊 加载气象统计数据:', area.monitoringId);
 
                 // 调用新的气象统计API
-                const response = await fetch(`http://172.25.113.128:8082/api/mining-monitoring/${area.monitoringId}/weather-stats`);
+                const response = await fetch(`http://121.194.93.61:8082/api/mining-monitoring/${area.monitoringId}/weather-stats`);
                 const result = await response.json();
 
                 if (result.success && result.data) {

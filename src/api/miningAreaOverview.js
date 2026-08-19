@@ -7,6 +7,8 @@ import {
 } from './miningRegionOverview.js';
 
 const PLACEHOLDER_POINTS = 12;
+const HISTORICAL_LOOKBACK_YEARS = 1;
+const HISTORICAL_REQUEST_TIMEOUT = Math.min(REQUEST_TIMEOUT, 10000);
 
 const createPlaceholderTimeline = () => {
     const now = new Date();
@@ -59,13 +61,13 @@ const buildPlaceholderOverview = (area = {}) => {
     };
 };
 
-const requestJson = async (url) => {
+const requestJson = async (url, timeout = REQUEST_TIMEOUT) => {
     const response = await fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT)
+        signal: AbortSignal.timeout(timeout)
     });
 
     if (!response.ok) {
@@ -92,6 +94,14 @@ const parseNumber = (value) => {
 const formatLocalDate = (date = new Date()) => {
     const pad = (value) => String(value).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const getHistoricalQueryParams = () => {
+    const endYear = new Date().getFullYear();
+    return {
+        startYear: endYear - HISTORICAL_LOOKBACK_YEARS,
+        endYear
+    };
 };
 
 const sortForecastDates = (records = []) => (
@@ -366,8 +376,9 @@ const fetchHistoricalPointSeries = async (urlBuilder, lat, lon) => {
 
     const data = await requestJson(urlBuilder({
         lat,
-        lon
-    }));
+        lon,
+        ...getHistoricalQueryParams()
+    }), HISTORICAL_REQUEST_TIMEOUT);
 
     return Array.isArray(data?.items) ? data.items : [];
 };

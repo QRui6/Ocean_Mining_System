@@ -345,6 +345,44 @@ export const filterSeaStateRecords = (records = [], dataType = 'all') => {
     return records.filter((record) => record.hasWind || record.hasWave || record.hasCurrent);
 };
 
+export const createHistoricalSeaStatePointResult = (params = {}, datasets = {}, errors = {}) => {
+    const { lat, lon } = params;
+    const yearRange = normalizeYearRange(params);
+    const records = mergePointRecords({
+        wind: datasets.wind?.items || [],
+        wave: datasets.wave?.items || [],
+        current: datasets.current?.items || []
+    });
+
+    return {
+        datasets,
+        records,
+        summary: calculateSeaStateSummary(records),
+        errors: {
+            wind: errors.wind || '',
+            wave: errors.wave || '',
+            current: errors.current || ''
+        },
+        location: datasets.wind?.location || datasets.wave?.location || datasets.current?.location || {
+            lat: parseNumber(lat),
+            lon: parseNumber(lon)
+        },
+        startYear: datasets.wind?.startYear || datasets.wave?.startYear || datasets.current?.startYear || yearRange?.startYear || null,
+        endYear: datasets.wind?.endYear || datasets.wave?.endYear || datasets.current?.endYear || yearRange?.endYear || null,
+        rangeSource: yearRange ? 'filters' : 'default',
+        succeeded: records.length > 0
+    };
+};
+
+export async function fetchHistoricalSeaStateDataset(datasetKey, params = {}) {
+    if (!DATASET_KEYS.includes(datasetKey)) {
+        throw new Error(`未知历史海况数据类型: ${datasetKey}`);
+    }
+
+    const query = buildPointQuery(params);
+    return fetchPointDataset(datasetKey, query);
+}
+
 export async function fetchHistoricalSeaStatePoint(params = {}) {
     const { lat, lon } = params;
     if (lat === null || lat === undefined || lon === null || lon === undefined) {
@@ -359,13 +397,10 @@ export async function fetchHistoricalSeaStatePoint(params = {}) {
         };
     }
 
-    const query = buildPointQuery(params);
-    const yearRange = normalizeYearRange(params);
-
     const [windResult, waveResult, currentResult] = await Promise.allSettled([
-        fetchPointDataset('wind', query),
-        fetchPointDataset('wave', query),
-        fetchPointDataset('current', query)
+        fetchHistoricalSeaStateDataset('wind', params),
+        fetchHistoricalSeaStateDataset('wave', params),
+        fetchHistoricalSeaStateDataset('current', params)
     ]);
 
     const datasets = {
@@ -373,12 +408,6 @@ export async function fetchHistoricalSeaStatePoint(params = {}) {
         wave: waveResult.status === 'fulfilled' ? waveResult.value : null,
         current: currentResult.status === 'fulfilled' ? currentResult.value : null
     };
-
-    const records = mergePointRecords({
-        wind: datasets.wind?.items || [],
-        wave: datasets.wave?.items || [],
-        current: datasets.current?.items || []
-    });
 
     const errors = {
         wind: windResult.status === 'rejected'
@@ -392,20 +421,7 @@ export async function fetchHistoricalSeaStatePoint(params = {}) {
             : ''
     };
 
-    return {
-        datasets,
-        records,
-        summary: calculateSeaStateSummary(records),
-        errors,
-        location: datasets.wind?.location || datasets.wave?.location || datasets.current?.location || {
-            lat: parseNumber(lat),
-            lon: parseNumber(lon)
-        },
-        startYear: datasets.wind?.startYear || datasets.wave?.startYear || datasets.current?.startYear || yearRange?.startYear || null,
-        endYear: datasets.wind?.endYear || datasets.wave?.endYear || datasets.current?.endYear || yearRange?.endYear || null,
-        rangeSource: yearRange ? 'filters' : 'default',
-        succeeded: records.length > 0
-    };
+    return createHistoricalSeaStatePointResult(params, datasets, errors);
 }
 
 export async function fetchHistoricalSeaStateMonths(params = {}) {

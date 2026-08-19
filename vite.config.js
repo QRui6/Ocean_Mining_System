@@ -24,14 +24,20 @@ export default defineConfig(({ mode }) => {
             timeout: 30000
           },
           '/api/mining-overview': {
-            target: env.VITE_MINING_OVERVIEW_PROXY_TARGET || 'http://172.25.113.128:8082',
+            target: env.VITE_MINING_OVERVIEW_PROXY_TARGET || 'http://121.194.93.61:8082',
             changeOrigin: true,
             secure: false,
             timeout: 30000
           },
+          '/api/buoys': {
+            target: 'http://121.194.93.61:8082',
+            changeOrigin: true,
+            secure: false,
+            timeout: 60000
+          },
           // 代理所有其他/api请求到后端
           '/api': {
-            target: 'http://172.25.113.128:8082',
+            target: 'http://121.194.93.61:8082',
             changeOrigin: true,
             secure: false,
             timeout: 30000

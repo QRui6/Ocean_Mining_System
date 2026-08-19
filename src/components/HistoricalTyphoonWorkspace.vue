@@ -2,120 +2,119 @@
     <transition name="workspace-fade">
         <div
             v-if="show"
-            class="absolute right-6 top-36 bottom-6 z-40 flex w-[27rem] flex-col gap-5 pointer-events-none font-['Noto_Sans_SC']"
+            class="absolute right-6 top-36 bottom-6 z-40 w-[27rem] pointer-events-none font-['Noto_Sans_SC']"
         >
             <div
-                class="tech-panel-enhanced relative flex min-h-0 flex-[1.08] flex-col overflow-hidden pointer-events-auto group"
+                class="tech-panel-enhanced relative flex h-full min-h-0 flex-col overflow-hidden pointer-events-auto group"
                 style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
             >
                 <div class="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
 
-                <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.32);">
-                    <div class="flex items-center gap-3">
-                        <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-                        <div>
-                            <div class="text-[22px] font-bold tracking-wide text-white">历史台风窗口</div>
-                        </div>
-                    </div>
-                    <div class="ml-auto text-right text-[15px] text-slate-200">
-                        <div>{{ selectedAreaTitle }}</div>
-                        <div class="mt-1 text-slate-300">年份 {{ selectedYearRange }}</div>
-                    </div>
-                    <button
-                        class="floating-panel-close-btn floating-panel-close-btn--inline"
-                        type="button"
-                        title="关闭历史台风查询"
-                        aria-label="关闭历史台风查询"
-                        @click="emit('close')"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                <div v-if="loadingWindow" class="flex h-[calc(100%-4rem)] items-center justify-center text-slate-300">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
-                        <span class="text-base">正在加载历史台风统计...</span>
-                    </div>
-                </div>
-
-                <div v-else-if="windowErrorMessage" class="min-h-0 flex-1 p-4">
-                    <div class="warning-box h-full">{{ windowErrorMessage }}</div>
-                </div>
-
-                <div v-else class="min-h-0 flex-1 p-4">
-                    <div class="flex h-full flex-col gap-3">
-                        <div class="window-summary-grid">
-                            <div
-                                v-for="item in windowSummaryCards"
-                                :key="item.label"
-                                class="window-summary-card"
-                            >
-                                <span>{{ item.label }}</span>
-                                <strong>{{ item.value }}</strong>
-                                <em>{{ item.note }}</em>
+                <section class="flex min-h-0 flex-[1.08] flex-col">
+                    <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.32);">
+                        <div class="flex items-center gap-3">
+                            <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
+                            <div>
+                                <div class="text-[22px] font-bold tracking-wide text-white">历史台风窗口</div>
                             </div>
                         </div>
-                        <div ref="windowChartRef" class="chart-box min-h-0 flex-1"></div>
-                        <div class="window-legend">
-                            <span><i class="window-color window-color-active"></i>历史集中窗口</span>
-                            <span><i class="window-color window-color-normal"></i>其他月份</span>
+                        <div class="ml-auto text-right text-[15px] text-slate-200">
+                            <div>{{ selectedAreaTitle }}</div>
+                            <div class="mt-1 text-slate-300">年份 {{ selectedYearRange }}</div>
+                        </div>
+                        <button
+                            class="floating-panel-close-btn floating-panel-close-btn--inline"
+                            type="button"
+                            title="关闭历史台风查询"
+                            aria-label="关闭历史台风查询"
+                            @click="emit('close')"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div v-if="loadingWindow" class="flex h-[calc(100%-4rem)] items-center justify-center text-slate-300">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
+                            <span class="text-base">正在加载历史台风统计...</span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div
-                class="tech-panel-enhanced relative flex min-h-0 flex-1 flex-col overflow-hidden pointer-events-auto group"
-                style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
-            >
-                <div class="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-sky-400 to-transparent animate-pulse"></div>
-                <div class="corner-decoration corner-tl scale-125"></div>
-                <div class="corner-decoration corner-tr scale-125"></div>
-
-                <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(56, 189, 248, 0.32);">
-                    <div class="flex items-center gap-3">
-                        <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
-                        <div>
-                            <div class="text-[22px] font-bold tracking-wide text-white">当前台风过程</div>
-                        </div>
+                    <div v-else-if="windowErrorMessage" class="min-h-0 flex-1 p-4">
+                        <div class="warning-box h-full">{{ windowErrorMessage }}</div>
                     </div>
-                    <div class="text-right text-[15px] text-slate-200">
-                        <div>{{ selectedEvent?.name || '未选择台风' }}</div>
-                        <div class="mt-1 text-slate-300">{{ selectedEvent?.sid || '--' }}</div>
-                    </div>
-                </div>
 
-                <div v-if="errorMessage" class="flex h-[calc(100%-4rem)] items-center justify-center px-8">
-                    <div class="warning-box w-full">{{ errorMessage }}</div>
-                </div>
-
-                <div v-else-if="!selectedEvent" class="flex h-[calc(100%-4rem)] items-center justify-center px-8 text-center">
-                    <div>
-                        <div class="text-xl font-bold text-slate-100">未选择台风</div>
-                        <div class="mt-2 text-base text-slate-300">点击左侧历史台风列表后显示过程图</div>
-                    </div>
-                </div>
-
-                <div v-else class="min-h-0 flex-1 p-4">
-                    <div v-if="loadingTrack" class="loading-box h-full">正在加载台风轨迹...</div>
-                    <div v-else-if="!selectedTrack?.points?.length" class="empty-box h-full">当前台风暂无轨迹数据</div>
-                    <div v-else class="flex h-full flex-col gap-3">
-                        <div class="grid grid-cols-3 gap-3">
-                            <div
-                                v-for="item in trackSummaryCards"
-                                :key="item.label"
-                                class="info-card"
-                            >
-                                <span class="info-label">{{ item.label }}</span>
-                                <span class="info-value">{{ item.value }}</span>
+                    <div v-else class="min-h-0 flex-1 p-4">
+                        <div class="flex h-full flex-col gap-3">
+                            <div class="window-summary-grid">
+                                <div
+                                    v-for="item in windowSummaryCards"
+                                    :key="item.label"
+                                    class="window-summary-card"
+                                >
+                                    <span>{{ item.label }}</span>
+                                    <strong>{{ item.value }}</strong>
+                                    <em>{{ item.note }}</em>
+                                </div>
+                            </div>
+                            <div ref="windowChartRef" class="chart-box min-h-0 flex-1"></div>
+                            <div class="window-legend">
+                                <span><i class="window-color window-color-active"></i>历史集中窗口</span>
+                                <span><i class="window-color window-color-normal"></i>其他月份</span>
                             </div>
                         </div>
-                        <div ref="trackChartRef" class="chart-box min-h-0 flex-1"></div>
                     </div>
-                </div>
+                </section>
+
+                <div class="history-workspace-divider"></div>
+
+                <section class="flex min-h-0 flex-1 flex-col">
+                    <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(56, 189, 248, 0.32);">
+                        <div class="flex items-center gap-3">
+                            <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
+                            <div>
+                                <div class="text-[22px] font-bold tracking-wide text-white">当前台风过程</div>
+                            </div>
+                        </div>
+                        <div class="text-right text-[15px] text-slate-200">
+                            <div>{{ selectedEvent?.name || '未选择台风' }}</div>
+                            <div class="mt-1 text-slate-300">{{ selectedEvent?.sid || '--' }}</div>
+                        </div>
+                    </div>
+
+                    <div v-if="errorMessage" class="flex h-[calc(100%-4rem)] items-center justify-center px-8">
+                        <div class="warning-box w-full">{{ errorMessage }}</div>
+                    </div>
+
+                    <div v-else-if="!selectedEvent" class="flex h-[calc(100%-4rem)] items-center justify-center px-8 text-center">
+                        <div>
+                            <div class="text-xl font-bold text-slate-100">未选择台风</div>
+                            <div class="mt-2 text-base text-slate-300">点击左侧历史台风列表后显示过程图</div>
+                        </div>
+                    </div>
+
+                    <div v-else class="min-h-0 flex-1 p-4">
+                        <div v-if="loadingTrack" class="loading-box h-full">正在加载台风轨迹...</div>
+                        <div v-else-if="!selectedTrack?.points?.length" class="empty-box h-full">当前台风暂无轨迹数据</div>
+                        <div v-else class="flex h-full flex-col gap-3">
+                            <div class="grid grid-cols-3 gap-3">
+                                <div
+                                    v-for="item in trackSummaryCards"
+                                    :key="item.label"
+                                    class="info-card"
+                                >
+                                    <span class="info-label">{{ item.label }}</span>
+                                    <span class="info-value">{{ item.value }}</span>
+                                </div>
+                            </div>
+                            <div ref="trackChartRef" class="chart-box min-h-0 flex-1"></div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </transition>
@@ -631,6 +630,13 @@ onBeforeUnmount(() => {
     border-radius: 999px;
     background: #22d3ee;
     box-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+}
+
+.history-workspace-divider {
+    height: 1px;
+    flex: 0 0 auto;
+    background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.62), transparent);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.18);
 }
 
 .metric-card,

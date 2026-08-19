@@ -8,14 +8,14 @@
 // 生产环境：使用完整URL
 export const API_BASE_URL = import.meta.env.DEV 
     ? ''  // 开发环境：相对路径，通过Vite代理
-    : (import.meta.env.VITE_API_BASE_URL || 'http://172.25.113.128:8082');  // 生产环境：完整URL
+    : (import.meta.env.VITE_API_BASE_URL || 'http://121.194.93.61:8082');  // 生产环境：完整URL
 
 // 矿区总览区域统计接口基础URL
 // 开发环境：复用Vite代理
 // 生产环境：默认走独立的 8082 服务，可通过环境变量覆盖
 export const MINING_OVERVIEW_API_BASE_URL = import.meta.env.DEV
     ? ''
-    : (import.meta.env.VITE_MINING_OVERVIEW_API_BASE_URL || 'http://172.25.113.128:8082');
+    : (import.meta.env.VITE_MINING_OVERVIEW_API_BASE_URL || 'http://121.194.93.61:8082');
 
 // API端点配置
 export const API_ENDPOINTS = {
@@ -95,6 +95,24 @@ export const API_ENDPOINTS = {
                 ? `${baseUrl}?forecastDate=${encodeURIComponent(forecastDate)}`
                 : baseUrl;
         }
+    },
+
+    FORECAST: {
+        REGIONS: `${API_BASE_URL}/api/forecast/regions`,
+        SUMMARY: (regionId, range) => `${API_BASE_URL}/api/forecast/regions/${encodeURIComponent(regionId)}/summary?range=${encodeURIComponent(range)}`,
+        BULLETIN: (regionId, range) => `${API_BASE_URL}/api/forecast/regions/${encodeURIComponent(regionId)}/bulletin?range=${encodeURIComponent(range)}`
+    },
+
+    WEATHER_WARNINGS: {
+        LIST: `${API_BASE_URL}/api/warnings/weather`,
+        STATS: `${API_BASE_URL}/api/warnings/weather/stats`,
+        DETAIL: (id) => `${API_BASE_URL}/api/warnings/weather/${encodeURIComponent(id)}`
+    },
+
+    BUOYS: {
+        LIST: `${API_BASE_URL}/api/buoys`,
+        REALTIME: `${API_BASE_URL}/api/buoys/realtime`,
+        HISTORY: (id, range) => `${API_BASE_URL}/api/buoys/${encodeURIComponent(id)}/history?range=${encodeURIComponent(range)}`
     },
 
     HISTORICAL_WIND: {
@@ -192,7 +210,7 @@ export const API_ENDPOINTS = {
     },
     
     // WebSocket连接
-    WEBSOCKET: `ws://172.25.113.128:8082/ws`
+    WEBSOCKET: `ws://121.194.93.61:8082/ws`
 };
 
 // 请求超时配置（毫秒）

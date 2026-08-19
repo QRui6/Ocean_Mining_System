@@ -44,7 +44,7 @@ export async function loadGeoJson(viewer, url, options = {}) {
         return dataSource;
     } catch (error) {
         console.error('❌ GeoJSON 数据加载失败:', error);
-        console.error('请确保后端服务正在运行: http://172.25.113.128:8082');
+        console.error('请确保后端服务正在运行: http://121.194.93.61:8082');
         throw error;
     }
 }

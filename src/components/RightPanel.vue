@@ -1,10 +1,10 @@
 <template>
     <div
-        class="absolute top-0 right-0 h-full z-50 pointer-events-auto font-['Noto_Sans_SC'] transition-[width] duration-300"
+        class="pointer-events-none absolute top-0 right-0 h-full z-50 font-['Noto_Sans_SC'] transition-[width] duration-300"
         :class="collapsed ? 'w-12' : 'w-64'"
     >
         <div
-            class="absolute right-0 top-1/2 z-20 flex h-28 w-10 -translate-y-1/2 items-center justify-end"
+            class="pointer-events-auto absolute right-0 top-1/2 z-20 flex h-28 w-10 -translate-y-1/2 items-center justify-end"
             @mouseenter="isHandleHovered = true"
             @mouseleave="isHandleHovered = false"
         >
@@ -203,6 +203,11 @@ export default {
         'toggleHistoricalTyphoon',
         'toggleHistoricalSeaState',
         'togglePipelineWarning',
+        'toggleMonitoringEvents',
+        'toggleForecastRegion',
+        'toggleForecastCenter',
+        'toggleWeatherWarnings',
+        'toggleBuoyMonitoring',
         'layerToggle',
         'collapseChange'
     ],
@@ -269,8 +274,23 @@ export default {
             }
 
             if (props.currentTab === '环境监测') {
+                if (tool === '浮标监测') {
+                    emit('toggleBuoyMonitoring');
+                    return;
+                }
                 if (tool === '气象图层') {
                     emit('toggleWeatherLayers');
+                }
+                return;
+            }
+
+            if (props.currentTab === '预报中心') {
+                if (tool === '常规预报') {
+                    emit('toggleForecastCenter');
+                    return;
+                }
+                if (tool === '区域预报') {
+                    emit('toggleForecastRegion');
                 }
                 return;
             }
@@ -291,8 +311,12 @@ export default {
             }
 
             if (props.currentTab === '预警中心') {
-                if (tool === '管道预警') {
-                    emit('togglePipelineWarning');
+                if (tool === '气象预警') {
+                    emit('toggleWeatherWarnings');
+                    return;
+                }
+                if (tool === '监控事件') {
+                    emit('toggleMonitoringEvents');
                 }
                 return;
             }
@@ -320,7 +344,13 @@ export default {
             }
 
             if (props.currentTab === '环境监测') {
+                if (tool === '浮标监测') return props.activePanels.buoyMonitoring;
                 if (tool === '气象图层') return props.activePanels.weatherLayers;
+            }
+
+            if (props.currentTab === '预报中心') {
+                if (tool === '常规预报') return props.activePanels.forecastCenter;
+                if (tool === '区域预报') return props.activePanels.forecastRegion;
             }
 
             if (props.currentTab === '采矿系统') {
@@ -332,7 +362,8 @@ export default {
             }
 
             if (props.currentTab === '预警中心') {
-                if (tool === '管道预警') return props.activePanels.pipelineWarning;
+                if (tool === '气象预警') return props.activePanels.weatherWarnings;
+                if (tool === '监控事件') return props.activePanels.monitoringEvents;
             }
 
             if (props.currentTab === '历史数据') {

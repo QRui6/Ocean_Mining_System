@@ -284,7 +284,7 @@ const buildChartOption = () => {
         grid: {
             top: 42,
             left: 36,
-            right: 30,
+            right: 54,
             bottom: 36
         },
         xAxis: {
@@ -304,8 +304,19 @@ const buildChartOption = () => {
             {
                 type: 'value',
                 name: unitMap.waveHeight || 'm',
+                position: 'right',
                 axisLine: { lineStyle: { color: '#334155' } },
                 axisLabel: { color: '#94a3b8' },
+                splitLine: { show: false }
+            },
+            {
+                type: 'value',
+                name: unitMap.currentSpeed || 'm/s',
+                position: 'right',
+                offset: 36,
+                scale: true,
+                axisLine: { lineStyle: { color: '#a78bfa' } },
+                axisLabel: { color: '#c4b5fd' },
                 splitLine: { show: false }
             }
         ],
@@ -350,6 +361,7 @@ const buildChartOption = () => {
                 name: '历史流速',
                 type: 'line',
                 smooth: true,
+                yAxisIndex: 2,
                 connectNulls: false,
                 symbolSize: 7,
                 data: currentSpeed,

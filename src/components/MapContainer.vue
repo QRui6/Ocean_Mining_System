@@ -460,9 +460,30 @@ export default {
         let pickPointMarkers = { 
             start: null, 
             end: null,
+            miningScienceStart: null,
+            miningScienceEnd: null,
             avoid: [],      // 避让点标记数组
             through: []     // 途经点标记数组
         }; // 选点标记
+
+        const removePickPointEntity = (entity) => {
+            if (entity && viewer) {
+                viewer.entities.remove(entity);
+            }
+        };
+
+        const clearPickPointMarkers = () => {
+            ['start', 'end', 'miningScienceStart', 'miningScienceEnd'].forEach((key) => {
+                removePickPointEntity(pickPointMarkers[key]);
+                pickPointMarkers[key] = null;
+            });
+
+            pickPointMarkers.avoid.forEach(removePickPointEntity);
+            pickPointMarkers.avoid = [];
+
+            pickPointMarkers.through.forEach(removePickPointEntity);
+            pickPointMarkers.through = [];
+        };
         
         // 气象点查询相关
         const weatherPickedPoint = ref(null);  // 选中的气象查询点
@@ -2291,7 +2312,7 @@ export default {
                 console.log('📂 从后端API获取可用时间索引:', dataType);
                 
                 // 1. 获取可用的时间索引列表
-                const availableResponse = await fetch(`http://172.25.113.128:8082/api/weather/available/${dataType}`);
+                const availableResponse = await fetch(`http://121.194.93.61:8082/api/weather/available/${dataType}`);
                 if (!availableResponse.ok) {
                     throw new Error(`获取可用索引失败: ${availableResponse.status}`);
                 }
@@ -2314,7 +2335,7 @@ export default {
                 }
                 
                 // 2. 获取元数据（用于获取起始时间和时间间隔）
-                const metaResponse = await fetch(`http://172.25.113.128:8082/api/weather/metadata/${dataType}`);
+                const metaResponse = await fetch(`http://121.194.93.61:8082/api/weather/metadata/${dataType}`);
                 if (!metaResponse.ok) {
                     throw new Error(`获取元数据失败: ${metaResponse.status}`);
                 }
@@ -2962,26 +2983,7 @@ export default {
             } else if (routeData.action === 'clear') {
                 // 清除路径
                 routeLayer.clearRoute();
-                
-                // 清除选点标记
-                if (pickPointMarkers.start) {
-                    viewer.entities.remove(pickPointMarkers.start);
-                    pickPointMarkers.start = null;
-                }
-                if (pickPointMarkers.end) {
-                    viewer.entities.remove(pickPointMarkers.end);
-                    pickPointMarkers.end = null;
-                }
-                // 清除避让点标记
-                pickPointMarkers.avoid.forEach(marker => {
-                    viewer.entities.remove(marker);
-                });
-                pickPointMarkers.avoid = [];
-                // 清除途经点标记
-                pickPointMarkers.through.forEach(marker => {
-                    viewer.entities.remove(marker);
-                });
-                pickPointMarkers.through = [];
+                clearPickPointMarkers();
                 
                 console.log('🗑️ 航线和标记已清除');
             }
@@ -3259,6 +3261,16 @@ export default {
                             markerLabel = '途经点';
                             markerText = 'T'; // 使用 ASCII 字符
                             break;
+                        case 'miningScienceStart':
+                            markerColor = '#22c55e'; // 绿色
+                            markerLabel = '船位置';
+                            markerText = 'A';
+                            break;
+                        case 'miningScienceEnd':
+                            markerColor = '#ef4444'; // 红色
+                            markerLabel = '目标点';
+                            markerText = 'B';
+                            break;
                         default:
                             markerColor = '#6b7280'; // 灰色
                             markerLabel = '选点';
@@ -3301,6 +3313,12 @@ export default {
                             viewer.entities.remove(pickPointMarkers[newType]);
                         }
                         pickPointMarkers[newType] = marker;
+                    } else if (newType === 'miningScienceStart' || newType === 'miningScienceEnd') {
+                        // 矿区科普选点：替换旧标记，关闭模块或清航线时统一清理
+                        if (pickPointMarkers[newType]) {
+                            viewer.entities.remove(pickPointMarkers[newType]);
+                        }
+                        pickPointMarkers[newType] = marker;
                     } else if (newType === 'avoid') {
                         // 避让点：添加到数组
                         pickPointMarkers.avoid.push(marker);
@@ -3322,7 +3340,9 @@ export default {
                 'start': '起点',
                 'end': '终点',
                 'avoid': '避让点',
-                'through': '途经点'
+                'through': '途经点',
+                'miningScienceStart': '船位置',
+                'miningScienceEnd': '目标点'
             };
             console.log(`🖱️ 开始地图选点模式: ${typeNames[newType] || newType}`);
         });
@@ -3565,6 +3585,7 @@ export default {
             if (clickHandler) {
                 clickHandler.destroy();
             }
+            clearPickPointMarkers();
             if (shipLayer) {
                 shipLayer.clearAll();
                 shipLayer = null;

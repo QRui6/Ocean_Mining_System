@@ -2,119 +2,123 @@
     <transition name="workspace-fade">
         <div
             v-if="show"
-            class="absolute right-6 top-36 bottom-6 z-40 flex w-[27rem] flex-col gap-5 pointer-events-none font-['Noto_Sans_SC']"
+            class="absolute right-6 top-36 bottom-6 z-40 w-[27rem] pointer-events-none font-['Noto_Sans_SC']"
         >
             <div
-                class="tech-panel-enhanced relative flex min-h-0 flex-[1.08] flex-col overflow-hidden pointer-events-auto group"
+                class="tech-panel-enhanced relative flex h-full min-h-0 flex-col overflow-hidden pointer-events-auto group"
                 style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
             >
                 <div class="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
 
-                <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.32);">
-                    <div class="flex items-center gap-3">
-                        <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-                        <div>
-                            <div class="text-[22px] font-bold tracking-wide text-white">历史海况统计</div>
-                        </div>
-                    </div>
-                    <div class="ml-auto text-right text-[15px] text-slate-200">
-                        <div>{{ selectedAreaTitle }}</div>
-                        <div class="mt-1 text-slate-300">年份 {{ selectedYearRange }}</div>
-                    </div>
-                    <button
-                        class="floating-panel-close-btn floating-panel-close-btn--inline"
-                        type="button"
-                        title="关闭历史海况查询"
-                        aria-label="关闭历史海况查询"
-                        @click="emit('close')"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                <div v-if="loading" class="flex h-[calc(100%-4rem)] items-center justify-center text-slate-300">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
-                        <span class="text-base">正在加载历史海况统计...</span>
-                    </div>
-                </div>
-
-                <div v-else-if="errorMessage" class="min-h-0 flex-1 p-4">
-                    <div class="warning-box h-full">{{ errorMessage }}</div>
-                </div>
-
-                <div v-else class="min-h-0 flex-1 p-4">
-                    <div class="flex h-full flex-col gap-3">
-                        <div class="window-summary-grid">
-                            <div
-                                v-for="item in summaryCards"
-                                :key="item.label"
-                                class="window-summary-card"
-                            >
-                                <span>{{ item.label }}</span>
-                                <strong>{{ item.value }}</strong>
-                                <em>{{ item.note }}</em>
+                <section class="flex min-h-0 flex-[1.08] flex-col">
+                    <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.32);">
+                        <div class="flex items-center gap-3">
+                            <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
+                            <div>
+                                <div class="text-[22px] font-bold tracking-wide text-white">历史海况统计</div>
                             </div>
                         </div>
-                        <div ref="trendChartRef" class="chart-box min-h-0 flex-1"></div>
-                        <div class="window-legend">
-                            <span><i class="window-color window-color-wind"></i>风速</span>
-                            <span><i class="window-color window-color-wave"></i>浪高</span>
-                            <span><i class="window-color window-color-current"></i>流速</span>
+                        <div class="ml-auto text-right text-[15px] text-slate-200">
+                            <div>{{ selectedAreaTitle }}</div>
+                            <div class="mt-1 text-slate-300">年份 {{ selectedYearRange }}</div>
+                        </div>
+                        <button
+                            class="floating-panel-close-btn floating-panel-close-btn--inline"
+                            type="button"
+                            title="关闭历史海况查询"
+                            aria-label="关闭历史海况查询"
+                            @click="emit('close')"
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div v-if="loading" class="flex h-[calc(100%-4rem)] items-center justify-center text-slate-300">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
+                            <span class="text-base">正在加载历史海况统计...</span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div
-                class="tech-panel-enhanced relative flex min-h-0 flex-1 flex-col overflow-hidden pointer-events-auto group"
-                style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
-            >
-                <div class="absolute top-0 left-0 h-[2px] w-full bg-gradient-to-r from-transparent via-sky-400 to-transparent animate-pulse"></div>
-                <div class="corner-decoration corner-tl scale-125"></div>
-                <div class="corner-decoration corner-tr scale-125"></div>
-
-                <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(56, 189, 248, 0.32);">
-                    <div class="flex items-center gap-3">
-                        <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
-                        <div>
-                            <div class="text-[22px] font-bold tracking-wide text-white">月度海况详情</div>
-                        </div>
+                    <div v-else-if="errorMessage" class="min-h-0 flex-1 p-4">
+                        <div class="warning-box h-full">{{ errorMessage }}</div>
                     </div>
-                    <div class="text-right text-[15px] text-slate-200">
-                        <div>{{ selectedRecord?.monthLabel || '未选择月份' }}</div>
-                        <div class="mt-1 text-slate-300">{{ selectedPointText }}</div>
-                    </div>
-                </div>
 
-                <div v-if="errorMessage" class="flex h-[calc(100%-4rem)] items-center justify-center px-8">
-                    <div class="warning-box w-full">{{ errorMessage }}</div>
-                </div>
-
-                <div v-else-if="!selectedRecord" class="flex h-[calc(100%-4rem)] items-center justify-center px-8 text-center">
-                    <div>
-                        <div class="text-xl font-bold text-slate-100">未选择月份</div>
-                        <div class="mt-2 text-base text-slate-300">点击左侧历史海况列表后显示详情</div>
-                    </div>
-                </div>
-
-                <div v-else class="min-h-0 flex-1 p-4">
-                    <div class="flex h-full flex-col gap-3">
-                        <div class="grid grid-cols-3 gap-3">
+                    <div v-else class="min-h-0 flex-1 p-4">
+                        <div class="flex h-full flex-col gap-3">
                             <div
-                                v-for="item in detailSummaryCards"
-                                :key="item.label"
-                                class="info-card"
+                                v-if="compactSummaryCards.length"
+                                :class="['compact-metric-row', compactMetricRowClass(compactSummaryCards.length)]"
                             >
-                                <span class="info-label">{{ item.label }}</span>
-                                <span class="info-value">{{ item.value }}</span>
+                                <div
+                                    v-for="item in compactSummaryCards"
+                                    :key="item.label"
+                                    class="compact-metric-card"
+                                >
+                                    <span>{{ item.label }}</span>
+                                    <strong>{{ item.value }}</strong>
+                                </div>
+                            </div>
+                            <div ref="trendChartRef" class="chart-box min-h-0 flex-1"></div>
+                            <div class="window-legend">
+                                <span><i class="window-color window-color-wind"></i>风速</span>
+                                <span><i class="window-color window-color-wave"></i>浪高</span>
+                                <span><i class="window-color window-color-current"></i>流速</span>
                             </div>
                         </div>
-                        <div ref="detailChartRef" class="chart-box min-h-0 flex-1"></div>
                     </div>
-                </div>
+                </section>
+
+                <div class="history-workspace-divider"></div>
+
+                <section class="flex min-h-0 flex-1 flex-col">
+                    <div class="flex items-center justify-between border-b-2 px-5 py-3 shrink-0" style="border-color: rgba(56, 189, 248, 0.32);">
+                        <div class="flex items-center gap-3">
+                            <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
+                            <div>
+                                <div class="text-[22px] font-bold tracking-wide text-white">月度海况详情</div>
+                            </div>
+                        </div>
+                        <div class="text-right text-[15px] text-slate-200">
+                            <div>{{ selectedRecord?.monthLabel || '未选择月份' }}</div>
+                            <div class="mt-1 text-slate-300">{{ selectedPointText }}</div>
+                        </div>
+                    </div>
+
+                    <div v-if="errorMessage" class="flex h-[calc(100%-4rem)] items-center justify-center px-8">
+                        <div class="warning-box w-full">{{ errorMessage }}</div>
+                    </div>
+
+                    <div v-else-if="!selectedRecord" class="flex h-[calc(100%-4rem)] items-center justify-center px-8 text-center">
+                        <div>
+                            <div class="text-xl font-bold text-slate-100">未选择月份</div>
+                            <div class="mt-2 text-base text-slate-300">点击左侧历史海况列表后显示详情</div>
+                        </div>
+                    </div>
+
+                    <div v-else class="min-h-0 flex-1 p-4">
+                        <div class="flex h-full flex-col gap-3">
+                            <div
+                                v-if="compactDetailCards.length"
+                                :class="['compact-metric-row', compactMetricRowClass(compactDetailCards.length)]"
+                            >
+                                <div
+                                    v-for="item in compactDetailCards"
+                                    :key="item.label"
+                                    class="compact-metric-card"
+                                >
+                                    <span>{{ item.label }}</span>
+                                    <strong>{{ item.value }}</strong>
+                                </div>
+                            </div>
+                            <div ref="detailChartRef" class="chart-box min-h-0 flex-1"></div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </transition>
@@ -140,10 +144,6 @@ const props = defineProps({
         default: null
     },
     selectedPoint: {
-        type: Object,
-        default: null
-    },
-    summary: {
         type: Object,
         default: null
     },
@@ -205,54 +205,68 @@ const formatMetric = (value, digits = 1) => {
     return Number(value).toFixed(Number(digits));
 };
 
-const formatDirection = (value) => (
-    value === null || value === undefined || Number.isNaN(Number(value))
-        ? '--'
-        : `${Number(value).toFixed(0)}°`
+const hasTrendData = computed(() => (props.records || []).some((record) => (
+    record?.hasWind || record?.hasWave || record?.hasCurrent
+)));
+
+const hasMetricValue = (value) => (
+    value !== null
+    && value !== undefined
+    && value !== ''
+    && Number.isFinite(Number(value))
 );
 
-const formatPeak = (peak, unit, digits = 1) => (
-    peak?.record
-        ? `${formatMetric(peak.value, digits)} ${unit}`
-        : '--'
+const compactMetricRowClass = (count) => (
+    count === 1
+        ? 'compact-metric-row--one'
+        : count === 2
+            ? 'compact-metric-row--two'
+            : 'compact-metric-row--three'
 );
 
-const formatPeakNote = (peak) => (
-    peak?.record?.monthLabel || '暂无数据'
-);
+const getPeakValue = (field) => {
+    const peak = (props.records || []).reduce((best, record) => {
+        const rawValue = record?.[field];
+        const value = Number(rawValue);
+        return hasMetricValue(rawValue) && (best === null || value > best)
+            ? value
+            : best;
+    }, null);
 
-const summaryCards = computed(() => [
-    {
-        label: '最高风速',
-        value: formatPeak(props.summary?.maxWind, 'm/s', 1),
-        note: formatPeakNote(props.summary?.maxWind)
-    },
-    {
-        label: '最高浪高',
-        value: formatPeak(props.summary?.maxWave, 'm', 2),
-        note: formatPeakNote(props.summary?.maxWave)
-    },
-    {
-        label: '最高流速',
-        value: formatPeak(props.summary?.maxCurrent, 'm/s', 2),
-        note: formatPeakNote(props.summary?.maxCurrent)
-    }
-]);
+    return peak;
+};
 
-const detailSummaryCards = computed(() => [
-    {
-        label: '风速/风向',
-        value: `${formatMetric(props.selectedRecord?.windSpeed, 1)} m/s · ${formatDirection(props.selectedRecord?.windDirection)}`
-    },
-    {
-        label: '浪高/周期',
-        value: `${formatMetric(props.selectedRecord?.waveHeight, 2)} m · ${formatMetric(props.selectedRecord?.wavePeriod, 1)} s`
-    },
-    {
-        label: '流速/流向',
-        value: `${formatMetric(props.selectedRecord?.currentSpeed, 2)} m/s · ${formatDirection(props.selectedRecord?.currentDirection)}`
-    }
-]);
+const compactSummaryCards = computed(() => {
+    const maxWind = getPeakValue('windSpeed');
+    const maxWave = getPeakValue('waveHeight');
+    const maxCurrent = getPeakValue('currentSpeed');
+
+    return [
+        maxWind === null ? null : { label: '最高风速', value: `${formatMetric(maxWind, 1)} m/s` },
+        maxWave === null ? null : { label: '最高浪高', value: `${formatMetric(maxWave, 2)} m` },
+        maxCurrent === null ? null : { label: '最高流速', value: `${formatMetric(maxCurrent, 2)} m/s` }
+    ].filter(Boolean);
+});
+
+const compactDetailCards = computed(() => {
+    const record = props.selectedRecord || {};
+    const windValues = [
+        hasMetricValue(record.windSpeed) ? `${formatMetric(record.windSpeed, 1)} m/s` : '',
+        hasMetricValue(record.gust) ? `${formatMetric(record.gust, 1)} m/s` : ''
+    ].filter(Boolean);
+    const waveValues = [
+        hasMetricValue(record.waveHeight) ? `${formatMetric(record.waveHeight, 2)} m` : '',
+        hasMetricValue(record.wavePeriod) ? `${formatMetric(record.wavePeriod, 1)} s` : ''
+    ].filter(Boolean);
+
+    return [
+        windValues.length ? { label: '风速 / 阵风', value: windValues.join(' · ') } : null,
+        waveValues.length ? { label: '浪高 / 周期', value: waveValues.join(' · ') } : null,
+        hasMetricValue(record.currentSpeed)
+            ? { label: '流速', value: `${formatMetric(record.currentSpeed, 2)} m/s` }
+            : null
+    ].filter(Boolean);
+});
 
 const createEmptyGraphic = (text) => [
     {
@@ -427,7 +441,7 @@ const renderTrendChart = async () => {
             }
         },
         yAxis: getYAxis(),
-        graphic: props.summary?.hasData ? [] : createEmptyGraphic('暂无历史海况趋势'),
+        graphic: hasTrendData.value ? [] : createEmptyGraphic('暂无历史海况趋势'),
         series
     }, true);
 };
@@ -531,7 +545,7 @@ const disposeCharts = () => {
 };
 
 watch(
-    () => [props.show, props.records, props.summary, props.filters?.dataType],
+    () => [props.show, props.records, props.filters?.dataType],
     async ([show]) => {
         if (!show) {
             trendChart?.dispose();
@@ -579,41 +593,11 @@ onBeforeUnmount(() => {
     opacity: 0;
 }
 
-.window-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.window-summary-card {
-    min-width: 0;
-    border: 1px solid rgba(71, 85, 105, 0.78);
-    border-radius: 4px;
-    background: rgba(15, 23, 42, 0.68);
-    padding: 8px 9px;
-}
-
-.window-summary-card span,
-.window-summary-card em {
-    display: block;
-    overflow: hidden;
-    color: #94a3b8;
-    font-size: 11px;
-    font-style: normal;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.window-summary-card strong {
-    display: block;
-    overflow: hidden;
-    margin: 4px 0 3px;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 800;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.history-workspace-divider {
+    height: 1px;
+    flex: 0 0 auto;
+    background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.62), transparent);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.18);
 }
 
 .window-legend {
@@ -650,17 +634,67 @@ onBeforeUnmount(() => {
     background: #a78bfa;
 }
 
+.compact-metric-row {
+    display: grid;
+    flex: 0 0 68px;
+    gap: 6px;
+}
+
+.compact-metric-row--one {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.compact-metric-row--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compact-metric-row--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compact-metric-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid rgba(71, 85, 105, 0.72);
+    border-radius: 4px;
+    background: rgba(8, 15, 28, 0.68);
+    padding: 7px 10px;
+}
+
+.compact-metric-card span,
+.compact-metric-card strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.compact-metric-card span {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.compact-metric-card strong {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
 .chart-box,
 .loading-box,
-.empty-box,
-.info-card {
+.empty-box {
     border-radius: 4px;
 }
 
 .chart-box,
 .loading-box,
-.empty-box,
-.info-card {
+.empty-box {
     border: 1px solid rgba(71, 85, 105, 0.72);
     background: rgba(8, 15, 28, 0.68);
 }
@@ -687,24 +721,4 @@ onBeforeUnmount(() => {
     text-align: center;
 }
 
-.info-card {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 11px 12px;
-}
-
-.info-label {
-    color: rgba(147, 197, 253, 0.9);
-    font-size: 14px;
-}
-
-.info-value {
-    max-width: 58%;
-    color: #f8fafc;
-    font-size: 14px;
-    font-weight: 700;
-    text-align: right;
-    word-break: break-word;
-}
 </style>

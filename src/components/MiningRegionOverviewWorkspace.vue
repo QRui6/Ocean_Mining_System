@@ -15,13 +15,13 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
                             <div>
-                                <div class="text-xl font-bold tracking-wide text-white">区域逐天统计</div>
+                                <div class="text-xl font-bold tracking-wide text-white">区域逐天预报</div>
                             </div>
                         </div>
                         <button
                             @click="emit('close')"
                             class="flex h-8 w-8 items-center justify-center rounded-sm border border-cyan-500/35 text-cyan-200 transition-colors hover:bg-cyan-500 hover:text-slate-950"
-                            title="关闭区域总览"
+                            title="关闭区域预报"
                         >
                             ✕
                         </button>
@@ -30,7 +30,7 @@
                     <div v-if="loading" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
-                            <span>正在加载区域逐天统计...</span>
+                            <span>正在加载区域逐天预报...</span>
                         </div>
                     </div>
 
@@ -39,32 +39,11 @@
                             <div class="text-slate-200">
                                 当前区域: <span class="font-semibold text-cyan-200">{{ region.regionName || region.regionCode || '--' }}</span>
                             </div>
-                            <div class="rounded-sm border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-sm text-amber-100">
-                                当前展示风浪流预报
+                            <div :class="['rounded-sm border px-2 py-1 text-sm', forecastStatus.className]">
+                                {{ forecastStatus.label }}
                             </div>
                         </div>
-                        <div class="mb-3 grid grid-cols-2 gap-3">
-                            <div class="metric-card">
-                                <div class="metric-label">区域平均水深</div>
-                                <div class="metric-value text-cyan-200">{{ formatMetric(region?.depthAvgMeters, 0) }}</div>
-                                <div class="metric-unit">m</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">区域中心水深</div>
-                                <div class="metric-value text-sky-200">{{ formatMetric(region?.centerDepthMeters, 0) }}</div>
-                                <div class="metric-unit">m</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">日均流速</div>
-                                <div class="metric-value text-violet-200">{{ formatMetric(selectedDailyRecord?.currentSpeedAvg, 2) }}</div>
-                                <div class="metric-unit">m/s</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">最大流速</div>
-                                <div class="metric-value text-fuchsia-200">{{ formatMetric(selectedDailyRecord?.currentSpeedMax, 2) }}</div>
-                                <div class="metric-unit">{{ formatDirection(selectedDailyRecord?.currentDirMean) }}</div>
-                            </div>
-                        </div>
+                        <div class="mb-3 text-xs text-slate-400">基准 {{ forecastStatus.baseDate }} · 有效至 {{ forecastStatus.validUntil }} · {{ forecastStatus.detail }}</div>
                         <div ref="dailyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -77,7 +56,7 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
                             <div>
-                                <div class="text-xl font-bold tracking-wide text-white">区域逐 3 小时统计</div>
+                                <div class="text-xl font-bold tracking-wide text-white">区域逐 3 小时预报</div>
                             </div>
                         </div>
                         <div class="rounded-sm border border-sky-500/25 bg-sky-500/10 px-2 py-1 text-sm text-sky-200">
@@ -88,7 +67,7 @@
                     <div v-if="loadingHourly" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-sky-500/20 border-t-sky-400 animate-spin"></span>
-                            <span>正在加载逐小时统计...</span>
+                            <span>正在加载逐小时预报...</span>
                         </div>
                     </div>
 
@@ -100,23 +79,6 @@
                             </div>
                             <div class="text-slate-300">
                                 点击上方逐天图切换日期
-                            </div>
-                        </div>
-                        <div class="mb-3 grid grid-cols-3 gap-3">
-                            <div class="metric-card">
-                                <div class="metric-label">小时平均流速</div>
-                                <div class="metric-value text-violet-200">{{ formatMetric(selectedRegionLatestHourlyRecord?.currentSpeedAvg, 2) }}</div>
-                                <div class="metric-unit">m/s</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">小时最大流速</div>
-                                <div class="metric-value text-fuchsia-200">{{ formatMetric(selectedRegionLatestHourlyRecord?.currentSpeedMax, 2) }}</div>
-                                <div class="metric-unit">m/s</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">平均流向</div>
-                                <div class="metric-value text-sky-200">{{ formatDirection(selectedRegionLatestHourlyRecord?.currentDirMean) }}</div>
-                                <div class="metric-unit">区域小时尺度</div>
                             </div>
                         </div>
                         <div ref="hourlyChartRef" class="min-h-0 flex-1 w-full"></div>
@@ -131,7 +93,7 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-yellow-400 shadow-[0_0_10px_#facc15]"></div>
                             <div>
-                                <div class="text-xl font-bold tracking-wide text-white">单矿区逐天统计</div>
+                                <div class="text-xl font-bold tracking-wide text-white">单矿区逐天预报</div>
                             </div>
                         </div>
                     </div>
@@ -139,7 +101,7 @@
                     <div v-if="loadingSite" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
-                            <span>正在加载单矿区逐天统计...</span>
+                            <span>正在加载单矿区逐天预报...</span>
                         </div>
                     </div>
 
@@ -151,28 +113,6 @@
                     </div>
 
                     <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
-                        <div class="mb-3 grid grid-cols-4 gap-2">
-                            <div class="metric-card">
-                                <div class="metric-label">站点水深</div>
-                                <div class="metric-value text-cyan-200">{{ formatMetric(selectedSite?.depthMeters, 0) }}</div>
-                                <div class="metric-unit">m</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">站点高程</div>
-                                <div class="metric-value text-sky-200">{{ formatMetric(selectedSite?.elevationMeters, 0) }}</div>
-                                <div class="metric-unit">m</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">日均流速</div>
-                                <div class="metric-value text-violet-200">{{ formatMetric(selectedSiteDailyRecord?.currentSpeedAvg, 2) }}</div>
-                                <div class="metric-unit">m/s</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">最大流速</div>
-                                <div class="metric-value text-fuchsia-200">{{ formatMetric(selectedSiteDailyRecord?.currentSpeedMax, 2) }}</div>
-                                <div class="metric-unit">{{ formatDirection(selectedSiteDailyRecord?.currentDirMean) }}</div>
-                            </div>
-                        </div>
                         <div ref="siteDailyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -183,7 +123,7 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
                             <div>
-                                <div class="text-xl font-bold tracking-wide text-white">单矿区逐 3 小时统计</div>
+                                <div class="text-xl font-bold tracking-wide text-white">单矿区逐 3 小时预报</div>
                             </div>
                         </div>
                     </div>
@@ -191,7 +131,7 @@
                     <div v-if="loadingSiteHourly" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-sky-500/20 border-t-sky-400 animate-spin"></span>
-                            <span>正在加载单矿区逐小时统计...</span>
+                            <span>正在加载单矿区逐小时预报...</span>
                         </div>
                     </div>
 
@@ -203,23 +143,6 @@
                     </div>
 
                     <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
-                        <div class="mb-3 grid grid-cols-3 gap-3">
-                            <div class="metric-card">
-                                <div class="metric-label">站点流速</div>
-                                <div class="metric-value text-violet-200">{{ formatMetric(selectedSiteLatestHourlyRecord?.currentSpeed, 2) }}</div>
-                                <div class="metric-unit">m/s</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">站点流向</div>
-                                <div class="metric-value text-sky-200">{{ formatDirection(selectedSiteLatestHourlyRecord?.currentDir) }}</div>
-                                <div class="metric-unit">单矿区小时尺度</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">波浪周期</div>
-                                <div class="metric-value text-amber-100">{{ formatMetric(selectedSiteLatestHourlyRecord?.wavePeriod, 1) }}</div>
-                                <div class="metric-unit">s</div>
-                            </div>
-                        </div>
                         <div ref="siteHourlyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -299,48 +222,38 @@ let hourlyChartInstance = null;
 let siteDailyChartInstance = null;
 let siteHourlyChartInstance = null;
 
-const selectedDailyRecord = computed(() => (
-    props.dailyForecast.find((record) => record.forecastDate === props.selectedForecastDate)
-    || props.dailyForecast[0]
-    || null
-));
+const forecastStatus = computed(() => {
+    const records = props.dailyForecast || [];
+    const dates = records
+        .map((record) => new Date(record?.forecastDate || record?.forecastTime || 0).getTime())
+        .filter(Number.isFinite);
+    const baseDates = records
+        .map((record) => record?.baseDate)
+        .filter(Boolean)
+        .sort();
 
-const selectedRegionLatestHourlyRecord = computed(() => (
-    props.hourlyForecast[props.hourlyForecast.length - 1]
-    || props.hourlyForecast[0]
-    || null
-));
-
-const selectedSiteDailyRecord = computed(() => (
-    props.siteDailyForecast.find((record) => record.forecastDate === props.selectedForecastDate)
-    || props.siteDailyForecast[0]
-    || null
-));
-
-const selectedSiteLatestHourlyRecord = computed(() => (
-    props.siteHourlyForecast[props.siteHourlyForecast.length - 1]
-    || props.siteHourlyForecast[0]
-    || null
-));
-
-const formatMetric = (value, digits = 1) => {
-    if (value === null || value === undefined || Number.isNaN(Number(value))) {
-        return '--';
+    if (!dates.length) {
+        return {
+            label: '暂无预报数据',
+            className: 'border-slate-600/50 bg-slate-900/50 text-slate-300',
+            baseDate: '--',
+            validUntil: '--',
+            detail: '未返回可判定时效的数据'
+        };
     }
 
-    return Number(value).toFixed(Number(digits));
-};
-
-const formatDirection = (value) => {
-    if (value === null || value === undefined || Number.isNaN(Number(value))) {
-        return '--';
-    }
-
-    const degree = ((Number(value) % 360) + 360) % 360;
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round(degree / 45) % directions.length;
-    return `${degree.toFixed(0)}° ${directions[index]}`;
-};
+    const validUntil = new Date(Math.max(...dates));
+    const isCurrent = validUntil.getTime() >= Date.now();
+    return {
+        label: isCurrent ? '当前预报数据' : '过期数据，仅供回看',
+        className: isCurrent
+            ? 'border-emerald-400/35 bg-emerald-950/30 text-emerald-100'
+            : 'border-amber-500/25 bg-amber-500/10 text-amber-100',
+        baseDate: baseDates[baseDates.length - 1] || '--',
+        validUntil: validUntil.toLocaleDateString('zh-CN'),
+        detail: isCurrent ? '可按预报时间查看' : '不会作为实时预警依据'
+    };
+});
 
 const formatCoordinate = (value, positiveSuffix) => {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -389,14 +302,6 @@ const formatHourlyLabel = (item) => {
 
     return '--';
 };
-
-const selectedSiteLatestTimeLabel = computed(() => {
-    if (!selectedSiteLatestHourlyRecord.value) {
-        return '--';
-    }
-
-    return formatHourlyLabel(selectedSiteLatestHourlyRecord.value);
-});
 
 const createEmptyGraphic = (text) => [
     {

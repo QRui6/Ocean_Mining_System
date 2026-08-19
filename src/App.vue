@@ -39,7 +39,7 @@
                     :regionLoading="loadingMiningOverviewRegions"
                     :miningAreas="filteredMiningData"
                     :selectedAreaId="selectedMiningAreaId"
-                    :showQueryPanel="activePanels.query"
+                    :showQueryPanel="currentTab === '矿区总览' && activePanels.query"
                     :showLayersPanel="activePanels.layers"
                     :showWeatherLayersPanel="activePanels.weatherLayers"
                     @filterChange="handleFilterChange"
@@ -113,7 +113,6 @@
                     :loading="loadingHistoricalSeaState"
                     :selectedArea="selectedHistoricalSeaStateArea"
                     :selectedPoint="selectedHistoricalSeaStatePoint"
-                    :summary="historicalSeaStateDisplaySummary"
                     :records="historicalSeaStateFilteredRecords"
                     :selectedRecord="selectedHistoricalSeaStateRecord"
                     :filters="historicalSeaStateFilters"
@@ -150,6 +149,36 @@
                     :show="currentTab === '预警中心' && activePanels.pipelineWarning"
                     @close="closePipelineWarning"
                 />
+
+                <ForecastRegionPanel
+                    :show="currentTab === '预报中心' && activePanels.forecastRegion"
+                    :regions="miningOverviewRegions"
+                    :selectedRegion="selectedMiningRegion"
+                    :dailyForecast="selectedMiningRegionDaily"
+                    @close="closeForecastRegion"
+                    @selectRegion="handleMiningRegionSelect"
+                />
+
+                <BuoyMonitoringWorkspace
+                    :show="currentTab === '环境监测' && activePanels.buoyMonitoring"
+                    :getViewer="getMapViewer"
+                    @close="closeBuoyMonitoring"
+                />
+
+                <ForecastCenterWorkspace
+                    :show="currentTab === '预报中心' && activePanels.forecastCenter"
+                    @close="closeForecastCenter"
+                />
+
+                <WeatherWarningWorkspace
+                    :show="currentTab === '预警中心' && activePanels.weatherWarnings"
+                    @close="closeWeatherWarnings"
+                />
+
+                <MonitoringEventPanel
+                    :show="currentTab === '预警中心' && activePanels.monitoringEvents"
+                    @close="closeMonitoringEvents"
+                />
                 
                 <!-- 区域监控面板 -->
                 <AreaMonitorPanel 
@@ -181,6 +210,11 @@
                     @toggleHistoricalTyphoon="toggleHistoricalTyphoon"
                     @toggleHistoricalSeaState="toggleHistoricalSeaState"
                     @togglePipelineWarning="togglePipelineWarning"
+                    @toggleMonitoringEvents="toggleMonitoringEvents"
+                    @toggleForecastRegion="toggleForecastRegion"
+                    @toggleForecastCenter="toggleForecastCenter"
+                    @toggleWeatherWarnings="toggleWeatherWarnings"
+                    @toggleBuoyMonitoring="toggleBuoyMonitoring"
                     :activePanels="activePanels"
                     :currentTab="currentTab"
                     :weatherLayerGroups="weatherLayerState"
@@ -199,7 +233,7 @@
                 />
 
                 <MiningRegionOverviewWorkspace
-                    :show="showMiningRegionOverview"
+                    :show="currentTab === '预报中心' && showMiningRegionOverview"
                     :loading="loadingMiningRegionOverview"
                     :loadingHourly="loadingMiningRegionHourly"
                     :loadingSite="loadingMiningRegionSite"
@@ -287,6 +321,7 @@
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import * as Cesium from 'cesium';
 import { WEATHER_LAYER_GROUPS } from './constants.js';
+import { API_ENDPOINTS } from './api/config.js';
 import { fetchMiningAreaOverview } from './api/miningAreaOverview.js';
 import {
     fetchMiningOverviewRegions,
@@ -302,9 +337,8 @@ import {
     fetchTyphoonTrack
 } from './api/typhoonHistory.js';
 import {
-    calculateSeaStateSummary,
-    createEmptySeaStateSummary,
-    fetchHistoricalSeaStatePoint,
+    createHistoricalSeaStatePointResult,
+    fetchHistoricalSeaStateDataset,
     filterSeaStateRecords
 } from './api/historicalSeaState.js';
 import {
@@ -313,6 +347,7 @@ import {
 } from './utils/typhoonWindowService.js';
 import Header from './components/Header.vue';
 import LeftPanel from './components/LeftPanel.vue';
+import ForecastRegionPanel from './components/ForecastRegionPanel.vue';
 import RightPanel from './components/RightPanel.vue';
 import MapContainer from './components/MapContainer.vue';
 import HistoricalTyphoonPanel from './components/HistoricalTyphoonPanel.vue';
@@ -323,6 +358,7 @@ import TimelineControl from './components/TimelineControl.vue';
 import ShipTrackingPanel from './components/ShipTrackingPanel.vue';
 import LiftingPipeSelectionPanel from './components/LiftingPipeSelectionPanel.vue';
 import PipelineWarningPanel from './components/pipelineSafety/PipelineWarningPanel.vue';
+import MonitoringEventPanel from './components/MonitoringEventPanel.vue';
 import AreaMonitorPanel from './components/AreaMonitorPanel.vue';
 import AreaDetailDialog from './components/AreaDetailDialog.vue';
 import WeatherListTable from './components/WeatherListTable.vue';
@@ -334,11 +370,15 @@ import RouteDemoPanel from './components/RouteDemoPanel.vue';
 import RouteRiskWarning from './components/RouteRiskWarning.vue';
 import MiningAreaWeatherCard from './components/MiningAreaWeatherCard.vue';
 import WaypointWeatherPopup from './components/WaypointWeatherPopup.vue';
+import BuoyMonitoringWorkspace from './components/BuoyMonitoringWorkspace.vue';
+import ForecastCenterWorkspace from './components/ForecastCenterWorkspace.vue';
+import WeatherWarningWorkspace from './components/WeatherWarningWorkspace.vue';
 
 export default {
     components: {
         Header,
         LeftPanel,
+        ForecastRegionPanel,
         RightPanel,
         MapContainer,
         HistoricalTyphoonPanel,
@@ -349,6 +389,7 @@ export default {
         ShipTrackingPanel,
         LiftingPipeSelectionPanel,
         PipelineWarningPanel,
+        MonitoringEventPanel,
         AreaMonitorPanel,
         AreaDetailDialog,
         WeatherListTable,
@@ -359,7 +400,10 @@ export default {
         RouteDemoPanel,
         RouteRiskWarning,
         MiningAreaWeatherCard,
-        WaypointWeatherPopup
+        WaypointWeatherPopup,
+        BuoyMonitoringWorkspace,
+        ForecastCenterWorkspace,
+        WeatherWarningWorkspace
     },
     setup() {
         // ==================== 状态管理 ====================
@@ -371,6 +415,7 @@ export default {
             list: false,
             mapTools: false,
             query: false,
+            forecastRegion: false,
             layers: false,
             weatherLayers: false,
             pipeSelection: false,
@@ -386,6 +431,10 @@ export default {
             historyTyphoon: false,
             historySeaState: false,
             pipelineWarning: false,
+            monitoringEvents: false,
+            buoyMonitoring: false,
+            forecastCenter: false,
+            weatherWarnings: false,
             ...overrides
         });
 
@@ -395,9 +444,7 @@ export default {
         const cloneWeatherLayerGroups = () => JSON.parse(JSON.stringify(WEATHER_LAYER_GROUPS));
 
         // 各个功能面板的显示状态
-        const activePanels = ref(createActivePanels({
-            query: true
-        }));
+        const activePanels = ref(createActivePanels());
         
         // 区域详情对话框状态
         const showAreaDetail = ref(false);
@@ -453,7 +500,6 @@ export default {
         const selectedHistoricalSeaStateArea = ref(null);
         const selectedHistoricalSeaStatePoint = ref(null);
         const historicalSeaStateRecords = ref([]);
-        const historicalSeaStateSummary = ref(createEmptySeaStateSummary());
         const historicalSeaStateError = ref('');
         const selectedHistoricalSeaStateRecord = ref(null);
         const loadingHistoricalSeaState = ref(false);
@@ -560,6 +606,7 @@ export default {
 
         const resetEnvironmentMonitoringState = ({ hidePanel = false } = {}) => {
             weatherLayerState.value = cloneWeatherLayerGroups();
+            showTimeline.value = false;
             invokeMapMethod('closeWeatherPicker');
             invokeMapMethod('closeWeatherInfo');
 
@@ -1224,6 +1271,51 @@ export default {
         };
 
         /**
+         * 切换预报中心的区域预报面板。
+         * 该面板只负责选择已有预报数据对应的区域，不复用矿区查询条件。
+         */
+        const toggleForecastRegion = () => {
+            activePanels.value.forecastRegion = !activePanels.value.forecastRegion;
+        };
+
+        const closeForecastRegion = () => {
+            activePanels.value.forecastRegion = false;
+        };
+
+        const toggleForecastCenter = () => {
+            const nextOpen = !activePanels.value.forecastCenter;
+            activePanels.value.forecastCenter = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+        };
+
+        const closeForecastCenter = () => {
+            activePanels.value.forecastCenter = false;
+            isRightPanelCollapsed.value = false;
+        };
+
+        const toggleBuoyMonitoring = () => {
+            const nextOpen = !activePanels.value.buoyMonitoring;
+            activePanels.value.buoyMonitoring = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+        };
+
+        const closeBuoyMonitoring = () => {
+            activePanels.value.buoyMonitoring = false;
+            isRightPanelCollapsed.value = false;
+        };
+
+        const toggleWeatherWarnings = () => {
+            const nextOpen = !activePanels.value.weatherWarnings;
+            activePanels.value.weatherWarnings = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+        };
+
+        const closeWeatherWarnings = () => {
+            activePanels.value.weatherWarnings = false;
+            isRightPanelCollapsed.value = false;
+        };
+
+        /**
          * 切换图层控制面板的显示状态
          */
         const toggleLayers = () => {
@@ -1236,6 +1328,7 @@ export default {
         const toggleWeatherLayers = () => {
             const nextOpen = !activePanels.value.weatherLayers;
             activePanels.value.weatherLayers = nextOpen;
+            showTimeline.value = nextOpen;
 
             if (!nextOpen) {
                 resetEnvironmentMonitoringState();
@@ -1343,6 +1436,7 @@ export default {
         // 区域监控相关
         const areaMonitorRef = ref(null);
         const mapContainerRef = ref(null);
+        const getMapViewer = () => mapContainerRef.value?.viewer?.() || null;
         const shipTrackingRef = ref(null);
         const miningScienceRef = ref(null);
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
@@ -1359,6 +1453,8 @@ export default {
         let historicalTyphoonAutoSelecting = false;
         let historicalSeaStateRequestId = 0;
         let historicalSeaStateAutoSelecting = false;
+        const historicalTyphoonWindowCache = new Map();
+        const historicalSeaStateDatasetCache = new Map();
         const historicalTyphoonRegionOrder = ['太平洋 (CCZ)', '太平洋', '大西洋', '西太平洋', '印度洋'];
 
         const historicalTyphoonQuickAreas = computed(() => {
@@ -1391,10 +1487,6 @@ export default {
 
         const historicalSeaStateFilteredRecords = computed(() => (
             filterSeaStateRecords(historicalSeaStateRecords.value, historicalSeaStateFilters.value.dataType)
-        ));
-
-        const historicalSeaStateDisplaySummary = computed(() => (
-            calculateSeaStateSummary(historicalSeaStateFilteredRecords.value)
         ));
 
         const historicalSeaStateTotal = computed(() => historicalSeaStateFilteredRecords.value.length);
@@ -1520,15 +1612,39 @@ export default {
             return `${getHistoricalTyphoonAreaTitle(area)} 暂未取得历史台风列表。后端区域接口 ${regionId} 当前返回失败。`;
         };
 
-        const loadHistoricalTyphoonSupplementaryData = async (regionId) => {
+        const getHistoricalTyphoonWindowCacheKey = (regionId, filters = historicalTyphoonFilters.value) => (
+            [
+                regionId,
+                filters.startYear,
+                filters.endYear,
+                filters.bufferKm
+            ].join('|')
+        );
+
+        const loadHistoricalTyphoonSupplementaryData = async (regionId, { seedEvents = [] } = {}) => {
             const requestId = ++historicalTyphoonSupplementaryRequestId;
-            loadingHistoricalTyphoonWindow.value = true;
             historicalTyphoonWindowError.value = '';
             historicalTyphoonSummary.value = null;
             historicalTyphoonYearly.value = [];
-            historicalTyphoonWindow.value = createEmptyTyphoonWindowSummary();
 
             const { startYear, endYear, bufferKm } = historicalTyphoonFilters.value;
+            const cacheKey = getHistoricalTyphoonWindowCacheKey(regionId);
+            const cachedWindow = historicalTyphoonWindowCache.get(cacheKey);
+
+            if (cachedWindow) {
+                historicalTyphoonWindow.value = cachedWindow;
+                loadingHistoricalTyphoonWindow.value = false;
+                return;
+            }
+
+            if (seedEvents.length) {
+                historicalTyphoonWindow.value = calculateTyphoonWindowSummary(seedEvents);
+                loadingHistoricalTyphoonWindow.value = false;
+            } else {
+                historicalTyphoonWindow.value = createEmptyTyphoonWindowSummary();
+                loadingHistoricalTyphoonWindow.value = true;
+            }
+
             const allEventsResult = await Promise.allSettled([
                 fetchMiningRegionTyphoonAllEvents(regionId, { startYear, endYear, bufferKm })
             ]);
@@ -1541,12 +1657,16 @@ export default {
             }
 
             if (allEventsResult[0].status === 'fulfilled') {
-                historicalTyphoonWindow.value = calculateTyphoonWindowSummary(allEventsResult[0].value);
+                const fullWindow = calculateTyphoonWindowSummary(allEventsResult[0].value);
+                historicalTyphoonWindow.value = fullWindow;
+                historicalTyphoonWindowCache.set(cacheKey, fullWindow);
             } else {
-                console.error('❌ 加载历史台风窗口统计失败:', allEventsResult[0].reason);
-                historicalTyphoonWindowError.value = isHistoricalTyphoonTimeoutError(allEventsResult[0].reason)
-                    ? '历史台风窗口统计加载超时，请稍后重试。'
-                    : '历史台风窗口统计暂不可用。';
+                console.warn('⚠️ 历史台风窗口完整统计补全失败，保留已加载数据统计:', allEventsResult[0].reason);
+                if (!seedEvents.length && !historicalTyphoonWindow.value?.hasData) {
+                    historicalTyphoonWindowError.value = isHistoricalTyphoonTimeoutError(allEventsResult[0].reason)
+                        ? '历史台风窗口统计加载超时，请稍后重试。'
+                        : '历史台风窗口统计暂不可用。';
+                }
             }
 
             loadingHistoricalTyphoonWindow.value = false;
@@ -1630,7 +1750,9 @@ export default {
                 historicalTyphoonError.value = '';
 
                 if (refreshSupplementary) {
-                    void loadHistoricalTyphoonSupplementaryData(regionId);
+                    void loadHistoricalTyphoonSupplementaryData(regionId, {
+                        seedEvents: eventsResult.items
+                    });
                 }
 
                 const previousSid = preserveSelection ? selectedHistoricalTyphoonEvent.value?.sid : '';
@@ -1819,7 +1941,6 @@ export default {
 
         const resetHistoricalSeaStateSelection = () => {
             historicalSeaStateRecords.value = [];
-            historicalSeaStateSummary.value = createEmptySeaStateSummary();
             selectedHistoricalSeaStateRecord.value = null;
         };
 
@@ -1841,6 +1962,59 @@ export default {
                 || filteredRecords[0]
                 || records[0]
                 || null;
+        };
+
+        const getHistoricalSeaStateDatasetKeys = (dataType = historicalSeaStateFilters.value.dataType) => {
+            if (['wind', 'wave', 'current'].includes(dataType)) {
+                return [dataType];
+            }
+
+            return ['wind', 'wave', 'current'];
+        };
+
+        const getHistoricalSeaStateDatasetCacheKey = (point, startYear, endYear, datasetKey) => (
+            [
+                Number(point.lat).toFixed(6),
+                Number(point.lon).toFixed(6),
+                startYear,
+                endYear,
+                datasetKey
+            ].join('|')
+        );
+
+        const applyHistoricalSeaStateResult = ({
+            requestId,
+            resolvedArea,
+            point,
+            datasets,
+            errors,
+            previousKey
+        }) => {
+            if (
+                requestId !== historicalSeaStateRequestId
+                || getHistoricalSeaStateAreaKey(selectedHistoricalSeaStateArea.value) !== getHistoricalSeaStateAreaKey(resolvedArea)
+            ) {
+                return false;
+            }
+
+            const { startYear, endYear } = historicalSeaStateFilters.value;
+            const result = createHistoricalSeaStatePointResult({
+                lat: point.lat,
+                lon: point.lon,
+                startYear,
+                endYear
+            }, datasets, errors);
+
+            historicalSeaStateRecords.value = result.records || [];
+
+            if (historicalSeaStateRecords.value.length) {
+                historicalSeaStateError.value = '';
+                loadingHistoricalSeaState.value = false;
+                selectHistoricalSeaStateRecordFrom(historicalSeaStateRecords.value, previousKey);
+                return true;
+            }
+
+            return false;
         };
 
         const loadHistoricalSeaStateOverview = async (
@@ -1869,49 +2043,69 @@ export default {
 
             const requestId = ++historicalSeaStateRequestId;
             const previousKey = preserveSelection ? selectedHistoricalSeaStateRecord.value?.key : '';
-            const { startYear, endYear } = historicalSeaStateFilters.value;
+            const { startYear, endYear, dataType } = historicalSeaStateFilters.value;
+            const datasetKeys = getHistoricalSeaStateDatasetKeys(dataType);
+            const datasets = {};
+            const errors = {};
+            let completedCount = 0;
 
             loadingHistoricalSeaState.value = true;
             historicalSeaStateError.value = '';
             resetHistoricalSeaStateSelection();
 
-            try {
-                const result = await fetchHistoricalSeaStatePoint({
-                    lat: point.lat,
-                    lon: point.lon,
-                    startYear,
-                    endYear
-                });
+            datasetKeys.forEach((datasetKey) => {
+                const cacheKey = getHistoricalSeaStateDatasetCacheKey(point, startYear, endYear, datasetKey);
+                const cachedDataset = historicalSeaStateDatasetCache.get(cacheKey);
+                const request = cachedDataset
+                    ? Promise.resolve(cachedDataset)
+                    : fetchHistoricalSeaStateDataset(datasetKey, {
+                        lat: point.lat,
+                        lon: point.lon,
+                        startYear,
+                        endYear
+                    }).then((dataset) => {
+                        historicalSeaStateDatasetCache.set(cacheKey, dataset);
+                        return dataset;
+                    });
 
-                if (
-                    requestId !== historicalSeaStateRequestId
-                    || getHistoricalSeaStateAreaKey(selectedHistoricalSeaStateArea.value) !== getHistoricalSeaStateAreaKey(resolvedArea)
-                ) {
-                    return;
-                }
+                request
+                    .then((dataset) => {
+                        datasets[datasetKey] = dataset;
+                        applyHistoricalSeaStateResult({
+                            requestId,
+                            resolvedArea,
+                            point,
+                            datasets,
+                            errors,
+                            previousKey
+                        });
+                    })
+                    .catch((error) => {
+                        console.warn(`⚠️ 历史海况${datasetKey}数据加载失败:`, error);
+                        errors[datasetKey] = error?.message || String(error);
+                    })
+                    .finally(() => {
+                        completedCount += 1;
 
-                historicalSeaStateRecords.value = result.records || [];
-                historicalSeaStateSummary.value = result.summary || createEmptySeaStateSummary();
+                        if (
+                            requestId !== historicalSeaStateRequestId
+                            || getHistoricalSeaStateAreaKey(selectedHistoricalSeaStateArea.value) !== getHistoricalSeaStateAreaKey(resolvedArea)
+                        ) {
+                            return;
+                        }
 
-                if (!historicalSeaStateRecords.value.length) {
-                    historicalSeaStateError.value = '当前查询点暂无历史海况月均记录。';
-                }
-
-                selectHistoricalSeaStateRecordFrom(historicalSeaStateRecords.value, previousKey);
-            } catch (error) {
-                console.error('❌ 加载历史海况失败:', error);
-
-                if (requestId !== historicalSeaStateRequestId) {
-                    return;
-                }
-
-                historicalSeaStateError.value = getHistoricalSeaStateError(resolvedArea, error);
-                resetHistoricalSeaStateSelection();
-            } finally {
-                if (requestId === historicalSeaStateRequestId) {
-                    loadingHistoricalSeaState.value = false;
-                }
-            }
+                        const hasAnyRecord = historicalSeaStateRecords.value.length > 0;
+                        if (completedCount >= datasetKeys.length) {
+                            loadingHistoricalSeaState.value = false;
+                            if (!hasAnyRecord) {
+                                historicalSeaStateError.value = Object.values(errors).some(Boolean)
+                                    ? getHistoricalSeaStateError(resolvedArea, new Error(Object.values(errors).filter(Boolean).join('; ')))
+                                    : '当前查询点暂无历史海况月均记录。';
+                                resetHistoricalSeaStateSelection();
+                            }
+                        }
+                    });
+            });
         };
 
         const initializeHistoricalSeaStateView = async () => {
@@ -2192,6 +2386,10 @@ export default {
                 closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
             } else {
                 pickingPointType.value = null;
+                routeToDraw.value = {
+                    action: 'clear',
+                    timestamp: Date.now()
+                };
             }
         };
 
@@ -2317,6 +2515,17 @@ export default {
             isRightPanelCollapsed.value = false;
         };
 
+        const toggleMonitoringEvents = () => {
+            const nextOpen = !activePanels.value.monitoringEvents;
+            activePanels.value.monitoringEvents = nextOpen;
+            isRightPanelCollapsed.value = nextOpen;
+        };
+
+        const closeMonitoringEvents = () => {
+            activePanels.value.monitoringEvents = false;
+            isRightPanelCollapsed.value = false;
+        };
+
         const handleHistoricalTyphoonAreaSelect = async (area, options = {}) => {
             const resolvedRegion = findHistoricalTyphoonRegion(area);
             if (!resolvedRegion) {
@@ -2418,7 +2627,7 @@ export default {
         };
 
         const handleHistoricalSeaStateFiltersChange = async (nextFilters) => {
-            const shouldReload = ['startYear', 'endYear'].some(
+            const shouldReload = ['startYear', 'endYear', 'dataType'].some(
                 (key) => nextFilters[key] !== undefined
                     && nextFilters[key] !== historicalSeaStateFilters.value[key]
             );
@@ -2832,6 +3041,11 @@ export default {
                 return;
             }
 
+            if (currentTab.value !== '预报中心') {
+                currentTab.value = '预报中心';
+                activePanels.value = createActivePanels({ forecastRegion: true });
+            }
+
             closeMiningAreaSelection();
 
             selectedMiningRegionId.value = String(region.id);
@@ -2973,7 +3187,7 @@ export default {
                 return;
             }
 
-            if (!['矿区总览', '态势总览'].includes(currentTab.value)) {
+            if (!['矿区总览', '预报中心'].includes(currentTab.value)) {
                 return;
             }
 
@@ -3106,7 +3320,7 @@ export default {
                 loadingHistoricalSeaState.value = false;
             }
 
-            if (!['矿区总览', '态势总览'].includes(tab)) {
+            if (!['矿区总览', '预报中心'].includes(tab)) {
                 closeMiningAreaSelection();
             }
 
@@ -3115,40 +3329,30 @@ export default {
             // 根据选项卡切换右侧功能面板
             if (tab === '矿区总览') {
                 showTimeline.value = false;
-                activePanels.value = createActivePanels({
-                    query: true
-                });
+                activePanels.value = createActivePanels();
                 isRightPanelCollapsed.value = false;
-            } else if (tab === '态势总览') {
+            } else if (tab === '预报中心') {
+                showTimeline.value = false;
+                activePanels.value = createActivePanels({ forecastCenter: true });
+                isRightPanelCollapsed.value = true;
+            } else if (tab === '环境监测') {
+                showTimeline.value = false;
+                activePanels.value = createActivePanels({ buoyMonitoring: true });
+                isRightPanelCollapsed.value = true;
+            } else if (tab === '采矿系统') {
                 showTimeline.value = false;
                 activePanels.value = createActivePanels();
                 isRightPanelCollapsed.value = false;
-            } else if (tab === '环境监测') {
-                showTimeline.value = true;
-                activePanels.value = createActivePanels({
-                    weatherLayers: true
-                });
-                isRightPanelCollapsed.value = false;
-            } else if (tab === '采矿系统') {
-                showTimeline.value = false;
-                activePanels.value = createActivePanels({
-                    pipeSelection: true
-                });
-                isRightPanelCollapsed.value = true;
             } else if (tab === '预警中心') {
                 showTimeline.value = false;
-                activePanels.value = createActivePanels({
-                    pipelineWarning: true
-                });
+                activePanels.value = createActivePanels({ weatherWarnings: true });
                 isRightPanelCollapsed.value = true;
             } else if (tab === '历史数据') {
                 showTimeline.value = false;
-                activePanels.value = createActivePanels({
-                    historyTyphoon: true
-                });
-                isRightPanelCollapsed.value = true;
+                activePanels.value = createActivePanels();
+                isRightPanelCollapsed.value = false;
                 nextTick(() => {
-                    initializeHistoricalTyphoonView();
+                    void toggleHistoricalSeaState();
                 });
             } else {
                 showTimeline.value = false;
@@ -3220,7 +3424,7 @@ export default {
         
         // WebSocket 连接函数
         const connectWebSocket = () => {
-            const WS_URL = 'ws://172.25.113.128:8082';
+            const WS_URL = API_ENDPOINTS.WEBSOCKET;
             
             console.log('🔌 连接 WebSocket:', WS_URL);
             
@@ -3439,6 +3643,15 @@ export default {
                         });
                     }
                     break;
+
+                case 'bulletin_ready':
+                    window.dispatchEvent(new CustomEvent('forecast-bulletin-ready', { detail: payload }));
+                    break;
+
+                case 'weather_warning':
+                case 'weather_warning_resolved':
+                    window.dispatchEvent(new CustomEvent('weather-warning-updated', { detail: payload }));
+                    break;
                     
                 default:
                     console.log('📨 未知消息类型:', type, payload);
@@ -3485,6 +3698,14 @@ export default {
             toggleList,
             toggleMapTools,
             toggleQuery,
+            toggleForecastRegion,
+            closeForecastRegion,
+            toggleForecastCenter,
+            closeForecastCenter,
+            toggleBuoyMonitoring,
+            closeBuoyMonitoring,
+            toggleWeatherWarnings,
+            closeWeatherWarnings,
             toggleLayers,
             toggleWeatherLayers,
             toggleShipSearch,
@@ -3506,6 +3727,8 @@ export default {
             closeHistoricalSeaState,
             togglePipelineWarning,
             closePipelineWarning,
+            toggleMonitoringEvents,
+            closeMonitoringEvents,
             handleDemoPlay,
             handleDemoPause,
             handleDemoResume,
@@ -3577,8 +3800,6 @@ export default {
             selectedHistoricalSeaStateArea,
             selectedHistoricalSeaStatePoint,
             historicalSeaStateRecords,
-            historicalSeaStateSummary,
-            historicalSeaStateDisplaySummary,
             historicalSeaStateFilteredRecords,
             historicalSeaStatePagedRecords,
             historicalSeaStateTotal,
@@ -3609,6 +3830,7 @@ export default {
             miningScienceRef,
             areaMonitorRef,
             mapContainerRef,
+            getMapViewer,
             miningWeatherMonitorRef,
             routeDemoRef,
             riskWarningRef,
