@@ -7,3 +7,32 @@
 @import "./scrollbar.css";
 @import "./cesium.css";
 @import "./premium-theme.css";  /* 高级大屏主题 */
+
+/* 预警中心右上角通知：覆盖 Element Plus 默认浅色通知，避免大屏白字与白底冲突 */
+.ocean-warning-notification.el-notification {
+    --el-notification-bg-color: rgba(7, 18, 35, 0.98);
+    --el-notification-border-color: rgba(34, 211, 238, 0.48);
+    --el-notification-title-color: #f8fafc;
+    --el-notification-content-color: #cbd5e1;
+    background: var(--el-notification-bg-color) !important;
+    border: 1px solid var(--el-notification-border-color) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 20px rgba(34, 211, 238, 0.12) !important;
+}
+
+.ocean-warning-notification .el-notification__title {
+    color: var(--el-notification-title-color) !important;
+    font-weight: 700;
+}
+
+.ocean-warning-notification .el-notification__content {
+    color: var(--el-notification-content-color) !important;
+    line-height: 1.65;
+}
+
+.ocean-warning-notification .el-notification__closeBtn {
+    color: #94a3b8 !important;
+}
+
+.ocean-warning-notification .el-notification__closeBtn:hover {
+    color: #f8fafc !important;
+}

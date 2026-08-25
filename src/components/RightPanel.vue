@@ -12,12 +12,19 @@
                 type="button"
                 :class="[
                     'flex h-24 w-8 items-center justify-center border border-r-0 border-cyan-500/45 bg-slate-950/85 text-xl font-bold text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.16)] backdrop-blur-md transition-all duration-200 hover:bg-cyan-500/20 hover:text-white',
-                    isHandleHovered ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+                    collapsed || isHandleHovered ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                 ]"
-                :title="collapsed ? '展开右侧菜单' : '收起右侧菜单'"
+                :title="collapsed ? '打开更多功能菜单' : '收起更多功能菜单'"
+                :aria-label="collapsed ? '打开更多功能菜单' : '收起更多功能菜单'"
                 @click.stop="setCollapsed(!collapsed)"
             >
-                {{ collapsed ? '‹' : '›' }}
+                <span v-if="collapsed" class="flex flex-col items-center gap-1 text-[11px] leading-none tracking-widest">
+                    <span>更</span>
+                    <span>多</span>
+                    <span>功</span>
+                    <span>能</span>
+                </span>
+                <span v-else>›</span>
             </button>
         </div>
 

@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "forecast:report": "node scripts/forecast-report-scheduler.mjs --watch",
+    "forecast:report:once": "node scripts/forecast-report-scheduler.mjs --once",
+    "warning:report": "node scripts/warning-report-scheduler.mjs --watch",
+    "warning:report:once": "node scripts/warning-report-scheduler.mjs --once"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

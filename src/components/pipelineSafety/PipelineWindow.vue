@@ -147,7 +147,7 @@ const renderChart = async () => {
         xAxis: {
             type: 'category',
             data: results.map((item) => item.forecast.forecastTime.slice(5, 16)),
-            axisLabel: { color: '#cbd5e1', rotate: 24 }
+            axisLabel: { color: '#f8fafc', rotate: 24 }
         },
         yAxis: {
             type: 'value',
@@ -155,7 +155,7 @@ const renderChart = async () => {
             max: 4,
             interval: 1,
             axisLabel: {
-                color: '#94a3b8',
+                color: '#f8fafc',
                 formatter(value) {
                     return ['', '绿', '黄', '橙', '红'][value] || '';
                 }

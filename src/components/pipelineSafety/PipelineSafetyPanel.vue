@@ -534,14 +534,14 @@ const renderCharts = async () => {
         xAxis: {
             type: 'value',
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#94a3b8' },
+            axisLabel: { color: '#f8fafc' },
             splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } }
         },
         yAxis: {
             type: 'category',
             data: names,
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#dbeafe', fontWeight: 700 }
+            axisLabel: { color: '#f8fafc', fontWeight: 700 }
         },
         series: [
             {
@@ -609,7 +609,7 @@ const renderCharts = async () => {
             name: item.axisName,
             nameGap: 10,
             nameTextStyle: { color: item.color, fontSize: 12, fontWeight: 800 },
-            axisLabel: { color: '#cbd5e1', fontSize: 11, fontWeight: 700 },
+            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 },
             axisLine: { show: false },
             axisTick: { show: false },
             splitNumber: 3,

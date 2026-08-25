@@ -35,12 +35,24 @@
                                 <div class="text-base font-bold text-white">{{ area.name || area.contractor }}</div>
                                 <div class="text-xs text-slate-400 mt-1">{{ area.id }}</div>
                             </div>
-                            <button
-                                @click="$emit('addMonitoring', area)"
-                                class="rounded-sm bg-gradient-to-r from-cyan-600 to-cyan-500 px-2.5 py-1.5 text-xs font-bold text-white transition-all hover:from-cyan-500 hover:to-cyan-400"
-                            >
-                                加入气象监测
-                            </button>
+                            <div class="flex shrink-0 items-center gap-2">
+                                <button
+                                    type="button"
+                                    :disabled="!area.forecastAvailable"
+                                    :title="area.forecastAvailable ? '进入预报中心查看当前矿区的风浪流预报' : '当前矿区暂未匹配到可用预报区域'"
+                                    @click="$emit('openForecast', area)"
+                                    class="rounded-sm border border-yellow-400/60 bg-yellow-500/15 px-2.5 py-1.5 text-xs font-bold text-yellow-100 transition-all hover:bg-yellow-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-800/60 disabled:text-slate-500"
+                                >
+                                    {{ area.forecastAvailable ? '查看未来预报' : '暂无预报' }}
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="$emit('addMonitoring', area)"
+                                    class="rounded-sm bg-gradient-to-r from-cyan-600 to-cyan-500 px-2.5 py-1.5 text-xs font-bold text-white transition-all hover:from-cyan-500 hover:to-cyan-400"
+                                >
+                                    加入气象监测
+                                </button>
+                            </div>
                         </div>
 
                         <div class="mt-3 grid grid-cols-2 gap-2.5 text-sm">
@@ -153,7 +165,7 @@ const props = defineProps({
     }
 });
 
-defineEmits(['close', 'addMonitoring']);
+defineEmits(['close', 'addMonitoring', 'openForecast']);
 
 const chartRef = ref(null);
 let chartInstance = null;
@@ -291,14 +303,14 @@ const buildChartOption = () => {
             type: 'category',
             data: timestamps.map((time) => formatTimelineLabel(time)),
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#94a3b8' }
+            axisLabel: { color: '#f8fafc' }
         },
         yAxis: [
             {
                 type: 'value',
                 name: unitMap.windSpeed || 'm/s',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#94a3b8' },
+                axisLabel: { color: '#f8fafc' },
                 splitLine: { lineStyle: { color: 'rgba(51, 65, 85, 0.45)' } }
             },
             {
@@ -306,7 +318,7 @@ const buildChartOption = () => {
                 name: unitMap.waveHeight || 'm',
                 position: 'right',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#94a3b8' },
+                axisLabel: { color: '#f8fafc' },
                 splitLine: { show: false }
             },
             {
@@ -316,7 +328,7 @@ const buildChartOption = () => {
                 offset: 36,
                 scale: true,
                 axisLine: { lineStyle: { color: '#a78bfa' } },
-                axisLabel: { color: '#c4b5fd' },
+                axisLabel: { color: '#f8fafc' },
                 splitLine: { show: false }
             }
         ],

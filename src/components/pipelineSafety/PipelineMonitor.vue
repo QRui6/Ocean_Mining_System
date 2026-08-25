@@ -131,8 +131,8 @@ const renderCharts = async () => {
         backgroundColor: 'transparent',
         grid: { left: 42, right: 14, top: 18, bottom: 28 },
         tooltip: { trigger: 'axis' },
-        xAxis: { type: 'category', data: ['综合应力', '许用应力', '屈服强度'], axisLabel: { color: '#cbd5e1' } },
-        yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
+        xAxis: { type: 'category', data: ['综合应力', '许用应力', '屈服强度'], axisLabel: { color: '#f8fafc' } },
+        yAxis: { type: 'value', axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
         series: [{
             type: 'bar',
             barWidth: 30,
@@ -153,9 +153,9 @@ const renderCharts = async () => {
         xAxis: {
             type: 'category',
             data: results.map((item) => item.forecast.forecastTime.slice(5, 16)),
-            axisLabel: { color: '#cbd5e1', rotate: 28 }
+            axisLabel: { color: '#f8fafc', rotate: 28 }
         },
-        yAxis: { type: 'value', axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
+        yAxis: { type: 'value', axisLabel: { color: '#f8fafc' }, splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } } },
         series: [
             { name: '表层流速', type: 'line', smooth: true, data: results.map((item) => item.forecast.surfaceCurrent), color: '#38bdf8' },
             { name: '底层流速', type: 'line', smooth: true, data: results.map((item) => item.forecast.bottomCurrent), color: '#22c55e' },

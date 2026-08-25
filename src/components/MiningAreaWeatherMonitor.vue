@@ -680,7 +680,7 @@ export default {
                         }
                     },
                     axisLabel: {
-                        color: '#94a3b8',
+                        color: '#f8fafc',
                         rotate: 45
                     }
                 },
@@ -695,7 +695,7 @@ export default {
                             }
                         },
                         axisLabel: {
-                            color: '#94a3b8'
+                            color: '#f8fafc'
                         },
                         splitLine: {
                             lineStyle: {
@@ -713,7 +713,7 @@ export default {
                             }
                         },
                         axisLabel: {
-                            color: '#94a3b8'
+                            color: '#f8fafc'
                         },
                         splitLine: {
                             show: false

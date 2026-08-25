@@ -362,14 +362,14 @@ const getYAxis = () => {
                 type: 'value',
                 name: '浪高 m',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#cbd5e1', fontSize: 11 },
+                axisLabel: { color: '#f8fafc', fontSize: 11 },
                 splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
             },
             {
                 type: 'value',
                 name: '周期 s',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#cbd5e1', fontSize: 11 },
+                axisLabel: { color: '#f8fafc', fontSize: 11 },
                 splitLine: { show: false }
             }
         ];
@@ -380,14 +380,14 @@ const getYAxis = () => {
             type: 'value',
             name: 'm/s',
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 11 },
+            axisLabel: { color: '#f8fafc', fontSize: 11 },
             splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
         },
         {
             type: 'value',
             name: 'm',
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 11 },
+            axisLabel: { color: '#f8fafc', fontSize: 11 },
             splitLine: { show: false }
         }
     ];
@@ -435,7 +435,7 @@ const renderTrendChart = async () => {
             data: records.map((record) => record.monthLabel || record.key),
             axisLine: { lineStyle: { color: '#334155' } },
             axisLabel: {
-                color: '#cbd5e1',
+                color: '#f8fafc',
                 fontSize: 11,
                 hideOverlap: true
             }
@@ -498,12 +498,12 @@ const renderDetailChart = async () => {
             type: 'category',
             data: entries.map((entry) => entry.label),
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 12 }
+            axisLabel: { color: '#f8fafc', fontSize: 12 }
         },
         yAxis: {
             type: 'value',
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 11 },
+            axisLabel: { color: '#f8fafc', fontSize: 11 },
             splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
         },
         graphic: hasValue ? [] : createEmptyGraphic('该月暂无可展示指标'),

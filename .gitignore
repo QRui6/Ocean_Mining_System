@@ -36,3 +36,7 @@ tiles_out/**/*.png
 !export_out/meta.json
 !tiles_out/metadata.json
 backend/scripts/*.nc
+
+# 自动生成的定时报文
+forecast-reports/
+warning-reports/

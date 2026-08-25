@@ -331,7 +331,7 @@ export default {
             default: null
         }
     },
-    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked', 'areaSelected'],
+    emits: ['dataLoaded', 'weatherDataLoaded', 'pointPicked', 'areaSelected', 'buoySelected'],
     setup(props, { emit }) {
         const cesiumContainer = ref(null);
         const selectedArea = ref(null);
@@ -775,6 +775,17 @@ export default {
                         console.log('   - 有 model:', !!entity.model);
                         console.log('   - 有 _waypointData:', !!entity._waypointData);
                         console.log('   - 有 _shipData:', !!entity._shipData);
+
+                        // 浮标监测点由浮标工作区维护，点击后交给上层面板处理，
+                        // 避免被通用的“点击空白/矿区”逻辑清除当前选中状态。
+                        const buoyProperty = entity.properties?.buoyId;
+                        const buoyId = buoyProperty && typeof buoyProperty.getValue === 'function'
+                            ? buoyProperty.getValue(Cesium.JulianDate.now())
+                            : buoyProperty;
+                        if (buoyId !== undefined && buoyId !== null && buoyId !== '') {
+                            emit('buoySelected', String(buoyId));
+                            return;
+                        }
                         
                         // 如果点击的是航线演示的航点
                         if (entity.name && entity.name.startsWith('waypoint-')) {

@@ -383,7 +383,7 @@ const clearAll = async () => {
 };
 
 const chartTextStyle = {
-    color: '#cbd5e1',
+    color: '#f8fafc',
     fontSize: 12,
     fontWeight: 800
 };
@@ -487,7 +487,7 @@ const renderCharts = async () => {
         yAxis: {
             type: 'value',
             splitLine: { lineStyle: { color: 'rgba(148,163,184,0.13)' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 700 }
+            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 }
         },
         series: [
             {
@@ -537,7 +537,7 @@ const renderCharts = async () => {
             type: 'value',
             minInterval: 1,
             splitLine: { lineStyle: { color: 'rgba(148,163,184,0.13)' } },
-            axisLabel: { color: '#94a3b8', fontSize: 11, fontWeight: 700 }
+            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 }
         },
         series: [
             {

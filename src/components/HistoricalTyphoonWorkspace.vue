@@ -374,13 +374,13 @@ const renderWindowChart = async () => {
             type: 'category',
             data: monthCounts.map((item) => item.label),
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 11 }
+            axisLabel: { color: '#f8fafc', fontSize: 11 }
         },
         yAxis: {
             type: 'value',
             minInterval: 1,
             axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#cbd5e1', fontSize: 11 },
+            axisLabel: { color: '#f8fafc', fontSize: 11 },
             splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
         },
         graphic: props.windowStats?.hasData ? [] : createEmptyGraphic('暂无历史台风窗口统计'),
@@ -510,7 +510,7 @@ const renderTrackChart = async () => {
             data: timeLabels,
             axisLine: { lineStyle: { color: '#334155' } },
             axisLabel: {
-                color: '#cbd5e1',
+                color: '#f8fafc',
                 fontSize: 11,
                 hideOverlap: true
             }
@@ -520,14 +520,14 @@ const renderTrackChart = async () => {
                 type: 'value',
                 name: '风速 kt',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#cbd5e1', fontSize: 12 },
+                axisLabel: { color: '#f8fafc', fontSize: 12 },
                 splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
             },
             ...(hasDistanceSeries.value ? [{
                 type: 'value',
                 name: '距离 km',
                 axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#cbd5e1', fontSize: 12 },
+                axisLabel: { color: '#f8fafc', fontSize: 12 },
                 splitLine: { show: false }
             }] : [])
         ],

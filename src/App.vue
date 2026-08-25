@@ -22,6 +22,7 @@
                 @weatherDataLoaded="handleWeatherDataLoaded"
                 @pointPicked="handlePointPicked"
                 @areaSelected="handleMapAreaSelected"
+                @buoySelected="handleBuoySelected"
             />
             
             <!-- UI Layer (Z-10+) -->
@@ -47,7 +48,7 @@
                     @weatherLayersChange="handleWeatherLayersChange"
                     @regionLocate="handleRegionLocate"
                     @areaSelect="handleMiningAreaSelect"
-                    @regionSelect="handleMiningRegionSelect"
+                    @regionSelect="handleMiningOverviewRegionSelect"
                 />
 
                 <HistoricalTyphoonPanel
@@ -151,7 +152,7 @@
                 />
 
                 <ForecastRegionPanel
-                    :show="currentTab === '预报中心' && activePanels.forecastRegion"
+                    :show="currentTab === '预报中心' && activePanels.forecastRegion && !showMiningRegionOverview"
                     :regions="miningOverviewRegions"
                     :selectedRegion="selectedMiningRegion"
                     :dailyForecast="selectedMiningRegionDaily"
@@ -160,19 +161,24 @@
                 />
 
                 <BuoyMonitoringWorkspace
+                    ref="buoyMonitoringRef"
                     :show="currentTab === '环境监测' && activePanels.buoyMonitoring"
                     :getViewer="getMapViewer"
                     @close="closeBuoyMonitoring"
                 />
 
                 <ForecastCenterWorkspace
-                    :show="currentTab === '预报中心' && activePanels.forecastCenter"
+                    :show="currentTab === '预报中心' && activePanels.forecastCenter && !showMiningRegionOverview"
                     @close="closeForecastCenter"
+                    @selectRegion="handleForecastCenterRegionSelect"
                 />
 
                 <WeatherWarningWorkspace
                     :show="currentTab === '预警中心' && activePanels.weatherWarnings"
                     @close="closeWeatherWarnings"
+                    @locate-region="handleWarningLocateRegion"
+                    @open-forecast="handleWarningOpenForecast"
+                    @open-buoy="handleWarningOpenBuoy"
                 />
 
                 <MonitoringEventPanel
@@ -230,6 +236,7 @@
                     :panelPosition="miningAreaOverviewPosition"
                     @close="closeMiningAreaOverview"
                     @addMonitoring="handleAddMiningAreaToMonitoring"
+                    @openForecast="handleMiningAreaForecast"
                 />
 
                 <MiningRegionOverviewWorkspace
@@ -244,10 +251,13 @@
                     :selectedForecastDate="selectedMiningRegionDate"
                     :sites="selectedMiningRegionSites"
                     :selectedSite="selectedMiningRegionSite"
+                    :selectedArea="selectedForecastMiningArea"
                     :siteDailyForecast="selectedMiningRegionSiteDaily"
                     :siteHourlyForecast="selectedMiningRegionSiteHourly"
                     @close="closeMiningRegionOverview"
                     @forecastDateChange="handleMiningRegionDateChange"
+                    @backToOverview="handleBackToMiningOverview"
+                    @backToForecastCenter="handleBackToForecastCenter"
                 />
 
                 <MiningScienceWorkspace
@@ -444,7 +454,8 @@ export default {
         const cloneWeatherLayerGroups = () => JSON.parse(JSON.stringify(WEATHER_LAYER_GROUPS));
 
         // 各个功能面板的显示状态
-        const activePanels = ref(createActivePanels());
+        // 矿区总览是系统默认入口，进入时默认打开矿区查询面板。
+        const activePanels = ref(createActivePanels({ query: true }));
         
         // 区域详情对话框状态
         const showAreaDetail = ref(false);
@@ -468,6 +479,7 @@ export default {
         const selectedMiningRegionSite = ref(null);
         const selectedMiningRegionSiteDaily = ref([]);
         const selectedMiningRegionSiteHourly = ref([]);
+        const selectedForecastMiningArea = ref(null);
         const showMiningRegionOverview = ref(false);
         const loadingMiningRegionOverview = ref(false);
         const loadingMiningRegionHourly = ref(false);
@@ -626,6 +638,7 @@ export default {
 
         const closeMiningRegionOverview = ({ restoreMenu = true, clearMapFocus = true } = {}) => {
             showMiningRegionOverview.value = false;
+            selectedForecastMiningArea.value = null;
             selectedMiningRegion.value = null;
             selectedMiningRegionId.value = '';
             selectedMiningRegionDaily.value = [];
@@ -636,6 +649,10 @@ export default {
 
             if (restoreMenu) {
                 isRightPanelCollapsed.value = false;
+                if (currentTab.value === '预报中心') {
+                    activePanels.value = createActivePanels({ forecastCenter: true });
+                    isRightPanelCollapsed.value = true;
+                }
             }
 
             if (clearMapFocus) {
@@ -746,6 +763,8 @@ export default {
                 }
             },
             currentForecast: null,
+            forecastContext: null,
+            forecastAvailable: false,
             dataStatus: 'loading'
         });
 
@@ -1275,6 +1294,9 @@ export default {
          * 该面板只负责选择已有预报数据对应的区域，不复用矿区查询条件。
          */
         const toggleForecastRegion = () => {
+            if (showMiningRegionOverview.value) {
+                closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            }
             activePanels.value.forecastRegion = !activePanels.value.forecastRegion;
         };
 
@@ -1283,6 +1305,9 @@ export default {
         };
 
         const toggleForecastCenter = () => {
+            if (showMiningRegionOverview.value) {
+                closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            }
             const nextOpen = !activePanels.value.forecastCenter;
             activePanels.value.forecastCenter = nextOpen;
             isRightPanelCollapsed.value = nextOpen;
@@ -1440,6 +1465,7 @@ export default {
         const shipTrackingRef = ref(null);
         const miningScienceRef = ref(null);
         const miningWeatherMonitorRef = ref(null);  // 矿区气象监测面板引用
+        const buoyMonitoringRef = ref(null);  // 浮标监测面板引用
         const routeDemoRef = ref(null);  // 航线演示面板引用
         const riskWarningRef = ref(null);  // 高风险警告组件引用
         const weatherCardRef = ref(null);  // 矿区气象信息卡片引用
@@ -3036,15 +3062,42 @@ export default {
             ]);
         };
 
-        const handleMiningRegionSelect = async (region) => {
+        /**
+         * 矿区总览中的区域筛选。
+         *
+         * 这里仅更新总览筛选条件和地图定位，不加载预报工作区，
+         * 也不改变当前顶部模块。进入预报中心只能通过顶部菜单、
+         * 预报中心自己的区域选择，或矿区卡片中的“查看未来预报”。
+         */
+        const handleMiningOverviewRegionSelect = (region) => {
             if (!region?.id) {
                 return;
             }
 
+            selectedMiningRegionId.value = String(region.id);
+            selectedMiningRegion.value = region;
+            selectedForecastMiningArea.value = null;
+            closeMiningAreaSelection();
+
+            if (mapContainerRef.value && typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(region);
+            }
+        };
+
+        const handleMiningRegionSelect = async (region, options = {}) => {
+            if (!region?.id) {
+                return;
+            }
+
+            const forecastArea = options.area || null;
+            selectedForecastMiningArea.value = forecastArea;
+
             if (currentTab.value !== '预报中心') {
                 currentTab.value = '预报中心';
-                activePanels.value = createActivePanels({ forecastRegion: true });
             }
+
+            // 矿区详情预报是预报中心的另一种查看模式，进入后关闭普通预报工作台，避免两套面板叠加。
+            activePanels.value = createActivePanels();
 
             closeMiningAreaSelection();
 
@@ -3082,12 +3135,17 @@ export default {
                     selectedMiningRegionHourly.value = [];
                     loadingMiningRegionHourly.value = false;
                 }
+
+                if (forecastArea) {
+                    await loadMiningRegionSiteSelection(forecastArea);
+                }
             } catch (error) {
                 console.error('❌ 加载区域总览失败:', error);
                 selectedMiningRegionDaily.value = [];
                 selectedMiningRegionHourly.value = [];
                 selectedMiningRegionSites.value = [];
                 clearMiningRegionSiteSelection({ clearAreaId: true });
+                selectedForecastMiningArea.value = null;
                 loadingMiningRegionHourly.value = false;
             } finally {
                 loadingMiningRegionOverview.value = false;
@@ -3117,6 +3175,8 @@ export default {
                     ...selectedMiningArea.value,
                     ...area,
                     ...overview,
+                    forecastContext: context,
+                    forecastAvailable: Boolean(context.region?.id),
                     polygon: area.polygon || overview.polygon || []
                 };
                 selectedMiningAreaId.value = String(selectedMiningArea.value.areaKey || selectedMiningArea.value.id || area.id || '');
@@ -3157,6 +3217,40 @@ export default {
             }
 
             await loadMiningAreaOverview(area, screenPosition);
+        };
+
+        const handleBuoySelected = (buoyId) => {
+            if (currentTab.value !== '环境监测' || !activePanels.value.buoyMonitoring) return;
+            buoyMonitoringRef.value?.selectBuoy?.(buoyId);
+        };
+
+        const handleWarningLocateRegion = (warning) => {
+            const region = warning?.region;
+            if (!region || !mapContainerRef.value) return;
+
+            if (typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(region);
+            }
+
+            if (warning.site && typeof mapContainerRef.value.focusMiningArea === 'function') {
+                window.setTimeout(() => {
+                    mapContainerRef.value?.focusMiningArea?.(warning.site);
+                }, 250);
+            }
+        };
+
+        const handleWarningOpenForecast = async (warning) => {
+            if (!warning?.region?.id) return;
+            await handleMiningRegionSelect(warning.region, warning.site ? { area: warning.site } : {});
+        };
+
+        const handleWarningOpenBuoy = async (warning) => {
+            if (!warning?.buoyId) return;
+            currentTab.value = '环境监测';
+            activePanels.value = createActivePanels({ buoyMonitoring: true });
+            isRightPanelCollapsed.value = true;
+            await nextTick();
+            buoyMonitoringRef.value?.selectBuoy?.(warning.buoyId);
         };
 
         const handleMapAreaSelected = async (payload) => {
@@ -3202,6 +3296,67 @@ export default {
 
         const closeMiningAreaOverview = () => {
             closeMiningAreaSelection();
+        };
+
+        const handleMiningAreaForecast = async (area) => {
+            if (!area) {
+                return;
+            }
+
+            const context = area.forecastContext || await resolveMiningAreaOverviewContext(area);
+            if (!context?.region?.id) {
+                console.warn('⚠️ 当前矿区未匹配到可用预报区域:', area);
+                return;
+            }
+
+            await handleMiningRegionSelect(context.region, { area });
+        };
+
+        const findForecastMapRegion = (forecastRegion) => {
+            if (!forecastRegion) return null;
+
+            const forecastId = String(forecastRegion.regionId ?? '');
+            const forecastCode = String(forecastRegion.regionCode ?? '').trim();
+            const forecastName = String(forecastRegion.regionName ?? '').trim();
+
+            return miningOverviewRegions.value.find((region) => (
+                (forecastId && String(region.id ?? '') === forecastId)
+                || (forecastCode && String(region.regionCode ?? '').trim() === forecastCode)
+                || (forecastName && String(region.regionName ?? '').trim() === forecastName)
+                || (forecastName && String(region.regionName ?? '').includes(forecastName))
+                || (forecastCode && String(region.regionName ?? '').includes(forecastCode))
+            )) || null;
+        };
+
+        const handleForecastCenterRegionSelect = async (forecastRegion) => {
+            if (!forecastRegion || !mapContainerRef.value) return;
+
+            let mapRegion = findForecastMapRegion(forecastRegion);
+            if (!mapRegion && !loadingMiningOverviewRegions.value) {
+                await loadMiningOverviewRegions();
+                mapRegion = findForecastMapRegion(forecastRegion);
+            }
+
+            if (mapRegion && typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(mapRegion);
+                return;
+            }
+
+            console.warn('⚠️ 预报区域未匹配到可定位的矿区区域:', forecastRegion);
+        };
+
+        const handleBackToMiningOverview = () => {
+            closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            currentTab.value = '矿区总览';
+            activePanels.value = createActivePanels({ query: true });
+            isRightPanelCollapsed.value = false;
+        };
+
+        const handleBackToForecastCenter = () => {
+            closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            currentTab.value = '预报中心';
+            activePanels.value = createActivePanels({ forecastCenter: true });
+            isRightPanelCollapsed.value = true;
         };
 
         const handleAddMiningAreaToMonitoring = async (area) => {
@@ -3314,6 +3469,15 @@ export default {
                 closeMiningRegionOverview();
             }
 
+            if (currentTab.value === '预报中心' && tab !== '预报中心') {
+                closeMiningRegionOverview();
+            }
+
+            // 用户重新点击顶部“预报中心”时，退出矿区详情模式，回到区域预报工作台。
+            if (tab === '预报中心' && showMiningRegionOverview.value) {
+                closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
+            }
+
             if (currentTab.value === '历史数据' && tab !== '历史数据') {
                 clearHistoricalTyphoonTrack({ clearEvent: true });
                 historicalSeaStateRequestId += 1;
@@ -3329,7 +3493,7 @@ export default {
             // 根据选项卡切换右侧功能面板
             if (tab === '矿区总览') {
                 showTimeline.value = false;
-                activePanels.value = createActivePanels();
+                activePanels.value = createActivePanels({ query: true });
                 isRightPanelCollapsed.value = false;
             } else if (tab === '预报中心') {
                 showTimeline.value = false;
@@ -3341,8 +3505,10 @@ export default {
                 isRightPanelCollapsed.value = true;
             } else if (tab === '采矿系统') {
                 showTimeline.value = false;
-                activePanels.value = createActivePanels();
-                isRightPanelCollapsed.value = false;
+                activePanels.value = createActivePanels({ pipeSelection: true });
+                // 管道评估默认占用右侧工作区，功能菜单收起避免遮挡；
+                // RightPanel 会保留可见的“功能”把手供用户展开菜单。
+                isRightPanelCollapsed.value = true;
             } else if (tab === '预警中心') {
                 showTimeline.value = false;
                 activePanels.value = createActivePanels({ weatherWarnings: true });
@@ -3740,9 +3906,14 @@ export default {
             handleRegionLocate,
             handleWeatherLayersChange,
             handleWeatherLayerToggle,
+            handleMiningOverviewRegionSelect,
             handleMiningRegionSelect,
             handleMiningRegionDateChange,
             handleMiningAreaSelect,
+            handleBuoySelected,
+            handleWarningLocateRegion,
+            handleWarningOpenForecast,
+            handleWarningOpenBuoy,
             handleMapAreaSelected,
             handleHistoricalTyphoonAreaSelect,
             handleHistoricalTyphoonEventSelect,
@@ -3754,6 +3925,10 @@ export default {
             handleHistoricalSeaStateFiltersChange,
             closeMiningAreaOverview,
             closeMiningRegionOverview,
+            handleMiningAreaForecast,
+            handleForecastCenterRegionSelect,
+            handleBackToMiningOverview,
+            handleBackToForecastCenter,
             handleAddMiningAreaToMonitoring,
             handleTabChange,
             filters,
@@ -3777,6 +3952,7 @@ export default {
             selectedMiningRegionSite,
             selectedMiningRegionSiteDaily,
             selectedMiningRegionSiteHourly,
+            selectedForecastMiningArea,
             showMiningRegionOverview,
             loadingMiningRegionOverview,
             loadingMiningRegionHourly,
@@ -3832,6 +4008,7 @@ export default {
             mapContainerRef,
             getMapViewer,
             miningWeatherMonitorRef,
+            buoyMonitoringRef,
             routeDemoRef,
             riskWarningRef,
             weatherCardRef,
