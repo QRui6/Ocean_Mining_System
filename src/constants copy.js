@@ -1,5 +1,5 @@
 
-export const APP_TITLE = "深海采矿的海洋气象预报保障系统";
+export const APP_TITLE = "面向深海采矿的海洋气象预报保障系统";
 
 // 1. 矿种类型 (只保留前三类)
 export const MINERAL_TYPES = ['多金属结核', '富钴铁锰结壳', '多金属硫化物'];

@@ -44,8 +44,19 @@ const endOfDate = (value) => {
     return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const expiryTimeOf = (item) => {
+    const exactValue = item?.analysis?.endAt || item?.validUntil || item?.endAt;
+    const raw = String(exactValue || '').trim();
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}[T\s]\d{1,2}:\d{2}/.test(raw)) {
+        const exact = new Date(raw.replace(/\//g, '-').replace(' ', 'T'));
+        if (!Number.isNaN(exact.getTime())) return exact;
+    }
+    return endOfDate(raw);
+};
+
 const isExpired = (item, now) => {
-    const validUntil = endOfDate(item?.validUntil);
+    if (item?.demo) return false;
+    const validUntil = expiryTimeOf(item);
     return Boolean(validUntil && validUntil.getTime() < now.getTime());
 };
 

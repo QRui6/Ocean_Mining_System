@@ -354,7 +354,7 @@ const updateMap = () => {
             id: `buoy-monitor-${buoy.id}`,
             properties: { buoyId: buoy.id },
             position,
-            billboard: { image: buoyIcon(buoy, selected), width: selected ? 64 : 54, height: selected ? 78 : 68, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(150000, 1.15, 4000000, .7) }
+            billboard: { image: '/image/浮标.png', width: selected ? 112 : 96, height: selected ? 112 : 96, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(150000, 1.15, 4000000, .7) }
         }));
         // 所有浮标都显示摘要卡片；选中项通过放大、发光和白色描边强化。
         mapEntities.push(viewer.entities.add({

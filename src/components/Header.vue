@@ -16,7 +16,7 @@
             
             <!-- Title (Adjusted Size) -->
             <div class="absolute top-5 w-full text-center">
-                <h1 class="text-5xl font-['Noto_Sans_SC'] font-bold tracking-[0.19em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
+                <h1 class="text-[2.75rem] font-['Noto_Sans_SC'] font-bold tracking-[0.19em] text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
                     {{ APP_TITLE }}
                 </h1>
             </div>

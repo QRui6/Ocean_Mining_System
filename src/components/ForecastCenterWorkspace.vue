@@ -46,6 +46,7 @@
 
                         <div v-if="errorMessage" class="mt-3 border border-rose-500/35 bg-rose-950/30 p-3 text-sm text-rose-100">{{ errorMessage }}</div>
                         <div class="pt-4 text-xs leading-6 text-slate-500">预报中心展示定时生成的常规预报；仅当预测达到严重气象阈值时，才会在预警中心形成预警记录。</div>
+                        <div class="mt-1 flex justify-end"><button type="button" :class="['text-[10px] transition-colors', demoWarningEnabled ? 'text-amber-300/80 hover:text-amber-200' : 'text-slate-700 hover:text-slate-400']" @click="toggleDemoWarning">{{ demoWarningEnabled ? '关闭演示预警' : '演示预警' }}</button></div>
                     </div>
                 </section>
             </div>
@@ -102,6 +103,7 @@ const loading = ref(false);
 const bulletinLoading = ref(false);
 const errorMessage = ref('');
 const showRawBulletin = ref(false);
+const demoWarningEnabled = ref(typeof localStorage !== 'undefined' && localStorage.getItem('OCEAN_WARNING_DEMO_ENABLED') === '1');
 const chartRef = ref(null);
 let chart = null;
 let requestSerial = 0;
@@ -191,6 +193,14 @@ const buildStructuredBulletin = () => {
 const downloadTextFile = (content, filename) => { const blob = new Blob([`\uFEFF${content}`], { type: 'text/plain;charset=utf-8' }); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 0); };
 const download = () => { try { downloadTextFile(buildStructuredBulletin(), `forecast_report_${selectedRegionId.value}_${range.value}.txt`); } catch (error) { errorMessage.value = `整理报文下载失败：${error.message}`; } };
 const downloadOriginal = async () => { try { await downloadForecastBulletin(selectedRegionId.value, range.value); } catch (error) { errorMessage.value = `原始报文下载失败：${error.message}`; } };
+const toggleDemoWarning = () => {
+    demoWarningEnabled.value = !demoWarningEnabled.value;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('OCEAN_WARNING_DEMO_ENABLED', demoWarningEnabled.value ? '1' : '0');
+    window.dispatchEvent(new CustomEvent('weather-warning-demo-toggle', { detail: { enabled: demoWarningEnabled.value } }));
+};
+const handleDemoWarningToggle = (event) => {
+    if (typeof event?.detail?.enabled === 'boolean') demoWarningEnabled.value = event.detail.enabled;
+};
 const handleUpdate = () => { if (props.show) loadData(); };
 const resizeChart = () => chart?.resize();
 watch(() => props.show, (visible) => {
@@ -206,6 +216,6 @@ watch(() => props.show, (visible) => {
 });
 watch([selectedRegionId, range], () => { if (props.show && selectedRegionId.value) loadData(); });
 watch(series, renderChart);
-onMounted(() => { window.addEventListener('resize', resizeChart); window.addEventListener('forecast-bulletin-ready', handleUpdate); if (props.show) initialise(); });
-onBeforeUnmount(() => { chart?.dispose(); window.removeEventListener('resize', resizeChart); window.removeEventListener('forecast-bulletin-ready', handleUpdate); });
+onMounted(() => { window.addEventListener('resize', resizeChart); window.addEventListener('forecast-bulletin-ready', handleUpdate); window.addEventListener('weather-warning-demo-toggle', handleDemoWarningToggle); if (props.show) initialise(); });
+onBeforeUnmount(() => { chart?.dispose(); window.removeEventListener('resize', resizeChart); window.removeEventListener('forecast-bulletin-ready', handleUpdate); window.removeEventListener('weather-warning-demo-toggle', handleDemoWarningToggle); });
 </script>

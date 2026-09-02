@@ -179,6 +179,7 @@
                     @locate-region="handleWarningLocateRegion"
                     @open-forecast="handleWarningOpenForecast"
                     @open-buoy="handleWarningOpenBuoy"
+                    @open-warning-center="handleGlobalWarningCenter"
                 />
 
                 <MonitoringEventPanel
@@ -3224,18 +3225,50 @@ export default {
             buoyMonitoringRef.value?.selectBuoy?.(buoyId);
         };
 
-        const handleWarningLocateRegion = (warning) => {
-            const region = warning?.region;
-            if (!region || !mapContainerRef.value) return;
+        const handleWarningLocateRegion = async (warning) => {
+            if (!warning || !mapContainerRef.value) return;
 
-            if (typeof mapContainerRef.value.focusMiningRegion === 'function') {
-                mapContainerRef.value.focusMiningRegion(region);
+            // 浮标预警优先按实时坐标定位；预警中心打开时浮标监测图层可能尚未打开，
+            // 因此直接控制地图相机，不能依赖浮标实体是否已经绘制。
+            const buoy = warning.buoy || {};
+            const latitude = Number(warning.latitude ?? warning.lat ?? buoy.latitude ?? buoy.lat);
+            const longitude = Number(warning.longitude ?? warning.lng ?? buoy.longitude ?? buoy.lng);
+            if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+                const viewer = getMapViewer();
+                if (viewer) {
+                    viewer.camera.flyTo({
+                        destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 900000),
+                        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+                        duration: 1.6
+                    });
+                    viewer.scene.requestRender();
+                }
+                return;
             }
 
-            if (warning.site && typeof mapContainerRef.value.focusMiningArea === 'function') {
+            const warningRegion = warning.region || {
+                id: warning.regionId,
+                regionId: warning.regionId,
+                regionCode: warning.regionCode,
+                regionName: warning.regionName || warning.miningArea
+            };
+            let region = findForecastMapRegion(warningRegion);
+            if (!region && !loadingMiningOverviewRegions.value) {
+                await loadMiningOverviewRegions();
+                region = findForecastMapRegion(warningRegion);
+            }
+
+            if (region && typeof mapContainerRef.value.focusMiningRegion === 'function') {
+                mapContainerRef.value.focusMiningRegion(region);
+            } else if (warningRegion?.boundaryPolygon || warningRegion?.polygon || warningRegion?.centerLng !== undefined) {
+                mapContainerRef.value.focusMiningRegion?.(warningRegion);
+            }
+
+            const site = warning.site || (warning.siteId ? { id: warning.siteId, name: warning.siteName } : null);
+            if (site && typeof mapContainerRef.value.focusMiningArea === 'function') {
                 window.setTimeout(() => {
-                    mapContainerRef.value?.focusMiningArea?.(warning.site);
-                }, 250);
+                    mapContainerRef.value?.focusMiningArea?.(site);
+                }, 350);
             }
         };
 
@@ -3251,6 +3284,14 @@ export default {
             isRightPanelCollapsed.value = true;
             await nextTick();
             buoyMonitoringRef.value?.selectBuoy?.(warning.buoyId);
+        };
+
+        const handleGlobalWarningCenter = async () => {
+            currentTab.value = '预警中心';
+            showTimeline.value = false;
+            activePanels.value = createActivePanels({ weatherWarnings: true });
+            isRightPanelCollapsed.value = true;
+            await nextTick();
         };
 
         const handleMapAreaSelected = async (payload) => {
@@ -3315,7 +3356,7 @@ export default {
         const findForecastMapRegion = (forecastRegion) => {
             if (!forecastRegion) return null;
 
-            const forecastId = String(forecastRegion.regionId ?? '');
+            const forecastId = String(forecastRegion.regionId ?? forecastRegion.id ?? '');
             const forecastCode = String(forecastRegion.regionCode ?? '').trim();
             const forecastName = String(forecastRegion.regionName ?? '').trim();
 
@@ -3914,6 +3955,7 @@ export default {
             handleWarningLocateRegion,
             handleWarningOpenForecast,
             handleWarningOpenBuoy,
+            handleGlobalWarningCenter,
             handleMapAreaSelected,
             handleHistoricalTyphoonAreaSelect,
             handleHistoricalTyphoonEventSelect,

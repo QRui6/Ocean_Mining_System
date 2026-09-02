@@ -307,7 +307,7 @@ const enrichCandidateWithHourly = (candidate, hourlyRecords = []) => {
         warningMessage: `预计在${formatDateTime(firstRiskAt)}，${candidate.siteName ? `${candidate.regionName}的${candidate.siteName}` : candidate.regionName}首次达到${analysis.firstRiskLabel || '候选预警'}条件；预计${analysis.peakType || '风险指标'}在${formatDateTime(analysis.peakAt)}附近达到峰值。`,
         analysis,
         forecastData: { ...(candidate.forecastData || {}), series: records, hourlySeries: records, dailySeries: candidate.forecastData?.series || [] },
-        validUntil: dateOnly(endAt) || candidate.validUntil,
+        validUntil: endAt || candidate.validUntil,
         sourceGranularity: '逐小时'
     };
     return { ...updated, bulletinText: buildHourlyBulletin({ candidate: updated, hourlyRecords: records, analysis, triggers }) };

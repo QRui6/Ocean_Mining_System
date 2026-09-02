@@ -18,6 +18,7 @@
                         <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3"><div class="mb-3 flex items-center justify-between"><div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_#c4b5fd]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">当日预报摘要</h4></div><span class="text-[10px] text-slate-600">当前选中日期</span></div><div v-if="reportCurrentDayRows.length" class="space-y-2"><div v-for="row in reportCurrentDayRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3 py-2.5"><div class="flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">{{ row.label }}</span><span class="text-[11px] text-cyan-200">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1.5 text-[11px] text-slate-500">最大阵风 {{ row.gust }} m/s <span class="mx-1 text-slate-700">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-xs text-slate-500">暂无当前日期逐日预报数据</div></section>
                         <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3"><div class="mb-3 flex items-center justify-between"><div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">未来逐日预报</h4></div><span class="text-[10px] text-slate-600">按时间顺序</span></div><div v-if="reportDailyRows.length" class="max-h-64 space-y-2 overflow-y-auto pr-1"><div v-for="row in reportDailyRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3 py-2"><div class="flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">{{ row.label }}</span><span class="text-[11px] text-cyan-200">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1 text-[11px] text-slate-500">最大阵风 {{ row.gust }} m/s <span class="mx-1 text-slate-700">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-xs text-slate-500">暂无未来逐日预报数据</div></section>
                         <section class="relative overflow-hidden rounded border border-amber-400/35 bg-gradient-to-r from-amber-950/55 to-slate-950/70 p-4"><div class="absolute bottom-0 left-0 top-0 w-1 bg-amber-400"></div><div class="pl-2"><div class="flex items-center justify-between"><h4 class="text-xs font-bold tracking-widest text-amber-200">作业建议</h4><span class="text-[10px] text-amber-300/60">辅助判断</span></div><div class="mt-2.5 text-sm leading-6 text-slate-100">{{ reportOperationAdvice }}</div><div class="mt-2 text-[10px] leading-5 text-slate-500">建议基于当前预报指标生成，仅作作业安排参考；严重气象事件请以预警中心为准。</div></div></section>
+                        <div v-if="selectedArea" class="mt-1 flex justify-end"><button type="button" :class="['text-[10px] transition-colors', demoWarningEnabled ? 'text-amber-300/80 hover:text-amber-200' : 'text-slate-700 hover:text-slate-400']" @click="toggleDemoWarning">{{ demoWarningEnabled ? '关闭演示预警' : '演示预警' }}</button></div>
                     </div>
                 </div>
             </div>
@@ -262,6 +263,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'forecastDateChange', 'backToOverview', 'backToForecastCenter']);
+const demoWarningEnabled = ref(typeof localStorage !== 'undefined' && localStorage.getItem('OCEAN_WARNING_DEMO_ENABLED') === '1');
 
 const dailyChartRef = ref(null);
 const hourlyChartRef = ref(null);
@@ -485,6 +487,15 @@ const reportOperationAdvice = computed(() => {
     if (maxWind >= 12 || maxWave >= 3 || maxCurrent >= 1.5) return '建议加强现场值守和预报跟踪，合理安排作业窗口，对敏感作业预留调整时间。';
     return '当前预报指标总体平稳，可按计划开展常规作业，建议保持常规值守并关注下一轮预报更新。';
 });
+
+const toggleDemoWarning = () => {
+    demoWarningEnabled.value = !demoWarningEnabled.value;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('OCEAN_WARNING_DEMO_ENABLED', demoWarningEnabled.value ? '1' : '0');
+    window.dispatchEvent(new CustomEvent('weather-warning-demo-toggle', { detail: { enabled: demoWarningEnabled.value } }));
+};
+const handleDemoWarningToggle = (event) => {
+    if (typeof event?.detail?.enabled === 'boolean') demoWarningEnabled.value = event.detail.enabled;
+};
 
 const downloadSiteForecastReport = () => {
     if (!props.selectedArea || !props.selectedSite?.matched || (!reportDailyRecords.value.length && !reportHourlyRecords.value.length)) {
@@ -1259,10 +1270,12 @@ watch(
 );
 
 onMounted(() => {
+    window.addEventListener('weather-warning-demo-toggle', handleDemoWarningToggle);
     window.addEventListener('resize', resizeCharts);
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('weather-warning-demo-toggle', handleDemoWarningToggle);
     window.removeEventListener('resize', resizeCharts);
     disposeCharts();
 });
