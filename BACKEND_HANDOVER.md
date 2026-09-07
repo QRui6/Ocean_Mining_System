@@ -1,8 +1,11 @@
 # 深海采矿海洋气象预报与保障系统后端交接文档
 
-> 文档日期：2026-09-07  
-> 代码仓库：`https://github.com/QRui6/Ocean_Mining_System.git`  
-> 交接分支：`sdw`  
+> 文档日期：2026-09-07
+>
+> 代码仓库：`https://github.com/QRui6/Ocean_Mining_System.git`
+>
+> 交接分支：`sdw`
+>
 > 本次核对提交：`e7f46a4`（`Publish cleaned backend project`）
 
 ## 1. 一分钟了解项目
