@@ -1,0 +1,21 @@
+# 生产环境配置
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ship_monitoring}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+
+shipxy:
+  api:
+    base-url: https://api.shipxy.com
+    api-key: ${SHIPXY_API_KEY}
+
+webhook:
+  public-url: ${PUBLIC_URL}
+
+logging:
+  level:
+    com.oceanmining.monitoring: INFO
+    org.hibernate.SQL: WARN

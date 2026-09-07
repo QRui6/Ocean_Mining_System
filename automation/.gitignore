@@ -1,0 +1,4 @@
+daily_forecast_task.env.ps1
+logs/
+historical_wind/cdsapi.local
+current_surface/copernicusmarine.local.json

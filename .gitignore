@@ -1,0 +1,43 @@
+# Large datasets and generated imports
+data/
+**/dataDownlaod/
+**/processed/
+**/tmp/
+*.nc
+*.grib
+*.grib.*
+*.csv
+*.dump
+
+# Build and deployment artifacts
+java/target/
+java/BOOT-INF/
+remote_deploy/
+*.jar
+*.zip
+
+# Logs and caches
+*.log
+*.log.*
+*.gz
+**/logs/
+**/__pycache__/
+*.pyc
+tmp_*
+
+# Local credentials and environment files
+.env
+.env.*
+automation/daily_forecast_task.env.ps1
+automation/historical_wind/cdsapi.local
+automation/current_surface/copernicusmarine.local.json
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+.DS_Store
+
+# Local agent metadata
+.agents/
