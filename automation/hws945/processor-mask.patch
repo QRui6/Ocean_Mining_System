@@ -1,0 +1,14 @@
+diff --git a/automation/mining_overview/process_forecasts_batch.py b/automation/mining_overview/process_forecasts_batch.py
+index a8e22f8..3d541ed 100644
+--- a/automation/mining_overview/process_forecasts_batch.py
++++ b/automation/mining_overview/process_forecasts_batch.py
+@@ -487,7 +487,8 @@ def _read_values(field: ForecastField, lon_selector, lat_selector) -> tuple[np.n
+                     f"Unsupported dimension order for {field.element_code}: {field.dimensions}"
+                 )
+ 
+-    values = np.asarray(field.data_var[tuple(selectors)], dtype=np.float64)
++    # netCDF4 masks _FillValue/missing_value; np.asarray would discard that mask.
++    values = np.ma.asarray(field.data_var[tuple(selectors)], dtype=np.float64).filled(np.nan)
+     if field.data_type == "wave":
+         values[values <= WAVE_INVALID_THRESHOLD] = np.nan
+ 
