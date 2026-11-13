@@ -1,0 +1,16 @@
+[Unit]
+Description=Ocean Mining automatic warning report scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=k8s
+WorkingDirectory=/home/k8s/workspace/Ocean_Mining_System_0824
+EnvironmentFile=/home/k8s/workspace/Ocean_Mining_System_0824/scripts/warning-report-scheduler.env
+ExecStart=/usr/bin/node /home/k8s/workspace/Ocean_Mining_System_0824/scripts/warning-report-scheduler.mjs --watch
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

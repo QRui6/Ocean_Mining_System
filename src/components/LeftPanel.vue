@@ -1,0 +1,720 @@
+<template>
+    <div class="absolute top-36 bottom-6 left-8 w-[28rem] z-40 flex flex-col gap-4 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft">
+        
+        <!-- 1. 矿区查询面板 - 增强科技感 -->
+        <transition name="slide-down">
+            <div v-if="showQueryPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group shrink-0 flex flex-col overflow-hidden" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+                <!-- 动态扫描线 -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-tl scale-125"></div>
+                <div class="corner-decoration corner-tr scale-125"></div>
+            
+            <div class="flex items-center mb-5 border-b-2 pb-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.4);">
+                <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
+                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区查询分类</h3>
+            </div>
+
+            <div class="min-h-0 flex-1 pr-1 space-y-4">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>区域查询
+                        </div>
+                        <div class="text-xs text-slate-400">
+                            {{ regionLoading ? '加载中...' : `共 ${regionOptions.length} 个` }}
+                        </div>
+                    </div>
+
+                    <div v-if="regionOptions.length" class="grid grid-cols-4 gap-2">
+                        <button
+                            v-for="region in regionOptions"
+                            :key="region.id"
+                            @click="selectRegion(region)"
+                            :title="region.regionName || region.regionCode || `区域 ${region.id}`"
+                            :class="[
+                                'min-w-0 rounded-sm border px-2 py-1.5 text-center text-base transition-all duration-200 skew-x-[-10deg]',
+                                selectedRegionId === String(region.id)
+                                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-300 text-white shadow-[0_0_10px_rgba(37,99,235,0.6)] font-bold'
+                                    : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-200'
+                            ]"
+                        >
+                            <div class="skew-x-[10deg] overflow-hidden text-ellipsis whitespace-nowrap font-bold leading-6">
+                                {{ formatRegionLabel(region) }}
+                            </div>
+                        </button>
+                    </div>
+
+                    <div
+                        v-else
+                        class="rounded-sm border border-dashed border-slate-700/50 py-4 text-center text-sm text-slate-500"
+                    >
+                        {{ regionLoading ? '正在加载区域列表...' : '暂无区域总览数据' }}
+                    </div>
+                </div>
+
+                <!-- Level 1: 矿种类型（支持多选） -->
+                <div class="space-y-2">
+                    <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>矿种类型
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button v-for="m in MINERAL_TYPES" :key="m"
+                            @click="toggleMineral(m)"
+                            :class="[
+                                'w-full text-base px-4 py-1.5 rounded-sm transition-all duration-200 border skew-x-[-10deg]',
+                                activeMinerals.includes(m)
+                                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-300 text-white shadow-[0_0_10px_rgba(37,99,235,0.6)] font-bold' 
+                                    : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-200'
+                            ]"
+                        >
+                            <span class="block skew-x-[10deg] whitespace-nowrap">{{ m }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Level 2: 大洋区域（支持多选） -->
+                <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
+                     <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>所属大洋
+                    </div>
+                    <div class="flex gap-2">
+                        <button v-for="ocean in OCEANS" :key="ocean"
+                            @click="toggleOcean(ocean)"
+                            :class="[
+                                'flex-1 py-1.5 rounded-sm text-base font-bold transition-all border',
+                                activeOceans.includes(ocean)
+                                    ? 'bg-cyan-700/80 border-cyan-400 text-white shadow-[0_0_10px_cyan]' 
+                                    : 'bg-slate-800/50 border-slate-700 text-slate-500 hover:text-slate-300'
+                            ]"
+                        >
+                            {{ ocean }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </transition>
+
+        <!-- 1.1 所属国家与矿区列表 -->
+        <transition name="slide-down">
+            <div v-if="showQueryPanel" class="tech-panel-enhanced p-5 pointer-events-auto relative group min-h-0 flex-1 flex flex-col overflow-hidden" style="clip-path: polygon(0 0, 92% 0, 100% 7%, 100% 100%, 0 100%);">
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                    <!-- Level 3: 国家（可折叠面板） -->
+                    <div class="space-y-2">
+                    <!-- 标题栏 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 flex-1">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div>
+                            <span class="text-cyan-400 text-base font-bold">所属国家</span>
+                            
+                            <!-- 展开/收起箭头 -->
+                            <button 
+                                @click="toggleCountryPanel"
+                                class="ml-auto p-1 text-cyan-400 hover:text-cyan-300 transition-all"
+                                :title="showCountryPanel ? '收起' : '展开'"
+                            >
+                                <svg 
+                                    class="w-5 h-5 transition-transform duration-300" 
+                                    :class="{ 'rotate-180': showCountryPanel }"
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            
+                            <!-- 清空按钮 -->
+                            <button 
+                                v-if="activeCountries.length > 0"
+                                @click="clearCountries"
+                                class="px-2 py-1 bg-red-600/80 border border-red-500 text-white rounded-sm text-xs font-medium transition-all hover:bg-red-700"
+                                title="清空所有国家筛选"
+                            >
+                                清空
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 已选国家标签（始终显示） -->
+                    <div v-if="activeCountries.length > 0" class="flex flex-wrap gap-2 bg-slate-900/50 p-2 rounded border border-slate-700/30">
+                        <div 
+                            v-for="c in activeCountries" 
+                            :key="c"
+                            class="flex items-center gap-1 px-3 py-1 bg-yellow-500 text-black text-sm font-bold rounded-sm shadow-[0_0_8px_rgba(250,204,21,0.4)]"
+                        >
+                            <span>{{ c }}</span>
+                            <button 
+                                @click="removeCountry(c)"
+                                class="ml-1 hover:text-red-600 transition-colors"
+                                title="移除"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 可折叠的国家选择面板 -->
+                    <transition name="slide-down">
+                        <div v-if="showCountryPanel" class="flex flex-wrap gap-2 bg-slate-900/50 p-3 rounded border border-slate-700/30 max-h-[200px] overflow-y-auto custom-scrollbar">
+                            <button 
+                                v-for="c in currentCountries" 
+                                :key="c"
+                                @click="toggleCountry(c)"
+                                :class="[
+                                    'text-sm px-3 py-1.5 rounded-sm transition-all border',
+                                    activeCountries.includes(c)
+                                        ? 'bg-yellow-500 text-black font-bold shadow-[0_0_10px_#facc15] border-yellow-400' 
+                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600'
+                                ]"
+                            >
+                                {{ c }}
+                            </button>
+                            <span v-if="currentCountries.length === 0" class="text-slate-500 text-sm">加载中...</span>
+                        </div>
+                    </transition>
+                </div>
+
+                    <div class="min-h-0 flex flex-1 flex-col space-y-3 pt-2 border-t border-dashed border-slate-700/50">
+                    <div class="flex items-center justify-between">
+                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                            <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>矿区列表
+                        </div>
+                        <div class="text-xs text-slate-400">共 {{ miningAreas.length }} 个</div>
+                    </div>
+
+                    <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                        <button
+                            v-for="area in miningAreas"
+                            :key="area.areaKey || area.id"
+                            @click="selectArea(area, $event)"
+                            :class="[
+                                'w-full text-left rounded-sm border px-3 py-3 transition-all',
+                                selectedAreaId === (area.areaKey || area.id)
+                                    ? 'bg-cyan-600/20 border-cyan-400/45 shadow-[0_0_12px_rgba(34,211,238,0.12)]'
+                                    : 'bg-slate-900/55 border-slate-700/70 hover:border-cyan-500/35 hover:bg-slate-800/70'
+                            ]"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-bold text-white truncate">{{ area.contractor || area.name || area.id }}</div>
+                                    <div class="text-xs text-slate-400 mt-1 truncate">{{ area.id }} · {{ area.location }}</div>
+                                </div>
+                                <div class="text-xs text-cyan-300 whitespace-nowrap">{{ area.mineral }}</div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 text-xs text-slate-400">
+                                <span>{{ area.sponsor || '未知担保国' }}</span>
+                                <span>{{ formatArea(area.area) }}</span>
+                            </div>
+                        </button>
+
+                        <div v-if="miningAreas.length === 0" class="text-sm text-slate-500 text-center py-6 border border-dashed border-slate-700/50 rounded-sm">
+                            当前筛选下暂无矿区
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- 2. 图层控制面板 - 矿区地理分区控制 -->
+        <transition name="slide-down">
+            <div v-if="showLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
+                <!-- 动态扫描线 -->
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
+             
+             <div class="flex items-center mb-4 border-b-2 pb-3" style="border-color: rgba(0, 212, 255, 0.4);">
+                <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
+                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区图层控制</h3>
+            </div>
+             
+             <div class="space-y-3 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div v-for="region in miningRegions" :key="region.id" class="mb-2">
+                    <!-- 区域控制卡片 -->
+                    <div class="bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all overflow-hidden">
+                        <!-- 主控制行 -->
+                        <div class="flex items-center justify-between py-3 px-4 cursor-pointer" @click="toggleRegion(region.id)">
+                            <div class="flex items-center gap-3 flex-1">
+                                <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', region.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span :class="['text-lg font-bold transition-colors', region.active ? 'text-white' : 'text-slate-400']">{{ region.label }}</span>
+                                        <span v-if="region.count > 0" class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono">
+                                            {{ region.count }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 开关 -->
+                            <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', region.active ? 'bg-cyan-600' : 'bg-slate-700']">
+                                <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', region.active ? 'left-[22px]' : 'left-0.5']"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 定位按钮 -->
+                        <div class="border-t border-slate-700/30 px-4 py-2 bg-slate-900/30">
+                            <button 
+                                @click.stop="locateRegion(region.id)"
+                                class="w-full flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-700/50 hover:bg-cyan-600/80 border border-slate-600 hover:border-cyan-400 rounded-sm transition-all text-sm font-medium text-slate-300 hover:text-white"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span>定位到该区域</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+             </div>
+            </div>
+        </transition>
+
+        <!-- 3. 气象图层面板 - 参考图层控制样式 -->
+        <!-- 已注释：改用右侧 Windy 风格按钮控制 -->
+        <!--
+        <transition name="slide-down">
+            <div v-if="showWeatherLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
+                <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
+                <div class="corner-decoration corner-bl scale-125"></div>
+                <div class="corner-decoration corner-br scale-125"></div>
+             
+             <div class="flex items-center mb-4 border-b-2 border-cyan-500/30 pb-3">
+                <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
+                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">气象图层</h3>
+                <span class="text-sm text-cyan-400 font-mono border border-cyan-500/30 px-2 py-0.5 rounded bg-cyan-900/30">WEATHER</span>
+            </div>
+             
+             <div class="space-y-2 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div v-for="group in weatherLayerGroups" :key="group.id" class="mb-2">
+                    <div class="flex items-center justify-between py-2 px-4 bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 rounded-sm transition-all cursor-pointer" @click="toggleWeatherGroup(group.id)">
+                        <div class="flex items-center gap-3">
+                            <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', group.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
+                            <span :class="['text-lg font-bold transition-colors', group.active ? 'text-white' : 'text-slate-400']">{{ group.label }}</span>
+                        </div>
+                        <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', group.active ? 'bg-cyan-600' : 'bg-slate-700']">
+                            <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', group.active ? 'left-[22px]' : 'left-0.5']"></div>
+                        </div>
+                    </div>
+
+                    <div v-if="group.subLayers && group.active" class="ml-6 pl-4 border-l border-slate-600/30 mt-1 space-y-1">
+                        <div v-for="sub in group.subLayers" :key="sub.id" 
+                            class="flex items-center justify-between py-2 px-3 hover:bg-cyan-500/10 rounded cursor-pointer transition-all"
+                            @click.stop="toggleWeatherSubLayer(group.id, sub.id)"
+                        >
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span :class="['text-base transition-colors', sub.active ? 'text-cyan-100 font-medium' : 'text-slate-500']">{{ sub.label }}</span>
+                                    <span 
+                                        v-if="sub.hasTimeline"
+                                        class="text-xs px-1.5 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono"
+                                    >
+                                        TIME
+                                    </span>
+                                </div>
+                                <div v-if="sub.dataSource" class="text-xs text-slate-600 mt-0.5 ml-0.5">
+                                    {{ sub.dataSource }}
+                                </div>
+                            </div>
+                            <div :class="['w-2 h-2 rounded-full transition-all', sub.active ? 'bg-yellow-400 shadow-[0_0_5px_yellow]' : 'bg-slate-600']"></div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+            </div>
+        </transition>
+        -->
+    </div>
+</template>
+
+<script>
+import { ref, watch, computed } from 'vue';
+import { MINERAL_TYPES, OCEANS, getLayersByOcean, WEATHER_LAYER_GROUPS, MINING_REGIONS } from '../constants.js';
+
+export default {
+    props: {
+        availableCountries: {
+            type: Array,
+            default: () => []
+        },
+        regionOptions: {
+            type: Array,
+            default: () => []
+        },
+        selectedRegionId: {
+            type: String,
+            default: ''
+        },
+        regionLoading: {
+            type: Boolean,
+            default: false
+        },
+        miningAreas: {
+            type: Array,
+            default: () => []
+        },
+        selectedAreaId: {
+            type: String,
+            default: ''
+        },
+        showQueryPanel: {
+            type: Boolean,
+            default: true
+        },
+        showLayersPanel: {
+            type: Boolean,
+            default: true
+        },
+        showWeatherLayersPanel: {
+            type: Boolean,
+            default: false
+        }
+    },
+    emits: ['filterChange', 'layersChange', 'weatherLayersChange', 'regionLocate', 'areaSelect', 'regionSelect'], // 向父组件发送筛选条件变化事件 & 图层变化 & 气象图层变化 & 区域定位
+    setup(props, { emit }) {
+        // ==================== 状态管理 ====================
+        
+        // 选中的矿种列表（支持多选）
+        const activeMinerals = ref([]);
+        
+        // 选中的大洋列表（支持多选）
+        const activeOceans = ref([]);
+        
+        // 选中的国家列表（支持多选）
+        const activeCountries = ref([]);
+        
+        // 当前可用的国家列表（从 GeoJSON 数据中提取）
+        const currentCountries = ref([]);
+        
+        // 矿区地理分区数据（用于图层控制面板）
+        const miningRegions = ref(JSON.parse(JSON.stringify(MINING_REGIONS))); // 深拷贝
+
+        // 当前激活的大洋（用于标题显示）
+        const activeOcean = computed(() => {
+            return activeOceans.value[0] || OCEANS[0];
+        });
+        
+        // 国家面板的展开/收起状态
+        const showCountryPanel = ref(false);
+        
+        // 气象图层分组数据（用于气象图层面板）
+        const weatherLayerGroups = ref(WEATHER_LAYER_GROUPS);
+
+        // ==================== 监听器 ====================
+        
+        /**
+         * 向父组件发送当前图层状态
+         */
+        const emitLayers = () => {
+            emit('layersChange', miningRegions.value);
+        };
+
+        /**
+         * 监听传入的国家列表变化
+         * 当 GeoJSON 数据加载完成后，更新可用的国家列表
+         */
+        watch(() => props.availableCountries, (newCountries) => {
+            console.log('🌍 LeftPanel 接收到国家列表:', newCountries);
+            currentCountries.value = newCountries;
+        }, { immediate: true });
+
+        // ==================== 事件处理函数 ====================
+        
+        /**
+         * 发送筛选条件变化事件
+         * 向父组件（App.vue）发送当前的筛选条件
+         * 
+         * 筛选条件包括：
+         * - minerals: 选中的矿种列表
+         * - oceans: 选中的大洋列表
+         * - countries: 选中的国家列表
+         */
+        const emitFilter = () => {
+            console.log('📤 LeftPanel 发送筛选:', {
+                minerals: activeMinerals.value,
+                oceans: activeOceans.value,
+                countries: activeCountries.value
+            });
+            emit('filterChange', {
+                minerals: activeMinerals.value,
+                oceans: activeOceans.value,
+                countries: activeCountries.value
+            });
+        };
+
+        /**
+         * 切换矿种选择状态（支持多选）
+         * @param {String} mineral - 矿种名称
+         * 
+         * 功能：
+         * 1. 如果已选中，则移除
+         * 2. 如果未选中，则添加
+         * 3. 触发筛选条件变化事件
+         */
+        const toggleMineral = (mineral) => {
+            const index = activeMinerals.value.indexOf(mineral);
+            if (index > -1) {
+                // 已选中，则移除
+                activeMinerals.value.splice(index, 1);
+            } else {
+                // 未选中，则添加
+                activeMinerals.value.push(mineral);
+            }
+            emitFilter();
+        };
+
+        /**
+         * 切换大洋选择状态（支持多选）
+         * @param {String} ocean - 大洋名称
+         * 
+         * 功能：
+         * 1. 如果已选中，则移除
+         * 2. 如果未选中，则添加
+         * 3. 触发筛选条件变化事件
+         */
+        const toggleOcean = (ocean) => {
+            const index = activeOceans.value.indexOf(ocean);
+            if (index > -1) {
+                // 已选中，则移除
+                activeOceans.value.splice(index, 1);
+            } else {
+                // 未选中，则添加
+                activeOceans.value.push(ocean);
+            }
+            emitFilter();
+        };
+
+        /**
+         * 切换国家面板的展开/收起状态
+         * 用于折叠面板的交互
+         */
+        const toggleCountryPanel = () => {
+            showCountryPanel.value = !showCountryPanel.value;
+        };
+
+        /**
+         * 切换国家选择状态（支持多选）
+         * @param {String} country - 国家名称
+         * 
+         * 功能：
+         * 1. 如果已选中，则移除
+         * 2. 如果未选中，则添加
+         * 3. 触发筛选条件变化事件
+         */
+        const toggleCountry = (country) => {
+            const index = activeCountries.value.indexOf(country);
+            if (index > -1) {
+                // 已选中，则移除
+                activeCountries.value.splice(index, 1);
+            } else {
+                // 未选中，则添加
+                activeCountries.value.push(country);
+            }
+            emitFilter();
+        };
+
+        /**
+         * 移除单个国家
+         * @param {String} country - 国家名称
+         * 
+         * 功能：
+         * 从选中的国家列表中移除指定国家，并触发筛选条件变化
+         * 用于国家标签的删除按钮
+         */
+        const removeCountry = (country) => {
+            const index = activeCountries.value.indexOf(country);
+            if (index > -1) {
+                activeCountries.value.splice(index, 1);
+                emitFilter();
+            }
+        };
+
+        /**
+         * 清除所有国家筛选
+         * 
+         * 功能：
+         * 一键清空所有选中的国家，并触发筛选条件变化
+         * 用于"清除全部"按钮
+         */
+        const clearCountries = () => {
+            activeCountries.value = [];
+            emitFilter();
+        };
+
+        /**
+         * 切换矿区地理分区的显示状态
+         * @param {String} regionId - 区域ID
+         * 
+         * 功能：
+         * 切换指定区域的显示/隐藏状态，并通知父组件
+         */
+        const toggleRegion = (regionId) => {
+            const region = miningRegions.value.find(r => r.id === regionId);
+            if (region) {
+                region.active = !region.active;
+                console.log(`🗺️ 区域 "${region.label}" ${region.active ? '已显示' : '已隐藏'}`);
+                emitLayers();
+            }
+        };
+        
+        /**
+         * 定位到指定矿区地理分区
+         * @param {String} regionId - 区域ID
+         * 
+         * 功能：
+         * 通知父组件飞到指定区域的中心位置
+         */
+        const locateRegion = (regionId) => {
+            const region = miningRegions.value.find(r => r.id === regionId);
+            if (region) {
+                console.log(`📍 定位到区域: ${region.label}`);
+                emit('regionLocate', region);
+            }
+        };
+
+        const selectArea = (area, event) => {
+            emit('areaSelect', {
+                area,
+                screenPosition: event
+                    ? {
+                        x: event.clientX,
+                        y: event.clientY
+                    }
+                    : null
+            });
+        };
+
+        const selectRegion = (region) => {
+            emit('regionSelect', region);
+        };
+
+        const formatRegionLabel = (region) => {
+            const label = region?.regionName || region?.regionCode || `区域 ${region?.id}`;
+            return String(label);
+        };
+
+        const getRegionAreaCount = (region) => {
+            return Number(region?.siteCount ?? region?.miningAreaCount ?? 0);
+        };
+
+        const formatArea = (area) => {
+            if (!area) return '面积待补充';
+            if (typeof area === 'string') return area;
+            return `${Number(area).toLocaleString()} km²`;
+        };
+
+        /**
+         * 切换气象图层组的显示状态
+         * @param {String} groupId - 气象图层组ID
+         */
+        const toggleWeatherGroup = (groupId) => {
+            const group = weatherLayerGroups.value.find(g => g.id === groupId);
+            if (group) {
+                const newActive = !group.active;
+                group.active = newActive;
+
+                if (group.subLayers && group.subLayers.length) {
+                    if (!newActive) {
+                        // 关闭父图层：记录当前哪些子图层是开的，然后全部关掉
+                        group._prevSubActive = group.subLayers
+                            .filter(s => s.active)
+                            .map(s => s.id);
+                        group.subLayers.forEach(s => { s.active = false; });
+                    } else {
+                        // 打开父图层：恢复之前开着的子图层
+                        const prev = group._prevSubActive && group._prevSubActive.length
+                            ? group._prevSubActive
+                            : [];
+                        group.subLayers.forEach(s => {
+                            s.active = prev.includes(s.id);
+                        });
+                    }
+                }
+                console.log(`🌦️ 气象图层组 "${group.label}" ${group.active ? '已开启' : '已关闭'}`);
+            }
+        };
+        
+        /**
+         * 切换气象子图层的显示状态
+         * @param {String} groupId - 气象图层组ID
+         * @param {String} subId - 子图层ID
+         */
+        const toggleWeatherSubLayer = (groupId, subId) => {
+            const group = weatherLayerGroups.value.find(g => g.id === groupId);
+            if (group && group.subLayers) {
+                const sub = group.subLayers.find(s => s.id === subId);
+                if (sub) {
+                    sub.active = !sub.active;
+                    console.log(`🌦️ 气象图层 "${sub.label}" ${sub.active ? '已开启' : '已关闭'}`);
+                    // 通知父组件气象图层变化
+                    emitWeatherLayers();
+                }
+            }
+        };
+        
+        /**
+         * 向父组件发送当前气象图层状态
+         */
+        const emitWeatherLayers = () => {
+            emit('weatherLayersChange', weatherLayerGroups.value);
+        };
+
+        // 初始时发送一次图层状态
+        emitLayers();
+        emitWeatherLayers(); // 同时发送气象图层状态
+
+        return {
+            activeMinerals,
+            activeOceans,
+            activeCountries,
+            currentCountries,
+            miningRegions,
+            activeOcean,
+            showCountryPanel,
+            weatherLayerGroups,
+            toggleMineral,
+            toggleOcean,
+            toggleCountryPanel,
+            toggleCountry,
+            removeCountry,
+            clearCountries,
+            emitFilter,
+            toggleRegion,
+            locateRegion,
+            selectArea,
+            selectRegion,
+            formatRegionLabel,
+            getRegionAreaCount,
+            formatArea,
+            toggleWeatherGroup,
+            toggleWeatherSubLayer,
+            MINERAL_TYPES,
+            OCEANS
+        };
+    }
+};
+</script>
+
+<style scoped>
+/* 折叠面板动画 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all 0.3s ease;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+</style>

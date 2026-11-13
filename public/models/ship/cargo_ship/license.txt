@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cargo ship
+* source:	https://sketchfab.com/3d-models/cargo-ship-b7c97df584824ca682d26daabf401f87
+* author:	hungry_drifter (https://sketchfab.com/hungry_drifter)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cargo ship" (https://sketchfab.com/3d-models/cargo-ship-b7c97df584824ca682d26daabf401f87) by hungry_drifter (https://sketchfab.com/hungry_drifter) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
