@@ -1,0 +1,111 @@
+spring:
+  application:
+    name: ship-monitoring-backend
+  
+  # 数据源配置
+  datasource:
+    # 默认连本机库；其他环境用 DB_HOST/DB_PORT/DB_NAME 覆盖。密码不再提供默认值，必须由环境变量注入。
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:ship_monitoring}?sslmode=disable
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # JPA配置
+  jpa:
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisPG95Dialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+        jdbc:
+          time_zone: UTC
+    show-sql: false
+  
+  # 缓存配置
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=3600s
+    cache-names:
+      - weatherMetadata
+      - weatherData
+      - availableIndices
+  
+  # Jackson配置
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+
+# 服务器配置
+server:
+  port: 8082
+  address: 0.0.0.0  # 允许外部访问
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+    min-response-size: 1024
+
+# 船讯网API配置
+shipxy:
+  api:
+    base-url: https://api.shipxy.com
+    api-key: ${SHIPXY_API_KEY:your_api_key_here}
+
+# WebSocket配置
+websocket:
+  port: 8082
+  path: /ws
+  allowed-origins: "*"
+
+# Webhook配置
+webhook:
+  path: /webhook/area
+  public-url: ${PUBLIC_URL:http://localhost:8082}
+
+# 定时任务配置
+scheduler:
+  ship-update:
+    enabled: true
+    fixed-rate: 600000  # 10分钟 = 600000毫秒
+
+forecast:
+  scheduler:
+    enabled: true
+    cron: "0 15 0,6,12,18 * * ?"
+    zone: Asia/Shanghai
+  warning:
+    wind-warning: 20
+    wind-critical: 25
+    wave-warning: 4
+    wave-critical: 6
+    current-warning: 2
+
+buoy:
+  simulation:
+    refresh-ms: 60000
+
+# 气象数据配置
+# 原始二进制数据（wind/wave/current）已不再由 Java 端导入，改由 backend\automation 流水线
+# 直接写库；原先的 weather.data.path 与 weather.migration 配置已随迁移模块一并移除。
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.oceanmining.monitoring: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

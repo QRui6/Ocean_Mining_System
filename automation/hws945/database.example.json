@@ -1,0 +1,8 @@
+{
+  "host": "YOUR_DATABASE_HOST",
+  "port": 5432,
+  "dbname": "ship_monitoring",
+  "user": "YOUR_DATABASE_USER",
+  "password": "YOUR_DATABASE_PASSWORD",
+  "connect_timeout": 15
+}
