@@ -1,0 +1,152 @@
+/* 组件样式 - 高级大屏风格 */
+
+/* 科技面板 - 基础版 */
+.tech-panel {
+  background: var(--gradient-panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: 
+    var(--shadow-cyan-glow),
+    inset 0 0 30px rgba(0, 212, 255, 0.08);
+  position: relative;
+  /* 字体渲染优化 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 强制硬件加速，避免模糊 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 增强版科技面板 - 更亮更高级 */
+.tech-panel-enhanced {
+  background: linear-gradient(
+    180deg, 
+    rgba(13, 27, 42, 0.92) 0%, 
+    rgba(10, 22, 40, 0.88) 100%
+  );
+  backdrop-filter: blur(15px);
+  border: 2px solid var(--color-border-primary);
+  box-shadow: 
+    0 0 30px rgba(0, 212, 255, 0.3),
+    0 0 60px rgba(30, 144, 255, 0.15),
+    inset 0 0 40px rgba(0, 212, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  transition: all 0.3s ease;
+  /* 字体渲染优化 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 强制硬件加速 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.tech-panel-enhanced:hover {
+  background: linear-gradient(
+    180deg, 
+    rgba(13, 27, 42, 0.95) 0%, 
+    rgba(10, 22, 40, 0.92) 100%
+  );
+  border-color: var(--color-cyan-bright);
+  box-shadow: 
+    0 0 40px rgba(0, 212, 255, 0.5),
+    0 0 80px rgba(30, 144, 255, 0.25),
+    inset 0 0 50px rgba(0, 212, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px) translateZ(0);
+}
+
+/* 角落装饰 - 更亮的黄色 */
+.corner-decoration {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-yellow-bright);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.corner-decoration::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--color-yellow-bright);
+  box-shadow: 0 0 6px var(--color-yellow-bright);
+}
+
+.corner-tl { 
+  top: -1px; 
+  left: -1px; 
+  border-right: none; 
+  border-bottom: none; 
+}
+
+.corner-tl::before {
+  top: -2px;
+  left: -2px;
+}
+
+.corner-tr { 
+  top: -1px; 
+  right: -1px; 
+  border-left: none; 
+  border-bottom: none; 
+}
+
+.corner-tr::before {
+  top: -2px;
+  right: -2px;
+}
+
+.corner-bl { 
+  bottom: -1px; 
+  left: -1px; 
+  border-right: none; 
+  border-top: none; 
+}
+
+.corner-bl::before {
+  bottom: -2px;
+  left: -2px;
+}
+
+.corner-br { 
+  bottom: -1px; 
+  right: -1px; 
+  border-left: none; 
+  border-top: none; 
+}
+
+.corner-br::before {
+  bottom: -2px;
+  right: -2px;
+}
+
+/* 作业决策风险色，供新增辅助决策/预警结论复用 */
+.decision-tone-green {
+  border-color: rgba(74, 222, 128, 0.48) !important;
+  box-shadow: inset 3px 0 0 #4ade80;
+}
+
+.decision-tone-yellow {
+  border-color: rgba(250, 204, 21, 0.5) !important;
+  box-shadow: inset 3px 0 0 #facc15;
+}
+
+.decision-tone-orange {
+  border-color: rgba(251, 146, 60, 0.55) !important;
+  box-shadow: inset 3px 0 0 #fb923c;
+}
+
+.decision-tone-red {
+  border-color: rgba(248, 113, 113, 0.62) !important;
+  box-shadow: inset 3px 0 0 #f87171;
+}
+
+.decision-tone-muted {
+  border-color: rgba(100, 116, 139, 0.58) !important;
+  box-shadow: inset 3px 0 0 #64748b;
+}
