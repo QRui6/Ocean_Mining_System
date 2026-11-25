@@ -1,0 +1,18 @@
+# 开发环境配置
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:ship_monitoring}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+
+shipxy:
+  api:
+    base-url: https://api.shipxy.com
+    api-key: ${SHIPXY_API_KEY:your_api_key_here}
+
+webhook:
+  public-url: http://localhost:8080
+
+logging:
+  level:
+    com.oceanmining.monitoring: DEBUG

@@ -1,0 +1,13 @@
+{
+  "base_url": "https://www.hws945.com",
+  "timeout_seconds": 20,
+  "retries": 2,
+  "resolve_with_alidns": true,
+  "request_interval_seconds": 1.0,
+  "subset_merge_gap_bytes": 2048,
+  "download_workers": 4,
+  "url_templates": {
+    "wind": "{base_url}/ncfile_12z/atmo/{date}/{element}_{date}_{cycle}.nc",
+    "wave": "{base_url}/ncfile_12z/wave/{date}/{element}_{date}_{cycle}.nc"
+  }
+}
