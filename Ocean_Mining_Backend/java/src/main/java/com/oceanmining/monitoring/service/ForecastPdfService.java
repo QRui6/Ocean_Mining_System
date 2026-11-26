@@ -102,15 +102,16 @@ public class ForecastPdfService {
     }
 
     public byte[] renderWarning(com.oceanmining.monitoring.dto.response.WeatherWarningDetailDTO warning,ForecastReportData data) throws IOException {
-        return renderWarning(warning,data,"深海采矿海洋气象预警专报");
+        return renderWarning(warning,data,"深海采矿海洋气象预警专报",null,null);
     }
 
     public byte[] renderAnalysis(String content,com.fasterxml.jackson.databind.JsonNode report) throws IOException {
-        if(report==null || !report.hasNonNull("forecastData"))return renderText("预警分析报文",content);
+        boolean grid = report != null && "grid".equals(report.path("sourceType").asText());
+        if(report==null || (!grid && !report.hasNonNull("forecastData")))return renderText("预警分析报文",content);
         ForecastSummaryDTO summary=new ForecastSummaryDTO();
         summary.setRegionName(report.path("regionName").asText("未提供")+(report.path("siteName").asText("").isBlank()?"":" / "+report.path("siteName").asText()));
-        summary.setRangeLabel("预报候选分析");
-        var forecast=report.get("forecastData");
+        summary.setRangeLabel(grid ? "矿区评估" : "预报候选分析");
+        var forecast=report.path("forecastData");
         var rows=forecast.path("hourlySeries");
         if(!rows.isArray()||rows.isEmpty())rows=forecast.path("series");
         if(rows.isArray()&&!rows.isEmpty()){
@@ -130,10 +131,24 @@ public class ForecastPdfService {
         warning.setSeverity(com.oceanmining.monitoring.enums.WeatherWarningSeverity.valueOf(severity));
         warning.setTriggerDetail(report.path("triggerDetail"));
         warning.setBulletinText(report.path("bulletinText").asText(content));
-        return renderWarning(warning,ForecastReportData.fromSnapshot(summary,forecast),"深海采矿海洋气象预警分析");
+        String initial = grid ? snapshotTime(report.path("sourceBase").asText()) : null;
+        if (initial != null) initial += " UTC+08:00";
+        String conclusion = grid ? report.path("warningMessage").asText(null) : null;
+        if (report.path("stale").asBoolean()) conclusion = "该批预报已过期。";
+        if (!grid && report.path("stale").asBoolean() && "EXPIRED".equals(report.path("status").asText())) {
+            String start = snapshotTime(report.path("validFrom").asText());
+            String end = snapshotTime(report.path("validUntil").asText());
+            if (start != null && end != null) conclusion += "超限时段 " + start + " 至 " + end + " UTC+08:00。";
+            if (report.path("initialTimeUnverified").asBoolean()) {
+                initial = "待核对（批次 " + text(summary.getBaseDate()) + " " + text(summary.getRunCycle()) + "）";
+            }
+        }
+        return renderWarning(warning,ForecastReportData.fromSnapshot(summary,forecast),
+                grid ? "深海采矿海洋气象预警专报" : "深海采矿海洋气象预警分析",initial,conclusion);
     }
 
-    private byte[] renderWarning(com.oceanmining.monitoring.dto.response.WeatherWarningDetailDTO warning,ForecastReportData data,String title) throws IOException {
+    private byte[] renderWarning(com.oceanmining.monitoring.dto.response.WeatherWarningDetailDTO warning,ForecastReportData data,
+                                 String title,String initialTime,String conclusion) throws IOException {
         ForecastSummaryDTO summary=data.summary();
         try(Layout pdf=new Layout(text(summary.getRegionName()),issuer)) {
             pdf.document.getDocumentInformation().setTitle(title);
@@ -144,9 +159,10 @@ public class ForecastPdfService {
             pdf.center(summary.getRangeLabel()+" · "+severity(warning.getSeverity()),11,MUTED);
             pdf.y+=7;pdf.rule();
             pdf.paragraph("预报："+text(summary.getRegionName())+"；经度："+text(summary.getLongitude())+"；纬度："+text(summary.getLatitude()),11,INK);
-            pdf.paragraph("初始时间："+BulletinExportService.initialTime(warning.getBaseDate(),warning.getRunCycle()),9,MUTED);
+            pdf.paragraph("初始时间：" + (initialTime == null ? BulletinExportService.initialTime(warning.getBaseDate(),warning.getRunCycle())
+                    : initialTime),9,MUTED);
             pdf.section("一、预警结论");
-            pdf.paragraph(text(warning.getRegionName())+"在预报时段达到"+severity(warning.getSeverity())+"条件。",11,INK);
+            pdf.paragraph(conclusion == null ? text(warning.getRegionName())+"在预报时段达到"+severity(warning.getSeverity())+"条件。" : conclusion,11,INK);
             pdf.section("二、触发条件");
             pdf.tableRow(new String[]{"指标","预测值","阈值","单位"},new float[]{150,111,111,111},26,NAVY,9,Color.WHITE);
             var triggers=warning.getTriggerDetail();
@@ -174,6 +190,14 @@ public class ForecastPdfService {
                 details(pdf,data,shown,"触发条件");
             }
             return pdf.bytes();
+        }
+    }
+
+    private static String snapshotTime(String value) {
+        try {
+            return dateTime(ZonedDateTime.parse(value));
+        } catch (java.time.format.DateTimeParseException error) {
+            return null;
         }
     }
 
@@ -426,6 +450,7 @@ public class ForecastPdfService {
         return !hasTimeGaps(data) && data.points().stream().allMatch(p -> p.windMax() != null && p.waveMax() != null && p.currentMax() != null);
     }
     private static String risk(ForecastReportData data) {
+        if (Boolean.TRUE.equals(data.summary().getStale())) return "预报已过期";
         if (!riskAvailable(data)) return "待评估（风险相关数据不完整）";
         return switch (Objects.toString(data.summary().getRiskLevel(), "")) {
             case "SAFE" -> "低风险";
@@ -436,6 +461,7 @@ public class ForecastPdfService {
         };
     }
     private static String advice(ForecastReportData data) {
+        if (Boolean.TRUE.equals(data.summary().getStale())) return "该批预报已过期，请关注后续预报与现场观测。";
         if (!riskAvailable(data)) return "风险相关数据不完整，暂不作出适宜作业判断。建议补齐数据，加强现场监测，并关注后续预报更新。";
         return switch (Objects.toString(data.summary().getRiskLevel(), "")) {
             case "SAFE" -> "现有系统阈值下评估为低风险。建议保持常规值守，结合现场监测及设备限值安排作业，持续关注后续预报。";

@@ -50,11 +50,12 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import * as C from 'cesium';
 import PanelSelect from '../common/PanelSelect.vue';
 import { monitoringRequest as request } from '../../api/monitoring.js';
-const props = defineProps({ getViewer: Function });
-defineEmits(['close']);
+import { fetchForecastTargets } from '../../api/forecastWarningBuoy.js';
+const props = defineProps({ getViewer: Function, mineId: String });
+const emit = defineEmits(['close', 'select-target']);
 const areas = ref([]), areaId = ref(''), run = ref(null), previousResult = ref(null), error = ref(''), metric = ref('wind'), frame = ref(0), page = ref(0), events = ref(null), versions = ref([]), selectedEvent = ref(null), loadingArea = ref(false);
 const labels = { wind: '风速', wave: '浪高', ocean_current: '流速' };
-const areaOptions = computed(() => areas.value.map(area => ({ value: area.areaId, label: `${area.contractor || area.areaId} · ${area.areaId}` })));
+const areaOptions = computed(() => areas.value.map(area => ({ value: area.id, label: area.name })));
 const metricOptions = Object.entries(labels).map(([value, label]) => ({ value, label }));
 const result = computed(() => run.value?.result || previousResult.value);
 const dataset = computed(() => result.value?.datasets[metric.value] || { frames: [] });
@@ -122,16 +123,27 @@ async function acknowledge() {
 watch(areaId, async () => {
   clearTimeout(timer); clear(); error.value = ''; selectedEvent.value = null; run.value = null; previousResult.value = null; events.value = null; versions.value = []; page.value = 0; frame.value = 0;
   const token = ++requestId; loadingArea.value = true;
+    const target = areas.value.find(area => area.id === areaId.value);
+    if (target) emit('select-target', target);
   try {
     const latest = await request(`/api/mining-risk/areas/${encodeURIComponent(areaId.value)}/latest`);
     if (!disposed && token === requestId && latest.id) { run.value = latest; if (latest.result) previousResult.value = latest.result; if (['QUEUED', 'RUNNING'].includes(latest.status)) poll(latest.id, token); }
   } catch (e) { if (!disposed && token === requestId) error.value = e.message; }
   finally { if (token === requestId) loadingArea.value = false; }
 });
+watch(() => props.mineId, id => {
+  if (areas.value.some(area => area.id === id)) areaId.value = id;
+});
 watch(metric, () => { frame.value = 0; page.value = 0; });
 watch([result, metric, frame], draw);
 onMounted(async () => {
-  try { const rows = await request('/api/mining-areas'); if (!disposed) { areas.value = [...new Map(rows.map(area => [area.areaId, area])).values()]; areaId.value = areas.value[0]?.areaId || ''; } }
+  try {
+    const rows = await fetchForecastTargets();
+    if (!disposed) {
+      areas.value = rows;
+      areaId.value = rows.find(area => area.id === props.mineId)?.id || rows[0]?.id || '';
+    }
+  }
   catch (e) { if (!disposed) error.value = e.message; }
 });
 onBeforeUnmount(() => { disposed = true; requestId++; clearTimeout(timer); clear(); });

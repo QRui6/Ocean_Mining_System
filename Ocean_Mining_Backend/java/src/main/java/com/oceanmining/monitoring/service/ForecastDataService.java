@@ -117,6 +117,25 @@ public class ForecastDataService {
                 rows.stream().map(ForecastReportData.Point::from).toList(), false);
     }
 
+    void summarizePoints(ForecastSummaryDTO dto, List<ForecastReportData.Point> points) {
+        dto.setDataPointCount(points.size());
+        dto.setWindSpeedAvg(average(points, ForecastReportData.Point::windAvg));
+        dto.setWindSpeedMax(max(points, ForecastReportData.Point::windMax));
+        dto.setGustMax(max(points, ForecastReportData.Point::gust));
+        dto.setWaveHeightAvg(average(points, ForecastReportData.Point::waveAvg));
+        dto.setWaveHeightMax(max(points, ForecastReportData.Point::waveMax));
+        dto.setWavePeriodAvg(average(points, ForecastReportData.Point::period));
+        dto.setCurrentSpeedAvg(average(points, ForecastReportData.Point::currentAvg));
+        dto.setCurrentSpeedMax(max(points, ForecastReportData.Point::currentMax));
+        dto.setWindTrend(trend(points, ForecastReportData.Point::windAvg));
+        dto.setWaveTrend(trend(points, ForecastReportData.Point::waveAvg));
+        dto.setCurrentTrend(trend(points, ForecastReportData.Point::currentAvg));
+        if (!Boolean.TRUE.equals(dto.getStale()) && Boolean.TRUE.equals(dto.getDataComplete())
+                && points.stream().allMatch(p -> p.windMax() != null && p.waveMax() != null && p.currentMax() != null)) {
+            dto.setRiskLevel(calculateRisk(dto));
+        }
+    }
+
     private ForecastSummaryDTO summarizeHourly(
             MiningRegion region,
             ForecastRange range,

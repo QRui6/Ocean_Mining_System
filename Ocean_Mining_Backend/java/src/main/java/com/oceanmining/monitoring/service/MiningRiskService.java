@@ -1,6 +1,7 @@
 package com.oceanmining.monitoring.service;
 
 import com.fasterxml.jackson.databind.*;
+import com.oceanmining.monitoring.exception.ResourceNotFoundException;
 import com.oceanmining.monitoring.entity.WeatherMetadata;
 import com.oceanmining.monitoring.repository.*;
 import org.springframework.stereotype.Service;
@@ -25,18 +26,20 @@ public class MiningRiskService {
     private final WeatherMetadataRepository metadata; private final TransactionTemplate tx;
     private final Map<String,Rule> rules; private final ZoneId dataZone;
     private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    // Old runs can contain reserve polygons. Keep them archived under their original IDs.
+    private static final String CONTRACT_PREFIX = "china-contract:";
     public MiningRiskService(JdbcTemplate db,ObjectMapper json,MiningAreaRepository areas,WeatherMetadataRepository metadata,PlatformTransactionManager manager,
         @Value("${forecast.warning.wind-warning:20}") double wind,@Value("${forecast.warning.wind-critical:25}") double windCritical,
         @Value("${forecast.warning.wave-warning:4}") double wave,@Value("${forecast.warning.wave-critical:6}") double waveCritical,
         @Value("${forecast.warning.current-warning:2}") double current,@Value("${forecast.grid.timezone:UTC}") String zone) {
         this.db=db;this.json=json;this.areas=areas;this.metadata=metadata;this.tx=new TransactionTemplate(manager);this.dataZone=ZoneId.of(zone);
         rules=Map.of("wind",new Rule(wind,windCritical,"m/s"),"wave",new Rule(wave,waveCritical,"m"),"ocean_current",new Rule(current,null,"m/s"));
-        db.update("UPDATE mining_risk_runs SET status='FAILED',error='服务重启，请重新评估' WHERE status IN ('QUEUED','RUNNING')");
+        db.update("UPDATE mining_risk_runs SET status='FAILED',error='服务重启，请重新评估' WHERE area_id LIKE ? AND status IN ('QUEUED','RUNNING')", CONTRACT_PREFIX + "%");
     }
     @PreDestroy public void stop(){worker.shutdownNow();}
     public Map<String,Rule> rules(){return rules;}
     public Map<String,Object> latest(String areaId) {
-        var ids=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? ORDER BY created_at DESC LIMIT 1",UUID.class,areaId);
+        var ids=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? ORDER BY created_at DESC LIMIT 1",UUID.class,contractId(areaId));
         return ids.isEmpty()?Map.of():run(ids.get(0));
     }
     private static final double SPACING_KM=25;
@@ -47,11 +50,18 @@ public class MiningRiskService {
     // A matching request returns its existing run; only changed inputs are queued.
     @Scheduled(initialDelay=60000,fixedDelayString="${forecast.grid.poll-ms:300000}")
     public void refreshWatchedAreas() {
-        for(var last:db.queryForList("SELECT DISTINCT ON(area_id) area_id,status FROM mining_risk_runs ORDER BY area_id,created_at DESC")) {
-            if(!Set.of("COMPLETED","FAILED").contains(last.get("status")))continue;
-            try { start((String)last.get("area_id")); }
+        for(var area : ServiceMiningAreas.ALL) {
+            try { start(area.id()); }
             catch(Exception error) { org.slf4j.LoggerFactory.getLogger(getClass()).warn("Mining assessment refresh postponed: {}",error.getMessage()); }
         }
+    }
+    private static String contractId(String areaId) {
+        return CONTRACT_PREFIX + ServiceMiningAreas.require(areaId).id();
+    }
+    private static void exposeArea(Map<String,Object> row) {
+        String areaId = ((String) row.get("area_id")).substring(CONTRACT_PREFIX.length());
+        row.put("area_id", areaId);
+        row.put("area_name", ServiceMiningAreas.require(areaId).name());
     }
     private String sourceSignature() {
         var signature=new LinkedHashMap<String,Object>();
@@ -66,41 +76,46 @@ public class MiningRiskService {
         } catch(java.security.NoSuchAlgorithmException error) { throw new IllegalStateException(error); }
     }
     private RequestContext context(String areaId) {
-        var row=db.queryForMap("WITH area AS (SELECT ST_UnaryUnion(ST_Collect(geometry)) g FROM mining_areas WHERE area_id=?) SELECT ST_AsBinary(g) boundary,ST_AsBinary(ST_Normalize(g)) canonical FROM area",areaId);
+        var row=db.queryForMap("WITH area AS (" + ServiceMiningAreas.CONTRACT_BOUNDARY + ") SELECT ST_AsBinary(g) boundary,ST_AsBinary(ST_Normalize(g)) canonical FROM area",areaId);
         byte[] boundary=(byte[])row.get("boundary"),canonical=(byte[])row.get("canonical");
         if(boundary==null||canonical==null)throw new IllegalArgumentException("矿区缺少有效边界");
         String source=sourceSignature();
         return new RequestContext(boundary,source,requestKey(HexFormat.of().formatHex(canonical),source,write(new TreeMap<>(rules)),dataZone.getId(),SPACING_KM));
     }
     public synchronized UUID start(String areaId) {
+        String storedId = contractId(areaId);
         RequestContext context=context(areaId);
-        var active=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? AND request_key=? AND status IN ('QUEUED','RUNNING') ORDER BY created_at DESC LIMIT 1",UUID.class,areaId,context.key());
+        var active=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? AND request_key=? AND status IN ('QUEUED','RUNNING') ORDER BY created_at DESC LIMIT 1",UUID.class,storedId,context.key());
         if(!active.isEmpty())return active.get(0);
-        var cached=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? AND request_key=? AND status='COMPLETED' AND result IS NOT NULL ORDER BY created_at DESC LIMIT 1",UUID.class,areaId,context.key());
+        var cached=db.queryForList("SELECT id FROM mining_risk_runs WHERE area_id=? AND request_key=? AND status='COMPLETED' AND result IS NOT NULL ORDER BY created_at DESC LIMIT 1",UUID.class,storedId,context.key());
         if(!cached.isEmpty())return cached.get(0);
         List<MiningGrid.Point> points;
         try { points=MiningGrid.sample(new org.locationtech.jts.io.WKBReader().read(context.boundary()),SPACING_KM); }
         catch(org.locationtech.jts.io.ParseException error) { throw new IllegalArgumentException("矿区边界无效",error); }
         UUID id=UUID.randomUUID();
-        db.update("INSERT INTO mining_risk_runs(id,area_id,status,request_key,source_signature) VALUES(?,?,'QUEUED',?,?)",id,areaId,context.key(),context.source());
+        db.update("INSERT INTO mining_risk_runs(id,area_id,status,request_key,source_signature) VALUES(?,?,'QUEUED',?,?)",id,storedId,context.key(),context.source());
         worker.submit(()->evaluate(id,areaId,points,context));
         return id;
     }
     public Map<String,Object> run(UUID id) {
-        var result=db.queryForMap("SELECT id,area_id,status,progress,error,created_at,finished_at,result::text FROM mining_risk_runs WHERE id=?",id);
+        var result=db.queryForList("SELECT id,area_id,status,progress,error,created_at,finished_at,result::text FROM mining_risk_runs WHERE id=? AND area_id LIKE ?",id,CONTRACT_PREFIX+"%")
+            .stream().findFirst().orElseThrow(()->new ResourceNotFoundException("评估记录不存在"));
+        exposeArea(result);
         if(result.get("result")!=null)result.put("result",read((String)result.get("result")));return result;
     }
     public List<Map<String,Object>> events(String areaId) {
-        var rows=db.queryForList("SELECT id,area_id,metric,status,severity,created_at,updated_at,resolved_at,snapshot::text FROM mining_risk_events WHERE (CAST(? AS varchar) IS NULL OR area_id=?) ORDER BY updated_at DESC",areaId,areaId);
-        rows.forEach(row->row.put("snapshot",read((String)row.get("snapshot"))));return rows;
+        String scope = areaId == null ? CONTRACT_PREFIX + "%" : contractId(areaId);
+        var rows=db.queryForList("SELECT id,area_id,metric,status,severity,created_at,updated_at,resolved_at,snapshot::text FROM mining_risk_events WHERE area_id LIKE ? ORDER BY updated_at DESC",scope);
+        rows.forEach(row->{exposeArea(row);row.put("snapshot",read((String)row.get("snapshot")));});return rows;
     }
     public List<Map<String,Object>> versions(long id) {
-        var rows=db.queryForList("SELECT action,created_at,snapshot::text FROM mining_risk_versions WHERE event_id=? ORDER BY id",id);
+        var rows=db.queryForList("SELECT v.action,v.created_at,v.snapshot::text FROM mining_risk_versions v JOIN mining_risk_events e ON e.id=v.event_id WHERE v.event_id=? AND e.area_id LIKE ? ORDER BY v.id",id,CONTRACT_PREFIX+"%");
         rows.forEach(row->row.put("snapshot",read((String)row.get("snapshot"))));return rows;
     }
     public List<Map<String,Object>> acknowledge(long id) {
         tx.executeWithoutResult(status->{
-            var event=db.queryForMap("SELECT status,snapshot::text FROM mining_risk_events WHERE id=? FOR UPDATE",id);
+            var event=db.queryForList("SELECT status,snapshot::text FROM mining_risk_events WHERE id=? AND area_id LIKE ? FOR UPDATE",id,CONTRACT_PREFIX+"%")
+                .stream().findFirst().orElseThrow(()->new ResourceNotFoundException("预警记录不存在"));
             if(!"ACTIVE".equals(event.get("status")))throw new IllegalArgumentException("预警已解除");
             db.update("INSERT INTO mining_risk_versions(event_id,action,snapshot) SELECT ?,'ACKNOWLEDGED',?::jsonb WHERE NOT EXISTS (SELECT 1 FROM mining_risk_versions WHERE event_id=? AND action='ACKNOWLEDGED' AND snapshot->>'runId'= (?::jsonb)->>'runId')",id,event.get("snapshot"),id,event.get("snapshot"));
         });
@@ -180,11 +195,14 @@ public class MiningRiskService {
         reconcile(areaId,run,datasets,List.of());
     }
     private void reconcile(String areaId,UUID run,Map<String,Object> datasets,List<MiningGrid.Point> points) {
+        String storedId = contractId(areaId);
         Instant now=Instant.now();
         for(var entry:datasets.entrySet()) {
             JsonNode d=json.valueToTree(entry.getValue());String metric=entry.getKey();
             // Incomplete/old batches cannot create or clear operational warnings.
-            if(!d.path("complete").asBoolean() || !d.has("initialTime") || Instant.parse(d.get("initialTime").asText()).isBefore(now.minus(Duration.ofDays(2))))continue;
+            if (!d.path("complete").asBoolean() || !d.hasNonNull("initialTime")) continue;
+            Instant initial = Instant.parse(d.get("initialTime").asText());
+            if (initial.isAfter(now) || initial.isBefore(now.minus(Duration.ofDays(2)))) continue;
             double peak=-1;String first=null,last=null;int pointIndex=-1;boolean hasFuture=false;
             for(JsonNode frame:d.path("frames")){
                 if(Instant.parse(frame.path("time").asText()).isBefore(now))continue;hasFuture=true;
@@ -196,10 +214,10 @@ public class MiningRiskService {
                 }
             }
             if(!hasFuture)continue;
-            var existing=db.queryForList("SELECT id FROM mining_risk_events WHERE area_id=? AND metric=? AND status='ACTIVE' FOR UPDATE",Long.class,areaId,metric);
+            var existing=db.queryForList("SELECT id FROM mining_risk_events WHERE area_id=? AND metric=? AND status='ACTIVE' FOR UPDATE",Long.class,storedId,metric);
             if(!existing.isEmpty()) {
                 JsonNode previous=read(db.queryForObject("SELECT snapshot::text FROM mining_risk_events WHERE id=?",String.class,existing.get(0)));
-                if(previous.has("initialTime") && Instant.parse(previous.get("initialTime").asText()).isAfter(Instant.parse(d.get("initialTime").asText())))continue;
+                if(previous.has("initialTime") && Instant.parse(previous.get("initialTime").asText()).isAfter(initial))continue;
             }
             if(peak<0 && existing.isEmpty())continue;
             Map<String,Object> snapshot=new LinkedHashMap<>();snapshot.put("runId",run.toString());snapshot.put("initialTime",d.path("initialTime").asText());snapshot.put("rule",rules.get(metric));snapshot.put("value",peak<0?null:peak);snapshot.put("pointIndex",pointIndex);snapshot.put("start",first);snapshot.put("end",last);
@@ -214,7 +232,7 @@ public class MiningRiskService {
             }
             String severity=rules.get(metric).critical()!=null&&peak>=rules.get(metric).critical()?"CRITICAL":"WARNING";
             Long event;
-            if(existing.isEmpty())event=db.queryForObject("INSERT INTO mining_risk_events(area_id,metric,status,severity,snapshot) VALUES(?,?,'ACTIVE',?,?::jsonb) RETURNING id",Long.class,areaId,metric,severity,write(snapshot));
+            if(existing.isEmpty())event=db.queryForObject("INSERT INTO mining_risk_events(area_id,metric,status,severity,snapshot) VALUES(?,?,'ACTIVE',?,?::jsonb) RETURNING id",Long.class,storedId,metric,severity,write(snapshot));
             else {event=existing.get(0);db.update("UPDATE mining_risk_events SET status=?,severity=?,snapshot=?::jsonb,updated_at=now(),resolved_at=CASE WHEN ?='RESOLVED' THEN now() ELSE NULL END WHERE id=?",peak<0?"RESOLVED":"ACTIVE",severity,write(snapshot),action,event);}
             db.update("INSERT INTO mining_risk_versions(event_id,action,snapshot) VALUES(?,?,?::jsonb)",event,action,write(snapshot));
         }

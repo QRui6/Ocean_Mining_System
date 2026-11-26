@@ -12,7 +12,12 @@ import com.oceanmining.monitoring.service.ForecastBulletinService;
 import com.oceanmining.monitoring.service.ForecastDataService;
 import com.oceanmining.monitoring.service.ForecastPdfService;
 import com.oceanmining.monitoring.service.MiningOverviewService;
+import com.oceanmining.monitoring.service.TargetForecastService;
+import com.oceanmining.monitoring.exception.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URLEncoder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -34,16 +40,58 @@ public class ForecastController {
     private final ForecastBulletinService forecastBulletinService;
     private final MiningOverviewService miningOverviewService;
     private final ForecastPdfService forecastPdfService;
+    private final TargetForecastService targetForecasts;
 
     public ForecastController(
             ForecastDataService forecastDataService,
             ForecastBulletinService forecastBulletinService,
             MiningOverviewService miningOverviewService,
-            ForecastPdfService forecastPdfService) {
+            ForecastPdfService forecastPdfService,
+            TargetForecastService targetForecasts) {
         this.forecastDataService = forecastDataService;
         this.forecastBulletinService = forecastBulletinService;
         this.miningOverviewService = miningOverviewService;
         this.forecastPdfService = forecastPdfService;
+        this.targetForecasts = targetForecasts;
+    }
+
+    @GetMapping("/targets")
+    public ApiResponse<List<TargetForecastService.Target>> targets() {
+        return ApiResponse.success(targetForecasts.targets());
+    }
+
+    @GetMapping("/targets/{id}/geometry")
+    public ApiResponse<JsonNode> targetGeometry(@PathVariable String id) throws IOException {
+        return ApiResponse.success(targetForecasts.geometry(id));
+    }
+
+    @GetMapping("/targets/{id}")
+    public ApiResponse<TargetForecastService.Product> target(
+            @PathVariable String id, @RequestParam(required = false) Long siteId,
+            @RequestParam(defaultValue = "12h") String range,
+            @RequestParam(defaultValue = "false") boolean includeHourly) {
+        return ApiResponse.success(targetForecasts.product(id, siteId, ForecastRange.fromCode(range), includeHourly));
+    }
+
+    @GetMapping("/targets/{id}/bulletin/download")
+    public ResponseEntity<byte[]> downloadTargetBulletin(
+            @PathVariable String id, @RequestParam(required = false) Long siteId,
+            @RequestParam(defaultValue = "12h") String range,
+            @RequestParam(defaultValue = "pdf") String format,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate baseDate,
+            @RequestParam(required = false) String runCycle) throws IOException {
+        var product = targetForecasts.product(id, siteId, ForecastRange.fromCode(range));
+        var data = product.report();
+        if (data.points().isEmpty()) throw new ResourceNotFoundException("该站点暂无预报数据");
+        if ((baseDate != null && !baseDate.equals(data.summary().getBaseDate()))
+                || (runCycle != null && !runCycle.equals(data.summary().getRunCycle()))) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        String name = "海洋气象预报专报_%s_%s_%s".formatted(
+                data.summary().getRegionName(), data.summary().getBaseDate(), data.summary().getTimeRange());
+        if ("pdf".equalsIgnoreCase(format)) return pdfDownload(name + ".pdf", forecastPdfService.renderReport(data));
+        if ("txt".equalsIgnoreCase(format)) return textDownload(name + ".txt", forecastPdfService.reportText(data));
+        throw new IllegalArgumentException("Supported formats: pdf, txt.");
     }
 
     @GetMapping("/regions")

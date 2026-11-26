@@ -45,6 +45,7 @@ public class TyphoonForecastService {
         });
     }
     public Map<String,Object> latest(String areaId) {
+        if (areaId != null && !areaId.isBlank()) ServiceMiningAreas.require(areaId);
         Map<String,Object> result=new LinkedHashMap<>();result.put("loading",collecting);result.put("error",error);
         var batches=db.queryForList("SELECT payload::text FROM typhoon_forecast_batches WHERE source='ECMWF ENS' AND payload->>'schemaVersion'='2' ORDER BY initial_time DESC LIMIT 1",String.class);
         if(batches.isEmpty()){result.put("data",null);return result;}
@@ -71,7 +72,7 @@ public class TyphoonForecastService {
                     String sid=track.path("stormId").asText();byStorm.computeIfAbsent(sid,k->new HashSet<>());
                     
                 }
-                for(var hit:db.queryForList("SELECT DISTINCT t.member,t.storm FROM mining_areas a CROSS JOIN jsonb_to_recordset(?::jsonb) AS t(member int,storm text,geom jsonb) WHERE a.area_id=? AND ST_DWithin(a.geometry::geography,ST_SetSRID(ST_GeomFromGeoJSON(t.geom),4326)::geography,500000)",queries.toString(),areaId)){
+                for(var hit:db.queryForList("SELECT DISTINCT t.member,t.storm FROM mining_areas a CROSS JOIN jsonb_to_recordset(?::jsonb) AS t(member int,storm text,geom jsonb) WHERE " + ServiceMiningAreas.CONTRACT_FILTER + " AND ST_DWithin(a.geometry::geography,ST_SetSRID(ST_GeomFromGeoJSON(t.geom),4326)::geography,500000)",queries.toString(),areaId)){
                     int member=((Number)hit.get("member")).intValue();hits.add(member);byStorm.get((String)hit.get("storm")).add(member);
                 }
                 ArrayNode compare=json.createArrayNode();
@@ -87,12 +88,12 @@ public class TyphoonForecastService {
                     ObjectNode row=((ObjectNode)point).deepCopy();row.put("storm",track.path("stormId").asText());locations.add(row);
                 }
                 Map<String,Object> nearest=new HashMap<>();
-                if(!locations.isEmpty())for(var row:db.queryForList("WITH area AS (SELECT ST_UnaryUnion(ST_Collect(geometry))::geography g FROM mining_areas WHERE area_id=?) SELECT DISTINCT ON (p.storm) p.storm,p.time,ST_Distance(area.g,ST_SetSRID(ST_MakePoint(p.lon,p.lat),4326)::geography)/1000 distance FROM area,jsonb_to_recordset(?::jsonb) p(storm text,time text,lon float8,lat float8) ORDER BY p.storm,distance,p.time",areaId,locations.toString()))nearest.put((String)row.get("storm"),row);
+                if(!locations.isEmpty())for(var row:db.queryForList("WITH area AS (" + ServiceMiningAreas.CONTRACT_BOUNDARY + ") SELECT DISTINCT ON (p.storm) p.storm,p.time,ST_Distance(area.g::geography,ST_SetSRID(ST_MakePoint(p.lon,p.lat),4326)::geography)/1000 distance FROM area,jsonb_to_recordset(?::jsonb) p(storm text,time text,lon float8,lat float8) ORDER BY p.storm,distance,p.time",areaId,locations.toString()))nearest.put((String)row.get("storm"),row);
                 Map<String,Double> distances=new HashMap<>();
                 var centers=payload.path("observedStorms").fields();
                 while(centers.hasNext()){
                     var entry=centers.next();JsonNode center=entry.getValue();
-                    Double distance=db.queryForObject("SELECT min(ST_Distance(geometry::geography,ST_SetSRID(ST_MakePoint(?,?),4326)::geography))/1000 FROM mining_areas WHERE area_id=?",Double.class,center.path("lon").asDouble(),center.path("lat").asDouble(),areaId);
+                    Double distance=db.queryForObject("SELECT min(ST_Distance(geometry::geography,ST_SetSRID(ST_MakePoint(?,?),4326)::geography))/1000 FROM mining_areas WHERE " + ServiceMiningAreas.CONTRACT_FILTER,Double.class,center.path("lon").asDouble(),center.path("lat").asDouble(),areaId);
                     if(distance!=null){
                         distances.put(entry.getKey(),distance);
                         if(distance<=500){hits.addAll(roster);byStorm.computeIfAbsent(entry.getKey(),key->new HashSet<>()).addAll(roster);}
@@ -104,7 +105,8 @@ public class TyphoonForecastService {
                 result.put("tracks",visible);result.put("hitMembers",hits.size());result.put("totalMembers",roster.size());
                 result.put("probability",stale||!payload.path("complete").asBoolean()||roster.isEmpty()?null:100.0*hits.size()/roster.size());
                 result.put("storms",byStorm.entrySet().stream().map(e->Map.of("id",e.getKey(),"hitMembers",e.getValue().size())).toList());
-                result.put("buffer",json.readTree(db.queryForObject("SELECT ST_AsGeoJSON(ST_UnaryUnion(ST_Collect(ST_Buffer(geometry::geography,500000)::geometry))) FROM mining_areas WHERE area_id=?",String.class,areaId)));
+                String buffer = db.queryForObject("SELECT ST_AsGeoJSON(ST_UnaryUnion(ST_Collect(ST_Buffer(geometry::geography,500000)::geometry))) FROM mining_areas WHERE " + ServiceMiningAreas.CONTRACT_FILTER,String.class,areaId);
+                result.put("buffer",buffer == null ? null : json.readTree(buffer));
             }
             return result;
         }catch(Exception e){throw new IllegalStateException("台风数据处理失败",e);}

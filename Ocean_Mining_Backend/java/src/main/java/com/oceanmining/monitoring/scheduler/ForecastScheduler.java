@@ -1,12 +1,6 @@
 package com.oceanmining.monitoring.scheduler;
 
-import com.oceanmining.monitoring.entity.MiningRegion;
-import com.oceanmining.monitoring.enums.ForecastRange;
-import com.oceanmining.monitoring.repository.MiningRegionRepository;
-import com.oceanmining.monitoring.service.ForecastBulletinService;
-import com.oceanmining.monitoring.service.WeatherWarningService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.oceanmining.monitoring.service.MiningRiskService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -21,19 +15,10 @@ import org.springframework.stereotype.Component;
 )
 public class ForecastScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(ForecastScheduler.class);
+    private final MiningRiskService miningRiskService;
 
-    private final MiningRegionRepository miningRegionRepository;
-    private final ForecastBulletinService forecastBulletinService;
-    private final WeatherWarningService weatherWarningService;
-
-    public ForecastScheduler(
-            MiningRegionRepository miningRegionRepository,
-            ForecastBulletinService forecastBulletinService,
-            WeatherWarningService weatherWarningService) {
-        this.miningRegionRepository = miningRegionRepository;
-        this.forecastBulletinService = forecastBulletinService;
-        this.weatherWarningService = weatherWarningService;
+    public ForecastScheduler(MiningRiskService miningRiskService) {
+        this.miningRiskService = miningRiskService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -46,21 +31,6 @@ public class ForecastScheduler {
             zone = "${forecast.scheduler.zone:Asia/Shanghai}"
     )
     public void processLatestForecasts() {
-        log.info("Generating forecast bulletins and checking weather warnings");
-        for (MiningRegion region : miningRegionRepository.findByIsActiveTrueOrderByRegionNameAsc()) {
-            for (ForecastRange range : ForecastRange.values()) {
-                try {
-                    forecastBulletinService.generateOrRefresh(region.getId(), range, true);
-                    weatherWarningService.detectAndSave(region.getId(), range);
-                } catch (Exception e) {
-                    log.warn(
-                            "Forecast processing skipped: regionId={}, range={}, reason={}",
-                            region.getId(),
-                            range.getCode(),
-                            e.getMessage()
-                    );
-                }
-            }
-        }
+        miningRiskService.refreshWatchedAreas();
     }
 }

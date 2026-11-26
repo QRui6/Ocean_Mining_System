@@ -7,8 +7,10 @@
             <!-- Map Layer (Z-0) -->
             <MapContainer 
                 ref="mapContainerRef"
+                :play-intro="currentTab === '矿区总览'"
                 :showToolbar="activePanels.mapTools" 
                 :filters="filters"
+                :service-mine-ids="serviceMineIds"
                 :layerState="layerState"
                 :weatherLayerState="weatherLayerState"
                 :shipToLocate="shipToLocate"
@@ -112,11 +114,9 @@
                 <HistoricalSeaStateWorkspace
                     :show="currentTab === '历史数据' && activePanels.historySeaState"
                     :loading="loadingHistoricalSeaState"
-                    :selectedArea="selectedHistoricalSeaStateArea"
-                    :selectedPoint="selectedHistoricalSeaStatePoint"
                     :records="historicalSeaStateFilteredRecords"
-                    :selectedRecord="selectedHistoricalSeaStateRecord"
-                    :filters="historicalSeaStateFilters"
+                    :selected-record="selectedHistoricalSeaStateRecord"
+                    :data-type="historicalSeaStateFilters.dataType"
                     :errorMessage="historicalSeaStateError"
                     @close="closeHistoricalSeaState"
                 />
@@ -151,15 +151,6 @@
                     @close="closePipelineWarning"
                 />
 
-                <ForecastRegionPanel
-                    :show="currentTab === '预报中心' && activePanels.forecastRegion && !showMiningRegionOverview"
-                    :regions="miningOverviewRegions"
-                    :selectedRegion="selectedMiningRegion"
-                    :dailyForecast="selectedMiningRegionDaily"
-                    @close="closeForecastRegion"
-                    @selectRegion="handleMiningRegionSelect"
-                />
-
                 <BuoyMonitoringWorkspace
                     ref="buoyMonitoringRef"
                     :show="currentTab === '环境监测' && activePanels.buoyMonitoring"
@@ -168,22 +159,24 @@
                 />
 
                 <ForecastCenterWorkspace
+                    ref="forecastCenterRef"
                     :show="currentTab === '预报中心' && activePanels.forecastCenter && !showMiningRegionOverview"
                     @close="closeForecastCenter"
-                    @selectRegion="handleForecastCenterRegionSelect"
+                    @selectTarget="focusServiceMiningArea"
                 />
 
                 <WeatherWarningWorkspace :getViewer="getMapViewer"
                     :show="currentTab === '预警中心' && activePanels.weatherWarnings"
                     @close="closeWeatherWarnings"
                     @locate-region="handleWarningLocateRegion"
+                    @select-target="focusServiceMiningArea"
+                    @clear-target="clearServiceMiningArea"
                     @open-forecast="handleWarningOpenForecast"
-                    @open-buoy="handleWarningOpenBuoy"
                     @open-warning-center="handleGlobalWarningCenter"
                 />
 
                 <MonitoringEventPanel
-                    :show="currentTab === '预警中心' && activePanels.monitoringEvents"
+                    :show="currentTab === '采矿系统' && activePanels.monitoringEvents"
                     @close="closeMonitoringEvents"
                 />
                 
@@ -218,7 +211,6 @@
                     @toggleHistoricalSeaState="toggleHistoricalSeaState"
                     @togglePipelineWarning="togglePipelineWarning"
                     @toggleMonitoringEvents="toggleMonitoringEvents"
-                    @toggleForecastRegion="toggleForecastRegion"
                     @toggleForecastCenter="toggleForecastCenter"
                     @toggleWeatherWarnings="toggleWeatherWarnings"
                     @toggleBuoyMonitoring="toggleBuoyMonitoring"
@@ -332,10 +324,11 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import * as Cesium from 'cesium';
 import { WEATHER_LAYER_GROUPS } from './constants.js';
 import { API_ENDPOINTS } from './api/config.js';
+import { fetchForecastTargets, fetchForecastTargetGeometry } from './api/forecastWarningBuoy.js';
 import { fetchMiningAreaOverview } from './api/miningareaoverview.js';
 import {
     fetchMiningOverviewRegions,
@@ -363,13 +356,12 @@ import {
 import { createHistoryQueryCache } from './utils/historyQueryCache.js';
 import Header from './components/layout/header.vue';
 import LeftPanel from './components/layout/leftpanel.vue';
-import ForecastRegionPanel from './components/forecast/forecastregionpanel.vue';
 import RightPanel from './components/layout/rightpanel.vue';
 import MapContainer from './components/map/mapcontainer.vue';
 import HistoricalTyphoonPanel from './components/history/historicaltyphoonpanel.vue';
 import HistoricalTyphoonWorkspace from './components/history/historicaltyphoonworkspace.vue';
 import HistoricalSeaStatePanel from './components/history/historicalseastatepanel.vue';
-import HistoricalSeaStateWorkspace from './components/history/historicalseastateworkspace.vue';
+import HistoricalSeaStateWorkspace from './components/history/HistoricalSeaStateWorkspace.vue';
 import TimelineControl from './components/layout/timelinecontrol.vue';
 import ShipTrackingPanel from './components/ship/shiptrackingpanel.vue';
 import LiftingPipeSelectionPanel from './components/mining/liftingpipeselectionpanel.vue';
@@ -386,7 +378,7 @@ import RouteDemoPanel from './components/ship/routedemopanel.vue';
 import RouteRiskWarning from './components/ship/routeriskwarning.vue';
 import MiningAreaWeatherCard from './components/mining/miningareaweathercard.vue';
 import WaypointWeatherPopup from './components/map/waypointweatherpopup.vue';
-import BuoyMonitoringWorkspace from './components/forecast/buoymonitoringworkspace.vue';
+import BuoyMonitoringWorkspace from './components/forecast/BuoyMonitoringWorkspace.vue';
 import ForecastCenterWorkspace from './components/forecast/forecastcenterworkspace.vue';
 import WeatherWarningWorkspace from './components/forecast/weatherwarningworkspace.vue';
 
@@ -394,7 +386,6 @@ export default {
     components: {
         Header,
         LeftPanel,
-        ForecastRegionPanel,
         RightPanel,
         MapContainer,
         HistoricalTyphoonPanel,
@@ -431,7 +422,6 @@ export default {
             list: false,
             mapTools: false,
             query: false,
-            forecastRegion: false,
             layers: false,
             weatherLayers: false,
             pipeSelection: false,
@@ -456,6 +446,10 @@ export default {
 
         // 当前选中的顶部选项卡（默认：矿区总览）
         const currentTab = ref('矿区总览');
+        const serviceTargets = ref([]);
+        const hasServiceScope = computed(() => ['预报中心', '预警中心'].includes(currentTab.value));
+        const serviceMineIds = computed(() => hasServiceScope.value ? serviceTargets.value.map(target => target.id) : null);
+        const forecastCenterRef = ref(null);
         
         const cloneWeatherLayerGroups = () => JSON.parse(JSON.stringify(WEATHER_LAYER_GROUPS));
 
@@ -1297,21 +1291,6 @@ export default {
             if (activePanels.value.query) {
                 activePanels.value.areaMonitor = false;
             }
-        };
-
-        /**
-         * 切换预报中心的区域预报面板。
-         * 该面板只负责选择已有预报数据对应的区域，不复用矿区查询条件。
-         */
-        const toggleForecastRegion = () => {
-            if (showMiningRegionOverview.value) {
-                closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
-            }
-            activePanels.value.forecastRegion = !activePanels.value.forecastRegion;
-        };
-
-        const closeForecastRegion = () => {
-            activePanels.value.forecastRegion = false;
         };
 
         const toggleForecastCenter = () => {
@@ -3100,7 +3079,10 @@ export default {
                     return;
                 }
 
-                const overview = await fetchMiningAreaOverview(area, context);
+                const [overview, target] = await Promise.all([
+                    fetchMiningAreaOverview(area, context),
+                    findServiceTarget(area).catch(() => null)
+                ]);
                 if (requestId !== miningAreaOverviewRequestId) {
                     return;
                 }
@@ -3110,7 +3092,7 @@ export default {
                     ...area,
                     ...overview,
                     forecastContext: context,
-                    forecastAvailable: Boolean(context.region?.id),
+                    forecastAvailable: Boolean(target?.stations.length),
                     polygon: area.polygon || overview.polygon || []
                 };
                 selectedMiningAreaId.value = String(selectedMiningArea.value.areaKey || selectedMiningArea.value.id || area.id || '');
@@ -3160,6 +3142,14 @@ export default {
 
         const handleWarningLocateRegion = async (warning) => {
             if (!warning || !mapContainerRef.value) return;
+            if (warning.areaId) {
+                const target = (await fetchForecastTargets()).find(item => item.id === warning.areaId);
+                if (target) {
+                    const point = warning.point || target.stations.find(station => String(station.id) === String(warning.siteId));
+                    await focusServiceMiningArea(target, point);
+                }
+                return;
+            }
 
             // 浮标预警优先按实时坐标定位；预警中心打开时浮标监测图层可能尚未打开，
             // 因此直接控制地图相机，不能依赖浮标实体是否已经绘制。
@@ -3206,17 +3196,7 @@ export default {
         };
 
         const handleWarningOpenForecast = async (warning) => {
-            if (!warning?.region?.id) return;
-            await handleMiningRegionSelect(warning.region, warning.site ? { area: warning.site } : {});
-        };
-
-        const handleWarningOpenBuoy = async (warning) => {
-            if (!warning?.buoyId) return;
-            currentTab.value = '环境监测';
-            activePanels.value = createActivePanels({ buoyMonitoring: true });
-            isRightPanelCollapsed.value = true;
-            await nextTick();
-            buoyMonitoringRef.value?.selectBuoy?.(warning.buoyId);
+            if (warning?.areaId) await openServiceForecast(warning.areaId, warning.siteId);
         };
 
         const handleGlobalWarningCenter = async () => {
@@ -3255,7 +3235,20 @@ export default {
                 return;
             }
 
-            if (!['矿区总览', '预报中心'].includes(currentTab.value)) {
+            if (currentTab.value === '预报中心') {
+                const target = await findServiceTarget(area).catch(() => null);
+                if (!target || currentTab.value !== '预报中心') {
+                    closeMiningAreaOverview();
+                    return;
+                }
+                if (activePanels.value.forecastCenter) {
+                    await forecastCenterRef.value?.selectMine(target.id, stationForArea(target, area)?.id, false);
+                }
+                await loadMiningAreaOverview(area, screenPosition);
+                return;
+            }
+
+            if (currentTab.value !== '矿区总览') {
                 return;
             }
 
@@ -3273,17 +3266,32 @@ export default {
         };
 
         const handleMiningAreaForecast = async (area) => {
-            if (!area) {
-                return;
-            }
+            const target = await findServiceTarget(area).catch(() => null);
+            if (target) await openServiceForecast(target.id, stationForArea(target, area)?.id);
+        };
 
-            const context = area.forecastContext || await resolveMiningAreaOverviewContext(area);
-            if (!context?.region?.id) {
-                console.warn('⚠️ 当前矿区未匹配到可用预报区域:', area);
-                return;
-            }
+        const findServiceTarget = async (area) => {
+            if (area?.category !== 'Exploration' || area.sponsor !== '中国') return null;
+            const id = area.businessId || area.id;
+            return (await fetchForecastTargets()).find(target => target.id === id) || null;
+        };
 
-            await handleMiningRegionSelect(context.region, { area });
+        const stationForArea = (target, area) => {
+            if (target.stations.length < 2) return target.stations[0];
+            const longitude = Number(area.pickedPoint?.lng ?? area.referencePoint?.lng);
+            if (!Number.isFinite(longitude)) return target.stations.find(station => station.label === (area.location === '太平洋' ? '西段' : '东段'));
+            return target.stations.reduce((nearest, station) => Math.abs(station.lng - longitude) < Math.abs(nearest.lng - longitude) ? station : nearest);
+        };
+
+        const openServiceForecast = async (id, siteId) => {
+            closeMiningRegionOverview({ restoreMenu: false });
+            closeMiningAreaOverview();
+            currentTab.value = '预报中心';
+            showTimeline.value = false;
+            activePanels.value = createActivePanels({ forecastCenter: true });
+            isRightPanelCollapsed.value = true;
+            await nextTick();
+            await forecastCenterRef.value?.selectMine(id, siteId);
         };
 
         const findForecastMapRegion = (forecastRegion) => {
@@ -3302,22 +3310,53 @@ export default {
             )) || null;
         };
 
-        const handleForecastCenterRegionSelect = async (forecastRegion) => {
-            if (!forecastRegion || !mapContainerRef.value) return;
-
-            let mapRegion = findForecastMapRegion(forecastRegion);
-            if (!mapRegion && !loadingMiningOverviewRegions.value) {
-                await loadMiningOverviewRegions();
-                mapRegion = findForecastMapRegion(forecastRegion);
+        let mineOutline = [];
+        let mineFocusRequest = 0;
+        const clearServiceMiningArea = () => {
+            mineFocusRequest++;
+            const viewer = getMapViewer();
+            if (viewer && !viewer.isDestroyed()) {
+                mineOutline.forEach(entity => viewer.entities.remove(entity));
+                viewer.scene.requestRender();
             }
-
-            if (mapRegion && typeof mapContainerRef.value.focusMiningRegion === 'function') {
-                mapContainerRef.value.focusMiningRegion(mapRegion);
-                return;
-            }
-
-            console.warn('⚠️ 预报区域未匹配到可定位的矿区区域:', forecastRegion);
+            mineOutline = [];
         };
+        const focusServiceMiningArea = async (target, station = target.stations[0], locate = true) => {
+            clearServiceMiningArea();
+            const viewer = getMapViewer(), request = mineFocusRequest;
+            if (!viewer || !hasServiceScope.value) return;
+            try {
+                const geometry = await fetchForecastTargetGeometry(target.id);
+                if (request !== mineFocusRequest || viewer.isDestroyed()) return;
+                const shapes = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+                const coordinates = shapes.flatMap(shape => shape.map(ring => Cesium.Cartesian3.fromDegreesArray(ring.flatMap(([lng, lat]) => [lng, lat]))));
+                mineOutline = coordinates.map(positions => viewer.entities.add({
+                    polyline: { positions, width: 2, clampToGround: true, material: Cesium.Color.CYAN }
+                }));
+                if (station?.lng != null && station?.lat != null) {
+                    mineOutline.push(viewer.entities.add({
+                        position: Cesium.Cartesian3.fromDegrees(station.lng, station.lat),
+                        point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.WHITE, outlineWidth: 1, disableDepthTestDistance: Infinity }
+                    }));
+                    if (locate) viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(station.lng, station.lat, 1800000) });
+                } else if (locate && coordinates.length) {
+                    viewer.camera.flyToBoundingSphere(Cesium.BoundingSphere.fromPoints(coordinates.flat()));
+                }
+                viewer.scene.requestRender();
+            } catch (error) {
+                console.warn('矿区边界加载失败', error.message);
+            }
+        };
+        watch(currentTab, async () => {
+            clearServiceMiningArea();
+            if (hasServiceScope.value) {
+                try { serviceTargets.value = await fetchForecastTargets(); }
+                catch (error) { console.warn('矿区清单加载失败', error.message); }
+            }
+        }, { flush: 'sync' });
+        watch(() => [activePanels.value.forecastCenter, activePanels.value.weatherWarnings], ([forecast, warning]) => {
+            if (!forecast && !warning) clearServiceMiningArea();
+        });
 
         const handleBackToMiningOverview = () => {
             closeMiningRegionOverview({ restoreMenu: false, clearMapFocus: false });
@@ -3850,8 +3889,6 @@ export default {
             toggleList,
             toggleMapTools,
             toggleQuery,
-            toggleForecastRegion,
-            closeForecastRegion,
             toggleForecastCenter,
             closeForecastCenter,
             toggleBuoyMonitoring,
@@ -3899,7 +3936,6 @@ export default {
             handleBuoySelected,
             handleWarningLocateRegion,
             handleWarningOpenForecast,
-            handleWarningOpenBuoy,
             handleGlobalWarningCenter,
             handleMapAreaSelected,
             handleHistoricalTyphoonAreaSelect,
@@ -3914,7 +3950,10 @@ export default {
             closeMiningAreaOverview,
             closeMiningRegionOverview,
             handleMiningAreaForecast,
-            handleForecastCenterRegionSelect,
+            focusServiceMiningArea,
+            clearServiceMiningArea,
+            serviceMineIds,
+            forecastCenterRef,
             handleBackToMiningOverview,
             handleBackToForecastCenter,
             handleAddMiningAreaToMonitoring,

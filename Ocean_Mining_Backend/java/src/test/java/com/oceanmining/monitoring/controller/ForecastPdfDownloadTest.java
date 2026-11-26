@@ -29,7 +29,8 @@ class ForecastPdfDownloadTest {
 
     @BeforeEach void setup() {
         mvc = MockMvcBuilders.standaloneSetup(new ForecastController(forecasts, bulletins,
-                mock(MiningOverviewService.class), pdf)).setControllerAdvice(new GlobalExceptionHandler()).build();
+                mock(MiningOverviewService.class), pdf, mock(TargetForecastService.class)))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test void defaultDownloadIsAnUncachedPdfAttachmentFromOneSnapshot() throws Exception {

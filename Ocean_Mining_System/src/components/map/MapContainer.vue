@@ -274,6 +274,10 @@ export default {
         WeatherPointPicker
     },
     props: {
+        playIntro: {
+            type: Boolean,
+            default: true
+        },
         showToolbar: {
             type: Boolean,
             default: false
@@ -286,6 +290,7 @@ export default {
                 countries: []
             })
         },
+        serviceMineIds: { type: Array, default: null },
         // 左侧图层控制的当前状态（用于控制风场等专题图层）
         layerState: {
             type: Array,
@@ -402,6 +407,7 @@ export default {
                         name: entity.name || getEntityProperty(entity, 'contractor', `矿区 ${groupedAreas.size + 1}`),
                         contractor: getEntityProperty(entity, 'contractor', '未知'),
                         sponsor: getEntityProperty(entity, 'sponsor', '未知'),
+                        category: getEntityProperty(entity, 'category', ''),
                         mineral: getEntityProperty(entity, 'mineral', '未知'),
                         location,
                         dateRange: getEntityProperty(entity, 'date_range', '未知'),
@@ -674,6 +680,7 @@ export default {
                 });
                 
                 allEntities = entities;
+                if (props.serviceMineIds) applyFilters();
                 
                 console.log('🎨 已应用官方图例配色方案');
                 console.log('📊 提取到的国家:', Array.from(countries).sort());
@@ -993,6 +1000,7 @@ export default {
                 // 地球旋转动画：上海 → 太平洋矿区
                 // 第一段：延迟1秒后，缓慢飞到上海（3秒）
                 setTimeout(() => {
+                    if (!props.playIntro || !viewer || viewer.isDestroyed()) return;
                     viewer.camera.flyTo({
                         destination: Cesium.Cartesian3.fromDegrees(121.5, 31.2, 8000000),
                         orientation: {
@@ -1007,6 +1015,7 @@ export default {
                 
                 // 第二段：延迟5秒后，从上海飞到太平洋矿区（4秒）
                 setTimeout(() => {
+                    if (!props.playIntro || !viewer || viewer.isDestroyed()) return;
                     viewer.camera.flyTo({
                         destination: Cesium.Cartesian3.fromDegrees(-140.0, 10.0, 12000000),
                         orientation: {
@@ -1064,6 +1073,7 @@ export default {
                 name: entity?.name || props.name || props.contractor || '未命名矿区',
                 contractor: props.contractor || '未知',
                 sponsor: props.sponsor || '未知',
+                category: props.category || '',
                 mineral: props.mineral || '未知',
                 location,
                 dateRange: props.date_range || '未知',
@@ -2767,6 +2777,10 @@ export default {
          * 3. 每个矿区只属于一个区域
          */
         const applyRegionFilters = (regions) => {
+            if (props.serviceMineIds) {
+                applyFilters();
+                return;
+            }
             if (!allEntities.length || !regions || !regions.length) return;
             
             console.log('🗺️ 应用区域筛选:', regions);
@@ -2850,6 +2864,13 @@ export default {
             allEntities.forEach(entity => {
                 if (!entity.polygon || !entity.properties) return;
                 
+                if (props.serviceMineIds) {
+                    entity.show = props.serviceMineIds.includes(getEntityProperty(entity, 'id', entity.id))
+                        && getEntityProperty(entity, 'category') === 'Exploration'
+                        && getEntityProperty(entity, 'sponsor') === '中国';
+                    return;
+                }
+
                 if (!hasFilter) {
                     // 没有筛选条件：恢复初始状态
                     entity.polygon.material = entity._originalColor.withAlpha(0.5);
@@ -2955,6 +2976,10 @@ export default {
         watch(() => props.filters, () => {
             applyFilters();
         }, { deep: true });
+        watch(() => props.serviceMineIds, () => {
+            if (props.serviceMineIds || !props.layerState.length) applyFilters();
+            else applyRegionFilters(props.layerState);
+        });
 
         // 监听图层控制变化（矿区地理分区控制）
         watch(() => props.layerState, (newRegions) => {

@@ -1,663 +1,695 @@
 <template>
-    <BuoyObservationWorkspace :getViewer="getViewer" v-if="show && realMode" @close="emit('close')" @station="realMode=false" />
     <transition name="workspace-fade">
-        <div v-if="show && !realMode" class="pointer-events-none absolute inset-0 z-40 font-['Noto_Sans_SC']">
-            <div class="pointer-events-none absolute left-8 top-36 bottom-6 w-[28rem]">
-            <section class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-5" style="clip-path: polygon(0 0,100% 0,100% 95%,92% 100%,0 100%);">
-                <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
-                <div class="corner-decoration corner-tl scale-125"></div><div class="corner-decoration corner-tr scale-125"></div>
-                <div class="mb-4 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3">
-                    <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                    <h3 class="flex-1 text-2xl font-bold tracking-wider text-white">浮标监测</h3>
-                    <button class="floating-panel-close-btn floating-panel-close-btn--inline" type="button" title="关闭浮标监测" @click="emit('close')">✕</button>
-                </div>
-                <nav aria-label="浮标视图" class="mb-3 flex shrink-0 gap-4 text-sm text-cyan-100">
-                    <button type="button" aria-pressed="true" class="border-b border-cyan-300 pb-1 text-white">站点监测</button>
-                    <button type="button" aria-pressed="false" class="pb-1" @click="realMode=true">通量浮标</button>
-                </nav>
-                <div class="mb-3 grid grid-cols-4 gap-1.5 text-xs">
-                    <div class="border border-cyan-500/20 bg-slate-950/45 px-2 py-2 text-slate-400"><span class="block">浮标总数</span><strong class="mt-1 block text-lg text-cyan-100">{{ buoys.length }}</strong></div>
-                    <div class="border border-emerald-500/20 bg-slate-950/45 px-2 py-2 text-slate-400"><span class="block">正常</span><strong class="mt-1 block text-lg text-emerald-300">{{ statusCounts.normal }}</strong></div>
-                    <div class="border border-amber-500/20 bg-slate-950/45 px-2 py-2 text-slate-400"><span class="block">延迟</span><strong class="mt-1 block text-lg text-amber-200">{{ statusCounts.delayed }}</strong></div>
-                    <div class="border border-rose-500/20 bg-slate-950/45 px-2 py-2 text-slate-400"><span class="block">异常</span><strong class="mt-1 block text-lg text-rose-300">{{ statusCounts.offline }}</strong></div>
-                </div>
-                <div class="mb-3 border border-cyan-500/20 bg-slate-950/45 px-3 py-2 text-xs text-slate-400">
-                    <div class="flex items-center justify-between gap-3"><span>数据来源</span><strong class="text-cyan-100">{{ sourceLabel }}</strong></div>
-                    <div class="mt-1 flex items-center justify-between gap-3"><span>最新数据</span><strong class="text-cyan-100">{{ formatTime(latestTimestamp) }}</strong></div>
-                    <div class="mt-2 flex items-center justify-between gap-3 border-t border-slate-700/60 pt-2">
-                        <span class="inline-flex items-center gap-1.5" :class="autoRefresh ? 'text-emerald-300' : 'text-amber-200'"><span :class="['h-1.5 w-1.5 rounded-full', autoRefresh ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.9)] animate-pulse' : 'bg-amber-400']"></span>{{ autoRefresh ? '自动刷新中' : '自动刷新已暂停' }}</span>
-                        <span v-if="autoRefresh" class="text-slate-500">下次同步 {{ refreshCountdown }} 秒</span>
-                        <span v-else class="text-slate-500">可手动同步</span>
+        <div v-if="show" class="pointer-events-none absolute inset-0 z-40 font-['Noto_Sans_SC']">
+            <div class="pointer-events-none absolute left-8 top-36 bottom-6 flex w-[28rem] flex-col">
+                <section aria-label="浮标监测"
+                    class="tech-panel-enhanced pointer-events-auto relative flex min-h-0 max-h-full flex-col overflow-hidden p-5">
+                    <div class="corner-decoration corner-tl scale-125"></div>
+                    <div class="corner-decoration corner-br scale-125"></div>
+                    <header class="mb-4 flex shrink-0 items-center gap-3 border-b-2 border-cyan-500/40 pb-3">
+                        <span class="h-6 w-1.5 shrink-0 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,.8)]"></span>
+                        <h3 class="flex-1 text-2xl font-bold tracking-wider text-white">浮标监测</h3>
+                        <button class="floating-panel-close-btn floating-panel-close-btn--inline" type="button"
+                            aria-label="关闭浮标监测" title="关闭浮标监测" @click="emit('close')">✕</button>
+                    </header>
+
+                    <div class="mb-3 flex shrink-0 items-center justify-between gap-3">
+                        <span class="text-sm font-bold text-cyan-200">浮标列表 <small class="ml-1 text-slate-300">{{ filteredBuoys.length }} 个</small></span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="buoy-button" @click="autoRefresh = !autoRefresh">
+                                {{ autoRefresh ? '暂停自动刷新' : '恢复自动刷新' }}
+                            </button>
+                            <button type="button" class="buoy-button" :disabled="refreshing" @click="refreshStations()">
+                                {{ refreshing ? '刷新中' : '刷新' }}
+                            </button>
+                        </div>
                     </div>
-                    <div class="mt-1 flex items-center justify-between gap-3"><span>最近同步</span><strong class="text-cyan-100">{{ formatTime(lastRefreshAt) }}</strong></div>
-                </div>
-                <div v-if="errorMessage" class="mb-3 border border-rose-500/35 bg-rose-950/30 p-3 text-sm text-rose-100">{{ errorMessage }}</div>
-                <div class="mb-2 flex items-center justify-between gap-2 text-sm font-bold text-cyan-200"><span>当前浮标</span><div class="flex items-center gap-3"><button class="text-xs text-slate-400 hover:text-white" type="button" @click="toggleAutoRefresh">{{ autoRefresh ? '暂停自动刷新' : '恢复自动刷新' }}</button><button class="text-xs text-cyan-300 hover:text-white disabled:opacity-50" type="button" :disabled="refreshing" @click="refreshRealtime">{{ refreshing ? '刷新中...' : '立即刷新' }}</button></div></div>
-                <div class="mb-2 flex gap-2">
-                    <input v-model="searchTerm" type="search" placeholder="搜索名称或编号" class="min-w-0 flex-1 border border-slate-700 bg-slate-950/55 px-3 py-2 text-xs text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-400" />
-                    <select v-model="statusFilter" class="w-24 border border-slate-700 bg-slate-950/80 px-2 text-xs text-slate-300 outline-none focus:border-cyan-400">
-                        <option value="all">全部状态</option>
-                        <option value="normal">正常</option>
-                        <option value="delayed">延迟</option>
-                        <option value="offline">异常</option>
-                    </select>
-                </div>
-                <div class="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
-                    <button v-for="buoy in filteredBuoyRows" :key="buoy.id" type="button" :class="['w-full border p-3 text-left transition-all', riskPanelClass(buoy.riskLevel), selectedBuoyId === buoy.id ? 'border-white/90 ring-1 ring-cyan-200/80 shadow-[0_0_18px_rgba(34,211,238,.22)]' : 'hover:border-cyan-400/70', changedBuoyIds.has(buoy.id) ? 'live-update-highlight' : '']" @click="selectedBuoyId = buoy.id">
-                        <div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2 text-sm font-bold text-white"><span :class="['h-2 w-2 shrink-0 rounded-full', statusDotClass(buoy.status)]"></span><span class="truncate">{{ buoy.name }}</span></div><div class="mt-1 truncate text-xs text-slate-400">{{ buoy.id }} · {{ coordinate(buoy.lat, 'N') }} {{ coordinate(buoy.lng, 'E') }}</div></div><div class="flex shrink-0 flex-col items-end gap-1"><span :class="['text-xs font-bold', riskTextClass(buoy.riskLevel)]">{{ riskLabel(buoy.riskLevel) }}</span><span :class="['text-[11px]', statusTextClass(buoy.status)]">{{ statusLabel(buoy.status) }}</span></div></div>
-                        <div class="mt-2 grid grid-cols-3 gap-1 border-t border-slate-700/60 pt-2 text-xs text-slate-400"><span>风 <b :class="metricRiskTextClass('windSpeed', buoy.windSpeed)">{{ metric(buoy.windSpeed) }}</b></span><span>浪 <b :class="metricRiskTextClass('waveHeight', buoy.waveHeight)">{{ metric(buoy.waveHeight) }}</b></span><span>流 <b :class="metricRiskTextClass('currentSpeed', buoy.currentSpeed)">{{ metric(buoy.currentSpeed) }}</b></span></div>
-                        <div class="mt-2 text-[11px] text-slate-500">数据时间：{{ formatTime(buoy.timestamp) }}</div>
-                    </button>
-                    <div v-if="!loading && buoys.length && !filteredBuoyRows.length" class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">没有符合条件的浮标</div>
-                    <div v-if="!loading && !buoys.length" class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">暂无浮标数据</div>
-                </div>
-            </section>
-            </div>
-
-            <div class="pointer-events-none absolute right-6 top-36 bottom-6 w-[28rem]">
-            <section class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-5" style="clip-path: polygon(0 0,92% 0,100% 7%,100% 100%,0 100%);">
-                <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
-                <div class="corner-decoration corner-bl scale-125"></div><div class="corner-decoration corner-br scale-125"></div>
-                <div class="mb-3 border-b-2 border-cyan-500/40 pb-3"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="truncate text-2xl font-bold tracking-wider text-white">{{ selectedBuoy?.name || '浮标详情' }}</div><div class="mt-1 text-xs text-slate-400">{{ selectedBuoy?.id || '--' }} · {{ selectedCoordinateLabel }}</div></div><button v-if="selectedBuoy" type="button" class="shrink-0 border border-cyan-500/45 bg-cyan-950/45 px-2.5 py-1.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-400 hover:text-slate-950" @click="focusSelectedBuoy">定位</button></div><div v-if="selectedBuoy" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"><span :class="['inline-flex items-center gap-1 font-bold', statusTextClass(selectedRow?.status)]"><span :class="['h-2 w-2 rounded-full', statusDotClass(selectedRow?.status)]"></span>{{ statusLabel(selectedRow?.status) }}</span><span :class="['inline-flex items-center gap-1 font-bold', riskTextClass(selectedRow?.riskLevel)]"><span class="h-2 w-2 rounded-full" :class="riskTextClass(selectedRow?.riskLevel).replace('text-', 'bg-')"></span>风险：{{ riskLabel(selectedRow?.riskLevel) }}</span><span class="text-slate-400">来源：{{ formatSource(selectedRealtime?.source) }}</span><span class="text-slate-400">更新：{{ formatTime(selectedRealtime?.timestamp) }}</span></div></div>
-                <div class="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
-                <div v-if="selectedRealtime" class="grid grid-cols-1 gap-3">
-                    <article v-for="item in realtimeCards" :key="item.name" :class="['border px-4 py-3', riskPanelClass(item.risk.level), changedBuoyIds.has(selectedBuoyId) ? 'live-update-highlight' : '']"><div class="flex items-center justify-between"><span class="font-bold text-cyan-200">{{ item.name }}</span><strong :class="['text-xl', item.risk.level === 'normal' ? 'text-white' : item.risk.class]">{{ item.value }} <small class="text-xs text-slate-400">{{ item.unit }}</small></strong></div><div class="mt-2 flex items-center justify-between gap-2 text-xs text-slate-400"><span>方向 {{ item.direction }}°<span v-if="item.extra"> · {{ item.extra }}</span></span><span v-if="item.risk.level !== 'normal' && item.risk.level !== 'unknown'" :class="['font-bold', item.risk.class]">⚠ {{ item.risk.label }}</span><span v-else-if="item.liveDelta" :class="item.liveDelta.class">{{ item.liveDelta.label }}</span><span v-else-if="item.trend" :class="item.trend.class">{{ item.trend.icon }} {{ item.trend.label }}</span></div><div v-if="item.risk.level !== 'normal' && item.risk.level !== 'unknown'" class="mt-2 border-t border-current/20 pt-1 text-[11px] text-slate-300">超过{{ item.risk.name }}{{ item.risk.label }}阈值 · 当前 {{ item.value }} {{ item.unit }}</div></article>
-                </div>
-                <div v-else class="flex flex-1 items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">请选择浮标</div>
-                <div v-if="currentRisk" :class="['mt-4 border p-3', riskPanelClass(selectedRow?.riskLevel)]"><div class="flex items-center justify-between gap-3"><span class="text-sm font-bold text-cyan-200">当前海况判读</span><span :class="['text-sm font-bold', currentRisk.class]">{{ currentRisk.level }}</span></div><div class="mt-2 text-xs leading-5 text-slate-300">{{ currentRisk.reason }}</div><div v-if="currentRisk.exceedances.length" class="mt-2 flex flex-wrap gap-1.5"><span v-for="item in currentRisk.exceedances" :key="item.name" :class="['border px-2 py-1 text-[11px] font-bold', item.level === 'critical' ? 'border-rose-400/50 bg-rose-950/50 text-rose-200' : item.level === 'warning' ? 'border-orange-400/50 bg-orange-950/50 text-orange-200' : 'border-yellow-400/50 bg-yellow-950/50 text-yellow-100']">{{ item.name }} {{ item.value }} {{ item.unit }} · {{ item.label }}</span></div><div class="mt-2 border-t border-slate-700/60 pt-2 text-xs text-slate-400">作业建议：<span class="font-bold text-slate-200">{{ currentRisk.advice }}</span></div><div class="mt-2 text-[10px] text-slate-600">评估依据：风速、浪高、流速；按当前阈值判定</div></div>
-                <div v-if="directionItems.length" class="mt-4 border-t border-cyan-500/20 pt-3"><div class="mb-2 text-sm font-bold text-cyan-200">方向态势</div><div class="grid grid-cols-3 gap-2"><div v-for="item in directionItems" :key="item.name" class="border border-slate-700/60 bg-slate-950/35 p-2 text-center"><div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/70"><span class="text-xl font-bold" :style="{ color: item.color, transform: `rotate(${item.direction}deg)` }">↑</span></div><div class="mt-1 text-[11px] text-slate-400">{{ item.name }}</div><strong class="text-xs text-slate-200">{{ item.direction }}°</strong></div></div></div>
-                <div v-if="history?.statistics" class="mt-4 border-t border-cyan-500/20 pt-3"><div class="mb-2 flex items-center justify-between text-sm font-bold text-cyan-200"><span>{{ rangeLabel }}统计</span><span class="text-[11px] font-normal text-slate-500">{{ history.total || 0 }} 个数据点</span></div><div class="grid grid-cols-3 gap-2 text-xs text-slate-400"><div v-for="item in historyStats" :key="item.name" class="border border-slate-700/60 bg-slate-950/35 p-2"><span>{{ item.name }}</span><span class="mt-1 block text-slate-500">最小 {{ item.min }}</span><strong class="mt-1 block text-cyan-100">平均 {{ item.avg }}</strong><span class="mt-1 block text-slate-500">最大 {{ item.max }}</span></div></div><div class="mt-3 grid grid-cols-1 gap-1 text-[11px] text-slate-500"><span>统计区间：{{ historyTimeRangeLabel }}</span><span>采样间隔：{{ historyIntervalLabel }}</span></div></div>
-                <section class="mt-4 border-t border-cyan-500/30 pt-3" aria-label="历史监测趋势">
-                <div class="mb-3 flex flex-col items-start gap-3"><div><div class="text-lg font-bold text-white">历史监测趋势</div><div class="mt-1 text-xs text-slate-400">{{ selectedBuoy?.name || '未选择浮标' }} · {{ history?.total || 0 }} 个监测点 · {{ formatSource(selectedRealtime?.source) }}</div><div v-if="hasHistory" class="mt-1 text-[11px] text-slate-500">{{ historyTimeRangeLabel }} · 间隔 {{ historyIntervalLabel }}</div></div><div class="flex shrink-0 gap-2"><button v-for="item in ranges" :key="item.value" type="button" :class="['border px-3 py-1 text-xs font-bold transition-colors', range === item.value ? 'border-cyan-300 bg-cyan-500/20 text-white' : 'border-slate-700 text-slate-400 hover:border-cyan-500']" @click="range = item.value">{{ item.label }}</button></div></div>
-                <div class="relative min-h-[12rem]">
-                    <div class="grid grid-cols-1 gap-3 [&>div]:h-48" v-show="hasHistory"><div ref="windChartRef" class="min-w-0"></div><div ref="waveChartRef" class="min-w-0"></div><div ref="currentChartRef" class="min-w-0"></div><div ref="wavePeriodChartRef" class="min-w-0"></div><div ref="directionChartRef" class="min-w-0"></div></div>
-                    <div v-if="historyLoading" class="absolute inset-0 flex items-center justify-center text-sm text-slate-400">正在加载历史监测数据...</div>
-                    <div v-else-if="historyError" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-rose-100"><span>{{ historyError }}</span><button class="border border-cyan-500/45 bg-cyan-950/45 px-4 py-1.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500 hover:text-slate-950" type="button" @click="retryHistory">重试</button></div>
-                    <div v-else-if="!hasHistory" class="absolute inset-0 flex items-center justify-center text-sm text-slate-500">暂无历史监测数据</div>
-                </div>
+                    <div class="mb-3 flex shrink-0 gap-2">
+                        <input v-model="searchTerm" type="search" aria-label="搜索浮标" placeholder="搜索名称或编号"
+                            class="min-w-0 flex-1 border border-cyan-500/25 bg-slate-950/45 px-3 text-sm text-white outline-none placeholder:text-slate-400 focus:border-cyan-400" />
+                        <div class="w-28 shrink-0">
+                            <PanelSelect v-model="statusFilter" label="浮标状态" :options="statusOptions" overlay :max-height="240" />
+                        </div>
+                    </div>
+                    <p v-if="stationError" role="status" class="mb-3 border border-rose-500/30 bg-rose-950/30 p-2 text-sm text-rose-200">
+                        {{ stationError }}
+                    </p>
+                    <div class="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
+                        <button v-for="buoy in filteredBuoys" :key="buoy.id" type="button"
+                            class="buoy-row w-full p-3 text-left"
+                            :aria-pressed="selectedBuoyId === buoy.id"
+                            @click="selectBuoy(buoy.id)">
+                            <span class="flex items-center justify-between gap-3">
+                                <span class="min-w-0 truncate text-base font-bold text-white">{{ buoy.name }}</span>
+                                <span v-if="buoy.status" :class="['shrink-0 text-xs font-bold', statusColors[buoy.status]]">
+                                    {{ statusNames[buoy.status] }}
+                                </span>
+                            </span>
+                            <span class="mt-1 block text-xs text-slate-300">{{ buoy.source }}</span>
+                        </button>
+                        <div v-if="!filteredBuoys.length" class="p-5 text-center text-sm text-slate-400">没有符合条件的浮标</div>
+                    </div>
                 </section>
-                </div>
-            </section>
             </div>
 
+            <div class="absolute right-6 top-36 bottom-6 flex w-[28rem] flex-col">
+                <section aria-label="浮标详情"
+                    :class="['tech-panel-enhanced pointer-events-auto relative flex min-h-0 max-h-full flex-col overflow-hidden',
+                        { 'flex-1': selectedIsFlux }]">
+                    <div class="corner-decoration corner-tl scale-125"></div>
+                    <div class="corner-decoration corner-br scale-125"></div>
+                    <header class="shrink-0 border-b border-cyan-500/30 px-5 py-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 class="min-w-0 truncate text-xl font-bold text-white">{{ selectedBuoy?.name || '浮标详情' }}</h3>
+                            <button v-if="selectedLocation" type="button" class="buoy-button shrink-0" @click="focusSelectedBuoy">定位</button>
+                        </div>
+                        <div v-if="selectedLocation" class="mt-1 text-xs text-slate-300">
+                            <span v-if="!selectedIsFlux">{{ selectedBuoy.id }} · </span>{{ coordinateLabel }}
+                        </div>
+                        <div v-if="selectedReading" class="mt-2 flex items-center justify-between gap-2 text-xs">
+                            <span :class="['font-bold', riskStyles[selectedBuoy.risk].text]">{{ riskStyles[selectedBuoy.risk].label }}</span>
+                            <span class="text-slate-300">更新 {{ formatTime(selectedReading.timestamp) }}</span>
+                        </div>
+                    </header>
+                    <BuoyObservationWorkspace v-if="selectedIsFlux" @select-metric="selectObservationMetric" />
+                    <div v-else-if="selectedReading" class="custom-scrollbar min-h-0 space-y-2 overflow-y-auto p-4">
+                        <article v-for="item in readingCards" :key="item.key"
+                            :class="['border px-3 py-2.5', riskStyles[item.risk].panel]">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-sm font-bold text-cyan-100">{{ item.label }}</span>
+                                <strong :class="['text-xl tabular-nums', item.risk === 'normal' ? 'text-white' : riskStyles[item.risk].text]">
+                                    {{ item.value }} <small class="text-xs text-slate-300">{{ item.unit }}</small>
+                                </strong>
+                            </div>
+                            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-3 text-xs text-slate-300">
+                                <span>{{ item.directionLabel }} {{ item.direction }}<template v-if="item.period"> · 周期 {{ item.period }}</template></span>
+                                <span v-if="item.risk !== 'normal' && item.risk !== 'unknown'" :class="riskStyles[item.risk].text">
+                                    {{ riskStyles[item.risk].label }}
+                                </span>
+                            </div>
+                        </article>
+                    </div>
+                    <div v-else class="p-6 text-center text-sm text-slate-400">
+                        {{ selectedBuoy ? '暂无实时数据' : '请选择浮标' }}
+                    </div>
+                </section>
+            </div>
+
+            <div class="absolute bottom-6 left-[32rem] right-[31rem] h-[19rem]">
+                <section aria-label="浮标趋势"
+                    class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-4">
+                    <div class="corner-decoration corner-tl"></div>
+                    <div class="corner-decoration corner-br"></div>
+                    <header class="mb-2 flex shrink-0 items-center justify-between gap-3 border-b border-cyan-500/30 pb-2">
+                        <h3 class="shrink-0 text-lg font-bold text-white">浮标趋势</h3>
+                        <span v-if="lastObservation" class="ml-auto whitespace-nowrap text-xs tabular-nums text-slate-300">
+                            末次观测 <strong class="text-cyan-100">{{ formatMetric(lastObservation.value, 2) }} {{ trendMetric.unit }}</strong>
+                        </span>
+                        <div v-if="selectedIsFlux" class="flex shrink-0 items-center gap-2">
+                            <div class="w-36">
+                                <PanelSelect v-model="observationDay" label="观测日期" :options="observationDates" overlay :max-height="240" />
+                            </div>
+                            <div class="w-44">
+                                <PanelSelect v-model="observationMetricKey" label="观测指标" :options="observationMetrics" overlay :max-height="240" />
+                            </div>
+                        </div>
+                        <div v-else-if="selectedBuoy" class="flex shrink-0 items-center gap-2">
+                            <nav aria-label="趋势时段" class="flex gap-1">
+                                <button v-for="option in ranges" :key="option.value" type="button" class="buoy-button"
+                                    :aria-pressed="range === option.value" @click="range = option.value">{{ option.label }}</button>
+                            </nav>
+                            <div class="w-28">
+                                <PanelSelect v-model="stationMetricKey" label="趋势指标" :options="stationMetricOptions" overlay :max-height="240" />
+                            </div>
+                        </div>
+                    </header>
+                    <div class="relative min-h-0 flex-1">
+                        <div v-if="trendHasValues" ref="chartEl" class="absolute inset-0"
+                            role="img" :aria-label="trendMetric.label + '趋势图'"></div>
+                        <div v-if="trendLoading || (selectedIsFlux && manifestLoading && !trendHasValues)"
+                            class="buoy-chart-status bg-slate-950/60" role="status">加载中</div>
+                        <div v-else-if="activeTrendError" class="buoy-chart-status gap-3 bg-slate-950/75 text-rose-200" role="status">
+                            <span>{{ activeTrendError }}</span>
+                            <button type="button" class="buoy-button" @click="retryTrend">重试</button>
+                        </div>
+                        <div v-else-if="!trendHasValues" class="buoy-chart-status">
+                            {{ selectedBuoy ? '暂无趋势数据' : '请选择浮标' }}
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     </transition>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import * as Cesium from 'cesium';
-import BuoyObservationWorkspace from './BuoyObservationWorkspace.vue';
 import * as echarts from 'echarts';
+import PanelSelect from '../common/PanelSelect.vue';
+import BuoyObservationWorkspace from './BuoyObservationWorkspace.vue';
+import { fetchBuoyHistory, fetchBuoyRealtime, fetchBuoys } from '../../api/forecastWarningBuoy.js';
+import { monitoringRequest } from '../../api/monitoring.js';
+import { lastValidObservation, validObservationValue } from '../../utils/buoyObservationData.js';
 import { darkChartTooltip } from '../../utils/chartTooltip.js';
-import { fetchBuoyHistory, fetchBuoyRealtime, fetchBuoys } from '../../api/forecastwarningbuoy.js';
 
 const props = defineProps({ show: Boolean, getViewer: { type: Function, default: () => null } });
 const emit = defineEmits(['close']);
-const realMode = ref(false);
-let workspaceRequestId = 0;
-const buoys = ref([]); const realtime = ref([]); const selectedBuoyId = ref(''); const history = ref(null);
-const loading = ref(false); const historyLoading = ref(false); const historyError = ref(''); const errorMessage = ref(''); const range = ref('12h'); const refreshing = ref(false);
-const searchTerm = ref(''); const statusFilter = ref('all');
-const autoRefresh = ref(true); const refreshCountdown = ref(60); const lastRefreshAt = ref(null); const changedBuoyIds = ref(new Set()); const lastLiveDeltas = ref({});
-const windChartRef = ref(null); const waveChartRef = ref(null); const currentChartRef = ref(null); const wavePeriodChartRef = ref(null); const directionChartRef = ref(null);
-const REFRESH_INTERVAL_SECONDS = 60;
-let refreshTimer = null; let countdownTimer = null; let changeHighlightTimer = null; let mapEntities = []; let windChart; let waveChart; let currentChart; let wavePeriodChart; let directionChart; let historyAbortController = null; let historyRequestId = 0;
-const historyCache = new Map();
-const ranges = [{ value: '12h', label: '过去12小时' }, { value: '7d', label: '过去7天' }, { value: '15d', label: '过去15天' }];
-const rangeLabel = computed(() => ranges.find((item) => item.value === range.value)?.label || '历史数据');
-const realtimeById = computed(() => new Map(realtime.value.map((item) => [item.buoyId, item])));
-const getBuoyStatus = (timestamp) => {
-    if (!timestamp) return 'offline';
-    const timestampValue = new Date(timestamp).getTime();
-    if (!Number.isFinite(timestampValue)) return 'offline';
-    const age = Math.max(0, Date.now() - timestampValue);
-    if (age <= 5 * 60 * 1000) return 'normal';
-    if (age <= 30 * 60 * 1000) return 'delayed';
-    return 'offline';
+
+const fluxId = 'deepsea-flux-test';
+const observationPath = '/api/buoy-observations/' + fluxId;
+const refreshInterval = 60_000;
+const ranges = [
+    { value: '12h', label: '过去12小时' },
+    { value: '7d', label: '过去7天' },
+    { value: '15d', label: '过去15天' }
+];
+const stationMetrics = [
+    { key: 'windSpeed', label: '风速', unit: 'm/s', direction: 'windDirection', directionLabel: '风向', color: '#22d3ee', thresholds: [12, 15, 20] },
+    { key: 'waveHeight', label: '浪高', unit: 'm', direction: 'waveDirection', directionLabel: '浪向', color: '#facc15', thresholds: [2.5, 3.5, 4.5] },
+    { key: 'currentSpeed', label: '流速', unit: 'm/s', direction: 'currentDirection', directionLabel: '流向', color: '#a78bfa', thresholds: [1, 1.5, 2] }
+];
+const stationMetricOptions = stationMetrics.map(metric => ({ value: metric.key, label: metric.label }));
+const statusNames = { normal: '正常', delayed: '延迟', offline: '异常' };
+const statusColors = { normal: 'text-emerald-300', delayed: 'text-amber-200', offline: 'text-rose-300' };
+const statusOptions = [
+    { value: 'all', label: '全部状态' },
+    ...Object.entries(statusNames).map(([value, label]) => ({ value, label }))
+];
+const riskStyles = {
+    normal: { label: '较平稳', text: 'text-slate-300', panel: 'border-slate-700/70 bg-slate-950/35', map: '#67e8f9' },
+    attention: { label: '需关注', text: 'text-yellow-200', panel: 'border-yellow-400/50 bg-yellow-950/25', map: '#facc15' },
+    warning: { label: '预警', text: 'text-orange-300', panel: 'border-orange-400/60 bg-orange-950/30', map: '#fb923c' },
+    critical: { label: '高风险', text: 'text-rose-300', panel: 'border-rose-400/70 bg-rose-950/35', map: '#fb7185' },
+    unknown: { label: '数据不足', text: 'text-slate-400', panel: 'border-slate-700/70 bg-slate-950/35', map: '#cbd5e1' }
 };
-const riskRank = { normal: 0, attention: 1, warning: 2, critical: 3, unknown: -1 };
-const riskMeta = {
-    // 平稳状态不改变原有面板底色，只有真正达到风险阈值时才使用警示色。
-    normal: { label: '较平稳', shortLabel: '平稳', textClass: 'text-slate-300', borderClass: 'border-slate-700/70 bg-slate-950/35' },
-    attention: { label: '需关注', shortLabel: '关注', textClass: 'text-yellow-200', borderClass: 'border-yellow-400/50 bg-yellow-950/25' },
-    warning: { label: '预警', shortLabel: '预警', textClass: 'text-orange-300', borderClass: 'border-orange-400/60 bg-orange-950/30' },
-    critical: { label: '高风险', shortLabel: '高风险', textClass: 'text-rose-300', borderClass: 'border-rose-400/70 bg-rose-950/35' },
-    unknown: { label: '数据不足', shortLabel: '无数据', textClass: 'text-slate-400', borderClass: 'border-slate-700/70 bg-slate-950/35' }
-};
-const riskThresholds = {
-    // 按当前演示后端的模拟基线设置，避免将常态波动大面积判为危险。
-    windSpeed: { attention: 12, warning: 15, critical: 20, unit: 'm/s', name: '风速' },
-    waveHeight: { attention: 2.5, warning: 3.5, critical: 4.5, unit: 'm', name: '浪高' },
-    currentSpeed: { attention: 1, warning: 1.5, critical: 2, unit: 'm/s', name: '流速' }
-};
-const getMetricRisk = (key, value) => {
-    const numericValue = Number(value);
-    const threshold = riskThresholds[key];
-    if (!threshold || !Number.isFinite(numericValue)) return { level: 'unknown', label: '无数据', class: riskMeta.unknown.textClass };
-    const level = numericValue >= threshold.critical
-        ? 'critical'
-        : numericValue >= threshold.warning
-            ? 'warning'
-            : numericValue >= threshold.attention
-                ? 'attention'
-                : 'normal';
-    return { level, label: riskMeta[level].shortLabel, class: riskMeta[level].textClass, name: threshold.name, unit: threshold.unit, value: metric(numericValue) };
-};
-const getActualRiskLevel = (row) => {
-    if (row.status === 'offline') return 'unknown';
-    const levels = Object.keys(riskThresholds).map((key) => getMetricRisk(key, row[key]).level).filter((level) => level !== 'unknown');
-    if (!levels.length) return 'unknown';
-    return levels.reduce((highest, level) => riskRank[level] > riskRank[highest] ? level : highest, 'normal');
-};
-const getRiskLevel = (row) => {
-    return getActualRiskLevel(row);
-};
-const buoyRows = computed(() => buoys.value.map((buoy) => {
-    const row = { ...buoy, ...(realtimeById.value.get(buoy.id) || {}) };
-    const status = getBuoyStatus(row.timestamp);
-    return { ...row, status, riskLevel: getRiskLevel({ ...row, status }) };
-}));
-const filteredBuoyRows = computed(() => {
-    const keyword = searchTerm.value.trim().toLowerCase();
-    return buoyRows.value.filter((buoy) => {
-        const matchesKeyword = !keyword || [buoy.id, buoy.name].some((value) => String(value || '').toLowerCase().includes(keyword));
-        const matchesStatus = statusFilter.value === 'all' || buoy.status === statusFilter.value;
-        return matchesKeyword && matchesStatus;
+const riskLevels = ['normal', 'attention', 'warning', 'critical'];
+const attitudeFields = [
+    ['横滚', '°'], ['俯仰', '°'], ['偏航', '°'],
+    ['加速度X', 'g'], ['加速度Y', 'g'], ['加速度Z', 'g'],
+    ['角速度X', '°/s'], ['角速度Y', '°/s'], ['角速度Z', '°/s'],
+    ['磁场X', 'LSB'], ['磁场Y', 'LSB'], ['磁场Z', 'LSB']
+];
+
+const stations = shallowRef([]);
+const realtime = shallowRef([]);
+const selectedBuoyId = ref('');
+const searchTerm = ref('');
+const statusFilter = ref('all');
+const refreshing = ref(false);
+const stationError = ref('');
+const autoRefresh = ref(true);
+const range = ref('12h');
+const stationMetricKey = ref('windSpeed');
+const observationManifest = shallowRef(null);
+const manifestLoading = ref(false);
+const manifestError = ref('');
+const observationDay = ref('');
+const observationMetricKey = ref('met:2');
+const trendResult = shallowRef(null);
+const trendLoading = ref(false);
+const trendError = ref('');
+const chartEl = ref(null);
+const stationTrendCache = new Map();
+
+let workspaceGeneration = 0;
+let refreshTimer;
+let manifestController;
+let trendController;
+let chart;
+let chartObserver;
+let mapViewer;
+let mapEntities = [];
+
+function numericValue(value) {
+    if (value == null || typeof value === 'boolean' || String(value).trim() === '') return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
+function formatMetric(value, digits = 1) {
+    return numericValue(value)?.toFixed(digits) ?? '—';
+}
+
+function formatTime(value, full = false) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString('zh-CN', {
+        hour12: false, timeZone: 'Asia/Shanghai',
+        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+        ...(full ? { year: 'numeric', second: '2-digit' } : {})
     });
-});
-const selectedBuoy = computed(() => buoys.value.find((item) => item.id === selectedBuoyId.value) || null);
-const selectedRealtime = computed(() => realtimeById.value.get(selectedBuoyId.value) || null);
-const selectedRow = computed(() => buoyRows.value.find((item) => item.id === selectedBuoyId.value) || null);
-const selectedCoordinateLabel = computed(() => selectedBuoy.value ? `${coordinate(selectedBuoy.value.lat, 'N')} ${coordinate(selectedBuoy.value.lng, 'E')}` : '实时风浪流监测');
-const hasHistory = computed(() => Array.isArray(history.value?.points) && history.value.points.length > 0);
-const metric = (value, digits = 1) => Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : '--';
-const coordinate = (value, positive) => `${Math.abs(Number(value)).toFixed(1)}°${Number(value) >= 0 ? positive : positive === 'N' ? 'S' : 'W'}`;
-const formatTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); };
-const historyTimeRangeLabel = computed(() => {
-    if (!history.value?.startTime || !history.value?.endTime) return '--';
-    return `${formatTime(history.value.startTime)} — ${formatTime(history.value.endTime)}`;
-});
-const historyIntervalLabel = computed(() => {
-    const points = history.value?.points || [];
-    if (points.length < 2) return '--';
-    const first = new Date(points[0].timestamp).getTime();
-    const second = new Date(points[1].timestamp).getTime();
-    const minutes = Math.abs(second - first) / 60000;
-    if (!Number.isFinite(minutes) || minutes <= 0) return '--';
-    if (minutes >= 60) return `${metric(minutes / 60)} 小时`;
-    return `${metric(minutes)} 分钟`;
-});
-const formatSource = (source) => {
-    if (!source) return '未知';
-    if (String(source).toUpperCase() === 'SIMULATED') return '模拟数据';
-    return String(source);
-};
-const latestTimestamp = computed(() => realtime.value
-    .map((item) => new Date(item.timestamp || 0).getTime())
-    .filter(Number.isFinite)
-    .reduce((latest, current) => Math.max(latest, current), 0) || null);
-const sourceLabel = computed(() => {
-    const sources = [...new Set(realtime.value.map((item) => formatSource(item.source)).filter((source) => source !== '未知'))];
-    return sources.length ? sources.join(' / ') : '未知';
-});
-const statusCounts = computed(() => buoyRows.value.reduce((counts, buoy) => {
-    counts[buoy.status] = (counts[buoy.status] || 0) + 1;
-    return counts;
-}, { normal: 0, delayed: 0, offline: 0 }));
-const statusLabel = (status) => ({ normal: '正常', delayed: '延迟', offline: '异常' }[status] || '无数据');
-const statusDotClass = (status) => ({ normal: 'bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,.8)]', delayed: 'bg-amber-400 shadow-[0_0_7px_rgba(251,191,36,.8)]', offline: 'bg-rose-400 shadow-[0_0_7px_rgba(251,113,133,.8)]' }[status] || 'bg-slate-500');
-const statusTextClass = (status) => ({ normal: 'text-emerald-300', delayed: 'text-amber-200', offline: 'text-rose-300' }[status] || 'text-slate-400');
-const riskLabel = (level) => riskMeta[level]?.label || riskMeta.unknown.label;
-const riskTextClass = (level) => riskMeta[level]?.textClass || riskMeta.unknown.textClass;
-const riskPanelClass = (level) => riskMeta[level]?.borderClass || riskMeta.unknown.borderClass;
-const metricRiskTextClass = (key, value) => getMetricRisk(key, value).level === 'normal' ? 'text-slate-200' : riskTextClass(getMetricRisk(key, value).level);
-const historyTrend = (key) => {
-    const points = history.value?.points || [];
-    if (points.length < 2) return null;
-    const previous = Number(points[points.length - 2]?.[key]);
-    const latest = Number(points[points.length - 1]?.[key]);
-    if (!Number.isFinite(previous) || !Number.isFinite(latest)) return null;
-    const delta = latest - previous;
-    const threshold = key === 'waveHeight' ? 0.05 : key === 'currentSpeed' ? 0.02 : 0.1;
-    if (Math.abs(delta) < threshold) return { icon: '→', label: '稳定', class: 'text-slate-400' };
-    return delta > 0
-        ? { icon: '↑', label: `上升 ${metric(delta)}`, class: 'text-amber-200' }
-        : { icon: '↓', label: `下降 ${metric(Math.abs(delta))}`, class: 'text-emerald-300' };
-};
-const liveDeltaFor = (key) => {
-    const delta = lastLiveDeltas.value[selectedBuoyId.value]?.[key];
-    if (!Number.isFinite(delta) || Math.abs(delta) < 0.005) return null;
-    return delta > 0
-        ? { label: `本次 +${metric(delta)}`, class: 'text-amber-200' }
-        : { label: `本次 ${metric(delta)}`, class: 'text-emerald-300' };
-};
-const realtimeCards = computed(() => selectedRealtime.value ? [{ name: '风', key: 'windSpeed', value: metric(selectedRealtime.value.windSpeed), unit: 'm/s', direction: metric(selectedRealtime.value.windDirection, 0) }, { name: '浪', key: 'waveHeight', value: metric(selectedRealtime.value.waveHeight), unit: 'm', direction: metric(selectedRealtime.value.waveDirection, 0), extra: `周期 ${metric(selectedRealtime.value.wavePeriod)} s` }, { name: '流', key: 'currentSpeed', value: metric(selectedRealtime.value.currentSpeed), unit: 'm/s', direction: metric(selectedRealtime.value.currentDirection, 0) }].map((item) => ({ ...item, risk: getMetricRisk(item.key, selectedRealtime.value[item.key]), liveDelta: liveDeltaFor(item.key), trend: historyTrend(item.key) })) : []);
-const currentRisk = computed(() => {
-    const realtimeData = selectedRealtime.value;
-    if (!realtimeData) return null;
-    if (selectedRow.value?.status === 'offline') return { level: riskMeta.unknown.label, class: riskMeta.unknown.textClass, reason: '当前浮标数据已失联，页面保留最后读数但不再将其作为有效实时海况判据。', advice: '检查浮标通信状态和数据链路。', exceedances: [] };
-    const indicators = Object.keys(riskThresholds).map((key) => getMetricRisk(key, realtimeData[key]));
-    const validIndicators = indicators.filter((item) => item.level !== 'unknown');
-    if (!validIndicators.length) return { level: riskMeta.unknown.label, class: riskMeta.unknown.textClass, reason: '当前浮标没有足够的风浪流数据，暂时无法完成海况判读。', advice: '检查浮标通信和数据质量。', exceedances: [] };
-    const level = validIndicators.reduce((highest, item) => riskRank[item.level] > riskRank[highest] ? item.level : highest, 'normal');
-    const exceedances = validIndicators.filter((item) => item.level !== 'normal');
-    const riskMessages = {
-        normal: ['当前风浪流指标整体处于相对平稳范围。', '可进行常规监测和低风险作业。'],
-        attention: ['部分风浪流指标开始接近作业关注阈值，需要持续观察。', '建议降低作业强度并加强现场监测。'],
-        warning: ['至少一项风浪流指标达到预警阈值，作业环境存在明显扰动。', '建议限制作业强度并做好撤离准备。'],
-        critical: ['风、浪或流速达到高风险阈值，海上作业环境不稳定。', '暂停高风险作业，等待海况改善。']
+}
+
+function getStationStatus(timestamp) {
+    const age = Date.now() - new Date(timestamp).getTime();
+    if (!timestamp || !Number.isFinite(age) || age > 30 * 60_000) return 'offline';
+    return age > 5 * 60_000 ? 'delayed' : 'normal';
+}
+
+function getMetricRisk(metric, raw) {
+    const value = numericValue(raw);
+    if (value === null) return 'unknown';
+    const rank = metric.thresholds.filter(threshold => value >= threshold).length;
+    return riskLevels[rank];
+}
+
+function getStationRisk(reading, status) {
+    if (!reading || status === 'offline') return 'unknown';
+    const ranks = stationMetrics.map(metric => riskLevels.indexOf(getMetricRisk(metric, reading[metric.key])));
+    return riskLevels[Math.max(...ranks)] || 'unknown';
+}
+
+function locationOf(buoy) {
+    const latitude = numericValue(buoy?.lat);
+    const longitude = numericValue(buoy?.lng);
+    if (latitude === null || longitude === null || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+    return { latitude, longitude };
+}
+
+const realtimeById = computed(() => new Map(realtime.value.map(reading => [String(reading.buoyId), reading])));
+const stationRows = computed(() => stations.value.map(station => {
+    const id = String(station.id);
+    const reading = realtimeById.value.get(id);
+    const status = getStationStatus(reading?.timestamp);
+    const source = reading?.source;
+    return {
+        ...station, id, status, risk: getStationRisk(reading, status),
+        source: String(source).toUpperCase() === 'SIMULATED' ? '模拟数据' : source || '—'
     };
-    return { level: riskMeta[level].label, class: riskMeta[level].textClass, reason: riskMessages[level][0], advice: riskMessages[level][1], exceedances };
+}));
+const buoyRows = computed(() => [
+    ...stationRows.value,
+    {
+        id: fluxId, name: '通量浮标', source: '测试数据',
+        lat: observationManifest.value?.location?.latitude, lng: observationManifest.value?.location?.longitude
+    }
+]);
+const filteredBuoys = computed(() => {
+    const keyword = searchTerm.value.trim().toLowerCase();
+    return buoyRows.value.filter(buoy =>
+        (statusFilter.value === 'all' || buoy.status === statusFilter.value)
+        && (!keyword || [buoy.name, buoy.id].some(value => String(value).toLowerCase().includes(keyword))));
 });
-const directionItems = computed(() => selectedRealtime.value ? [{ name: '风向', direction: metric(selectedRealtime.value.windDirection, 0), color: '#22d3ee' }, { name: '浪向', direction: metric(selectedRealtime.value.waveDirection, 0), color: '#facc15' }, { name: '流向', direction: metric(selectedRealtime.value.currentDirection, 0), color: '#a78bfa' }] : []);
-const historyStats = computed(() => [['风速', history.value?.statistics?.windSpeed], ['浪高', history.value?.statistics?.waveHeight], ['流速', history.value?.statistics?.currentSpeed]].map(([name, value]) => ({ name, min: value ? `${metric(value.min)} ${value.unit || ''}` : '--', avg: value ? `${metric(value.avg)} ${value.unit || ''}` : '--', max: value ? `${metric(value.max)} ${value.unit || ''}` : '--' })));
-
-const clearMap = () => { const viewer = props.getViewer?.(); if (viewer) mapEntities.forEach((entity) => viewer.entities.remove(entity)); mapEntities = []; };
-const focusBuoyRegion = ({ retry = true } = {}) => {
-    const viewer = props.getViewer?.();
-    const validRows = buoyRows.value.filter((buoy) => Number.isFinite(Number(buoy.lng)) && Number.isFinite(Number(buoy.lat)));
-    if (!viewer || !validRows.length) {
-        if (retry && validRows.length) window.setTimeout(() => focusBuoyRegion({ retry: false }), 350);
-        return;
-    }
-
-    const longitudes = validRows.map((buoy) => Number(buoy.lng));
-    const latitudes = validRows.map((buoy) => Number(buoy.lat));
-    const minLongitude = Math.min(...longitudes);
-    const maxLongitude = Math.max(...longitudes);
-    const minLatitude = Math.min(...latitudes);
-    const maxLatitude = Math.max(...latitudes);
-    const longitudeSpan = Math.max(maxLongitude - minLongitude, 0.8);
-    const latitudeSpan = Math.max(maxLatitude - minLatitude, 0.8);
-    // 给地图标记和信息卡预留安全边距，避免自动聚焦后边缘浮标被裁切。
-    const longitudePadding = Math.max(longitudeSpan * 0.65, validRows.length === 1 ? 8 : 3);
-    const latitudePadding = Math.max(latitudeSpan * 0.65, validRows.length === 1 ? 6 : 2.5);
-    const rectangle = Cesium.Rectangle.fromDegrees(
-        Math.max(-180, minLongitude - longitudePadding),
-        Math.max(-90, minLatitude - latitudePadding),
-        Math.min(180, maxLongitude + longitudePadding),
-        Math.min(90, maxLatitude + latitudePadding)
-    );
-
-    viewer.camera.flyTo({
-        destination: rectangle,
-        duration: 1.8,
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 }
+const selectedBuoy = computed(() => buoyRows.value.find(buoy => buoy.id === selectedBuoyId.value));
+const selectedIsFlux = computed(() => selectedBuoyId.value === fluxId);
+const selectedReading = computed(() => selectedBuoy.value && !selectedIsFlux.value
+    ? realtimeById.value.get(selectedBuoyId.value) : null);
+const selectedLocation = computed(() => locationOf(selectedBuoy.value));
+const coordinateLabel = computed(() => {
+    const place = selectedLocation.value;
+    if (!place) return '';
+    const { latitude, longitude } = place;
+    return Math.abs(latitude).toFixed(1) + '°' + (latitude < 0 ? 'S' : 'N')
+        + ' ' + Math.abs(longitude).toFixed(1) + '°' + (longitude < 0 ? 'W' : 'E');
+});
+const readingCards = computed(() => {
+    const reading = selectedReading.value;
+    if (!reading) return [];
+    const period = numericValue(reading.wavePeriod);
+    return stationMetrics.map(metric => {
+        const direction = numericValue(reading[metric.direction]);
+        return {
+            ...metric, value: formatMetric(reading[metric.key]),
+            direction: direction === null ? '—' : direction.toFixed(0) + '°',
+            period: metric.key === 'waveHeight' && period !== null ? period.toFixed(1) + ' s' : '',
+            risk: selectedBuoy.value.status === 'offline' ? 'unknown' : getMetricRisk(metric, reading[metric.key])
+        };
     });
-};
-const svgDataUri = (svg) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-const escapeSvgText = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-const buoyPalette = {
-    normal: { main: '#22d3ee', deep: '#0e7490', glow: '#67e8f9', label: '平稳' },
-    attention: { main: '#facc15', deep: '#a16207', glow: '#fef08a', label: '关注' },
-    warning: { main: '#fb923c', deep: '#c2410c', glow: '#fed7aa', label: '预警' },
-    critical: { main: '#fb7185', deep: '#be123c', glow: '#fda4af', label: '高风险' },
-    unknown: { main: '#94a3b8', deep: '#475569', glow: '#cbd5e1', label: '无数据' }
-};
-const buoyVisualLevel = (buoy) => buoy.status === 'offline' ? 'unknown' : buoy.riskLevel || 'unknown';
-const buoyIcon = (buoy, selected) => {
-    const palette = buoyPalette[buoyVisualLevel(buoy)] || buoyPalette.unknown;
-    const glow = selected ? `<circle cx="36" cy="29" r="25" fill="${palette.glow}" opacity=".16"/><circle cx="36" cy="29" r="19" fill="none" stroke="${palette.glow}" stroke-width="1.5" opacity=".75"/>` : '';
-    return svgDataUri(`<svg xmlns="http://www.w3.org/2000/svg" width="72" height="88" viewBox="0 0 72 88">
-        <defs>
-            <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${palette.glow}"/><stop offset=".45" stop-color="${palette.main}"/><stop offset="1" stop-color="${palette.deep}"/></linearGradient>
-        </defs>
-        ${glow}
-        <g filter="url(#glow)">
-            <path d="M36 10v10" stroke="#e0f2fe" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="36" cy="8" r="5" fill="${palette.main}" stroke="#f8fafc" stroke-width="2"/>
-            <path d="M29 22h14l3 19-10 7-10-7z" fill="url(#body)" stroke="#ecfeff" stroke-width="1.5"/>
-            <path d="M25 28h22M26 34h20" stroke="#f8fafc" stroke-width="1.5" opacity=".65"/>
-            <path d="M29 47h14l-3 12h-8z" fill="#164e63" stroke="#bae6fd" stroke-width="1.2"/>
-        </g>
-        <path d="M14 68c7-5 13-5 20 0s13 5 20 0 13-5 20 0" fill="none" stroke="${palette.main}" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
-        <path d="M20 76c5-3 10-3 15 0s10 3 15 0 10-3 15 0" fill="none" stroke="${palette.glow}" stroke-width="1.5" stroke-linecap="round" opacity=".65"/>
-    </svg>`);
-};
-const buoyInfoCard = (buoy, selected = false) => {
-    const palette = buoyPalette[buoyVisualLevel(buoy)] || buoyPalette.unknown;
-    const name = escapeSvgText(buoy.name || buoy.id || '浮标');
-    const risk = escapeSvgText(riskLabel(buoy.riskLevel));
-    const connection = escapeSvgText(statusLabel(buoy.status));
-    const wind = escapeSvgText(`${metric(buoy.windSpeed)} m/s`);
-    const wave = escapeSvgText(`${metric(buoy.waveHeight)} m`);
-    const current = escapeSvgText(`${metric(buoy.currentSpeed)} m/s`);
-    return svgDataUri(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="112" viewBox="0 0 300 112">
-        <defs>
-            <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10283b" stop-opacity=".98"/><stop offset="1" stop-color="#071522" stop-opacity=".98"/></linearGradient>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#020617" flood-opacity=".7"/></filter>
-        </defs>
-        <path d="M16 7h268a9 9 0 0 1 9 9v70a9 9 0 0 1-9 9H16a9 9 0 0 1-9-9V16a9 9 0 0 1 9-9Z" fill="url(#card)" stroke="${selected ? palette.glow : palette.main}" stroke-width="${selected ? 2 : 1}" stroke-opacity=".8" filter="url(#shadow)"/>
-        <path d="M16 7h268a9 9 0 0 1 9 9v4H7v-4a9 9 0 0 1 9-9Z" fill="${palette.main}" opacity=".9"/>
-        <circle cx="25" cy="35" r="5" fill="${palette.main}"/><circle cx="25" cy="35" r="9" fill="none" stroke="${palette.main}" opacity=".25"/>
-        <text x="40" y="39" fill="#f8fafc" font-size="17" font-family="Noto Sans SC, sans-serif" font-weight="700">${name}</text>
-        <text x="265" y="35" text-anchor="end" fill="${palette.glow}" font-size="12" font-family="Noto Sans SC, sans-serif" font-weight="700">${risk}</text>
-        <text x="265" y="50" text-anchor="end" fill="#94a3b8" font-size="10" font-family="Noto Sans SC, sans-serif">${connection}</text>
-        <path d="M18 56h264" stroke="#334155" stroke-opacity=".9"/>
-        <text x="28" y="72" fill="#94a3b8" font-size="11" font-family="Noto Sans SC, sans-serif">风速</text><text x="28" y="89" fill="#e0f2fe" font-size="15" font-family="Noto Sans SC, sans-serif" font-weight="700">${wind}</text>
-        <text x="126" y="72" fill="#94a3b8" font-size="11" font-family="Noto Sans SC, sans-serif">浪高</text><text x="126" y="89" fill="#fef3c7" font-size="15" font-family="Noto Sans SC, sans-serif" font-weight="700">${wave}</text>
-        <text x="224" y="72" fill="#94a3b8" font-size="11" font-family="Noto Sans SC, sans-serif">流速</text><text x="224" y="89" fill="#ede9fe" font-size="15" font-family="Noto Sans SC, sans-serif" font-weight="700">${current}</text>
-    </svg>`);
-};
-const updateMap = () => {
-    clearMap();
-    const viewer = props.getViewer?.();
-    if (!viewer) return;
-    // 地图与左侧搜索/状态筛选保持一致，只显示当前可见的浮标。
-    filteredBuoyRows.value.forEach((buoy) => {
-        if (!Number.isFinite(Number(buoy.lng)) || !Number.isFinite(Number(buoy.lat))) return;
-        const selected = buoy.id === selectedBuoyId.value;
-        const position = Cesium.Cartesian3.fromDegrees(Number(buoy.lng), Number(buoy.lat), 120);
-        mapEntities.push(viewer.entities.add({
-            id: `buoy-monitor-${buoy.id}`,
-            properties: { buoyId: buoy.id },
-            position,
-            billboard: { image: '/image/浮标.png', width: selected ? 112 : 96, height: selected ? 112 : 96, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(150000, 1.15, 4000000, .7) }
-        }));
-        // 所有浮标都显示摘要卡片；选中项通过放大、发光和白色描边强化。
-        mapEntities.push(viewer.entities.add({
-            id: `buoy-monitor-card-${buoy.id}`,
-            properties: { buoyId: buoy.id },
-            position,
-            billboard: { image: buoyInfoCard(buoy, selected), width: selected ? 360 : 300, height: selected ? 134 : 112, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, pixelOffset: new Cesium.Cartesian2(0, selected ? -76 : -66), disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(150000, selected ? 1.12 : 1, 3500000, selected ? .78 : .7) }
-        }));
-    });
-    viewer.scene.requestRender();
-};
+});
 
-const focusSelectedBuoy = () => {
-    const viewer = props.getViewer?.();
-    const buoy = selectedRow.value || selectedBuoy.value;
-    if (!viewer || !buoy || !Number.isFinite(Number(buoy.lng)) || !Number.isFinite(Number(buoy.lat))) return;
-    viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(Number(buoy.lng), Number(buoy.lat), 900000), duration: 1.4 });
-    updateMap();
-};
+const observationDates = computed(() => (observationManifest.value?.days || []).map(day => ({ value: day, label: day })));
+const observationMetrics = computed(() => {
+    if (!observationManifest.value) return [];
+    const meteorology = (observationManifest.value.fields || []).map(({ name, unit }, index) => ({
+        value: 'met:' + index, label: [name, unit].filter(Boolean).join(' '), name, unit, index, mode: 'met'
+    }));
+    const attitude = attitudeFields.map(([name, unit], index) => ({
+        value: 'attitude:' + index, label: name + ' ' + unit, name, unit, index, mode: 'attitude'
+    }));
+    return [...meteorology, ...attitude];
+});
+const selectedObservationMetric = computed(() => observationMetrics.value.find(metric => metric.value === observationMetricKey.value));
+const trendMetric = computed(() => {
+    if (selectedIsFlux.value) {
+        const metric = selectedObservationMetric.value;
+        return { label: metric?.name || '观测值', unit: metric?.unit || '', color: '#22d3ee' };
+    }
+    return stationMetrics.find(metric => metric.key === stationMetricKey.value) || stationMetrics[0];
+});
+const trendRequest = computed(() => {
+    if (!props.show || !selectedBuoy.value) return null;
+    if (selectedIsFlux.value) {
+        const day = observationDay.value;
+        const mode = selectedObservationMetric.value?.mode;
+        return day && mode ? { key: mode + ':' + day, day, mode } : null;
+    }
+    const id = selectedBuoyId.value;
+    return { key: 'station:' + id + ':' + range.value, id, range: range.value, mode: 'station' };
+});
+const displayedRecords = computed(() => trendResult.value?.key === trendRequest.value?.key
+    ? trendResult.value?.records || [] : []);
+const chartSeries = computed(() => displayedRecords.value.map(row => selectedIsFlux.value
+    ? { time: row.time, value: validObservationValue(row, selectedObservationMetric.value?.index) }
+    : { time: formatTime(row.timestamp, true), value: numericValue(row[trendMetric.value.key]) }));
+const trendHasValues = computed(() => chartSeries.value.some(point => point.value !== null));
+const lastObservation = computed(() => selectedIsFlux.value
+    ? lastValidObservation(displayedRecords.value, selectedObservationMetric.value?.index) : null);
+const activeTrendError = computed(() => (selectedIsFlux.value && manifestError.value) || trendError.value);
 
-const chartAxisLabel = { color: '#f8fafc', fontSize: 10, fontWeight: 500, hideOverlap: true };
-const chartAxisLine = { lineStyle: { color: '#64748b', width: 1 } };
-const chartSplitLine = { lineStyle: { color: 'rgba(148, 163, 184, .28)', width: 1 } };
-const chartAxisName = { color: '#f8fafc', fontSize: 10, fontWeight: 600 };
-const chartOption = (title, unit, color, key) => ({ backgroundColor: 'transparent', title: { text: title, left: 4, top: 2, textStyle: { color: '#bae6fd', fontSize: 13, fontWeight: 700 } }, grid: { left: 46, right: 10, top: 34, bottom: 32 }, tooltip: { ...darkChartTooltip, valueFormatter: (value) => value==null ? '—' : `${Number(value).toFixed(2)} ${unit}` }, xAxis: { type: 'category', data: (history.value?.points || []).map((item) => new Date(item.timestamp).toLocaleString('zh-CN', {hour12: false})), axisLabel: {...chartAxisLabel, formatter: formatTime}, axisLine: chartAxisLine }, yAxis: { type: 'value', name: unit, nameTextStyle: chartAxisName, axisLabel: chartAxisLabel, splitLine: chartSplitLine }, series: [{ name: title, type: 'line', smooth: true, showSymbol: false, data: (history.value?.points || []).map((item) => item[key]), lineStyle: { color, width: 2 }, itemStyle: { color }, areaStyle: { color: `${color}22` } }] });
-const directionChartOption = () => ({ backgroundColor: 'transparent', title: { text: '风浪流方向', left: 4, top: 2, textStyle: { color: '#bae6fd', fontSize: 13, fontWeight: 700 } }, legend: { right: 4, top: 2, textStyle: { color: '#dbeafe', fontSize: 10 } }, grid: { left: 46, right: 10, top: 34, bottom: 32 }, tooltip: { ...darkChartTooltip, valueFormatter: (value) => value == null ? '—' : `${Number(value).toFixed(1)}°` }, xAxis: { type: 'category', data: (history.value?.points || []).map((item) => new Date(item.timestamp).toLocaleString('zh-CN', {hour12: false})), axisLabel: {...chartAxisLabel, formatter: formatTime}, axisLine: chartAxisLine }, yAxis: { type: 'value', name: '°', min: 0, max: 360, interval: 90, nameTextStyle: chartAxisName, axisLabel: chartAxisLabel, splitLine: chartSplitLine }, series: [{ name: '风向', type: 'line', smooth: true, showSymbol: false, data: (history.value?.points || []).map((item) => item.windDirection), lineStyle: { color: '#22d3ee', width: 2 } }, { name: '浪向', type: 'line', smooth: true, showSymbol: false, data: (history.value?.points || []).map((item) => item.waveDirection), lineStyle: { color: '#facc15', width: 2 } }, { name: '流向', type: 'line', smooth: true, showSymbol: false, data: (history.value?.points || []).map((item) => item.currentDirection), lineStyle: { color: '#a78bfa', width: 2 } }] });
-const chartInstances = () => ({ windChart, waveChart, currentChart, wavePeriodChart, directionChart });
-const setChartInstance = (name, chart) => {
-    if (name === 'windChart') windChart = chart;
-    else if (name === 'waveChart') waveChart = chart;
-    else if (name === 'currentChart') currentChart = chart;
-    else if (name === 'wavePeriodChart') wavePeriodChart = chart;
-    else if (name === 'directionChart') directionChart = chart;
-};
-const renderCharts = async () => {
-    await nextTick();
-    if (!props.show || realMode.value || !hasHistory.value) return;
-    const configs = [
-        [windChartRef, '风速', 'm/s', '#22d3ee', 'windSpeed', 'windChart'],
-        [waveChartRef, '浪高', 'm', '#facc15', 'waveHeight', 'waveChart'],
-        [currentChartRef, '流速', 'm/s', '#a78bfa', 'currentSpeed', 'currentChart'],
-        [wavePeriodChartRef, '浪周期', 's', '#fb923c', 'wavePeriod', 'wavePeriodChart']
-    ];
-    configs.forEach(([chartRef, title, unit, color, key, name]) => {
-        if (!chartRef.value) return;
-        let chart = chartInstances()[name];
-        if (!chart || chart.getDom() !== chartRef.value) {
-            chart?.dispose();
-            chart = echarts.init(chartRef.value);
-            setChartInstance(name, chart);
-        }
-        chart.setOption(chartOption(title, unit, color, key), true);
-        chart.resize();
-    });
-    if (directionChartRef.value) {
-        let chart = directionChart;
-        if (!chart || chart.getDom() !== directionChartRef.value) {
-            chart?.dispose();
-            chart = echarts.init(directionChartRef.value);
-            directionChart = chart;
-        }
-        chart.setOption(directionChartOption(), true);
-        chart.resize();
+function selectObservationMetric(index) {
+    const value = 'met:' + index;
+    if (observationMetrics.value.some(metric => metric.value === value)) observationMetricKey.value = value;
+}
+
+function selectBuoy(buoyId) {
+    const id = String(buoyId || '');
+    if (!props.show || !id) return;
+    const known = buoyRows.value.some(buoy => buoy.id === id);
+    if (!known && !refreshing.value) return;
+    if (!filteredBuoys.value.some(buoy => buoy.id === id)) {
+        searchTerm.value = '';
+        statusFilter.value = 'all';
     }
-};
-const resizeCharts = () => [windChart, waveChart, currentChart, wavePeriodChart, directionChart].forEach((chart) => chart?.resize());
-const delay = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
-const isAbortError = (error) => error?.name === 'AbortError' || /abort/i.test(error?.message || '');
-const requestHistory = async (buoyId, nextRange, signal) => {
-    try {
-        return await fetchBuoyHistory(buoyId, nextRange, { signal });
-    } catch (error) {
-        if (isAbortError(error)) throw error;
-        await delay(800);
-        return fetchBuoyHistory(buoyId, nextRange, { signal });
-    }
-};
-const loadHistory = async ({ force = false } = {}) => {
-    const buoyId = selectedBuoyId.value;
-    const nextRange = range.value;
-    if (!buoyId || !props.show || realMode.value) return;
-    const cacheKey = `${buoyId}:${nextRange}`;
-    const cached = historyCache.get(cacheKey);
-    if (!force && cached && Date.now() - cached.cachedAt < 60 * 1000) {
-        history.value = cached.data;
-        historyError.value = '';
-        historyLoading.value = false;
-        await renderCharts();
-        return;
-    }
-    historyAbortController?.abort();
-    historyAbortController = new AbortController();
-    const requestId = ++historyRequestId;
-    historyLoading.value = true;
-    historyError.value = '';
-    try {
-        const data = await requestHistory(buoyId, nextRange, historyAbortController.signal);
-        if (requestId !== historyRequestId) return;
-        history.value = data;
-        historyCache.set(cacheKey, { data, cachedAt: Date.now() });
-    } catch (error) {
-        if (requestId !== historyRequestId || isAbortError(error)) return;
-        historyError.value = `历史数据加载失败：${error.message || '请求超时'}`;
-        history.value = null;
-    } finally {
-        if (requestId !== historyRequestId) return;
-        historyLoading.value = false;
-        await nextTick();
-        if (hasHistory.value) await renderCharts();
-        else resizeCharts();
-    }
-};
-const retryHistory = () => loadHistory({ force: true });
-const markLiveChanges = (previous, next) => {
-    const previousById = new Map(previous.map((item) => [item.buoyId, item]));
-    const nextChangedIds = new Set();
-    const nextDeltas = {};
-    const valueKeys = ['windSpeed', 'waveHeight', 'currentSpeed', 'wavePeriod'];
-    next.forEach((item) => {
-        const previousItem = previousById.get(item.buoyId);
-        if (!previousItem) {
-            nextChangedIds.add(item.buoyId);
-            return;
-        }
-        if (item.timestamp !== previousItem.timestamp) nextChangedIds.add(item.buoyId);
-        const deltas = {};
-        valueKeys.forEach((key) => {
-            const currentValue = Number(item[key]);
-            const previousValue = Number(previousItem[key]);
-            if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return;
-            const delta = currentValue - previousValue;
-            if (Math.abs(delta) >= 0.005) {
-                nextChangedIds.add(item.buoyId);
-                deltas[key] = delta;
-            }
-        });
-        if (Object.keys(deltas).length) nextDeltas[item.buoyId] = deltas;
-    });
-    changedBuoyIds.value = nextChangedIds;
-    lastLiveDeltas.value = nextDeltas;
-    if (changeHighlightTimer) window.clearTimeout(changeHighlightTimer);
-    if (nextChangedIds.size) {
-        changeHighlightTimer = window.setTimeout(() => {
-            changedBuoyIds.value = new Set();
-        }, 4200);
-    }
-};
-const refreshRealtime = async () => {
-    if (refreshing.value || !props.show || realMode.value) return;
-    const requestId = workspaceRequestId;
+    selectedBuoyId.value = id;
+}
+
+async function refreshStations({ loadList = !stations.value.length } = {}) {
+    if (!props.show || refreshing.value) return;
+    const generation = workspaceGeneration;
     refreshing.value = true;
-    let realtimeUpdated = false;
-    try {
-        const nextRealtime = await fetchBuoyRealtime();
-        if (requestId !== workspaceRequestId) return;
-        const normalizedRealtime = Array.isArray(nextRealtime) ? nextRealtime : [];
-        markLiveChanges(realtime.value, normalizedRealtime);
-        realtime.value = normalizedRealtime;
-        lastRefreshAt.value = new Date();
-        refreshCountdown.value = REFRESH_INTERVAL_SECONDS;
-        errorMessage.value = '';
-        updateMap();
-        realtimeUpdated = true;
-    } catch (error) {
-        errorMessage.value = `实时数据加载失败：${error.message}`;
-    } finally {
-        refreshing.value = false;
+    stationError.value = '';
+    const [catalog, readings] = await Promise.allSettled([
+        loadList ? fetchBuoys() : stations.value, fetchBuoyRealtime()
+    ]);
+    if (workspaceGeneration !== generation) return;
+
+    if (catalog.status === 'fulfilled' && Array.isArray(catalog.value)) stations.value = catalog.value;
+    if (readings.status === 'fulfilled' && Array.isArray(readings.value)) realtime.value = readings.value;
+    if (catalog.status === 'rejected' || readings.status === 'rejected') stationError.value = '站点数据加载失败';
+    refreshing.value = false;
+
+    if (readings.status === 'fulfilled' && trendRequest.value?.mode === 'station'
+        && trendResult.value?.key === trendRequest.value.key && !trendLoading.value) {
+        loadTrend({ force: true });
     }
-    // 实时读数更新后同步刷新当前浮标曲线，避免右侧数值和底部曲线停留在不同时间点。
-    if (realtimeUpdated && selectedBuoyId.value) await loadHistory({ force: true });
-};
-const stopAutoRefresh = () => {
-    if (refreshTimer) window.clearInterval(refreshTimer);
-    if (countdownTimer) window.clearInterval(countdownTimer);
-    refreshTimer = null;
-    countdownTimer = null;
-};
-const startAutoRefresh = () => {
-    stopAutoRefresh();
-    if (!props.show || !autoRefresh.value) return;
-    refreshCountdown.value = REFRESH_INTERVAL_SECONDS;
-    refreshTimer = window.setInterval(refreshRealtime, REFRESH_INTERVAL_SECONDS * 1000);
-    countdownTimer = window.setInterval(() => {
-        if (!refreshing.value) refreshCountdown.value = Math.max(0, refreshCountdown.value - 1);
-    }, 1000);
-};
-const toggleAutoRefresh = () => {
-    autoRefresh.value = !autoRefresh.value;
-    if (autoRefresh.value) startAutoRefresh();
-    else stopAutoRefresh();
-};
-const loadWorkspace = async () => {
-    const requestId = ++workspaceRequestId;
-    loading.value = true;
-    errorMessage.value = '';
-    try {
-        const [list, live] = await Promise.all([fetchBuoys(), fetchBuoyRealtime()]);
-        if (requestId !== workspaceRequestId) return;
-        buoys.value = Array.isArray(list) ? list : [];
-        realtime.value = Array.isArray(live) ? live : [];
-        lastRefreshAt.value = new Date();
-        refreshCountdown.value = REFRESH_INTERVAL_SECONDS;
-        const selectionChanged = !selectedBuoyId.value || !buoys.value.some(item => item.id === selectedBuoyId.value);
-        if (selectionChanged) selectedBuoyId.value = buoys.value[0]?.id || '';
-        updateMap();
+
+    if (loadList) {
         await nextTick();
-        if (requestId !== workspaceRequestId) return;
-        focusBuoyRegion();
-        if (!selectionChanged) await loadHistory();
-    } catch (error) {
-        if (requestId === workspaceRequestId) errorMessage.value = `浮标监测暂不可用：${error.message}`;
+        if (workspaceGeneration === generation) focusBuoyRegion();
+    }
+}
+
+async function loadManifest() {
+    manifestController?.abort();
+    const controller = new AbortController();
+    manifestController = controller;
+    manifestLoading.value = true;
+    manifestError.value = '';
+    try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]);
+        const result = await monitoringRequest(observationPath + '/manifest', { signal });
+        if (controller.signal.aborted) return;
+        observationManifest.value = result;
+        if (!observationDates.value.some(option => option.value === observationDay.value)) {
+            observationDay.value = observationDates.value[0]?.value || '';
+        }
+        if (!observationMetrics.value.some(option => option.value === observationMetricKey.value)) {
+            observationMetricKey.value = observationMetrics.value[0]?.value || '';
+        }
+    } catch {
+        if (!controller.signal.aborted) manifestError.value = '通量浮标数据加载失败';
     } finally {
-        if (requestId === workspaceRequestId) loading.value = false;
+        if (manifestController === controller) manifestLoading.value = false;
     }
-};
-const start = async () => {
-    await loadWorkspace();
-    if (props.show && !realMode.value) {
-        await renderCharts();
-        startAutoRefresh();
+}
+
+function attitudeRecord(row) {
+    const { angles, accelerationG, angularVelocity, magneticRaw } = row.decoded || {};
+    return {
+        time: row.time,
+        values: [angles, accelerationG, angularVelocity, magneticRaw].flatMap(group => [group?.[0], group?.[1], group?.[2]]),
+        invalid: row.quality?.errors
+    };
+}
+
+async function loadTrend({ force = false } = {}) {
+    trendController?.abort();
+    trendController = null;
+    trendLoading.value = false;
+    trendError.value = '';
+    const request = trendRequest.value;
+    if (!request) {
+        trendResult.value = null;
+        return;
     }
-};
-const stop = () => {
-    workspaceRequestId++;
-    Object.values(chartInstances()).forEach(chart => chart?.dispose());
-    windChart = waveChart = currentChart = wavePeriodChart = directionChart = null;
-    stopAutoRefresh();
-    if (changeHighlightTimer) window.clearTimeout(changeHighlightTimer);
-    changeHighlightTimer = null;
-    changedBuoyIds.value = new Set();
-    historyRequestId++;
-    historyAbortController?.abort();
-    historyAbortController = null;
+
+    const cached = stationTrendCache.get(request.key);
+    if (!force && cached && Date.now() - cached.loadedAt < refreshInterval) {
+        trendResult.value = cached;
+        return;
+    }
+
+    const controller = new AbortController();
+    trendController = controller;
+    trendLoading.value = true;
+    try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(60_000)]);
+        let records;
+        if (request.mode === 'station') {
+            const result = await fetchBuoyHistory(request.id, request.range, { signal });
+            records = result?.points || [];
+        } else {
+            const route = request.mode === 'met' ? '/days/' : '/attitudes/';
+            const rows = await monitoringRequest(observationPath + route + encodeURIComponent(request.day), { signal });
+            records = request.mode === 'met' ? rows : rows.map(attitudeRecord);
+        }
+        if (controller.signal.aborted || trendRequest.value?.key !== request.key) return;
+
+        const result = { key: request.key, records: Array.isArray(records) ? records : [], loadedAt: Date.now() };
+        trendResult.value = result;
+        if (request.mode === 'station') stationTrendCache.set(request.key, result);
+    } catch {
+        if (!controller.signal.aborted && trendRequest.value?.key === request.key) trendError.value = '趋势数据加载失败';
+    } finally {
+        if (trendController === controller) trendLoading.value = false;
+    }
+}
+
+function retryTrend() {
+    if (selectedIsFlux.value && manifestError.value) loadManifest();
+    else loadTrend({ force: true });
+}
+
+function disposeChart() {
+    chartObserver?.disconnect();
+    chart?.dispose();
+    chartObserver = chart = null;
+}
+
+function renderChart() {
+    const target = chartEl.value;
+    if (!target || !props.show) {
+        disposeChart();
+        return;
+    }
+    if (chart?.getDom() !== target) {
+        disposeChart();
+        chart = echarts.init(target);
+        chartObserver = new ResizeObserver(() => chart?.resize());
+        chartObserver.observe(target);
+    }
+
+    const { label, unit, color } = trendMetric.value;
+    const series = chartSeries.value;
+    chart.setOption({
+        animation: false,
+        backgroundColor: 'transparent',
+        tooltip: {
+            ...darkChartTooltip,
+            valueFormatter: value => value == null ? '—' : [formatMetric(value, 2), unit].filter(Boolean).join(' ')
+        },
+        grid: { left: 52, right: 24, top: 27, bottom: 34 },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: series.map(point => point.time),
+            axisLabel: {
+                color: '#cbd5e1', hideOverlap: true,
+                formatter: value => selectedIsFlux.value ? value.slice(11, 19) : value.replace(/^\d{4}\//, '').slice(0, -3)
+            },
+            axisLine: { lineStyle: { color: '#475569' } }
+        },
+        yAxis: {
+            type: 'value',
+            name: unit,
+            nameTextStyle: { color: '#cbd5e1' },
+            axisLabel: { color: '#cbd5e1' },
+            splitLine: { lineStyle: { color: '#334155' } }
+        },
+        dataZoom: selectedIsFlux.value ? [{ type: 'inside' }] : [],
+        series: [{
+            name: label, type: 'line', data: series.map(point => point.value),
+            showSymbol: series.length <= 24 || !series.some((point, index) =>
+                point.value !== null && index > 0 && series[index - 1].value !== null),
+            connectNulls: false,
+            sampling: selectedIsFlux.value ? 'lttb' : 'none',
+            lineStyle: { color, width: 2 },
+            itemStyle: { color }
+        }]
+    }, true);
+}
+
+function clearMap() {
+    if (mapViewer && !mapViewer.isDestroyed()) {
+        for (const entity of mapEntities) mapViewer.entities.remove(entity);
+        mapViewer.scene.requestRender();
+    }
+    mapViewer = null;
+    mapEntities = [];
+}
+
+function updateMap() {
     clearMap();
-};
-const selectBuoy = (buoyId) => {
-    const targetId = String(buoyId || '');
-    if(targetId==='deepsea-flux-test'){realMode.value=true;return;}
-    if (!targetId || !buoys.value.some((item) => String(item.id) === targetId)) return;
-    selectedBuoyId.value = targetId;
-};
+    if (!props.show) return;
+    const viewer = props.getViewer();
+    if (!viewer || viewer.isDestroyed()) return;
+    mapViewer = viewer;
+    for (const buoy of filteredBuoys.value) {
+        const place = locationOf(buoy);
+        if (!place) continue;
+        const selected = selectedBuoyId.value === buoy.id;
+        const size = selected ? 86 : 72;
+        const palette = riskStyles[buoy.risk || 'normal'];
+        mapEntities.push(viewer.entities.add({
+            id: 'buoy-monitor-' + buoy.id,
+            name: buoy.name,
+            position: Cesium.Cartesian3.fromDegrees(place.longitude, place.latitude, 120),
+            properties: { buoyId: buoy.id },
+            billboard: {
+                image: '/image/浮标.png', width: size, height: size,
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM, disableDepthTestDistance: Infinity
+            },
+            label: {
+                text: buoy.name,
+                font: (selected ? 'bold 16px ' : 'bold 14px ') + '"Noto Sans SC", sans-serif',
+                fillColor: Cesium.Color.fromCssColorString(selected ? '#ffffff' : palette.map),
+                showBackground: true,
+                backgroundColor: Cesium.Color.fromCssColorString(selected ? '#123951' : '#0c1b2c'),
+                pixelOffset: new Cesium.Cartesian2(0, -size - 4),
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM, disableDepthTestDistance: Infinity
+            }
+        }));
+    }
+    viewer.scene.requestRender();
+}
+
+function focusSelectedBuoy() {
+    const viewer = props.getViewer();
+    const place = selectedLocation.value;
+    if (!viewer || viewer.isDestroyed() || !place) return;
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(place.longitude, place.latitude, 900_000),
+        duration: 1.4
+    });
+}
+
+function focusBuoyRegion() {
+    const viewer = props.getViewer();
+    const locations = stationRows.value.map(locationOf).filter(Boolean);
+    if (!viewer || viewer.isDestroyed() || !locations.length) return;
+    const longitudes = locations.map(place => place.longitude);
+    const latitudes = locations.map(place => place.latitude);
+    const west = Math.min(...longitudes), east = Math.max(...longitudes);
+    const south = Math.min(...latitudes), north = Math.max(...latitudes);
+    const longitudePadding = Math.max((east - west) * .65, 3);
+    const latitudePadding = Math.max((north - south) * .65, 3);
+    viewer.camera.flyTo({
+        destination: Cesium.Rectangle.fromDegrees(
+            Math.max(-180, west - longitudePadding),
+            Math.max(-90, south - latitudePadding * 1.55),
+            Math.min(180, east + longitudePadding),
+            Math.min(90, north + latitudePadding)
+        ),
+        duration: 1.8,
+        orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 }
+    });
+}
+
+function syncRefreshTimer() {
+    window.clearInterval(refreshTimer);
+    if (props.show && autoRefresh.value) refreshTimer = window.setInterval(refreshStations, refreshInterval);
+}
+
+function stop() {
+    workspaceGeneration++;
+    window.clearInterval(refreshTimer);
+    manifestController?.abort();
+    trendController?.abort();
+    refreshing.value = false;
+    disposeChart();
+    clearMap();
+}
+
 watch(() => props.show, visible => {
-    if (visible) realMode.value = false;
-});
-watch(() => props.show && !realMode.value, (visible) => { if (visible) start(); else stop(); }, { immediate: true });
-watch(selectedBuoyId, (nextId, previousId) => {
-    if (!props.show || realMode.value) return;
-    if (nextId !== previousId) {
-        // 切换浮标时先清除旧曲线，避免新浮标标题下短暂显示旧浮标数据。
-        history.value = null;
-        historyError.value = '';
+    if (visible) {
+        refreshStations({ loadList: true });
+        loadManifest();
+    } else {
+        stop();
     }
-    updateMap();
-    loadHistory();
-});
-watch(range, () => { if (props.show && !realMode.value) { updateMap(); loadHistory(); } });
-watch([searchTerm, statusFilter], () => {
-    const visibleRows = filteredBuoyRows.value;
-    if (!visibleRows.length) {
-        selectedBuoyId.value = '';
-        history.value = null;
-        historyError.value = '';
-        updateMap();
-        return;
-    }
-    if (!visibleRows.some((buoy) => buoy.id === selectedBuoyId.value)) {
-        selectedBuoyId.value = visibleRows[0].id;
-        return;
-    }
-    updateMap();
-});
-watch(hasHistory, (available) => { if (available) renderCharts(); }); window.addEventListener('resize', resizeCharts);
-onBeforeUnmount(() => { stop(); window.removeEventListener('resize', resizeCharts); [windChart, waveChart, currentChart, wavePeriodChart, directionChart].forEach((chart) => chart?.dispose()); });
+    syncRefreshTimer();
+}, { immediate: true });
+watch(autoRefresh, syncRefreshTimer);
+watch([filteredBuoys, refreshing, () => props.show], ([rows, busy, visible]) => {
+    if (!visible || (busy && !stations.value.length)) return;
+    if (!rows.some(buoy => buoy.id === selectedBuoyId.value)) selectedBuoyId.value = rows[0]?.id || '';
+}, { flush: 'pre' });
+watch([filteredBuoys, selectedBuoyId, () => props.show], updateMap, { flush: 'post' });
+watch(() => trendRequest.value?.key, () => loadTrend(), { immediate: true });
+watch([chartEl, chartSeries, trendMetric, () => props.show], renderChart, { flush: 'post' });
+onBeforeUnmount(stop);
 defineExpose({ selectBuoy, focusBuoyRegion });
 </script>
 
 <style scoped>
-.live-update-highlight {
-    animation: buoy-live-update 1.4s ease-out;
+.buoy-row {
+    border: 1px solid rgba(51, 65, 85, .72);
+    background: rgba(2, 6, 23, .35);
 }
-
-@keyframes buoy-live-update {
-    0% {
-        border-color: rgba(103, 232, 249, 0.95);
-        box-shadow: 0 0 0 rgba(34, 211, 238, 0);
-        background-color: rgba(8, 47, 73, 0.72);
-    }
-
-    45% {
-        border-color: rgba(103, 232, 249, 0.9);
-        box-shadow: 0 0 22px rgba(34, 211, 238, 0.28);
-        background-color: rgba(8, 47, 73, 0.58);
-    }
-
-    100% {
-        border-color: rgba(34, 211, 238, 0.2);
-        box-shadow: 0 0 0 rgba(34, 211, 238, 0);
-        background-color: rgba(2, 6, 23, 0.45);
-    }
+.buoy-row:hover, .buoy-row[aria-pressed="true"] {
+    border-color: rgba(103, 232, 249, .75);
+    background: rgba(8, 145, 178, .15);
+}
+.buoy-row:focus-visible, .buoy-button:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 1px;
+}
+.buoy-button {
+    border: 1px solid rgba(34, 211, 238, .36);
+    background: rgba(8, 47, 73, .38);
+    padding: 5px 9px;
+    color: #e0f2fe;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.buoy-button:hover, .buoy-button[aria-pressed="true"] {
+    border-color: #67e8f9;
+    background: rgba(8, 145, 178, .26);
+    color: white;
+}
+.buoy-button:disabled {
+    opacity: .55;
+}
+.buoy-chart-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    font-size: 14px;
 }
 </style>

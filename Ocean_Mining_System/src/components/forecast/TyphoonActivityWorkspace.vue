@@ -44,10 +44,11 @@
 import {computed,onBeforeUnmount,onMounted,ref,watch} from 'vue';
 import * as C from 'cesium';
 import {monitoringRequest as request} from '../../api/monitoring.js';
+import {fetchForecastTargets} from '../../api/forecastWarningBuoy.js';
 import {fetchMiningAreaTyphoonAllEvents,fetchTyphoonTrack} from '../../api/typhoonHistory.js';
 import PanelSelect from '../common/PanelSelect.vue';
-const props=defineProps({getViewer:Function});
-defineEmits(['close']);
+const props=defineProps({getViewer:Function,mineId:String});
+const emit = defineEmits(['close','select-target']);
 const areas=ref([]),areaId=ref(''),data=ref(null),mode=ref('活动预报'),error=ref(''),loading=ref(false),showBuffer=ref(true);
 const stormId=ref(''),member=ref(''),enabled=ref(['ECMWF ENS','ECMWF IFS','JMA','NHC']);
 const cases=ref([]),sid=ref(''),archivePoints=ref([]),archiveLoading=ref(false),frame=ref(0),playing=ref(false);
@@ -55,7 +56,7 @@ const historyPoint=computed(()=>archivePoints.value[frame.value]);
 const allTracks=computed(()=>data.value?.tracks||[]);
 const sources=computed(()=>[...new Set(allTracks.value.map(t=>t.source))]);
 const storms=computed(()=>[...new Set(allTracks.value.map(t=>t.stormId))]);
-const areaOptions=computed(()=>areas.value.map(area=>({value:area.areaId,label:`${area.contractor||area.areaId} · ${area.areaId}`})));
+const areaOptions=computed(()=>areas.value.map(area=>({value:area.id,label:area.name})));
 const stormOptions=computed(()=>[{value:'',label:'全部活动台风'},...storms.value.map(id=>({value:id,label:id}))]);
 const memberOptions=computed(()=>[{value:'',label:'全部成员'},...members.value.map(value=>({value:String(value),label:`成员 ${value}`}))]);
 const caseOptions=computed(()=>cases.value.map(event=>({value:event.sid,label:`${event.name||event.sid} · ${String(event.closestTime||event.influenceStart||event.sid).slice(0,10)}`})));
@@ -121,7 +122,16 @@ async function loadTrack(){
   catch(e){if(id===trackId)error.value=e.message;}
 }
 function togglePlayback(){if(frame.value===archivePoints.value.length-1)frame.value=0;playing.value=!playing.value;}
-watch(areaId,()=>{playing.value=false;error.value='';data.value=null;stormId.value='';member.value='';load();if(mode.value==='历史回放')loadCases();});
+watch(areaId, id => {
+  playing.value=false;error.value='';data.value=null;stormId.value='';member.value='';
+  const target = areas.value.find(item => item.id === id);
+  if (target) emit('select-target', target);
+  load();
+  if(mode.value==='历史回放')loadCases();
+});
+watch(() => props.mineId, id => {
+  if (areas.value.some(area => area.id === id)) areaId.value = id;
+});
 watch(mode,()=>{playing.value=false;error.value='';if(mode.value==='历史回放')loadCases();drawPaths();});
 watch(sid,loadTrack);
 watch(stormId,()=>{member.value='';locate(selectedPoint.value);});
@@ -130,7 +140,13 @@ watch([showBuffer,()=>data.value?.buffer],drawBuffer);
 watch(frame,()=>{if(marker&&historyPoint.value){marker.position=C.Cartesian3.fromDegrees(historyPoint.value.lon,historyPoint.value.lat);props.getViewer?.()?.scene.requestRender();}});
 onMounted(async()=>{
   playback=setInterval(()=>{if(playing.value){if(frame.value+1<archivePoints.value.length)frame.value++;else playing.value=false;}},350);
-  try{areas.value=[...new Map((await request('/api/mining-areas')).map(a=>[a.areaId,a])).values()];if(!disposed)areaId.value=areas.value[0]?.areaId||'';}catch(e){error.value=e.message;}
+  try {
+    const rows = await fetchForecastTargets();
+    if (!disposed) {
+      areas.value = rows;
+      areaId.value = rows.find(area => area.id === props.mineId)?.id || rows[0]?.id || '';
+    }
+  } catch(e) { if(!disposed) error.value=e.message; }
 });
 onBeforeUnmount(()=>{disposed=true;loadId++;archiveId++;trackId++;bufferId++;clearTimeout(poll);clearInterval(playback);clearPaths();const v=props.getViewer?.();if(bufferSource&&v&&!v.isDestroyed())v.dataSources.remove(bufferSource,true);});
 </script>

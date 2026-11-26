@@ -1,33 +1,18 @@
 <template>
-  <div class="absolute inset-0 z-50 pointer-events-none">
-    <section data-select-boundary style="position:absolute" class="tech-panel-enhanced pointer-events-auto absolute left-8 top-36 bottom-6 w-[28rem] flex flex-col overflow-hidden p-4">
-      <div class="flex justify-between border-b border-cyan-500/30 pb-3"><h3 class="text-xl font-bold text-white">浮标监测</h3><button class="floating-panel-close-btn floating-panel-close-btn--inline" @click="$emit('close')">✕</button></div>
-      <nav aria-label="浮标视图" class="my-3 flex shrink-0 gap-4 text-sm text-cyan-100">
-        <button type="button" aria-pressed="false" class="pb-1" @click="$emit('station')">站点监测</button>
-        <button type="button" aria-pressed="true" class="border-b border-cyan-300 pb-1 text-white">通量浮标</button>
-      </nav>
-      <div class="mb-3 flex shrink-0 items-center justify-between text-sm text-cyan-100"><span>测试数据</span><button @click="mode=mode==='met'?'attitude':'met'">{{ mode==='met'?'姿态数据':'气象数据' }}</button></div>
-      <PanelSelect v-model="day" label="观测日期" :options="dayOptions" />
-      <PanelSelect v-model="field" label="监测指标" :options="fieldOptions" class="my-3" />
-      <div v-if="error" class="text-rose-200">{{ error }}</div><div v-if="loading" class="text-slate-300">加载中</div>
-      <div class="text-xs text-slate-300">末次观测</div>
-      <div class="mb-3 mt-1 text-3xl text-white">{{ lastObservation ? lastObservation.value.toFixed(2) : '--' }} <span class="text-sm">{{ fields[field]?.unit }}</span></div>
-      <div v-if="!loading && !records.length && !error" class="text-slate-400">暂无记录</div>
-      <div ref="chartEl" class="min-h-0 flex-1"></div>
-    </section>
-    <section style="position:absolute" class="tech-panel-enhanced pointer-events-auto absolute right-6 top-36 bottom-6 w-[28rem] flex flex-col overflow-hidden">
-      <div class="model-toolbar shrink-0 border-b border-cyan-500/30 p-4 text-cyan-100 font-['Noto_Sans_SC']">
-        <nav aria-label="模型视图" class="model-view-buttons">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label="通量浮标模型">
+      <div class="model-toolbar flex shrink-0 items-center justify-between gap-2 border-b border-cyan-500/30 p-4 text-cyan-100">
+        <nav aria-label="模型视图" class="flex items-center gap-2">
           <button v-for="view in ['设备近景','系泊示意']" :key="view" type="button" :aria-pressed="modelView===view"
-            :class="{ 'is-active': modelView===view }" @click="selectView(view)">{{ view }}</button>
+            class="model-button" @click="selectView(view)">{{ view }}</button>
         </nav>
-        <div class="model-actions mt-3">
-          <label class="flex items-center gap-2 text-sm"><input v-model="showLabels" type="checkbox">标注</label>
-          <button type="button" class="model-reset" @click="resetView">复位</button>
+        <div class="flex items-center gap-2">
+          <button type="button" class="model-button" :aria-pressed="showLabels" @click="showLabels = !showLabels">标注</button>
+          <button type="button" class="model-button" @click="resetView">复位</button>
         </div>
       </div>
       <div class="relative min-h-0 w-full flex-1">
         <div ref="modelEl" class="absolute inset-0"></div>
+        <div v-if="modelError" class="absolute inset-0 grid place-items-center text-sm text-rose-200">{{ modelError }}</div>
         <svg v-if="showLabels" class="pointer-events-none absolute inset-0 h-full w-full" :viewBox="`0 0 ${modelSize.width} ${modelSize.height}`">
           <g v-for="label in modelLabels" :key="label.name">
             <polyline :points="`${label.ax},${label.ay} ${label.endX},${label.y}`" fill="none" stroke="#8cb7c9" stroke-width="0.8"/>
@@ -44,26 +29,20 @@
             </g>
           </g>
         </svg>
-        <div v-if="modelView==='系泊示意'" class="pointer-events-none absolute bottom-3 left-4 text-xs text-slate-300">系泊示意</div>
       </div>
-    </section>
-  </div>
+    </div>
 </template>
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import * as echarts from 'echarts';
-import { darkChartTooltip } from '../../utils/chartTooltip.js';
-import PanelSelect from '../common/PanelSelect.vue';
-import { lastValidObservation, validObservationValue } from '../../utils/buoyObservationData.js';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { MOORING_DEPTH, MOORING_LINE, MOORING_TICKS, schematicPoint } from '../../utils/mining/buoySchematic.js';
 import * as C from 'cesium';
-import { monitoringRequest as request } from '../../api/monitoring.js';
-const props=defineProps({getViewer:Function});
-defineEmits(['close','station']);
-const mode=ref('met'), modelView=ref('系泊示意');
+const emit = defineEmits(['selectMetric']);
+const modelView=ref('系泊示意');
 const showLabels=ref(true), modelLabels=ref([]), ruler=ref([]);
 const modelSize=ref({width:448,height:820});
-let annotationObserver,removeRenderListener,mapMarker;
+const modelEl = ref(null);
+const modelError = ref('');
+let annotationObserver, removeRenderListener, viewer;
 const anchors=[
   {name:'航标灯',lines:['航标灯'],at:[0,0,5.95],side:'right'},
   {name:'风速风向5',lines:['5 m风速风向','传感器'],at:[-.1,.96,5.16],side:'left'},
@@ -82,54 +61,6 @@ const anchors=[
   {name:'释放器',lines:['声学释放器'],at:[1.1,0,-2900],side:'right',mooring:true},
   {name:'锚',lines:['重力锚'],at:[1.8,0,-MOORING_DEPTH],side:'left',mooring:true}
 ];
-const manifest=ref(null),day=ref(''),field=ref(2),records=ref([]),loading=ref(false),error=ref(''),chartEl=ref(null),modelEl=ref(null);
-const lastObservation=computed(()=>lastValidObservation(records.value,field.value));
-let chart,viewer,abort,observer,destroyed=false;
-const base='/api/buoy-observations/deepsea-flux-test';
-const attitudeFields=['横滚','俯仰','偏航','加速度X','加速度Y','加速度Z','角速度X','角速度Y','角速度Z','磁场X','磁场Y','磁场Z'].map((name,i)=>({name,unit:i<3?'°':i<6?'g':i<9?'°/s':'LSB'}));
-const fields=computed(()=>mode.value==='met'?(manifest.value?.fields||[]):attitudeFields);
-const dayOptions=computed(()=>(manifest.value?.days||[]).map(value=>({value,label:value})));
-const fieldOptions=computed(()=>fields.value.map((item,value)=>({value,label:`${item.name} ${item.unit}`})));
-async function loadDay() {
-  abort?.abort(); const controller=new AbortController();abort=controller;loading.value=true;error.value='';records.value=[];
-  try { await renderChart(); if(!day.value || destroyed || controller.signal.aborted)return; const rows=await request(`${base}/${mode.value==='met'?'days':'attitudes'}/${day.value}`,{signal:controller.signal});if(controller.signal.aborted || destroyed)return;records.value=mode.value==='met'?rows:rows.map(r=>({...r,values:[...(r.decoded.angles||[null,null,null]),...(r.decoded.accelerationG||[null,null,null]),...(r.decoded.angularVelocity||[null,null,null]),...(r.decoded.magneticRaw||[null,null,null])],invalid:r.quality.errors}));await renderChart(); }
-  catch(e){if(e.name!=='AbortError')error.value=e.message;}finally{if(abort===controller)loading.value=false;}
-}
-async function renderChart() {
-  await nextTick();
-  if (!chartEl.value || destroyed) return;
-  chart ||= echarts.init(chartEl.value);
-  const selectedField = fields.value[field.value];
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      ...darkChartTooltip,
-      valueFormatter: value => value == null ? '—' : Number(value).toFixed(2) + ' ' + (selectedField?.unit || '')
-    },
-    grid: { left: 45, right: 12, top: 20, bottom: 45 },
-    xAxis: {
-      type: 'category',
-      data: records.value.map(record => record.time),
-      axisLabel: { formatter: value => value.slice(11), color: '#cbd5e1' }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: '#cbd5e1' },
-      splitLine: { lineStyle: { color: '#334155' } }
-    },
-    dataZoom: [{ type: 'inside' }],
-    series: [{
-      type: 'line',
-      name: selectedField?.name,
-      data: records.value.map(record => validObservationValue(record,field.value)),
-      showSymbol: false,
-      connectNulls: false,
-      sampling: 'lttb',
-      lineStyle: { color: '#22d3ee' },
-      itemStyle: { color: '#22d3ee' }
-    }]
-  }, true);
-}
 const origin=C.Cartesian3.fromDegrees(0,0,0),transform=C.Transforms.eastNorthUpToFixedFrame(origin);
 const point=(x,y,z)=>C.Matrix4.multiplyByPoint(transform,new C.Cartesian3(x,y,z),new C.Cartesian3());
 function resetView(){
@@ -169,7 +100,12 @@ function createModel(){
   removeRenderListener=viewer.scene.postRender.addEventListener(updateAnnotations);
   annotationObserver=new ResizeObserver(updateAnnotations);
   annotationObserver.observe(modelEl.value);
-  viewer.screenSpaceEventHandler.setInputAction(event=>{const hit=viewer.scene.pick(event.position);const node=hit?.detail?.node?.name?.match(/^wind-([235])m$/);const selectedIndex=hit?.id?.metricIndex??(node?({2:2,3:4,5:6}[node[1]]):undefined);if(selectedIndex!==undefined){mode.value='met';nextTick(()=>{field.value=selectedIndex;});}},C.ScreenSpaceEventType.LEFT_CLICK);
+  viewer.screenSpaceEventHandler.setInputAction(event => {
+    const hit = viewer.scene.pick(event.position);
+    const node = hit?.detail?.node?.name?.match(/^wind-([235])m$/);
+    const index = hit?.id?.metricIndex ?? (node ? { 2: 2, 3: 4, 5: 6 }[node[1]] : undefined);
+    if (index !== undefined) emit('selectMetric', index);
+  }, C.ScreenSpaceEventType.LEFT_CLICK);
   resetView();
 }
 function updateAnnotations() {
@@ -198,35 +134,35 @@ function updateAnnotations() {
   }
 }
 let lastAnnotationState='';
-function addStationMarker() {
-  const v=props.getViewer?.(),location=manifest.value?.location;
-  if(!v || !location)return;
-  mapMarker=v.entities.add({
-    name:manifest.value.name,
-    position:C.Cartesian3.fromDegrees(location.longitude,location.latitude),
-    properties:{buoyId:manifest.value.stationId},
-    billboard:{image:'/image/浮标.png',width:70,height:70,verticalOrigin:C.VerticalOrigin.BOTTOM,disableDepthTestDistance:Infinity},
-    label:{text:'通量浮标',font:'14px sans-serif',pixelOffset:new C.Cartesian2(0,18),fillColor:C.Color.CYAN,outlineColor:C.Color.BLACK,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,disableDepthTestDistance:Infinity}
-  });
-  v.camera.flyTo({destination:C.Cartesian3.fromDegrees(location.longitude,location.latitude,600000)});
-}
 watch(showLabels,()=>{lastAnnotationState='';updateAnnotations();});
-watch(day,loadDay);watch(field,renderChart);watch(mode,()=>{field.value=mode.value==='met'?2:0;loadDay();});
-onMounted(async()=>{
-  try { manifest.value=await request(`${base}/manifest`);if(destroyed)return;day.value=manifest.value.days[0] || '';createModel();addStationMarker(); }
-  catch(e){error.value=e.message;}
-  observer=new ResizeObserver(()=>chart?.resize());if(chartEl.value)observer.observe(chartEl.value);
+onMounted(() => {
+  try {
+    createModel();
+  } catch (error) {
+    console.warn('浮标模型初始化失败', error);
+    modelError.value = '三维模型加载失败';
+  }
 });
-onBeforeUnmount(()=>{annotationObserver?.disconnect();removeRenderListener?.();const map=props.getViewer?.();if(mapMarker&&map&&!map.isDestroyed())map.entities.remove(mapMarker);destroyed=true;abort?.abort();observer?.disconnect();chart?.dispose();viewer?.destroy();});
+onBeforeUnmount(() => {
+  annotationObserver?.disconnect();
+  removeRenderListener?.();
+  if (viewer && !viewer.isDestroyed()) viewer.destroy();
+});
 </script>
 
 <style scoped>
 .model-label{font:12px sans-serif;fill:#e0f2fe;stroke:#071526;stroke-width:3px;paint-order:stroke;stroke-linejoin:round;}
-.model-view-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:28px;line-height:1.4;white-space:nowrap;}
-.model-view-buttons button{padding:6px 8px;border:1px solid rgba(34,211,238,.28);background:rgba(15,23,42,.45);}
-.model-view-buttons button.is-active{border-color:#67e8f9;background:rgba(8,145,178,.22);box-shadow:inset 0 -2px #67e8f9;}
-.model-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.model-reset{min-width:88px;padding:2px 12px;border:1px solid rgba(34,211,238,.32);font-size:28px;line-height:1.4;}
-.model-reset:hover,.model-view-buttons button:hover{border-color:#67e8f9;background:rgba(8,145,178,.22);}
+.model-button {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 211, 238, .35);
+  background: rgba(8, 15, 28, .65);
+  font: 700 14px/1 'Noto Sans SC', sans-serif;
+  white-space: nowrap;
+}
+.model-button:hover, .model-button[aria-pressed="true"] {
+  border-color: #67e8f9;
+  background: rgba(8, 145, 178, .25);
+}
 .model-toolbar button:focus-visible{outline:2px solid #67e8f9;outline-offset:2px;}
 </style>

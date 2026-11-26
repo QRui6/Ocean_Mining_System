@@ -30,8 +30,8 @@ class MiningRiskCacheTest {
         var service=new MiningRiskService(db,new ObjectMapper(),mock(MiningAreaRepository.class),mock(WeatherMetadataRepository.class),mock(PlatformTransactionManager.class),20,25,4,6,2,"UTC");
         clearInvocations(db);
         try {
-            assertEquals(existing,service.start("area"));
-            assertEquals(existing,service.start("area"));
+            assertEquals(existing,service.start("CMMPMN1"));
+            assertEquals(existing,service.start("CMMPMN1"));
             verify(db,never()).update(startsWith("INSERT INTO mining_risk_runs"),any(),any(),any(),any());
         } finally { service.stop(); }
     }

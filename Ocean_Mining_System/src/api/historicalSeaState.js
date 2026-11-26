@@ -305,6 +305,30 @@ const averageBy = (records = [], field) => {
     return values.reduce((total, value) => total + value, 0) / values.length;
 };
 
+export const calculateAnnualSeaState = (records, field) => {
+    const totals = new Map();
+    for (const record of records) {
+        const year = Number(record.year ?? String(record.key).slice(0, 4));
+        const value = parseNumber(record[field]);
+        if (!isValidYear(year) || value === null) continue;
+
+        const total = totals.get(year) || { sum: 0, count: 0 };
+        total.sum += value;
+        total.count++;
+        totals.set(year, total);
+    }
+
+    if (!totals.size) return [];
+    const years = [...totals.keys()];
+    const first = Math.min(...years);
+    const last = Math.max(...years);
+    return Array.from({ length: last - first + 1 }, (_, index) => {
+        const year = first + index;
+        const total = totals.get(year);
+        return { year, value: total ? total.sum / total.count : null };
+    });
+};
+
 export const createEmptySeaStateSummary = () => ({
     hasData: false,
     totalMonths: 0,

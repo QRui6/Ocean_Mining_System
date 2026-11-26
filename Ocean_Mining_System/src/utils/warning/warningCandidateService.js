@@ -1,13 +1,4 @@
-import {
-    fetchMiningOverviewRegionDaily,
-    fetchMiningOverviewRegionHourly,
-    fetchMiningOverviewRegions,
-    fetchMiningOverviewSiteDaily,
-    fetchMiningOverviewSiteHourly,
-    fetchMiningOverviewSites
-} from '../../api/miningregionoverview.js';
-
-import { monitoringRequest } from '../../api/monitoring.js';
+import { forecastTargetSeries } from '../forecastReportText.js';
 const ATTENTION = { wind: 16, gust: Infinity, wave: 3.2, current: 1.6 };
 const WARNING = { wind: 20, gust: Infinity, wave: 4, current: 2 };
 const CRITICAL = { wind: 25, gust: Infinity, wave: 6, current: Infinity };
@@ -78,13 +69,6 @@ const formatDateTime = (value) => {
 const formatNumber = (value) => Number.isFinite(value) ? value.toFixed(1) : '--';
 
 const baseDateOf = (records) => [...new Set(records.map((record) => dateOnly(record?.baseDate || record?.forecastBaseTime || record?.issuedAt)).filter(Boolean))].sort().at(-1) || '';
-
-const staleOf = (baseDate) => {
-    if (!baseDate) return true;
-    const today = new Date();
-    const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    return baseDate < localToday;
-};
 
 const levelOf = (summary) => {
     if (Object.entries(CRITICAL).some(([key, threshold]) => (summary[key] ?? -Infinity) >= threshold)) return 'CRITICAL';
@@ -159,7 +143,7 @@ const buildBulletin = ({ scope, regionName, siteName, records, summary, level, b
     return lines.join('\n');
 };
 
-const buildCandidate = ({ region, site, records }) => {
+const buildCandidate = ({ region, site, records, range }) => {
     const validRecords = records.filter(Boolean);
     const summary = summarize(validRecords);
     const level = levelOf(summary);
@@ -167,10 +151,8 @@ const buildCandidate = ({ region, site, records }) => {
     const regionName = region?.regionName || region?.regionCode || `区域${region?.id || '--'}`;
     const siteName = site?.name || site?.displayName || site?.siteName || site?.siteCode || '';
     const baseDate = baseDateOf(validRecords);
-    const stale = staleOf(baseDate);
-    const scope = siteName ? '小矿区' : '区域';
+    const scope = '矿区';
     const trigger = triggerDetails(validRecords, summary, level);
-    const range = validRecords.length > 1 ? '7d' : '12h';
     const id = `forecast-candidate-${region?.id || 'unknown'}-${site?.id || 'region'}-${recordDate(validRecords[0]) || 'latest'}`;
     return {
         id,
@@ -178,6 +160,8 @@ const buildCandidate = ({ region, site, records }) => {
         type: 'forecast_candidate',
         warningCode: `${scope}预报候选 · ${siteName || regionName}`,
         regionId: String(region?.id || ''),
+        areaId: region.id,
+        sourceType: 'candidate',
         regionName,
         siteId: site?.id ? String(site.id) : '',
         siteName,
@@ -190,11 +174,11 @@ const buildCandidate = ({ region, site, records }) => {
         triggerType: trigger.map((item) => item.type).join('、') || '预报指标',
         triggerDetail: trigger,
         warningMessage: `预计在${formatDate(trigger[0]?.forecastDate || recordDate(validRecords[0]))}前后出现${level === 'CRITICAL' ? '严重' : level === 'WARNING' ? '较明显' : '需要关注的'}风浪流条件。`,
-        bulletinText: buildBulletin({ scope, regionName, siteName, records: validRecords, summary, level, baseDate, stale }),
+        bulletinText: buildBulletin({ scope, regionName, siteName, records: validRecords, summary, level, baseDate }),
         forecastData: { series: validRecords },
         sourceBase: baseDate || '--',
         validUntil: recordDate(validRecords.at(-1)) || '--',
-        stale,
+        stale: false,
         createdAt: new Date().toISOString()
     };
 };
@@ -309,7 +293,7 @@ const enrichCandidateWithHourly = (candidate, hourlyRecords = []) => {
         warningMessage: `预计在${formatDateTime(firstRiskAt)}，${candidate.siteName ? `${candidate.regionName}的${candidate.siteName}` : candidate.regionName}首次达到${analysis.firstRiskLabel || '候选预警'}条件；预计${analysis.peakType || '风险指标'}在${formatDateTime(analysis.peakAt)}附近达到峰值。`,
         analysis,
         forecastData: { ...(candidate.forecastData || {}), series: records, hourlySeries: records, dailySeries: candidate.forecastData?.series || [] },
-        validUntil: endAt || candidate.validUntil,
+        validUntil: lastRisk.forecastTime || candidate.validUntil,
         sourceGranularity: '逐小时'
     };
     return { ...updated, bulletinText: buildHourlyBulletin({ candidate: updated, hourlyRecords: records, analysis, triggers }) };
@@ -328,69 +312,124 @@ const mapLimit = async (items, limit, worker) => {
     return results;
 };
 
-const loadRegion = async (region) => {
-    const [dailyResult, sitesResult] = await Promise.allSettled([
-        fetchMiningOverviewRegionDaily(region.id),
-        fetchMiningOverviewSites(region.id)
-    ]);
-    const daily = dailyResult.status === 'fulfilled' ? dailyResult.value : [];
-    const sites = sitesResult.status === 'fulfilled' ? sitesResult.value : [];
-    const siteItems = await mapLimit(sites, 6, async (site) => {
-        try {
-            const siteDaily = await fetchMiningOverviewSiteDaily(site.id);
-            const candidate = buildCandidate({ region, site, records: siteDaily });
-            if (!candidate) return null;
-            const forecastDate = candidate.triggerDetail[0]?.forecastDate || recordDate(siteDaily[0]);
-            if (!forecastDate) return candidate;
-            try {
-                const hourly = await fetchMiningOverviewSiteHourly(site.id, forecastDate);
-                return enrichCandidateWithHourly(candidate, hourly);
-            } catch (error) {
-                return candidate;
+const expiredCandidates = ({ target, station, report, hourlyPoints }, now) => {
+    if (!report.summary.stale || !hourlyPoints?.length) return [];
+    const { baseDate, runCycle, timeRange } = report.summary;
+    const rows = forecastTargetSeries({ summary: report.summary, points: hourlyPoints });
+    const samples = rows.map(row => ({ row, at: Date.parse(row.forecastTime), values: metrics(row) }))
+        .filter(sample => Number.isFinite(sample.at))
+        .sort((a, b) => a.at - b.at);
+    if (!samples.length) return [];
+    const step = samples.reduce((shortest, sample, i) => {
+        if (!i || sample.at <= samples[i - 1].at) return shortest;
+        return Math.min(shortest, sample.at - samples[i - 1].at);
+    }, 3 * 3600000);
+    const cycleHour = /^t?(00|06|12|18)$/i.exec(runCycle)?.[1];
+    const initialTimeUnverified = cycleHour != null && Date.parse(`${baseDate}T${cycleHour}:00:00Z`) > samples[0].at;
+    const region = { id: target.id, regionName: target.name };
+    const site = { ...station, siteName: station.label };
+    const items = [];
+
+    for (const [metric, threshold] of Object.entries(WARNING)) {
+        if (!Number.isFinite(threshold)) continue;
+        const exceeds = sample => sample.values[metric] != null && sample.values[metric] >= threshold;
+        for (let i = 0; i < samples.length; i++) {
+            if (!exceeds(samples[i])) continue;
+            const first = i;
+            let peak = samples[i];
+            while (i + 1 < samples.length && samples[i + 1].at - samples[i].at === step && exceeds(samples[i + 1])) {
+                i++;
+                if (samples[i].values[metric] > peak.values[metric]) peak = samples[i];
             }
-        } catch (error) {
-            return null;
-        }
-    });
-    const siteCandidates = siteItems.filter(Boolean);
-    const regionCandidate = buildCandidate({ region, records: daily });
-    let enrichedRegionCandidate = regionCandidate;
-    if (regionCandidate) {
-        const forecastDate = regionCandidate.triggerDetail[0]?.forecastDate || recordDate(daily[0]);
-        if (forecastDate) {
-            try {
-                const hourly = await fetchMiningOverviewRegionHourly(region.id, forecastDate);
-                enrichedRegionCandidate = enrichCandidateWithHourly(regionCandidate, hourly);
-            } catch (error) {
-                enrichedRegionCandidate = regionCandidate;
-            }
+            if (samples[i].at >= now) continue;
+            const start = samples[first].row.forecastTime;
+            const end = samples[i].row.forecastTime;
+            const next = samples[i + 1];
+            const recoveredAt = next && next.at - samples[i].at === step && next.at < now && next.values[metric] != null
+                ? next.row.forecastTime : '';
+            const value = peak.values[metric];
+            const severity = value >= CRITICAL[metric] ? 'CRITICAL' : 'WARNING';
+            const label = labelOf(metric), unit = unitOf(metric);
+            const hourlySeries = samples.slice(Math.max(0, first - 4), i + 5).map(sample => sample.row);
+            items.push({
+                id: `forecast-candidate-${target.id}-${station.id}-${baseDate}-${runCycle}-${metric}-${samples[first].at}`,
+                areaId: target.id, regionId: target.id, regionName: target.name, region,
+                siteId: String(station.id), siteName: station.label, site,
+                source: '预报候选', sourceType: 'candidate', type: 'forecast_candidate',
+                warningCode: `${label}预警 · ${station.label ? `${target.name} · ${station.label}` : target.name}`,
+                severity, candidateLevel: severity === 'CRITICAL' ? '严重' : '预警',
+                status: 'EXPIRED', stale: true, timeRange,
+                sourceBase: [baseDate, runCycle].filter(Boolean).join(' '), initialTimeUnverified,
+                validFrom: start, validUntil: end,
+                triggerType: label,
+                triggerDetail: [{ type: label, value, unit, threshold, forecastDate: start }],
+                warningMessage: `${label}达到预警阈值，峰值 ${formatNumber(value)} ${unit}。`,
+                analysis: { firstRiskAt: start, endAt: end, recoveredAt, peakAt: peak.row.forecastTime,
+                    peakType: label, peakValue: formatNumber(value), peakUnit: unit, dataGranularity: '分时预报' },
+                forecastData: { hourlySeries }
+            });
         }
     }
+    return items;
+};
+
+const loadStation = async ({ target, station }, fetchForecastTarget, now, includeExpired) => {
+    let range = '7d';
+    let { report } = await fetchForecastTarget(target.id, range, station.id);
+    if (!report.points.length) {
+        range = '12h';
+        ({ report } = await fetchForecastTarget(target.id, range, station.id));
+    }
+    if (!report.points.length) return {};
+    if (report.summary.stale) {
+        if (!includeExpired) return { stale: true };
+        const product = await fetchForecastTarget(target.id, report.hourly ? '12h' : '15d', station.id, { includeHourly: true });
+        return { stale: true, expiredItems: expiredCandidates(product, now) };
+    }
+
+    const records = forecastTargetSeries(report).filter(record => record.forecastTime
+        ? Date.parse(record.forecastTime) >= now
+        : Date.parse(`${record.forecastDate}T23:59:59+08:00`) >= now);
+    const region = { id: target.id, regionName: target.name };
+    const site = { ...station, siteName: station.label };
+    const candidate = buildCandidate({ region, site, records, range });
+    if (!candidate) return {};
+    if (report.hourly) return { candidate: enrichCandidateWithHourly(candidate, records) };
+    return { candidate };
+};
+
+export const collectWarningCandidates = async (targets, rules, fetchForecastTarget, now = Date.now(), { includeExpired = false } = {}) => {
+    for (const [key, source] of Object.entries({wind:'wind',wave:'wave',current:'ocean_current'})) {
+        WARNING[key]=rules[source].warning; CRITICAL[key]=rules[source].critical ?? Infinity; ATTENTION[key]=WARNING[key]*0.8;
+    }
+    const stations = targets.flatMap(target => target.stations.map(station => ({ target, station })));
+    const loaded = await mapLimit(stations, 4, async item => ({
+        ...await loadStation(item, fetchForecastTarget, now, includeExpired),
+        areaId: item.target.id
+    }));
+    const candidates = loaded.map(item => item.candidate).filter(Boolean);
+    const staleByArea = {};
+    for (const item of loaded) {
+        if (item.stale) staleByArea[item.areaId] = (staleByArea[item.areaId] || 0) + 1;
+    }
+    const levelOrder = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    const bySeverity = (a, b) => levelOrder[a.severity] - levelOrder[b.severity] || a.warningCode.localeCompare(b.warningCode);
     return {
-        region,
-        candidates: [...siteCandidates, ...(enrichedRegionCandidate && (enrichedRegionCandidate.severity === 'CRITICAL' || !siteCandidates.length) ? [enrichedRegionCandidate] : [])],
-        sourceBase: baseDateOf(daily)
+        items: candidates.sort(bySeverity),
+        expiredItems: loaded.flatMap(item => item.expiredItems || []).sort(bySeverity),
+        generatedAt: new Date(now).toISOString(),
+        regions: targets.length,
+        staleCount: loaded.filter(item => item.stale).length,
+        staleByArea
     };
 };
 
 export const fetchWarningCandidates = async ({ force = false } = {}) => {
     if (!force && cache.value && cache.expiresAt > Date.now()) return cache.value;
-    const rules = await monitoringRequest('/api/mining-risk/rules');
-    for (const [key, source] of Object.entries({wind:'wind',wave:'wave',current:'ocean_current'})) {
-        WARNING[key]=rules[source].warning; CRITICAL[key]=rules[source].critical ?? Infinity; ATTENTION[key]=WARNING[key]*0.8;
-    }
-    const regions = await fetchMiningOverviewRegions();
-    const loaded = await mapLimit(regions, 3, loadRegion);
-    const candidates = loaded.flatMap((item) => item.candidates || []);
-    const value = {
-        items: candidates.sort((a, b) => {
-            const levelOrder = { CRITICAL: 0, WARNING: 1, INFO: 2 };
-            return (levelOrder[a.severity] ?? 9) - (levelOrder[b.severity] ?? 9) || a.warningCode.localeCompare(b.warningCode);
-        }),
-        generatedAt: new Date().toISOString(),
-        regions: regions.length,
-        staleCount: candidates.filter((item) => item.stale).length
-    };
+    const { fetchForecastTarget, fetchForecastTargets } = await import('../../api/forecastWarningBuoy.js');
+    const { monitoringRequest } = await import('../../api/monitoring.js');
+    const [rules, targets] = await Promise.all([monitoringRequest('/api/mining-risk/rules'), fetchForecastTargets()]);
+    const value = await collectWarningCandidates(targets, rules, fetchForecastTarget, Date.now(), { includeExpired: true });
     cache = { value, expiresAt: Date.now() + CACHE_TTL };
     return value;
 };

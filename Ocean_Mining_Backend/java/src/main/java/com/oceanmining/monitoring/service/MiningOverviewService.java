@@ -150,17 +150,25 @@ public class MiningOverviewService {
     }
 
     public List<SiteForecastDailyDTO> getSiteDailyForecasts(Long siteId) {
+        return getSiteDailyForecasts(siteId, false);
+    }
+
+    List<SiteForecastDailyDTO> getSiteDailyForecasts(Long siteId, boolean sameRun) {
         ForecastSite site = ensureSiteExists(siteId);
         List<SiteForecastDailyDTO> items = siteForecastDailyRepository
                 .findBySite_IdAndIsLatestTrueOrderByForecastDateAsc(siteId)
                 .stream()
                 .map(forecast -> toSiteDailyDto(site, forecast))
                 .collect(Collectors.toList());
-        mergeSiteDailyCurrent(siteId, items);
+        mergeSiteDailyCurrent(siteId, items, sameRun);
         return items;
     }
 
     public List<SiteForecastHourlyDTO> getSiteHourlyForecasts(Long siteId, LocalDate forecastDate) {
+        return getSiteHourlyForecasts(siteId, forecastDate, false);
+    }
+
+    List<SiteForecastHourlyDTO> getSiteHourlyForecasts(Long siteId, LocalDate forecastDate, boolean sameRun) {
         ForecastSite site = ensureSiteExists(siteId);
         List<SiteForecastHourly> rows = forecastDate == null
                 ? siteForecastHourlyRepository.findBySite_IdAndIsLatestTrueOrderByForecastTimeAsc(siteId)
@@ -169,7 +177,7 @@ public class MiningOverviewService {
         List<SiteForecastHourlyDTO> items = rows.stream()
                 .map(forecast -> toSiteHourlyDto(site, forecast))
                 .collect(Collectors.toList());
-        mergeSiteHourlyCurrent(siteId, forecastDate, items);
+        mergeSiteHourlyCurrent(siteId, forecastDate, items, sameRun);
         return items;
     }
 
@@ -389,20 +397,27 @@ public class MiningOverviewService {
         }
     }
 
-    private void mergeSiteDailyCurrent(Long siteId, List<SiteForecastDailyDTO> items) {
+    private record ValidTime<T>(T time, LocalDate baseDate, String cycle) {
+        static <T> ValidTime<T> key(T time, LocalDate baseDate, String cycle, boolean sameRun) {
+            return new ValidTime<>(time, sameRun ? baseDate : null, sameRun && cycle != null
+                    ? cycle.replaceFirst("(?i)^t", "") : null);
+        }
+    }
+
+    private void mergeSiteDailyCurrent(Long siteId, List<SiteForecastDailyDTO> items, boolean sameRun) {
         if (items.isEmpty()) {
             return;
         }
-        Map<LocalDate, SiteCurrentForecastDaily> currentByDate = siteCurrentForecastDailyRepository
+        var currentByDate = siteCurrentForecastDailyRepository
                 .findBySite_IdAndIsLatestTrueOrderByForecastDateAsc(siteId)
                 .stream()
                 .collect(Collectors.toMap(
-                        SiteCurrentForecastDaily::getForecastDate,
+                        row -> ValidTime.key(row.getForecastDate(), row.getBaseDate(), row.getRunCycle(), sameRun),
                         forecast -> forecast,
                         (left, right) -> right
                 ));
         for (SiteForecastDailyDTO item : items) {
-            SiteCurrentForecastDaily current = currentByDate.get(item.getForecastDate());
+            SiteCurrentForecastDaily current = currentByDate.get(ValidTime.key(item.getForecastDate(), item.getBaseDate(), item.getRunCycle(), sameRun));
             if (current == null) {
                 continue;
             }
@@ -412,21 +427,21 @@ public class MiningOverviewService {
         }
     }
 
-    private void mergeSiteHourlyCurrent(Long siteId, LocalDate forecastDate, List<SiteForecastHourlyDTO> items) {
+    private void mergeSiteHourlyCurrent(Long siteId, LocalDate forecastDate, List<SiteForecastHourlyDTO> items, boolean sameRun) {
         if (items.isEmpty()) {
             return;
         }
         List<SiteCurrentForecastHourly> currentRows = forecastDate == null
                 ? siteCurrentForecastHourlyRepository.findBySite_IdAndIsLatestTrueOrderByForecastTimeAsc(siteId)
                 : siteCurrentForecastHourlyRepository.findBySite_IdAndForecastDateAndIsLatestTrueOrderByForecastTimeAsc(siteId, forecastDate);
-        Map<java.time.ZonedDateTime, SiteCurrentForecastHourly> currentByTime = currentRows.stream()
+        var currentByTime = currentRows.stream()
                 .collect(Collectors.toMap(
-                        SiteCurrentForecastHourly::getForecastTime,
+                        row -> ValidTime.key(row.getForecastTime(), row.getBaseDate(), row.getRunCycle(), sameRun),
                         forecast -> forecast,
                         (left, right) -> right
                 ));
         for (SiteForecastHourlyDTO item : items) {
-            SiteCurrentForecastHourly current = currentByTime.get(item.getForecastTime());
+            SiteCurrentForecastHourly current = currentByTime.get(ValidTime.key(item.getForecastTime(), item.getBaseDate(), item.getRunCycle(), sameRun));
             if (current == null) {
                 continue;
             }

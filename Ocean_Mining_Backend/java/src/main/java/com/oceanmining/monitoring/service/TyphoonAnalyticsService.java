@@ -332,9 +332,9 @@ public class TyphoonAnalyticsService {
                     ORDER BY iso_time
                     """;
         } else {
-            resolveAreaScope(areaId);
+            ScopeContext area = resolveAreaScope(areaId);
             params.addValue("scopeId", areaId);
-            pointsSql = scopeGeometryCte(ScopeType.AREA) + """
+            pointsSql = scopeGeometryCte(area.scopeType()) + """
                     SELECT
                         p.iso_time,
                         p.lat,
@@ -371,7 +371,8 @@ public class TyphoonAnalyticsService {
         if (!miningAreaRepository.existsByAreaId(areaId)) {
             throw new ResourceNotFoundException("Mining area not found: " + areaId);
         }
-        return new ScopeContext(ScopeType.AREA, areaId, null, null);
+        ScopeType type = ServiceMiningAreas.find(areaId) == null ? ScopeType.AREA : ScopeType.CONTRACT;
+        return new ScopeContext(type, areaId, null, null);
     }
 
     private ScopeContext resolveRegionScope(String regionCode) {
@@ -559,6 +560,7 @@ public class TyphoonAnalyticsService {
                     FROM mining_areas
                     WHERE area_id = :scopeId
                     """;
+            case CONTRACT -> "SELECT ST_Multi(g) AS geom FROM (" + ServiceMiningAreas.CONTRACT_BOUNDARY.replace("?", ":scopeId") + ") AS area";
             case REGION -> """
                     SELECT geometry AS geom
                     FROM mining_regions
@@ -672,6 +674,7 @@ public class TyphoonAnalyticsService {
 
     private enum ScopeType {
         AREA,
+        CONTRACT,
         REGION
     }
 

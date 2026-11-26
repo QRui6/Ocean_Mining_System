@@ -36,6 +36,7 @@ const downloadFile = async (path, fallbackName, contentType = 'text/plain') => {
         headers: { Accept: contentType },
         signal: AbortSignal.timeout(contentType === 'application/pdf' ? 60000 : REQUEST_TIMEOUT)
     });
+    if (response.status === 409) throw new Error('预报批次已更新，请刷新后下载');
     if (!response.ok) throw new Error(`HTTP ${response.status}: 下载失败`);
 
     if (contentType === 'application/pdf' && !response.headers.get('Content-Type')?.toLowerCase().includes('application/pdf')) {
@@ -75,6 +76,24 @@ export const downloadForecastBulletin = (regionId, range, variant = 'report', fo
     format==='pdf'?'application/pdf':'text/plain'
 );
 
+let forecastTargetsRequest;
+export const fetchForecastTargets = () => {
+    forecastTargetsRequest ??= requestJson('/api/forecast/targets').catch(error => {
+        forecastTargetsRequest = null;
+        throw error;
+    });
+    return forecastTargetsRequest;
+};
+const forecastTargetPath = id => `/api/forecast/targets/${encodeURIComponent(id)}`;
+export const fetchForecastTarget = (id, range, siteId, { includeHourly } = {}) => requestJson(
+    `${forecastTargetPath(id)}${queryString({ range, siteId, includeHourly })}`
+);
+export const fetchForecastTargetGeometry = id => requestJson(`${forecastTargetPath(id)}/geometry`);
+export const downloadForecastTargetBulletin = (id, range, siteId, format, { baseDate, runCycle } = {}) => downloadFile(
+    `${forecastTargetPath(id)}/bulletin/download${queryString({ range, siteId, format, baseDate, runCycle })}`,
+    `forecast_${id}_${siteId}_${range}.${format}`,
+    format === 'pdf' ? 'application/pdf' : 'text/plain'
+);
 export const fetchWeatherWarnings = (params = {}) => requestJson(`/api/warnings/weather${queryString(params)}`);
 export const fetchWeatherWarningStats = () => requestJson('/api/warnings/weather/stats');
 export const fetchWeatherWarningDetail = (id) => requestJson(`/api/warnings/weather/${encodeURIComponent(id)}`);

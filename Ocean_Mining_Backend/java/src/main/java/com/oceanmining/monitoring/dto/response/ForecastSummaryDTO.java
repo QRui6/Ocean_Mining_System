@@ -23,6 +23,7 @@ public class ForecastSummaryDTO {
     private ZonedDateTime periodEnd;
     private ZonedDateTime requestedPeriodEnd;
     private Boolean dataComplete;
+    private Boolean stale;
     private Integer dataPointCount;
     private BigDecimal windSpeedAvg;
     private BigDecimal windSpeedMax;
@@ -59,6 +60,8 @@ public class ForecastSummaryDTO {
     public void setRequestedPeriodEnd(ZonedDateTime requestedPeriodEnd) { this.requestedPeriodEnd = requestedPeriodEnd; }
     public Boolean getDataComplete() { return dataComplete; }
     public void setDataComplete(Boolean dataComplete) { this.dataComplete = dataComplete; }
+    public Boolean getStale() { return stale; }
+    public void setStale(Boolean stale) { this.stale = stale; }
     public Integer getDataPointCount() { return dataPointCount; }
     public void setDataPointCount(Integer dataPointCount) { this.dataPointCount = dataPointCount; }
     public BigDecimal getWindSpeedAvg() { return windSpeedAvg; }

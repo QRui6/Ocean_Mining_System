@@ -222,7 +222,6 @@ export default {
         'toggleHistoricalSeaState',
         'togglePipelineWarning',
         'toggleMonitoringEvents',
-        'toggleForecastRegion',
         'toggleForecastCenter',
         'toggleWeatherWarnings',
         'toggleBuoyMonitoring',
@@ -346,9 +345,6 @@ export default {
                     emit('toggleForecastCenter');
                     return;
                 }
-                if (tool === '区域预报') {
-                    emit('toggleForecastRegion');
-                }
                 return;
             }
 
@@ -361,6 +357,8 @@ export default {
                     emit('toggleRoutePlan');
                 } else if (tool === '区域监控') {
                     emit('toggleAreaMonitor');
+                } else if (tool === '监控事件') {
+                    emit('toggleMonitoringEvents');
                 } else if (tool === '航线动态') {
                     emit('toggleRouteDemo');
                 }
@@ -371,9 +369,6 @@ export default {
                 if (tool === '气象预警') {
                     emit('toggleWeatherWarnings');
                     return;
-                }
-                if (tool === '监控事件') {
-                    emit('toggleMonitoringEvents');
                 }
                 return;
             }
@@ -407,7 +402,6 @@ export default {
 
             if (props.currentTab === '预报中心') {
                 if (tool === '常规预报') return props.activePanels.forecastCenter;
-                if (tool === '区域预报') return props.activePanels.forecastRegion;
             }
 
             if (props.currentTab === '采矿系统') {
@@ -415,12 +409,12 @@ export default {
                 if (tool === '船舶搜索') return props.activePanels.shipSearch;
                 if (tool === '航线规划') return props.activePanels.routePlan;
                 if (tool === '区域监控') return props.activePanels.areaMonitor;
+                if (tool === '监控事件') return props.activePanels.monitoringEvents;
                 if (tool === '航线动态') return props.activePanels.routeDemo;
             }
 
             if (props.currentTab === '预警中心') {
                 if (tool === '气象预警') return props.activePanels.weatherWarnings;
-                if (tool === '监控事件') return props.activePanels.monitoringEvents;
             }
 
             if (props.currentTab === '历史数据') {

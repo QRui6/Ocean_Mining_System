@@ -76,6 +76,7 @@ const sourceReady = (item, availability) => {
     if (item?.source === '预报候选') return availability.candidate !== false;
     if (item?.source === '浮标监测') return availability.buoy !== false;
     if (item?.source === '管道评估') return availability.pipeline !== false;
+    if (item?.sourceType === 'grid') return availability.grid !== false;
     return true;
 };
 
@@ -89,13 +90,13 @@ const eventText = (type, item, previous) => {
     return `${name}已解除，最新数据已不再满足原预警条件。`;
 };
 
-export const getWarningLifecycleState = () => ({
-    active: readJson(ACTIVE_KEY, {}),
-    history: readJson(HISTORY_KEY, [])
+export const getWarningLifecycleState = (scope = '') => ({
+    active: readJson(ACTIVE_KEY + scope, {}),
+    history: readJson(HISTORY_KEY + scope, [])
 });
 
-export const reconcileWarningLifecycle = (items = [], availability = {}, { now = new Date(), initializeSilently = false } = {}) => {
-    const previousState = getWarningLifecycleState();
+export const reconcileWarningLifecycle = (items = [], availability = {}, { now = new Date(), initializeSilently = false, scope = '' } = {}) => {
+    const previousState = getWarningLifecycleState(scope);
     const previousActive = previousState.active && typeof previousState.active === 'object' ? previousState.active : {};
     const history = Array.isArray(previousState.history) ? previousState.history : [];
     const currentById = new Map(items.filter((item) => item?.id).map((item) => [String(item.id), item]));
@@ -142,7 +143,7 @@ export const reconcileWarningLifecycle = (items = [], availability = {}, { now =
             if (previous && !initializeSilently) events.push(event);
             return;
         }
-        if (expired) {
+        if (expired || item.stale) {
             nextActive[id] = { ...clone(item), stale: true, fingerprint: fingerprint(item), firstSeenAt: previous?.firstSeenAt || now.toISOString(), lastUpdatedAt: previous?.lastUpdatedAt || now.toISOString() };
             return;
         }
@@ -175,8 +176,8 @@ export const reconcileWarningLifecycle = (items = [], availability = {}, { now =
     });
 
     const trimmedHistory = nextHistory.sort((a, b) => new Date(b.resolvedAt || b.createdAt || 0) - new Date(a.resolvedAt || a.createdAt || 0)).slice(0, MAX_HISTORY);
-    writeJson(ACTIVE_KEY, Object.fromEntries(Object.entries(nextActive).map(([id,item])=>[id,compactItem(item)])));
-    writeJson(HISTORY_KEY, trimmedHistory.map(record=>({...record,snapshot:compactItem(record.snapshot),versions:(record.versions||[]).map(v=>({...v,snapshot:compactItem(v.snapshot)}))})));
+    writeJson(ACTIVE_KEY + scope, Object.fromEntries(Object.entries(nextActive).map(([id,item])=>[id,compactItem(item)])));
+    writeJson(HISTORY_KEY + scope, trimmedHistory.map(record=>({...record,snapshot:compactItem(record.snapshot),versions:(record.versions||[]).map(v=>({...v,snapshot:compactItem(v.snapshot)}))})));
     const historyById = new Map(trimmedHistory.map((record) => [record.id, record]));
     const activeItems = Object.values(nextActive).map((item) => ({ ...item, versions: historyById.get(String(item.id))?.versions || [] }));
     return { activeItems, history: trimmedHistory, events };
