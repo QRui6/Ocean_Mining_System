@@ -5,7 +5,7 @@
     >
         <div
             class="pointer-events-auto absolute bottom-6 left-8 top-36"
-            style="width: 28rem;"
+            style="width: 29rem;"
         >
             <section
                 class="tech-panel-enhanced relative flex h-full w-full min-w-0 flex-col overflow-hidden p-5"
@@ -17,7 +17,7 @@
 
                 <div class="mb-4 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3">
                     <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                    <h3 class="min-w-0 flex-1 text-2xl font-bold tracking-wider text-white">管道预警</h3>
+                    <h3 class="min-w-0 flex-1 text-[26px] leading-tight font-bold tracking-wider text-white">管道预警</h3>
                 </div>
 
                 <div class="mb-3 grid shrink-0 grid-cols-5 gap-1.5">
@@ -26,10 +26,10 @@
                         :key="item.value"
                         type="button"
                         :class="[
-                            'rounded-sm border px-2 py-1.5 text-sm font-bold transition-all skew-x-[-10deg]',
+                            'rounded-sm border px-2 py-2 text-[15px] font-bold transition-all skew-x-[-10deg]',
                             activeFilter === item.value
                                 ? 'border-blue-300 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-[0_0_10px_rgba(37,99,235,0.6)]'
-                                : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-200'
+                                : 'border-slate-700 bg-slate-800/55 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-100'
                         ]"
                         @click="activeFilter = item.value"
                     >
@@ -42,13 +42,13 @@
                     <button class="pipe-btn secondary" type="button" @click="clearAll">清空</button>
                 </div>
 
-                <div class="min-h-0 flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                <div class="min-h-0 flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
                     <button
                         v-for="item in filteredWarnings"
                         :key="item.id"
                         type="button"
                         :class="[
-                            'warning-list-card w-full rounded-sm border px-3 py-3 text-left transition-all',
+                            'warning-list-card w-full rounded-sm border px-3.5 py-3 text-left transition-all',
                             `warning-list-card--${riskTone(item.warningLevel)}`,
                             selectedWarning?.id === item.id ? 'is-selected' : '',
                             item.status === 'resolved' ? 'is-resolved' : ''
@@ -57,18 +57,18 @@
                     >
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <div class="truncate text-sm font-bold text-white">{{ item.message }}</div>
-                                <div class="mt-1 truncate text-xs text-slate-400">{{ item.miningArea }} · {{ formatWarningTime(item.warningTime) }}</div>
+                                <div class="truncate text-[16px] font-bold text-white">{{ item.message }}</div>
+                                <div class="mt-1 truncate text-[14px] text-slate-400 tabular-nums">{{ item.miningArea }} · {{ formatWarningTime(item.warningTime) }}</div>
                             </div>
                             <span :class="['pipe-risk-tag shrink-0', riskClass(item.warningLevel)]">{{ item.warningLevel }}</span>
                         </div>
-                        <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
+                        <div class="mt-2 flex items-center justify-between text-[14px] text-slate-300">
                             <span>{{ item.operationType }}</span>
                             <span>{{ item.status === 'resolved' ? '已处理' : '待处理' }}</span>
                         </div>
                     </button>
 
-                    <div v-if="!filteredWarnings.length" class="rounded-sm border border-dashed border-slate-700/50 py-6 text-center text-sm text-slate-500">
+                    <div v-if="!filteredWarnings.length" class="rounded-sm border border-dashed border-slate-700/50 py-6 text-center text-[15px] text-slate-400">
                         当前无管道预警
                     </div>
                 </div>
@@ -77,7 +77,7 @@
 
         <div
             class="pointer-events-auto absolute bottom-6 top-36"
-            style="right: 1.5rem; width: 28rem;"
+            style="right: 1.5rem; width: 29rem;"
         >
             <section
                 class="tech-panel-enhanced relative flex h-full w-full min-w-0 flex-col overflow-hidden p-5"
@@ -193,6 +193,12 @@ import {
     getPipelineWarnings,
     updatePipelineWarningStatus
 } from '../../utils/pipeline/pipelineWarningService.js';
+import {
+    CHART_FONT_FAMILY,
+    CHART_COLORS,
+    chartAxisLabel,
+    chartTooltipStyle
+} from '../../utils/chartTypography.js';
 
 const props = defineProps({
     show: {
@@ -382,11 +388,7 @@ const clearAll = async () => {
     ElMessage.success('管道预警已清空');
 };
 
-const chartTextStyle = {
-    color: '#f8fafc',
-    fontSize: 12,
-    fontWeight: 800
-};
+const chartTextStyle = chartAxisLabel();
 
 const disposeCharts = () => {
     chartResizeObserver?.disconnect();
@@ -460,34 +462,32 @@ const renderCharts = async () => {
         warningMetoceanChart = warningMetoceanChart || echarts.init(warningMetoceanChartRef.value);
         warningMetoceanChart.setOption({
         backgroundColor: 'transparent',
-        tooltip: {
+        textStyle: { fontFamily: CHART_FONT_FAMILY },
+        tooltip: chartTooltipStyle({
             trigger: 'axis',
-            backgroundColor: 'rgba(15,23,42,0.95)',
-            borderColor: 'rgba(34,211,238,0.35)',
-            textStyle: { color: '#fff' },
             formatter: (items) => items.map((item) => {
                 const record = metoceanData[item.dataIndex];
                 return `${record.name}: ${record.value ?? '--'} ${record.value === null || record.value === undefined ? '' : record.unit}`;
             }).join('<br/>')
-        },
+        }),
         grid: {
             left: 10,
             right: 14,
-            top: 16,
-            bottom: 22,
+            top: 24,
+            bottom: 24,
             containLabel: true
         },
         xAxis: {
             type: 'category',
             data: metoceanData.map((item) => item.name),
             axisTick: { show: false },
-            axisLine: { lineStyle: { color: 'rgba(148,163,184,0.25)' } },
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
             axisLabel: chartTextStyle
         },
         yAxis: {
             type: 'value',
-            splitLine: { lineStyle: { color: 'rgba(148,163,184,0.13)' } },
-            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 }
+            splitLine: { lineStyle: { color: CHART_COLORS.splitLine } },
+            axisLabel: chartAxisLabel()
         },
         series: [
             {
@@ -500,9 +500,10 @@ const renderCharts = async () => {
                 label: {
                     show: true,
                     position: 'top',
-                    color: '#f8fafc',
-                    fontSize: 12,
-                    fontWeight: 900,
+                    color: '#ffffff',
+                    fontFamily: CHART_FONT_FAMILY,
+                    fontSize: 14,
+                    fontWeight: 800,
                     formatter: ({ dataIndex }) => metoceanData[dataIndex].value ?? '--'
                 }
             }
@@ -519,10 +520,11 @@ const renderCharts = async () => {
         warningStressChart = warningStressChart || echarts.init(warningStressChartRef.value);
         warningStressChart.setOption({
         backgroundColor: 'transparent',
+        textStyle: { fontFamily: CHART_FONT_FAMILY },
         grid: {
             left: 8,
             right: 8,
-            top: 20,
+            top: 26,
             bottom: 24,
             containLabel: true
         },
@@ -530,14 +532,14 @@ const renderCharts = async () => {
             type: 'category',
             data: stressData.map((item) => item.name),
             axisTick: { show: false },
-            axisLine: { lineStyle: { color: 'rgba(148,163,184,0.25)' } },
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
             axisLabel: chartTextStyle
         },
         yAxis: {
             type: 'value',
             minInterval: 1,
-            splitLine: { lineStyle: { color: 'rgba(148,163,184,0.13)' } },
-            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 }
+            splitLine: { lineStyle: { color: CHART_COLORS.splitLine } },
+            axisLabel: chartAxisLabel()
         },
         series: [
             {
@@ -548,8 +550,9 @@ const renderCharts = async () => {
                     show: true,
                     position: 'top',
                     color: '#ffffff',
-                    fontSize: 13,
-                    fontWeight: 900,
+                    fontFamily: CHART_FONT_FAMILY,
+                    fontSize: 14,
+                    fontWeight: 800,
                     formatter: ({ value }) => value === null || value === undefined ? '--' : `${Number(value).toFixed(1)} MPa`
                 }
             }
@@ -671,17 +674,17 @@ onBeforeUnmount(() => {
 .warning-stat-card span,
 .warning-action-box p b {
     display: block;
-    color: #94a3b8;
-    font-size: 0.75rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .warning-hero-card strong {
     display: block;
     margin-top: 0.3rem;
-    color: #f8fafc;
-    font-size: 1.05rem;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
     line-height: 1.45;
 }
 
@@ -704,8 +707,8 @@ onBeforeUnmount(() => {
     margin-top: 0.2rem;
     overflow: hidden;
     color: #ffffff;
-    font-size: 0.85rem;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -726,16 +729,16 @@ onBeforeUnmount(() => {
     display: inline-block;
     margin-top: 0.12rem;
     color: #ffffff;
-    font-size: 1.3rem;
+    font-size: 22px;
     font-weight: 900;
 }
 
 .warning-stat-card em {
-    margin-left: 0.12rem;
-    color: #64748b;
-    font-size: 0.68rem;
+    margin-left: 0.15rem;
+    color: #9bbad0;
+    font-size: 14px;
     font-style: normal;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .warning-stat-card--orange strong {
@@ -755,40 +758,40 @@ onBeforeUnmount(() => {
 .warning-decision-card span,
 .warning-key-grid span {
     display: block;
-    color: #94a3b8;
-    font-size: 0.78rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .warning-decision-card strong {
     display: block;
     margin-top: 0.3rem;
     color: #ffffff;
-    font-size: 2rem;
+    font-size: 32px;
     font-weight: 900;
-    line-height: 1.08;
+    line-height: 1.1;
 }
 
 .warning-risk-tag-large {
-    min-width: 3.25rem;
-    padding: 0.18rem 0.5rem;
-    font-size: 0.95rem;
+    min-width: 3.5rem;
+    padding: 0.22rem 0.6rem;
+    font-size: 15px;
 }
 
 .warning-decision-subtitle {
     margin-top: 0.55rem;
-    color: #f8fafc;
-    font-size: 1.02rem;
-    font-weight: 900;
-    line-height: 1.35;
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.4;
 }
 
 .warning-decision-card p {
     margin-top: 0.45rem;
     overflow: hidden;
-    color: #94a3b8;
-    font-size: 0.78rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
     line-height: 1.45;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -797,16 +800,16 @@ onBeforeUnmount(() => {
 .warning-basis-box {
     border: 1px solid rgba(34, 211, 238, 0.25);
     background: rgba(15, 23, 42, 0.52);
-    padding: 0.72rem;
+    padding: 0.8rem;
 }
 
 .warning-basis-row {
     display: grid;
-    grid-template-columns: 5.1rem minmax(0, 1fr);
+    grid-template-columns: 5.5rem minmax(0, 1fr);
     gap: 0.6rem;
     align-items: start;
     border-top: 1px solid rgba(51, 65, 85, 0.52);
-    padding-top: 0.48rem;
+    padding-top: 0.5rem;
 }
 
 .warning-basis-row:first-child {
@@ -815,9 +818,9 @@ onBeforeUnmount(() => {
 }
 
 .warning-basis-row span {
-    color: #93c5fd;
-    font-size: 0.76rem;
-    font-weight: 900;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
     white-space: nowrap;
 }
 
@@ -825,9 +828,9 @@ onBeforeUnmount(() => {
     min-width: 0;
     overflow: hidden;
     color: #ffffff;
-    font-size: 0.82rem;
-    font-weight: 900;
-    line-height: 1.38;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.4;
     text-overflow: ellipsis;
 }
 
@@ -841,16 +844,17 @@ onBeforeUnmount(() => {
     min-width: 0;
     border: 1px solid rgba(51, 65, 85, 0.6);
     background: rgba(2, 6, 23, 0.28);
-    padding: 0.5rem;
+    padding: 0.55rem 0.65rem;
 }
 
 .warning-key-grid strong {
     display: block;
-    margin-top: 0.2rem;
+    margin-top: 0.22rem;
     overflow: hidden;
     color: #ffffff;
-    font-size: 1rem;
-    font-weight: 900;
+    font-size: 17px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -858,11 +862,11 @@ onBeforeUnmount(() => {
 .warning-scenario-line {
     border: 1px solid rgba(51, 65, 85, 0.62);
     background: rgba(15, 23, 42, 0.48);
-    padding: 0.55rem 0.65rem;
-    color: #cbd5e1;
-    font-size: 0.78rem;
-    font-weight: 800;
-    line-height: 1.45;
+    padding: 0.6rem 0.7rem;
+    color: #d7e6f2;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
     overflow-wrap: anywhere;
 }
 
@@ -874,9 +878,9 @@ onBeforeUnmount(() => {
 }
 
 .warning-section-head > span {
-    color: #64748b;
-    font-size: 0.72rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 600;
     white-space: nowrap;
 }
 
@@ -901,9 +905,9 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     border: 1px dashed rgba(71, 85, 105, 0.72);
-    color: #94a3b8;
-    font-size: 0.8rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 15px;
+    font-weight: 600;
     text-align: center;
 }
 
@@ -914,8 +918,8 @@ onBeforeUnmount(() => {
 
 .warning-action-box > div > span {
     color: #e2e8f0;
-    font-size: 0.82rem;
-    font-weight: 900;
+    font-size: 15px;
+    font-weight: 700;
 }
 
 .warning-level-track {
@@ -934,9 +938,9 @@ onBeforeUnmount(() => {
 
 p {
     margin-top: 0.65rem;
-    color: #cbd5e1;
-    font-size: 0.82rem;
-    font-weight: 800;
+    color: #d7e6f2;
+    font-size: 15px;
+    font-weight: 600;
     line-height: 1.55;
 }
 

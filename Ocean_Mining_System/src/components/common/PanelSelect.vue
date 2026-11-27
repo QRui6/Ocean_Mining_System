@@ -91,17 +91,17 @@ onBeforeUnmount(() => { document.removeEventListener('pointerdown', outside); do
 </script>
 
 <style scoped>
-.panel-select{position:relative;flex-shrink:0;width:100%;font-size:14px;}
+.panel-select{position:relative;flex-shrink:0;width:100%;font-size:16px;}
 .panel-select.is-open{z-index:80;}
-.panel-select>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:38px;border:1px solid rgba(34,211,238,.42);background:linear-gradient(90deg,#112d43,#0f1e30);padding:7px 11px;text-align:left;color:#e0f2fe;}
+.panel-select>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:42px;border:1px solid rgba(34,211,238,.42);background:linear-gradient(90deg,#112d43,#0f1e30);padding:8px 12px;text-align:left;color:#ffffff;font-weight:600;}
 .panel-select>button:disabled{opacity:.6;}
 .panel-select>button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.panel-select i{width:7px;height:7px;flex-shrink:0;border-right:2px solid #67e8f9;border-bottom:2px solid #67e8f9;transform:rotate(45deg);}
+.panel-select i{width:8px;height:8px;flex-shrink:0;border-right:2px solid #67e8f9;border-bottom:2px solid #67e8f9;transform:rotate(45deg);}
 .panel-select i.expanded{transform:rotate(225deg);}
 .panel-select-menu{position:absolute;left:0;right:0;top:calc(100% + 4px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(34,211,238,.5);background:#081321;box-shadow:0 0 18px rgba(34,211,238,.18);padding:4px;}
 .panel-select-menu.upward{top:auto;bottom:calc(100% + 4px);}
-.panel-select-menu.is-portal{z-index:55;font-family:'Noto Sans SC',sans-serif;font-size:14px;font-weight:700;letter-spacing:.02em;}
-.panel-select-menu button{display:block;width:100%;min-height:34px;border:1px solid transparent;padding:6px 9px;text-align:left;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.panel-select-menu.is-portal{z-index:55;font-family:'Noto Sans SC',sans-serif;font-size:16px;font-weight:600;letter-spacing:.02em;}
+.panel-select-menu button{display:block;width:100%;min-height:38px;border:1px solid transparent;padding:7px 10px;text-align:left;color:#d7e6f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .panel-select-menu button.selected,.panel-select-menu button.active{background:#123b50;border-color:rgba(34,211,238,.45);color:#fff;}
 .panel-select button:focus-visible{outline:2px solid #67e8f9;outline-offset:1px;}
 </style>

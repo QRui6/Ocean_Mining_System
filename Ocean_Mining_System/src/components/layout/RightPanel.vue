@@ -26,7 +26,7 @@
                 aria-controls="right-panel-menu"
                 @click.stop="setCollapsed(!menuVisible)"
             >
-                <span v-if="!menuVisible" class="flex flex-col items-center gap-1 text-[11px] leading-none tracking-widest">
+                <span v-if="!menuVisible" class="flex flex-col items-center gap-1 text-[13px] font-bold leading-none tracking-widest">
                     <span>更</span>
                     <span>多</span>
                     <span>功</span>
@@ -63,7 +63,7 @@
                 ></div>
 
                 <div class="relative z-10 flex items-center gap-3">
-                    <span :class="[tool.length > 8 ? 'text-sm' : 'text-xl', 'font-bold tracking-wider', isActive(tool) ? 'text-white' : 'text-cyan-100']">
+                    <span :class="[tool.length > 8 ? 'text-[17px]' : 'text-xl', 'font-bold tracking-wider', isActive(tool) ? 'text-white' : 'text-cyan-100']">
                         {{ tool }}
                     </span>
                     <div :class="['w-2 h-2 rotate-45', isActive(tool) ? 'bg-yellow-400 shadow-[0_0_5px_#facc15]' : 'bg-cyan-500']"></div>
@@ -102,25 +102,25 @@
 
                         <div class="relative z-10 flex w-full items-center justify-between pl-6">
                             <span :class="[
-                                'truncate text-[15px] font-semibold tracking-[0.08em]',
+                                'truncate text-[17px] font-semibold tracking-[0.06em]',
                                 isGroupOpen(group.id)
                                     ? 'text-white'
                                     : getGroupActiveCount(group) > 0
                                         ? 'text-cyan-100'
-                                        : 'text-cyan-200/82'
+                                        : 'text-cyan-200/85'
                             ]">
                                 {{ group.label }}
                             </span>
                             <span class="flex items-center gap-2">
                                 <span
                                     v-if="getGroupActiveCount(group)"
-                                    class="rounded-sm border border-cyan-500/25 bg-cyan-950/45 px-1 py-0.5 text-[9px] font-mono text-cyan-100/90"
+                                    class="rounded-sm border border-cyan-500/25 bg-cyan-950/45 px-1.5 py-0.5 text-[12px] font-mono text-cyan-100"
                                 >
                                     {{ getGroupActiveCount(group) }}
                                 </span>
                                 <span
                                     :class="[
-                                        'text-[11px] font-bold transition-transform duration-200',
+                                        'text-[13px] font-bold transition-transform duration-200',
                                         isGroupOpen(group.id) ? 'rotate-90 text-cyan-200' : 'text-cyan-400/80'
                                     ]"
                                 >
@@ -154,8 +154,8 @@
 
                             <div class="relative z-10 flex w-full items-center justify-between pl-5">
                                 <span :class="[
-                                    'truncate text-[13px] font-medium tracking-[0.04em]',
-                                    layer.active ? 'text-white' : 'text-cyan-200/78'
+                                    'truncate text-[15px] font-medium tracking-[0.04em]',
+                                    layer.active ? 'text-white' : 'text-cyan-200/85'
                                 ]">
                                     {{ layer.label }}
                                 </span>
@@ -163,13 +163,13 @@
                                     <span
                                         v-if="layer.hasTimeline"
                                         :class="[
-                                            'rounded-sm border px-1 py-0.5 text-[8px] font-mono',
+                                            'rounded-sm border px-1 py-0.5 text-[11px] font-mono',
                                             layer.active
                                                 ? 'border-cyan-300/35 bg-cyan-950/55 text-cyan-50'
-                                                : 'border-cyan-500/15 bg-cyan-950/35 text-cyan-200/65'
+                                                : 'border-cyan-500/15 bg-cyan-950/35 text-cyan-200/75'
                                         ]"
                                     >
-                                        TIME
+                                        时序
                                     </span>
                                     <span :class="['h-1.5 w-1.5 rotate-45', layer.active ? 'bg-cyan-200 shadow-[0_0_6px_rgba(103,232,249,0.7)]' : 'bg-cyan-700/85']"></span>
                                 </span>

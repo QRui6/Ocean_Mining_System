@@ -15,7 +15,7 @@
 
                     <div class="mb-5 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3">
                         <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                        <h3 class="min-w-0 flex-1 text-2xl font-bold tracking-wider text-white">矿区科普</h3>
+                        <h3 class="min-w-0 flex-1 text-[26px] leading-tight font-bold tracking-wider text-white">矿区科普</h3>
                     </div>
 
                     <div class="custom-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto pr-2">
@@ -176,7 +176,7 @@
 
                     <div class="mb-5 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3 pr-12">
                         <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                        <h3 class="min-w-0 flex-1 text-2xl font-bold tracking-wider text-white">航线规划</h3>
+                        <h3 class="min-w-0 flex-1 text-[26px] leading-tight font-bold tracking-wider text-white">航线规划</h3>
                     </div>
 
                     <div class="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
@@ -566,18 +566,19 @@ defineExpose({
 .result-line span,
 .result-total span,
 .fact-row span {
-    color: #93c5fd;
+    color: #9bbad0;
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 500;
 }
 
 .science-row strong,
 .science-point strong {
     min-width: 0;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .field-row {
@@ -596,9 +597,9 @@ defineExpose({
     border-radius: 2px;
     background: rgba(2, 6, 23, 0.58);
     padding: 8px 10px;
-    color: #f8fafc;
+    color: #ffffff;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 700;
     outline: none;
 }
 
@@ -608,7 +609,7 @@ defineExpose({
 
 .science-input.compact {
     padding: 7px 8px;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .science-action-btn,
@@ -701,19 +702,20 @@ defineExpose({
 .result-card strong {
     display: block;
     margin-top: 9px;
-    color: #fff;
-    font-size: 23px;
+    color: #ffffff;
+    font-size: 26px;
     font-weight: 900;
     line-height: 1.15;
+    font-variant-numeric: tabular-nums;
 }
 
 .result-card small,
 .source-row span {
     display: block;
     margin-top: 7px;
-    color: #94a3b8;
+    color: #9bbad0;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .result-line,
@@ -735,28 +737,29 @@ defineExpose({
 .result-line strong,
 .result-total strong,
 .fact-row strong {
-    color: #fff;
-    font-size: 15px;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .result-total strong {
     color: #facc15;
-    font-size: 20px;
+    font-size: 21px;
 }
 
 .rule-head,
 .rule-row {
     display: grid;
-    grid-template-columns: 3.5rem 1fr 1fr 5.5rem;
+    grid-template-columns: 3.5rem 1fr 1fr 5.8rem;
     gap: 8px;
 }
 
 .rule-head {
-    color: #94a3b8;
-    font-size: 14px;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .rule-code {
@@ -767,14 +770,14 @@ defineExpose({
     border-radius: 2px;
     background: rgba(8, 47, 73, 0.32);
     color: #bfdbfe;
-    font-size: 14px;
-    font-weight: 900;
+    font-size: 15px;
+    font-weight: 800;
 }
 
 .source-row strong {
-    color: #fff;
-    font-size: 15px;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

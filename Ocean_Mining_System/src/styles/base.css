@@ -19,10 +19,18 @@
   --color-border-secondary: rgba(30, 144, 255, 0.3); /* 次级边框 */
   --color-border-accent: rgba(255, 215, 0, 0.6);     /* 强调边框 */
   
-  /* 文字颜色 - 全部改为不透明的亮白色 */
-  --color-text-primary: #ffffff;         /* 主要文字（纯白） */
-  --color-text-secondary: #e8f4f8;       /* 次要文字（亮白） */
-  --color-text-muted: #d0e7f0;           /* 弱化文字（亮灰白） */
+  /* 大屏投影五级字体体系（1920×1080 基准，最低 14px） */
+  --fs-kpi: 2rem;          /* 32px: 核心数值 / 结论 */
+  --fs-title: 1.625rem;    /* 26px: 面板主标题 */
+  --fs-heading: 1.1875rem; /* 19px: 卡片主项 / 导航 / 主按钮 */
+  --fs-body: 1.0625rem;    /* 17px: 正文 / 表格 / 下拉 */
+  --fs-label: 0.9375rem;   /* 15px: 字段标签 / 辅助说明 */
+  --fs-chart: 14px;        /* 14px: 图表轴刻度与图例底线 */
+
+  /* 文字颜色层级：主数值纯白高亮，字段标签亮灰青退后 */
+  --color-text-primary: #ffffff;         /* 主要文字与核心数值（纯白） */
+  --color-text-secondary: #e2eff7;       /* 次要正文（亮灰白） */
+  --color-text-muted: #9bbad0;           /* 字段标签与辅助说明（亮灰青，投影清晰） */
   --color-text-highlight: #00d4ff;       /* 高亮文字 */
   
   /* 阴影和发光 */
@@ -41,7 +49,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: var(--gradient-primary);  /* 使用渐变背景 */
-  color: #ffffff;  /* 纯白色文字 */
+  color: #f1f7fb;
   margin: 0;
   padding: 0;
   font-family: 'Noto Sans SC', sans-serif;
@@ -53,20 +61,22 @@ html, body {
   font-kerning: normal;
 }
 
-/* 全局文字颜色 - 纯白色 */
-* {
-  color: inherit;
-}
-
-/* 确保所有文字都是亮白色 */
-body, div, span, p, a, button, input, select, textarea, label, h1, h2, h3, h4, h5, h6 {
-  color: #ffffff !important;
-}
-
-/* 字体清晰度增强 */
+/* 保留语义色彩层级，不再全局覆盖组件文字颜色 */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 大屏标签与辅助色兜底，确保暗底投影对比度充足 */
+.screen-label {
+  color: var(--color-text-muted);
+  font-size: var(--fs-label);
+  font-weight: 500;
+}
+
+.screen-value {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 按钮和交互元素的字体优化 */
@@ -109,18 +119,18 @@ button, input, select, textarea {
   box-shadow: 0 0 12px rgba(34, 211, 238, 0.28);
 }
 
-/* 中文字体特殊优化 */
+/* 中文字体特殊优化：允许组件区分常规标签与加粗数值 */
 .font-\[\'Noto_Sans_SC\'\], 
 [class*="font-['Noto"] {
   font-family: 'Noto Sans SC', sans-serif !important;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
 .font-\[\'Rajdhani\'\],
 [class*="font-['Rajdhani"] {
   font-family: 'Noto Sans SC', sans-serif !important;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 

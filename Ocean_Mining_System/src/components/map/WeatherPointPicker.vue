@@ -384,11 +384,11 @@ export default {
 .windy-card {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    border: 1px solid rgba(148, 163, 184, 0.25);
     border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
-    min-width: 200px;
-    max-width: 260px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    min-width: 260px;
+    max-width: 320px;
     overflow: hidden;
 }
 
@@ -397,15 +397,15 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 10px;
-    background: linear-gradient(90deg, rgba(6, 182, 212, 0.1), rgba(14, 165, 233, 0.06));
-    border-bottom: 1px solid rgba(6, 182, 212, 0.15);
+    padding: 8px 12px;
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.14), rgba(14, 165, 233, 0.08));
+    border-bottom: 1px solid rgba(6, 182, 212, 0.2);
 }
 
 .layer-info {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
 }
 
 .header-right {
@@ -415,35 +415,34 @@ export default {
 }
 
 .coordinates {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 0.3px;
+    color: #9bbad0;
+    letter-spacing: 0.2px;
 }
 
 .layer-name {
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 700;
-    color: rgba(6, 182, 212, 1);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+    color: #22d3ee;
+    letter-spacing: 0.4px;
 }
 
 .layer-icon {
-    font-size: 11px;
-    color: rgba(6, 182, 212, 0.8);
+    font-size: 14px;
+    color: rgba(6, 182, 212, 0.85);
 }
 
 .close-icon {
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
     transition: all 0.2s;
@@ -461,18 +460,18 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
-    gap: 8px;
+    padding: 12px 14px;
+    gap: 10px;
 }
 
 .value-container {
     display: flex;
     align-items: baseline;
-    gap: 4px;
+    gap: 6px;
 }
 
 .value-number {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 800;
     color: #ffffff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -481,15 +480,15 @@ export default {
 }
 
 .value-unit {
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
+    color: #9bbad0;
 }
 
 .wind-direction {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
-    color: rgba(6, 182, 212, 1);
+    color: #22d3ee;
     white-space: nowrap;
 }
 
@@ -501,8 +500,8 @@ export default {
 }
 
 .spinner {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border: 2px solid rgba(6, 182, 212, 0.3);
     border-top-color: rgba(6, 182, 212, 1);
     border-radius: 50%;
@@ -514,8 +513,8 @@ export default {
 }
 
 .loading-text {
-    font-size: 12px;
-    color: rgba(6, 182, 212, 0.8);
+    font-size: 15px;
+    color: #67e8f9;
 }
 
 /* 错误状态样式 */
@@ -526,42 +525,40 @@ export default {
 }
 
 .error-icon {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .error-text {
-    font-size: 11px;
-    color: rgba(239, 68, 68, 0.9);
+    font-size: 14px;
+    color: #fca5a5;
 }
 
 /* 波浪额外信息 */
 .wave-extra-info {
     display: flex;
     gap: 12px;
-    padding: 8px 12px;
-    background: rgba(6, 182, 212, 0.05);
-    border-top: 1px solid rgba(6, 182, 212, 0.1);
+    padding: 10px 14px;
+    background: rgba(6, 182, 212, 0.06);
+    border-top: 1px solid rgba(6, 182, 212, 0.14);
 }
 
 .extra-item {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
 .extra-label {
-    font-size: 8px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #9bbad0;
 }
 
 .extra-value {
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 700;
-    color: rgba(6, 182, 212, 0.9);
+    color: #ffffff;
 }
 
 /* 展开按钮 */
@@ -570,18 +567,16 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    padding: 6px 10px;
-    background: rgba(6, 182, 212, 0.08);
+    gap: 6px;
+    padding: 9px 12px;
+    background: rgba(6, 182, 212, 0.1);
     border: none;
-    border-top: 1px solid rgba(6, 182, 212, 0.15);
-    color: rgba(6, 182, 212, 0.9);
-    font-size: 10px;
-    font-weight: 600;
+    border-top: 1px solid rgba(6, 182, 212, 0.2);
+    color: #67e8f9;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .expand-full-btn:hover {

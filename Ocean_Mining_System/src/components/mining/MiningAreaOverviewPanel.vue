@@ -2,60 +2,58 @@
     <transition name="slide-in" @after-enter="handleAfterEnter">
         <div
             v-if="show && area"
-            class="absolute z-40 w-[26rem] max-h-[32rem] pointer-events-auto font-['Noto_Sans_SC']"
+            class="absolute z-40 w-[30rem] max-h-[42rem] pointer-events-auto font-['Noto_Sans_SC']"
             :style="panelStyle"
         >
-            <div class="tech-panel-enhanced relative flex max-h-[32rem] flex-col overflow-hidden p-4">
+            <div class="tech-panel-enhanced relative flex max-h-[42rem] flex-col overflow-hidden p-5">
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
 
-                <div class="mb-3 flex items-center justify-between border-b border-cyan-500/30 pb-3">
+                <div class="mb-3.5 flex items-center justify-between border-b border-cyan-500/30 pb-3">
                     <div class="flex items-center gap-3">
-                        <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
+                        <div class="h-6 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
                         <div>
-                            <h3 class="text-lg font-bold tracking-wider text-white">矿区总览</h3>
+                            <h3 class="text-[24px] leading-tight font-bold tracking-wider text-white">矿区总览</h3>
                         </div>
                     </div>
                     <button
                         @click="$emit('close')"
-                        class="h-8 w-8 rounded-sm border border-cyan-500/40 text-cyan-200 transition-colors hover:bg-cyan-500 hover:text-slate-950"
+                        class="h-9 w-9 rounded-sm border border-cyan-500/40 text-[18px] text-cyan-200 transition-colors hover:bg-cyan-500 hover:text-slate-950"
                     >
                         ✕
                     </button>
                 </div>
 
-                <div v-if="loading" class="flex-1 py-12 text-center text-slate-400">
+                <div v-if="loading" class="flex-1 py-12 text-center text-[16px] text-slate-300">
                     <div class="inline-block w-10 h-10 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin"></div>
                     <div class="mt-4">正在加载矿区总览...</div>
                 </div>
 
-                <div v-else class="custom-scrollbar flex-1 space-y-3 overflow-y-auto pr-1.5">
-                    <div class="rounded-sm border border-cyan-500/20 bg-slate-900/55 p-3">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <div class="text-base font-bold text-white">{{ area.name || area.contractor }}</div>
-                            </div>
-                            <div class="flex shrink-0 items-center gap-2">
-                                <button
-                                    type="button"
-                                    :disabled="!area.forecastAvailable"
-                                    :title="area.forecastAvailable ? '进入预报中心查看当前矿区的风浪流预报' : '当前矿区暂未匹配到可用预报区域'"
-                                    @click="$emit('openForecast', area)"
-                                    class="rounded-sm border border-yellow-400/60 bg-yellow-500/15 px-2.5 py-1.5 text-xs font-bold text-yellow-100 transition-all hover:bg-yellow-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-800/60 disabled:text-slate-500"
-                                >
-                                    {{ area.forecastAvailable ? '查看未来预报' : '暂无预报' }}
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="$emit('addMonitoring', area)"
-                                    class="rounded-sm bg-gradient-to-r from-cyan-600 to-cyan-500 px-2.5 py-1.5 text-xs font-bold text-white transition-all hover:from-cyan-500 hover:to-cyan-400"
-                                >
-                                    加入气象监测
-                                </button>
-                            </div>
+                <div v-else class="custom-scrollbar flex-1 space-y-3.5 overflow-y-auto pr-1.5">
+                    <div class="rounded-sm border border-cyan-500/25 bg-slate-900/55 p-3.5">
+                        <div class="text-[23px] font-extrabold leading-snug text-white">{{ area.name || area.contractor }}</div>
+
+                        <div v-if="showCoordinates" class="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-[21px] font-bold text-cyan-200 tabular-nums"><span>经度 {{ formatDegrees(coordinates.lng ?? coordinates.lon,'E','W') }}</span><span>纬度 {{ formatDegrees(coordinates.lat,'N','S') }}</span></div>
+
+                        <div class="mt-3 flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                :disabled="!area.forecastAvailable"
+                                :title="area.forecastAvailable ? '进入预报中心查看当前矿区的风浪流预报' : '当前矿区暂未匹配到可用预报区域'"
+                                @click="$emit('openForecast', area)"
+                                class="flex-1 rounded-sm border border-yellow-400/60 bg-yellow-500/15 px-3 py-2 text-[15px] font-bold text-yellow-100 transition-all hover:bg-yellow-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:border-slate-600 disabled:bg-slate-800/60 disabled:text-slate-500"
+                            >
+                                {{ area.forecastAvailable ? '查看未来预报' : '暂无预报' }}
+                            </button>
+                            <button
+                                type="button"
+                                @click="$emit('addMonitoring', area)"
+                                class="flex-1 rounded-sm bg-gradient-to-r from-cyan-600 to-cyan-500 px-3 py-2 text-[15px] font-bold text-white transition-all hover:from-cyan-500 hover:to-cyan-400"
+                            >
+                                加入气象监测
+                            </button>
                         </div>
 
-                        <div v-if="showCoordinates" class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[21px] text-slate-200"><span>经度 {{ formatDegrees(coordinates.lng ?? coordinates.lon,'E','W') }}</span><span>纬度 {{ formatDegrees(coordinates.lat,'N','S') }}</span></div>
-                        <div class="mt-3 grid grid-cols-2 gap-2.5 text-sm">
+                        <div class="mt-3 grid grid-cols-2 gap-2.5">
                             <div class="data-card">
                                 <span class="label">承包者</span>
                                 <span class="value">{{ area.contractor || '未知' }}</span>
@@ -65,20 +63,16 @@
                                 <span class="value">{{ area.sponsor || '未知' }}</span>
                             </div>
                             <div class="data-card">
-                                <span class="label">矿种类型</span>
+                                <span class="label">矿种</span>
                                 <span class="value">{{ area.mineral || '未知' }}</span>
                             </div>
                             <div class="data-card">
-                                <span class="label">矿区面积</span>
-                                <span class="value">{{ area.areaSize || area.area || '未知' }}</span>
+                                <span class="label">面积</span>
+                                <span class="value tabular-nums">{{ area.areaSize || area.area || '未知' }}</span>
                             </div>
                             <div class="data-card col-span-2">
-                                <span class="label">矿区位置</span>
+                                <span class="label">位置</span>
                                 <span class="value">{{ area.location || '未知' }}</span>
-                            </div>
-                            <div class="data-card col-span-2">
-                                <span class="label">合同期限</span>
-                                <span class="value">{{ area.dateRange || '未知' }}</span>
                             </div>
                         </div>
                     </div>
@@ -90,21 +84,20 @@
                             class="metric-card"
                         >
                             <div class="metric-label">{{ card.label }}</div>
-                            <div class="metric-value">{{ formatDepth(card.value) }}</div>
-                            <div class="metric-note">{{ area.waterDepth?.unit || 'm' }}</div>
+                            <div class="metric-value tabular-nums">{{ formatDepth(card.value) }}<span class="metric-unit">{{ area.waterDepth?.unit || 'm' }}</span></div>
                         </div>
                     </div>
 
                     <div :class="['decision-card', getDecisionToneClass(areaDecision.tone)]">
-                        <div class="mb-3 flex items-start justify-between gap-3">
+                        <div class="mb-2.5 flex items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <div class="section-title">作业辅助决策</div>
-                                <div class="mt-2 text-lg font-black text-white">{{ areaDecision.title }}</div>
+                                <div class="mt-2 text-[20px] font-black text-white">{{ areaDecision.title }}</div>
                             </div>
                             <span class="decision-level">{{ areaDecision.shortTitle }}</span>
                         </div>
                         <div class="decision-summary">{{ areaDecision.summary }}</div>
-                        <div class="mt-3 grid grid-cols-2 gap-2">
+                        <div class="mt-3 grid grid-cols-2 gap-2.5">
                             <div
                                 v-for="item in areaDecision.metrics"
                                 :key="item.label"
@@ -114,7 +107,7 @@
                                 <strong>{{ item.value }}</strong>
                             </div>
                         </div>
-                        <div class="mt-3 grid grid-cols-2 gap-2">
+                        <div class="mt-2.5 grid grid-cols-2 gap-2.5">
                             <div class="decision-metric">
                                 <span>继续作业</span>
                                 <strong>{{ areaDecision.canContinueOperation ? '可以' : '暂不建议' }}</strong>
@@ -126,7 +119,7 @@
                         </div>
                     </div>
 
-                    <button class="w-full border border-cyan-500/30 px-3 py-2 text-sm text-cyan-100 hover:bg-cyan-900/40" @click="$emit('openHistory', area)">查看历史</button>
+                    <button class="w-full rounded-sm border border-cyan-500/40 bg-cyan-950/35 px-4 py-2.5 text-[16px] font-bold text-cyan-100 transition-colors hover:bg-cyan-800/50 hover:text-white" @click="$emit('openHistory', area)">查看历史海况</button>
                 </div>
             </div>
         </div>
@@ -171,10 +164,14 @@ let chartRenderTimer = null;
 
 const CHART_POINT_COUNT = 12;
 
-const panelStyle = computed(() => ({
-    left: `${props.panelPosition?.left ?? 1268}px`,
-    top: `${props.panelPosition?.top ?? 244}px`
-}));
+const panelStyle = computed(() => {
+    const rawTop = Number(props.panelPosition?.top ?? 180);
+    const clampedTop = Math.max(144, Math.min(Number.isFinite(rawTop) ? rawTop : 180, 368));
+    return {
+        left: `${props.panelPosition?.left ?? 1268}px`,
+        top: `${clampedTop}px`
+    };
+});
 const areaDecision = computed(() => buildMiningOverviewDecision(props.area || {}));
 const depthCards = computed(() => {
     const waterDepth = props.area?.waterDepth || {};
@@ -511,23 +508,25 @@ onBeforeUnmount(() => {
 
 .data-card {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 9px 10px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 11px;
     border-radius: 4px;
     background: rgba(15, 23, 42, 0.65);
     border: 1px solid rgba(71, 85, 105, 0.45);
 }
 
 .label {
-    color: #7dd3fc;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .value {
-    color: #f8fafc;
-    text-align: right;
+    color: #ffffff;
+    font-size: 16px;
     font-weight: 700;
-    max-width: 62%;
+    line-height: 1.35;
     word-break: break-word;
 }
 
@@ -535,33 +534,36 @@ onBeforeUnmount(() => {
     padding: 12px 10px;
     border-radius: 4px;
     background: rgba(15, 23, 42, 0.72);
-    border: 1px solid rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.2);
     text-align: center;
 }
 
 .metric-label {
-    color: #94a3b8;
-    font-size: 12px;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .metric-value {
-    color: #f8fafc;
-    font-size: 24px;
-    font-weight: 700;
+    color: #ffffff;
+    font-size: 26px;
+    font-weight: 800;
     margin-top: 6px;
+    line-height: 1.15;
 }
 
-.metric-note {
-    color: #38bdf8;
-    font-size: 12px;
-    margin-top: 4px;
+.metric-unit {
+    color: #7dd3fc;
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 3px;
 }
 
 .section-title {
     display: flex;
     align-items: center;
     color: #22d3ee;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 800;
 }
 
@@ -578,22 +580,22 @@ onBeforeUnmount(() => {
     border: 1px solid rgba(51, 65, 85, 0.72);
     border-radius: 2px;
     background: rgba(15, 23, 42, 0.55);
-    padding: 12px;
+    padding: 13px;
 }
 
 .decision-level {
     flex: 0 0 auto;
     border: 1px solid currentColor;
-    padding: 3px 8px;
+    padding: 4px 10px;
     color: #facc15;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 800;
 }
 
 .decision-summary {
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 700;
+    color: #e2eff7;
+    font-size: 15px;
+    font-weight: 500;
     line-height: 1.55;
 }
 
@@ -603,14 +605,14 @@ onBeforeUnmount(() => {
     border: 1px solid rgba(71, 85, 105, 0.55);
     border-radius: 2px;
     background: rgba(2, 6, 23, 0.26);
-    padding: 9px 10px;
+    padding: 10px 11px;
 }
 
 .decision-metric span {
     display: block;
-    color: #93c5fd;
-    font-size: 12px;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .decision-metric strong {
@@ -618,8 +620,8 @@ onBeforeUnmount(() => {
     margin-top: 4px;
     overflow: hidden;
     color: #ffffff;
-    font-size: 14px;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

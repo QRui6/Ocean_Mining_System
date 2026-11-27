@@ -7,75 +7,71 @@
             <!-- 气象信息卡片 - 精简版 -->
             <div class="relative bg-slate-900/95 backdrop-blur-xl border-2 rounded-lg shadow-2xl overflow-hidden"
                 :class="getBorderColorClass(waypointData.risk)"
-                style="width: 200px;">
+                style="width: 256px;">
                 
                 <!-- 顶部标题栏 -->
-                <div class="px-2 py-1 border-b flex items-center justify-between"
+                <div class="px-3 py-1.5 border-b flex items-center justify-between"
                     :class="getHeaderClass(waypointData.risk)">
-                    <div class="flex items-center gap-1">
-                        <div class="w-1 h-1 rounded-full animate-pulse"
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full animate-pulse"
                             :class="getDotColorClass(waypointData.risk)"></div>
-                        <span class="text-xs font-bold text-white">下一航段</span>
+                        <span class="text-[15px] font-bold text-white">下一航段</span>
                     </div>
-                    <div class="px-1 py-0.5 rounded text-xs font-bold"
+                    <div class="px-2 py-0.5 rounded text-[14px] font-bold"
                         :class="getRiskBadgeClass(waypointData.risk)">
                         {{ getRiskLabel(waypointData.risk) }}
                     </div>
                 </div>
                 
                 <!-- 航点名称 -->
-                <div class="px-2 py-1 bg-slate-800/50 border-b border-slate-700/50">
-                    <div class="text-white font-bold text-xs truncate">{{ waypointData.name }}</div>
+                <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700/50">
+                    <div class="text-white font-bold text-[15px] truncate">{{ waypointData.name }}</div>
                 </div>
                 
                 <!-- 气象数据网格 - 2x2布局 -->
-                <div class="p-1.5 grid grid-cols-2 gap-1">
+                <div class="p-2 grid grid-cols-2 gap-1.5">
                     <!-- 风速 -->
-                    <div class="text-center bg-slate-800/30 rounded p-1">
-                        <div class="text-xs text-slate-400">风速</div>
-                        <div class="text-base font-bold font-['Rajdhani'] leading-tight"
+                    <div class="text-center bg-slate-800/35 rounded p-1.5">
+                        <div class="text-[14px] text-slate-400">风速</div>
+                        <div class="text-[20px] font-bold font-['Rajdhani'] leading-tight tabular-nums"
                             :class="getValueColor(waypointData.weather.windSpeed, 12)">
-                            {{ waypointData.weather.windSpeed }}
+                            {{ waypointData.weather.windSpeed }}<span class="text-[14px] text-slate-400 ml-0.5">m/s</span>
                         </div>
-                        <div class="text-xs text-slate-500">m/s</div>
                     </div>
                     
                     <!-- 风级 -->
-                    <div class="text-center bg-slate-800/30 rounded p-1">
-                        <div class="text-xs text-slate-400">风级</div>
-                        <div class="text-base font-bold font-['Rajdhani'] leading-tight"
+                    <div class="text-center bg-slate-800/35 rounded p-1.5">
+                        <div class="text-[14px] text-slate-400">风级</div>
+                        <div class="text-[20px] font-bold font-['Rajdhani'] leading-tight tabular-nums"
                             :class="getValueColor(waypointData.weather.windBeaufort, 6)">
-                            {{ waypointData.weather.windBeaufort }}
+                            {{ waypointData.weather.windBeaufort }}<span class="text-[14px] text-slate-400 ml-0.5">级</span>
                         </div>
-                        <div class="text-xs text-slate-500">级</div>
                     </div>
                     
                     <!-- 浪高 -->
-                    <div class="text-center bg-slate-800/30 rounded p-1">
-                        <div class="text-xs text-slate-400">浪高</div>
-                        <div class="text-base font-bold font-['Rajdhani'] leading-tight"
+                    <div class="text-center bg-slate-800/35 rounded p-1.5">
+                        <div class="text-[14px] text-slate-400">浪高</div>
+                        <div class="text-[20px] font-bold font-['Rajdhani'] leading-tight tabular-nums"
                             :class="getValueColor(waypointData.weather.waveHeight, 3)">
-                            {{ waypointData.weather.waveHeight }}
+                            {{ waypointData.weather.waveHeight }}<span class="text-[14px] text-slate-400 ml-0.5">m</span>
                         </div>
-                        <div class="text-xs text-slate-500">m</div>
                     </div>
                     
                     <!-- 温度 -->
-                    <div class="text-center bg-slate-800/30 rounded p-1">
-                        <div class="text-xs text-slate-400">温度</div>
-                        <div class="text-base font-bold text-cyan-400 font-['Rajdhani'] leading-tight">
-                            {{ waypointData.weather.temperature }}
+                    <div class="text-center bg-slate-800/35 rounded p-1.5">
+                        <div class="text-[14px] text-slate-400">温度</div>
+                        <div class="text-[20px] font-bold text-cyan-300 font-['Rajdhani'] leading-tight tabular-nums">
+                            {{ waypointData.weather.temperature }}<span class="text-[14px] text-slate-400 ml-0.5">°C</span>
                         </div>
-                        <div class="text-xs text-slate-500">°C</div>
                     </div>
                 </div>
                 
                 <!-- 航段信息 - 精简 -->
                 <div v-if="waypointData.segment" 
-                    class="px-2 py-1 bg-slate-800/50 border-t border-slate-700/50 text-xs">
-                    <div class="flex justify-between text-slate-300">
-                        <span class="text-xs"><span class="text-white font-bold font-['Rajdhani']">{{ waypointData.segment.distance }}</span>海里</span>
-                        <span class="text-xs"><span class="text-white font-bold font-['Rajdhani']">{{ waypointData.segment.duration }}</span></span>
+                    class="px-3 py-1.5 bg-slate-800/50 border-t border-slate-700/50 text-[14px]">
+                    <div class="flex justify-between text-slate-300 tabular-nums">
+                        <span><span class="text-white font-bold font-['Rajdhani']">{{ waypointData.segment.distance }}</span> 海里</span>
+                        <span><span class="text-white font-bold font-['Rajdhani']">{{ waypointData.segment.duration }}</span></span>
                     </div>
                 </div>
                 
@@ -94,13 +90,19 @@ const show = ref(false);
 const waypointData = ref(null);
 const position = ref({ x: 0, y: 0 });
 
-// 计算弹窗样式（位置）
-const popupStyle = computed(() => ({
-    left: `${position.value.x}px`,
-    top: `${position.value.y}px`,
-    transform: 'translate(-50%, -100%)', // 居中并向上偏移
-    marginTop: '-20px' // 额外向上偏移20px
-}));
+// 计算弹窗样式（位置），避开左侧航线面板(宽29rem+左距2rem)与顶栏/底部简报卡片
+const popupStyle = computed(() => {
+    const rawX = Number(position.value.x);
+    const rawY = Number(position.value.y);
+    const clampedX = Number.isFinite(rawX) ? Math.max(644, Math.min(1772, rawX)) : 644;
+    const clampedY = Number.isFinite(rawY) ? Math.max(410, Math.min(710, rawY)) : 410;
+    return {
+        left: `${clampedX}px`,
+        top: `${clampedY}px`,
+        transform: 'translate(-50%, -100%)', // 居中并向上偏移
+        marginTop: '-20px' // 额外向上偏移20px
+    };
+});
 
 // 显示气象弹窗
 const showWeather = (waypoint, screenPosition) => {

@@ -3,18 +3,18 @@
         v-if="show"
         class="pointer-events-none absolute inset-0 z-40 font-['Noto_Sans_SC']"
     >
-        <div class="pointer-events-auto absolute bottom-6 left-8 top-36" style="width: 28rem;">
+        <div class="pointer-events-auto absolute bottom-6 left-8 top-36" style="width: 30rem;">
             <section
                 class="tech-panel-enhanced relative flex h-full w-full min-w-0 flex-col overflow-hidden p-5"
-                style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
+                style="clip-path: polygon(0 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%);"
             >
                 <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
 
                 <div class="mb-4 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3">
-                    <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                    <h3 class="min-w-0 flex-1 text-2xl font-bold tracking-wider text-white">作业评估</h3>
+                    <div class="mr-3 h-7 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
+                    <h3 class="min-w-0 flex-1 text-[26px] font-bold tracking-wider text-white">作业评估</h3>
                 </div>
 
                 <nav aria-label="作业系统" class="mb-3 grid shrink-0 grid-cols-3 gap-2">
@@ -36,7 +36,7 @@
                         {{ operationDecision.needRecoverPipeline ? (operationDecision.needImmediateRecovery ? '立即撤收' : '准备撤收') : '暂不撤收' }}
                     </div>
                     <div v-else class="pipe-decision-subtitle">{{ systemAssessment.summary }}</div>
-                    <div v-if="activeSystem !== 'lifting'" class="mt-2 text-sm leading-relaxed text-slate-300">{{ systemAssessment.advice }}</div>
+                    <div v-if="activeSystem !== 'lifting'" class="mt-2 text-[15px] leading-relaxed text-[#d7e6f2]">{{ systemAssessment.advice }}</div>
                 </section>
 
                 <div class="pipe-scroll pipe-left-content custom-scrollbar">
@@ -65,7 +65,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div v-if="siteError" class="mt-2 text-xs font-bold text-orange-300">{{ siteError }}</div>
+                        <div v-if="siteError" class="mt-2 text-[14px] font-bold text-orange-300">{{ siteError }}</div>
                     </section>
 
                     <template v-if="activeSystem === 'lifting'">
@@ -153,8 +153,19 @@
 
                     </template>
                     <section v-else class="pipe-section pipe-control-section">
-                        <div class="pipe-section-title mb-3" title="项目参考值；实际作业限值按船舶和设备规程确定">参考阈值</div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="pipe-section-title" title="项目参考值；实际作业限值按船舶和设备规程确定">参考阈值</div>
+                            <button type="button" :aria-expanded="showThresholdEditor" class="border border-cyan-500/45 bg-cyan-950/45 px-3 py-1 text-[14px] font-bold text-cyan-100 hover:border-cyan-300 hover:text-white" @click="showThresholdEditor = !showThresholdEditor">
+                                {{ showThresholdEditor ? '收起' : '调整阈值' }}
+                            </button>
+                        </div>
+                        <div v-if="!showThresholdEditor" class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[15px] text-[#d7e6f2]">
+                            <span v-for="metric in systemMetrics" :key="metric.key">
+                                <span class="text-[#9bbad0]">{{ metric.label }}</span>
+                                <strong class="ml-1 font-bold tabular-nums text-white">{{ systemLimits[metric.key] || '未配置' }}<template v-if="systemLimits[metric.key]"> {{ metric.unit }}</template></strong>
+                            </span>
+                        </div>
+                        <div v-else class="mt-3 grid grid-cols-2 gap-3">
                             <label v-for="metric in systemMetrics" :key="metric.key" class="block">
                                 <span class="pipe-label block">{{ metric.label }}（{{ metric.unit }}）</span>
                                 <input :value="systemLimits[metric.key]" type="number" min="0.01" step="0.01" placeholder="未配置"
@@ -163,34 +174,29 @@
                         </div>
                     </section>
                     <section v-if="activeSystem !== 'lifting'" class="pipe-section pipe-control-section">
-                        <div class="pipe-section-title mb-3">超限时段</div>
-                        <div v-if="!systemAssessment.windows.length" class="text-sm text-slate-300">{{ systemAssessment.incomplete ? '暂无可用评估结果' : '未发现超限' }}</div>
-                        <div v-else class="custom-scrollbar max-h-40 space-y-2 overflow-y-auto text-sm">
-                            <div v-for="(window, index) in systemAssessment.windows" :key="index" class="border-l-2 border-orange-400 pl-2">
-                                <div class="font-bold">{{ window.metric }}</div>
-                                <div>{{ formatForecastTime(window.start) }}</div>
-                                <div v-if="window.end !== window.start">至 {{ formatForecastTime(window.end) }}</div>
+                        <div class="pipe-section-title mb-2.5">超限时段</div>
+                        <div v-if="!systemAssessment.windows.length" class="text-[16px] text-[#d7e6f2]">{{ systemAssessment.incomplete ? '暂无可用评估结果' : '未发现超限' }}</div>
+                        <div v-else class="custom-scrollbar max-h-40 space-y-2 overflow-y-auto text-[16px]">
+                            <div v-for="(window, index) in systemAssessment.windows" :key="index" class="border-l-2 border-orange-400 pl-3">
+                                <div class="font-bold text-orange-200">{{ window.metric }}</div>
+                                <div class="tabular-nums text-white">{{ formatForecastTime(window.start) }}<span v-if="window.end !== window.start"> 至 {{ formatForecastTime(window.end) }}</span></div>
                             </div>
                         </div>
                     </section>
                     <section class="pipe-section pipe-control-section">
-                        <div class="pipe-section-title mb-3">当前矿区数据</div>
+                        <div class="pipe-section-title mb-2.5">当前矿区数据</div>
                         <div class="pipe-current-box">
                             <div>
                                 <span>自动海况</span>
                                 <strong>{{ evaluation.seaState?.code === null ? '--' : `${evaluation.seaState.code}级 · ${evaluation.seaState.label}` }}</strong>
                             </div>
                             <div>
-                                <span>风速 / 阵风</span>
-                                <strong>{{ formatMetric(currentForecast?.windSpeed, 1, 'm/s') }} / {{ formatMetric(currentForecast?.gust, 1, 'm/s') }}</strong>
-                            </div>
-                            <div>
                                 <span>浪高 / 周期</span>
                                 <strong>{{ formatMetric(currentForecast?.waveHeight, 1, 'm') }} / {{ formatMetric(currentForecast?.wavePeriod, 1, 's') }}</strong>
                             </div>
                             <div>
-                                <span>流速</span>
-                                <strong>{{ formatMetric(currentForecast?.currentSpeed, 2, 'm/s') }}</strong>
+                                <span>风速 / 流速</span>
+                                <strong>{{ formatMetric(currentForecast?.windSpeed, 1, 'm/s') }} / {{ formatMetric(currentForecast?.currentSpeed, 2, 'm/s') }}</strong>
                             </div>
                             <div v-if="activeSystem === 'collection'">
                                 <span>近底流速</span>
@@ -210,10 +216,10 @@
             </section>
         </div>
 
-        <div class="pointer-events-auto absolute bottom-6 top-36 flex flex-col gap-4" style="right: 1.5rem; width: 28rem;">
+        <div class="pointer-events-auto absolute bottom-6 top-36 flex flex-col gap-3" style="right: 1.5rem; width: 30rem;">
             <section
-                class="tech-panel-enhanced relative flex min-h-0 flex-[1.35] w-full min-w-0 flex-col overflow-hidden p-5"
-                style="clip-path: polygon(0 0, 92% 0, 100% 7%, 100% 100%, 0 100%);"
+                class="tech-panel-enhanced relative flex min-h-0 flex-[1.06] w-full min-w-0 flex-col overflow-hidden p-5"
+                style="clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%);"
             >
                 <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
@@ -243,15 +249,15 @@
             </section>
 
             <section
-                class="tech-panel-enhanced relative flex min-h-0 flex-[0.65] w-full min-w-0 flex-col overflow-hidden p-5"
-                style="clip-path: polygon(0 0, 92% 0, 100% 7%, 100% 100%, 0 100%);"
+                class="tech-panel-enhanced relative flex min-h-0 flex-[0.94] w-full min-w-0 flex-col overflow-hidden p-5"
+                style="clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 0 100%);"
             >
                 <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
                 <div class="corner-decoration corner-bl scale-125"></div>
                 <div class="corner-decoration corner-br scale-125"></div>
 
                 <div class="flex min-h-0 flex-1 flex-col gap-3">
-                    <section v-if="activeSystem === 'lifting'" class="pipe-section min-h-0 flex-1">
+                    <section v-if="activeSystem === 'lifting'" class="pipe-section flex min-h-0 flex-1 flex-col">
                         <div class="mb-2 flex items-center justify-between gap-2">
                             <div class="pipe-section-title">综合应力对比</div>
                             <div class="pipe-chart-note">许用 {{ formatNumber(evaluation.allowableStress, 1) }} MPa</div>
@@ -259,17 +265,16 @@
                         <div ref="stressChartRef" class="pipe-stress-chart"></div>
                         <div class="pipe-evaluation-note">
                             <div><span>自动海况</span><strong>{{ evaluation.currentConditionText }}</strong></div>
-                            <div><span>参考表格</span><strong>{{ evaluation.selectedScenarioText }}</strong></div>
-                            <div><span>数据完整性</span><strong>{{ evaluation.dataCompleteness }}</strong></div>
+                            <div><span>参考工况</span><strong>{{ evaluation.selectedScenarioText }}</strong></div>
                         </div>
                     </section>
                     <section v-else class="pipe-section custom-scrollbar min-h-0 flex-1 overflow-y-auto">
                         <div class="pipe-section-title mb-3">指标与阈值</div>
                         <div v-for="check in systemAssessment.checks" :key="check.key" class="assessment-comparison">
-                            <div class="flex items-center justify-between gap-2"><strong>{{ check.label }}</strong><span :class="check.exceededCount ? 'text-orange-300' : 'text-slate-300'">{{ check.status }}</span></div>
-                            <div class="mt-1 flex justify-between gap-2 text-xs"><span>峰值 {{ formatMetric(check.peak?.value, 2, check.unit) }}</span><span>阈值 {{ formatMetric(check.threshold, 2, check.unit) }}</span></div>
+                            <div class="flex items-center justify-between gap-2 text-[17px]"><strong class="text-white">{{ check.label }}</strong><span :class="['font-bold', check.exceededCount ? 'text-orange-300' : 'text-[#9bbad0]']">{{ check.status }}</span></div>
+                            <div class="mt-1.5 flex justify-between gap-2 text-[15px] tabular-nums"><span class="text-[#d7e6f2]">峰值 <strong class="text-white">{{ formatMetric(check.peak?.value, 2, check.unit) }}</strong></span><span class="text-[#9bbad0]">阈值 {{ formatMetric(check.threshold, 2, check.unit) }}</span></div>
                             <div v-if="check.ratio !== null" class="assessment-meter"><span :style="{ width: `${Math.min(100, check.ratio * 100)}%`, backgroundColor: check.exceededCount ? '#fb923c' : '#22d3ee' }"></span></div>
-                            <div v-if="check.peak" class="mt-1 text-xs text-slate-400">{{ formatForecastTime(check.peak.time) }}</div>
+                            <div v-if="check.peak" class="mt-1 text-[14px] tabular-nums text-[#9bbad0]">{{ formatForecastTime(check.peak.time) }}</div>
                         </div>
                     </section>
                 </div>
@@ -314,6 +319,7 @@ import {
 import { syncPipelineWarningsFromPipeSelection } from '../../utils/pipeline/pipelineWarningService.js';
 import { getMiningMonitoringList } from '../../api/miningMonitoring.js';
 import { OPERATION_SYSTEMS, SYSTEM_METRICS, loadOperationLimits, saveOperationLimits, assessOperationSystem, saveOperationAssessment } from '../../utils/mining/operationAssessment.js';
+import { chartAxisLabel, chartAxisName, chartLegendText, chartTooltipStyle } from '../../utils/chartTypography.js';
 
 const props = defineProps({
     show: {
@@ -339,6 +345,7 @@ const loadingMetocean = ref(false);
 const siteError = ref('');
 const isSiteDropdownOpen = ref(false);
 const activeSystem = ref('surface');
+const showThresholdEditor = ref(false);
 const monitoredAreas = ref([]);
 const operationLimits = ref({ surface: {}, collection: {} });
 const feedbackToast = ref({
@@ -567,42 +574,46 @@ const renderCharts = async () => {
     const allowable = evaluation.value.allowableStress;
     const hourly = metocean.value.hourlyForecast || [];
     const timeLabels = hourly.map(item => formatForecastTime(item.forecastTime));
-    const trendRows = [
+    const allTrendRows = [
         { name: '风速', axisName: '风速 m/s', color: '#22d3ee', data: hourly.map(item => item.windSpeed) },
-        { name: '浪高', axisName: '浪高 m', color: '#38bdf8', data: hourly.map(item => item.waveHeight), areaColor: 'rgba(56,189,248,.14)' },
+        { name: '浪高', axisName: '浪高 m', color: '#38bdf8', data: hourly.map(item => item.waveHeight), areaColor: 'rgba(56,189,248,.16)' },
         { name: '流速', axisName: '流速 m/s', color: '#a78bfa', data: hourly.map(item => item.currentSpeed) }
     ];
-    const trendGrid = trendRows.map((item,index)=>({
-        left:58,right:20,top:(10+index*31)+'%',height:'19%'
-    }));
+    const activeTrendRows = allTrendRows.filter(item => item.data.some(value => value != null));
+    const trendRows = activeTrendRows.length ? activeTrendRows : [allTrendRows[1]];
+    const missingNames = allTrendRows.filter(item => !item.data.some(value => value != null)).map(item => item.name);
+    const rowCount = trendRows.length;
+    const trendGrid = trendRows.map((_, index) => {
+        if (rowCount === 1) return { left: 50, right: 20, top: 36, bottom: 38 };
+        if (rowCount === 2) return { left: 50, right: 20, top: `${15 + index * 44}%`, height: '31%' };
+        return { left: 50, right: 20, top: `${12 + index * 30}%`, height: '19%' };
+    });
 
     stressChart?.setOption({
         backgroundColor: 'transparent',
         tooltip: {
             trigger: 'axis',
             axisPointer: { type: 'shadow' },
-            backgroundColor: 'rgba(15, 23, 42, 0.96)',
-            borderColor: '#22d3ee',
-            textStyle: { color: '#f8fafc' }
+            ...chartTooltipStyle()
         },
-        grid: { left: 46, right: 36, top: 16, bottom: 24 },
+        grid: { left: 58, right: 50, top: 24, bottom: 28 },
         xAxis: {
             type: 'value',
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc' },
-            splitLine: { lineStyle: { color: 'rgba(148,163,184,0.12)' } }
+            axisLine: { lineStyle: { color: '#47657e' } },
+            axisLabel: chartAxisLabel(),
+            splitLine: { lineStyle: { color: 'rgba(148,179,204,0.18)' } }
         },
         yAxis: {
             type: 'category',
             data: names,
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontWeight: 700 }
+            axisLine: { lineStyle: { color: '#47657e' } },
+            axisLabel: chartAxisLabel({ color: '#ffffff', fontWeight: 700 })
         },
         series: [
             {
                 name: '综合应力',
                 type: 'bar',
-                barWidth: 20,
+                barWidth: 22,
                 data: candidates.map((item) => ({
                     value: item.combinedStress,
                     itemStyle: { color: riskColor(item.riskLevel) }
@@ -610,14 +621,17 @@ const renderCharts = async () => {
                 label: {
                     show: true,
                     position: 'right',
-                    color: '#e2e8f0',
-                    fontSize: 11,
+                    color: '#ffffff',
+                    fontSize: 14,
+                    fontWeight: 700,
                     formatter: ({ value }) => Number(value).toFixed(0)
                 },
                 markLine: {
                     symbol: 'none',
                     label: {
                         color: '#facc15',
+                        fontSize: 14,
+                        fontWeight: 700,
                         formatter: '许用'
                     },
                     lineStyle: {
@@ -635,20 +649,26 @@ const renderCharts = async () => {
         backgroundColor: 'transparent',
         tooltip: {
             trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.96)',
-            borderColor: '#22d3ee',
-            textStyle: { color: '#f8fafc' }
+            ...chartTooltipStyle()
         },
-        graphic: trendRows.filter(item=>!item.data.some(value=>value!=null)).map(item=>({
-            type:'text',left:'center',top:(18+trendRows.indexOf(item)*31)+'%',
-            style:{text:'暂无'+item.name+'数据',fill:'#94a3b8',fontSize:12}
-        })),
-        dataZoom: [{type:'inside',xAxisIndex:[0,1,2],filterMode:'none'}],
+        graphic: [
+            ...(!activeTrendRows.length ? [{
+                type: 'text', left: 'center', top: '48%',
+                style: { text: '暂无风浪流趋势数据', fill: '#9bbad0', fontSize: 15, fontWeight: 600 }
+            }] : []),
+            ...(activeTrendRows.length && missingNames.length ? [{
+                type: 'text', right: 14, top: 2,
+                style: { text: `${missingNames.join('/')}暂无数据`, fill: '#9bbad0', fontSize: 14 }
+            }] : [])
+        ],
+        dataZoom: [{ type: 'inside', xAxisIndex: trendRows.map((_, i) => i), filterMode: 'none' }],
         legend: {
+            show: rowCount > 1,
             top: 0,
-            textStyle: { color: '#dbeafe', fontSize: 13, fontWeight: 800 },
-            itemWidth: 18,
-            itemHeight: 9,
+            left: 0,
+            textStyle: chartLegendText({ color: '#ffffff' }),
+            itemWidth: 16,
+            itemHeight: 8,
             data: trendRows.map((item) => item.name)
         },
         grid: trendGrid,
@@ -658,9 +678,9 @@ const renderCharts = async () => {
             data: timeLabels,
             boundaryGap: false,
             axisTick: { show: false },
-            axisLine: { lineStyle: { color: 'rgba(100, 116, 139, 0.5)' } },
+            axisLine: { lineStyle: { color: 'rgba(100, 130, 156, 0.6)' } },
             axisLabel: index === trendRows.length - 1
-                ? { color: '#cbd5e1', fontSize: 12, fontWeight: 700, margin: 10, hideOverlap: true }
+                ? chartAxisLabel({ margin: 10, hideOverlap: true })
                 : { show: false }
         })),
         yAxis: trendRows.map((item, index) => ({
@@ -668,12 +688,12 @@ const renderCharts = async () => {
             gridIndex: index,
             name: item.axisName,
             nameGap: 10,
-            nameTextStyle: { color: item.color, fontSize: 12, fontWeight: 800 },
-            axisLabel: { color: '#f8fafc', fontSize: 11, fontWeight: 700 },
+            nameTextStyle: chartAxisName({ color: item.color, fontWeight: 700 }),
+            axisLabel: chartAxisLabel(),
             axisLine: { show: false },
             axisTick: { show: false },
-            splitNumber: 3,
-            splitLine: { lineStyle: { color: 'rgba(148, 163, 184, 0.12)' } }
+            splitNumber: 4,
+            splitLine: { lineStyle: { color: 'rgba(148, 179, 204, 0.2)' } }
         })),
         series: trendRows.map((item, index) => ({
             name: item.name,
@@ -684,7 +704,7 @@ const renderCharts = async () => {
             yAxisIndex: index,
             symbol: 'circle',
             symbolSize: 6,
-            showSymbol: true,
+            showSymbol: false,
             data: item.data,
             lineStyle: { color: item.color, width: 3 },
             itemStyle: { color: item.color, borderColor: '#e0f2fe', borderWidth: 1 },
@@ -734,7 +754,7 @@ onBeforeUnmount(() => {
 
 <style>
 .pipe-system-tab-active{border-color:#67e8f9!important;background:rgba(8,145,178,.5)!important;box-shadow:inset 0 -2px #67e8f9;}
-.assessment-comparison{padding:.45rem 0;border-bottom:1px solid rgba(51,65,85,.6);font-size:.85rem;}
+.assessment-comparison{padding:.32rem 0;border-bottom:1px solid rgba(51,65,85,.6);font-size:.95rem;}
 .assessment-comparison:last-child{border-bottom:0;}
 .assessment-meter{height:4px;margin-top:6px;background:#1e293b;}
 .assessment-meter span{display:block;height:100%;}
@@ -749,13 +769,13 @@ onBeforeUnmount(() => {
 .pipe-left-content {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .pipe-section {
     border: 1px solid rgba(51, 65, 85, 0.62);
     background: rgba(15, 23, 42, 0.5);
-    padding: 0.75rem;
+    padding: 0.55rem 0.7rem;
 }
 
 .pipe-control-section {
@@ -775,8 +795,8 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 0.55rem;
     color: #22d3ee;
-    font-size: 1rem;
-    font-weight: 800;
+    font-size: 1.125rem;
+    font-weight: 700;
 }
 
 .pipe-section-title::before {
@@ -814,23 +834,23 @@ onBeforeUnmount(() => {
 
 .pipe-site-picker {
     position: relative;
-    width: min(20rem, calc(100% - 1rem));
+    width: 100%;
 }
 
 .pipe-site-picker-trigger {
     display: flex;
     width: 100%;
-    height: 2.35rem;
+    height: 2.6rem;
     align-items: center;
     justify-content: space-between;
     gap: 0.65rem;
     border: 1px solid rgba(34, 211, 238, 0.52);
     border-radius: 0.125rem;
     background: linear-gradient(90deg, rgba(8, 47, 73, 0.82), rgba(15, 23, 42, 0.9));
-    padding: 0 0.7rem;
-    color: #e0f2fe;
-    font-size: 0.9rem;
-    font-weight: 800;
+    padding: 0 0.75rem;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
     text-align: left;
 }
 
@@ -873,10 +893,10 @@ onBeforeUnmount(() => {
     width: 100%;
     overflow: hidden;
     border: 1px solid transparent;
-    padding: 0.5rem 0.55rem;
-    color: #cbd5e1;
-    font-size: 0.82rem;
-    font-weight: 800;
+    padding: 0.55rem 0.65rem;
+    color: #d7e6f2;
+    font-size: 0.95rem;
+    font-weight: 600;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -895,19 +915,19 @@ onBeforeUnmount(() => {
 
 .pipe-label {
     margin-bottom: 0.35rem;
-    color: #93c5fd;
-    font-size: 0.76rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .pipe-btn {
-    height: 2.35rem;
+    height: 2.6rem;
     border: 1px solid rgba(34, 211, 238, 0.42);
     border-radius: 0.125rem;
     background: rgba(8, 145, 178, 0.26);
-    color: #ecfeff;
-    font-size: 1rem;
-    font-weight: 800;
+    color: #ffffff;
+    font-size: 1.0625rem;
+    font-weight: 700;
     transition: all 0.18s ease;
 }
 
@@ -1058,14 +1078,14 @@ onBeforeUnmount(() => {
     border: 1px solid rgba(51, 65, 85, 0.72);
     border-radius: 0.125rem;
     background: rgba(15, 23, 42, 0.55);
-    padding: 0.85rem 0.9rem;
+    padding: 0.65rem 0.8rem;
 }
 
 .pipe-decision-eyebrow {
     display: block;
-    color: #93c5fd;
-    font-size: 0.78rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .pipe-decision-title {
@@ -1073,39 +1093,40 @@ onBeforeUnmount(() => {
     margin-top: 0.28rem;
     color: #ffffff;
     font-size: 2rem;
-    font-weight: 900;
-    line-height: 1.08;
+    font-weight: 800;
+    line-height: 1.12;
 }
 
 .pipe-decision-subtitle {
-    margin-top: 0.55rem;
+    margin-top: 0.5rem;
     color: #f8fafc;
-    font-size: 1.02rem;
-    font-weight: 900;
-    line-height: 1.35;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .pipe-decision-card p {
     margin-top: 0.45rem;
     overflow: hidden;
-    color: #94a3b8;
-    font-size: 0.78rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 0.9rem;
+    font-weight: 500;
     line-height: 1.45;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .pipe-risk-tag-large {
-    min-width: 3rem;
-    padding: 0.18rem 0.48rem;
-    font-size: 0.95rem;
+    min-width: 3.4rem;
+    padding: 0.22rem 0.55rem;
+    font-size: 1rem;
 }
 
 .pipe-current-box {
     display: grid;
-    gap: 0.5rem;
-    padding: 0.7rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.55rem 0.65rem;
 }
 
 .pipe-current-box span,
@@ -1113,10 +1134,10 @@ onBeforeUnmount(() => {
 .pipe-mini-card span,
 .pipe-data-cell span {
     display: block;
-    color: #93c5fd;
-    font-size: 0.72rem;
+    color: #9bbad0;
+    font-size: 0.875rem;
     font-style: normal;
-    font-weight: 800;
+    font-weight: 500;
 }
 
 .pipe-current-box strong,
@@ -1124,11 +1145,12 @@ onBeforeUnmount(() => {
 .pipe-mini-card strong,
 .pipe-data-cell strong {
     display: block;
-    margin-top: 0.22rem;
+    margin-top: 0.2rem;
     overflow: hidden;
     color: #ffffff;
-    font-size: 0.9rem;
-    font-weight: 900;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1169,27 +1191,27 @@ onBeforeUnmount(() => {
 }
 
 .pipe-chart-note {
-    color: #94a3b8;
-    font-size: 0.72rem;
-    font-weight: 800;
+    color: #d7e6f2;
+    font-size: 0.9375rem;
+    font-weight: 700;
 }
 
 .pipe-empty-line,
 .pipe-chart-loading {
     display: flex;
-    min-height: 2.35rem;
+    min-height: 2.6rem;
     align-items: center;
     justify-content: center;
     border: 1px dashed rgba(71, 85, 105, 0.72);
-    color: #94a3b8;
-    font-size: 0.8rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .pipe-weather-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
+    gap: 0.5rem;
 }
 
 .pipe-weather-strip div,
@@ -1197,24 +1219,25 @@ onBeforeUnmount(() => {
     min-width: 0;
     border: 1px solid rgba(51, 65, 85, 0.72);
     background: rgba(15, 23, 42, 0.52);
-    padding: 0.5rem;
+    padding: 0.55rem 0.65rem;
 }
 
 .pipe-weather-strip span,
 .pipe-evaluation-note span {
     display: block;
-    color: #93c5fd;
-    font-size: 0.68rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .pipe-weather-strip strong,
 .pipe-evaluation-note strong {
     display: block;
     margin-top: 0.2rem;
-    color: #f8fafc;
-    font-size: 0.8rem;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 1.125rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
 .pipe-metocean-chart {

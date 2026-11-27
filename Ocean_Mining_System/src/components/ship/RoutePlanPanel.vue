@@ -1,28 +1,27 @@
 <template>
-    <div class="absolute top-36 left-8 w-[28rem] max-h-[calc(100vh-10rem)] z-40 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft overflow-y-auto custom-scrollbar">
+    <div class="absolute top-36 left-8 w-[29rem] max-h-[calc(100vh-10rem)] z-40 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft overflow-y-auto custom-scrollbar">
         <transition name="slide-down">
-            <div v-if="show" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+            <div v-if="show" class="tech-panel-enhanced p-5 pointer-events-auto relative group" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 -->
-                <div class="flex items-center mb-6 border-b-2 border-purple-500/30 pb-3">
+                <div class="flex items-center mb-5 border-b-2 border-purple-500/30 pb-3">
                     <div class="w-1.5 h-6 bg-purple-400 mr-3 shadow-[0_0_10px_#a855f7]"></div>
-                    <h3 class="text-2xl font-bold text-white tracking-wider flex-1">航线规划</h3>
-                    <div class="text-xs font-['Orbitron'] text-purple-500 opacity-80 font-bold tracking-widest">ROUTE PLANNING</div>
+                    <h3 class="text-[26px] leading-tight font-bold text-white tracking-wider flex-1">航线规划</h3>
                 </div>
 
                 <!-- 规划模式选项卡 -->
-                <div class="flex gap-2 mb-6">
+                <div class="flex gap-2 mb-5">
                     <button 
                         @click="planMode = 'port'"
                         :class="[
-                            'flex-1 px-4 py-2 font-bold rounded-sm transition-all',
+                            'flex-1 px-4 py-2 text-[16px] font-bold rounded-sm transition-all',
                             planMode === 'port' 
                                 ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                         ]"
                     >
                         港到港
@@ -30,10 +29,10 @@
                     <button 
                         @click="planMode = 'point'"
                         :class="[
-                            'flex-1 px-4 py-2 font-bold rounded-sm transition-all',
+                            'flex-1 px-4 py-2 text-[16px] font-bold rounded-sm transition-all',
                             planMode === 'point' 
                                 ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                         ]"
                     >
                         点到点
@@ -44,28 +43,27 @@
                 <div v-if="planMode === 'port'" class="space-y-4">
                     <!-- 出发港 -->
                     <div class="space-y-2">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
+                        <div class="text-purple-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>出发港
                         </div>
                         <input 
                             v-model="startPort" 
                             type="text" 
-                            placeholder="输入港口代码，如: CNSHA"
-                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                            placeholder="输入五位港口代码，如 CNSHA"
+                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
                         />
-                        <div class="text-xs text-slate-500">提示: 输入5位港口代码</div>
                     </div>
                     
                     <!-- 到达港 -->
                     <div class="space-y-2">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
+                        <div class="text-purple-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>到达港
                         </div>
                         <input 
                             v-model="endPort" 
                             type="text" 
-                            placeholder="输入港口代码，如: JPYOK"
-                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                            placeholder="输入五位港口代码，如 JPYOK"
+                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
                         />
                     </div>
                 </div>
@@ -74,7 +72,7 @@
                 <div v-else-if="planMode === 'point'" class="space-y-4">
                     <!-- 起始点 -->
                     <div class="space-y-2">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
+                        <div class="text-purple-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>起始点
                         </div>
                         <div class="flex gap-2">
@@ -83,23 +81,23 @@
                                 type="number" 
                                 step="0.000001"
                                 placeholder="经度"
-                                class="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                                class="flex-1 min-w-0 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                             />
                             <input 
                                 v-model="startLat" 
                                 type="number" 
                                 step="0.000001"
                                 placeholder="纬度"
-                                class="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                                class="flex-1 min-w-0 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                             />
                         </div>
                         <button 
                             @click="pickStartPoint"
                             :class="[
-                                'w-full px-3 py-1.5 text-sm font-bold rounded-sm transition-all',
+                                'w-full px-3 py-2 text-[15px] font-bold rounded-sm transition-all',
                                 pickingStart 
                                     ? 'bg-green-600 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse' 
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                             ]"
                         >
                             {{ pickingStart ? '点击地图选择起点...' : '地图选点' }}
@@ -108,7 +106,7 @@
                     
                     <!-- 结束点 -->
                     <div class="space-y-2">
-                        <div class="text-purple-400 text-base font-bold flex items-center">
+                        <div class="text-purple-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>结束点
                         </div>
                         <div class="flex gap-2">
@@ -117,72 +115,68 @@
                                 type="number" 
                                 step="0.000001"
                                 placeholder="经度"
-                                class="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                                class="flex-1 min-w-0 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                             />
                             <input 
                                 v-model="endLat" 
                                 type="number" 
                                 step="0.000001"
                                 placeholder="纬度"
-                                class="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-sm"
+                                class="flex-1 min-w-0 px-3 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                             />
                         </div>
                         <button 
                             @click="pickEndPoint"
                             :class="[
-                                'w-full px-3 py-1.5 text-sm font-bold rounded-sm transition-all',
+                                'w-full px-3 py-2 text-[15px] font-bold rounded-sm transition-all',
                                 pickingEnd 
                                     ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse' 
-                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                             ]"
                         >
                             {{ pickingEnd ? '点击地图选择终点...' : '地图选点' }}
                         </button>
                     </div>
-                    
-                    <div class="text-xs text-slate-500 bg-slate-800/30 p-2 rounded">
-                        提示: 点击"地图选点"后，在地图上点击选择位置
-                    </div>
                 </div>
                 
                 <!-- 规划按钮 -->
-                <div class="flex gap-2 pt-4 border-t border-dashed border-slate-700/50">
+                <div class="flex gap-2 pt-4 mt-4 border-t border-dashed border-slate-700/50">
                     <button 
                         @click="handleRoutePlan"
                         :disabled="loading || !canPlan"
-                        class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
+                        class="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
                     >
                         {{ loading ? '加载中...' : '🎬 查看演示航线' }}
                     </button>
                     <button 
                         v-if="routeResult"
                         @click="handleClearRoute"
-                        class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                        class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[16px] font-bold rounded-sm transition-all"
                     >
                         清除
                     </button>
                 </div>
                 
                 <!-- 路径规划结果 -->
-                <div v-if="routeResult || error" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                    <div class="text-purple-400 text-base font-bold flex items-center">
+                <div v-if="routeResult || error" class="space-y-2.5 pt-4 mt-4 border-t border-dashed border-slate-700/50">
+                    <div class="text-purple-300 text-[16px] font-bold flex items-center">
                         <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2.5"></div>规划结果
                     </div>
                     
                     <!-- 错误提示 -->
                     <div v-if="error" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                        <div class="text-red-400 text-sm">{{ error }}</div>
+                        <div class="text-red-300 text-[15px]">{{ error }}</div>
                     </div>
                     
                     <!-- 路径信息 -->
                     <div v-else-if="routeResult" class="bg-slate-800/40 border border-purple-500/50 rounded-sm p-4 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-slate-400 text-sm">航线距离</span>
-                            <span class="text-purple-400 font-bold text-lg">{{ routeResult.distance }} 海里</span>
+                            <span class="text-slate-400 text-[15px]">航线距离</span>
+                            <span class="text-purple-300 font-bold text-[18px] tabular-nums">{{ routeResult.distance }} 海里</span>
                         </div>
                         <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                            <span class="text-slate-400 text-sm">航点数量</span>
-                            <span class="text-white">{{ routeResult.pointCount }} 个</span>
+                            <span class="text-slate-400 text-[15px]">航点数量</span>
+                            <span class="text-white text-[17px] font-bold tabular-nums">{{ routeResult.pointCount }} 个</span>
                         </div>
                     </div>
                 </div>
@@ -191,7 +185,7 @@
                 <div class="space-y-2 pt-4 border-t border-dashed border-slate-700/50 mt-4">
                     <button 
                         @click="showAdvanced = !showAdvanced"
-                        class="w-full flex items-center justify-between text-purple-400 text-base font-bold hover:text-purple-300 transition-colors"
+                        class="w-full flex items-center justify-between text-purple-300 text-[16px] font-bold hover:text-purple-200 transition-colors"
                     >
                         <div class="flex items-center">
                             <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2.5"></div>
@@ -210,65 +204,65 @@
                     
                     <transition name="slide-down">
                         <div v-if="showAdvanced" class="bg-slate-800/40 border border-purple-500/30 rounded-sm p-4 space-y-4">
-                            <div class="text-xs text-slate-400 mb-3">气象风险阈值设置（采矿船标准）</div>
+                            <div class="text-[14px] text-slate-300 mb-2">气象风险阈值设置（采矿船标准）</div>
                             
                             <!-- 风速阈值 -->
                             <div class="space-y-2">
-                                <div class="text-sm text-slate-300 font-bold">风速（蒲福风级）</div>
-                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                <div class="text-[15px] text-slate-200 font-bold">风速（蒲福风级）</div>
+                                <div class="grid grid-cols-4 gap-2 text-[14px]">
                                     <div>
                                         <label class="text-slate-400">安全</label>
-                                        <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
                                         <label class="text-slate-400">注意</label>
-                                        <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
                                         <label class="text-slate-400">警告</label>
-                                        <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
                                         <label class="text-slate-400">危险</label>
-                                        <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- 浪高阈值 -->
                             <div class="space-y-2">
-                                <div class="text-sm text-slate-300 font-bold">浪高（米）</div>
-                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                <div class="text-[15px] text-slate-200 font-bold">浪高（米）</div>
+                                <div class="grid grid-cols-4 gap-2 text-[14px]">
                                     <div>
-                                        <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- 能见度阈值 -->
                             <div class="space-y-2">
-                                <div class="text-sm text-slate-300 font-bold">能见度（米）</div>
-                                <div class="grid grid-cols-4 gap-2 text-xs">
+                                <div class="text-[15px] text-slate-200 font-bold">能见度（米）</div>
+                                <div class="grid grid-cols-4 gap-2 text-[14px]">
                                     <div>
-                                        <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                     <div>
-                                        <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center" />
+                                        <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-2 py-1 text-white text-center text-[15px]" />
                                     </div>
                                 </div>
                             </div>
@@ -277,13 +271,13 @@
                             <div class="flex gap-2 pt-2">
                                 <button 
                                     @click="resetThresholds"
-                                    class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-sm transition-all"
+                                    class="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[15px] font-bold rounded-sm transition-all"
                                 >
                                     恢复默认
                                 </button>
                                 <button 
                                     @click="applyThresholds"
-                                    class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-sm transition-all"
+                                    class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-[15px] font-bold rounded-sm transition-all"
                                 >
                                     应用设置
                                 </button>

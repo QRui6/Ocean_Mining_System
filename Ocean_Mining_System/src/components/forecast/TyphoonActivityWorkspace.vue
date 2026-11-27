@@ -1,35 +1,35 @@
 <template>
-  <section style="position:absolute" class="typhoon-activity-panel tech-panel-enhanced pointer-events-auto right-6 top-36 z-50 flex w-[30rem] flex-col overflow-hidden p-4 font-['Noto_Sans_SC']">
-    <header class="flex shrink-0 items-center justify-between border-b border-cyan-500/30 pb-3"><h3 class="text-xl font-bold text-white">台风活动</h3><button class="floating-panel-close-btn floating-panel-close-btn--inline" title="关闭台风活动" @click="$emit('close')">✕</button></header>
+  <section style="position:absolute" class="typhoon-activity-panel tech-panel-enhanced pointer-events-auto right-6 top-36 z-50 flex w-[32rem] flex-col overflow-hidden p-5 font-['Noto_Sans_SC']">
+    <header class="flex shrink-0 items-center justify-between border-b-2 border-cyan-500/40 pb-3"><h3 class="text-[24px] font-bold text-white">台风活动</h3><button class="floating-panel-close-btn floating-panel-close-btn--inline" title="关闭台风活动" @click="$emit('close')">✕</button></header>
     <PanelSelect v-model="areaId" label="台风查询矿区" class="my-3" :options="areaOptions" overlay :max-height="240" />
-    <div class="mb-3 flex shrink-0 gap-4 text-sm text-cyan-100"><button v-for="item in ['活动预报','历史回放']" :key="item" :class="mode===item?'border-b border-cyan-300 text-white':''" @click="mode=item">{{ item }}</button><label class="ml-auto"><input v-model="showBuffer" type="checkbox"> 500 km范围</label></div>
-    <div v-if="error" class="mb-2 text-sm text-rose-200">{{error}}</div>
-    <div class="custom-scrollbar min-h-0 overflow-auto text-sm text-slate-200">
+    <div class="mb-3 flex shrink-0 items-center gap-5 text-[16px] font-bold text-[#9bbad0]"><button v-for="item in ['活动预报','历史回放']" :key="item" :class="mode===item?'border-b-2 border-cyan-300 pb-1 text-white':'pb-1 hover:text-white'" @click="mode=item">{{ item }}</button><label class="ml-auto flex items-center gap-1.5 text-[15px] font-semibold text-[#d7e6f2]"><input v-model="showBuffer" type="checkbox"> 500 km范围</label></div>
+    <div v-if="error" class="mb-2 text-[15px] text-rose-200">{{error}}</div>
+    <div class="custom-scrollbar min-h-0 overflow-auto text-[16px] text-[#d7e6f2]">
       <template v-if="mode==='活动预报'">
-        <div class="flex justify-between"><span>未来5天 · 500 km内集合预报概率</span><button :disabled="loading || data?.loading" @click="refresh">{{ data?.loading?'更新中':'更新' }}</button></div>
-        <div class="my-2 text-3xl text-white">{{ data?.probability==null?'—':data.probability.toFixed(1)+'%' }}</div>
+        <div class="flex items-center justify-between"><span class="text-[#9bbad0]">未来5天 · 500 km影响概率</span><button class="control text-[15px] font-bold" :disabled="loading || data?.loading" @click="refresh">{{ data?.loading?'更新中':'更新' }}</button></div>
+        <div class="my-2 text-[36px] font-extrabold tabular-nums text-white">{{ data?.probability==null?'—':data.probability.toFixed(1)+'%' }}</div>
         <p v-if="data?.error" class="text-rose-200">{{ data.error }}</p>
         <template v-if="data?.data">
-          <div>初始时间 {{ time(data.data.initialTime) }}</div><div class="mb-3">ECMWF ENS · {{ data.totalMembers }}个成员 <span v-if="data.stale" class="text-amber-200">数据已过期</span></div>
-          <div v-for="feed in activity" :key="feed.source" class="mb-2"><span class="mr-2 text-cyan-200">{{feed.source}}</span>{{ !feed.ok?'数据获取失败':feed.items.map(s=>s.name||s.typhoonNumber||s.id).join('、')||'暂无活动台风' }}<span v-if="feed.trackError" class="ml-2 text-amber-200">路径获取失败</span></div>
+          <div class="text-[15px] text-[#9bbad0]">初始时间 <strong class="ml-1 text-white">{{ time(data.data.initialTime) }}</strong></div><div class="mb-3 text-[15px] text-[#9bbad0]">ECMWF ENS · {{ data.totalMembers }} 个成员 <span v-if="data.stale" class="ml-1 font-semibold text-amber-200">数据已过期</span></div>
+          <div v-for="feed in activity" :key="feed.source" class="mb-2 text-[15px]"><span class="mr-2 font-bold text-cyan-200">{{feed.source}}</span><span class="text-white">{{ !feed.ok?'数据获取失败':feed.items.map(s=>s.name||s.typhoonNumber||s.id).join('、')||'暂无活动台风' }}</span><span v-if="feed.trackError" class="ml-2 text-amber-200">路径获取失败</span></div>
           <template v-if="storms.length">
             <PanelSelect v-model="stormId" label="活动台风" class="my-3" :options="stormOptions" overlay :max-height="240" />
-            <div class="flex flex-wrap gap-3"><label v-for="src in sources" :key="src"><input v-model="enabled" type="checkbox" :value="src"> {{src}}</label></div>
+            <div class="flex flex-wrap gap-3 text-[15px]"><label v-for="src in sources" :key="src"><input v-model="enabled" type="checkbox" :value="src"> {{src}}</label></div>
             <PanelSelect v-if="enabled.includes('ECMWF ENS')" v-model="member" label="集合成员" class="my-2" :options="memberOptions" overlay :max-height="240" />
-            <div v-if="selectedPoint" class="my-2"><div>经度 {{selectedPoint.lon.toFixed(2)}}° · 纬度 {{selectedPoint.lat.toFixed(2)}}°</div><div v-if="selectedPoint.windMs!=null">风速 {{selectedPoint.windMs.toFixed(1)}} m/s</div><div v-if="selectedPoint.pressureHpa!=null">气压 {{selectedPoint.pressureHpa.toFixed(0)}} hPa</div><div v-if="data.currentDistances?.[stormId]!=null">距矿区 {{data.currentDistances[stormId].toFixed(1)}} km</div><div v-if="data.nearest?.[stormId]">最近预报时次 {{time(data.nearest[stormId].time)}} · {{data.nearest[stormId].distance.toFixed(1)}} km</div></div>
+            <div v-if="selectedPoint" class="my-2 space-y-1 text-[16px] text-white"><div>经度 {{selectedPoint.lon.toFixed(2)}}° · 纬度 {{selectedPoint.lat.toFixed(2)}}°</div><div v-if="selectedPoint.windMs!=null">风速 {{selectedPoint.windMs.toFixed(1)}} m/s</div><div v-if="selectedPoint.pressureHpa!=null">气压 {{selectedPoint.pressureHpa.toFixed(0)}} hPa</div><div v-if="data.currentDistances?.[stormId]!=null">距矿区 {{data.currentDistances[stormId].toFixed(1)}} km</div><div v-if="data.nearest?.[stormId]">最近预报时次 {{time(data.nearest[stormId].time)}} · {{data.nearest[stormId].distance.toFixed(1)}} km</div></div>
           </template>
-        </template><p v-else class="mt-3">{{ loading || data?.loading ? '加载中' : '暂无集合预报' }}</p>
+        </template><p v-else class="mt-3 text-[#9bbad0]">{{ loading || data?.loading ? '加载中' : '暂无集合预报' }}</p>
       </template>
       <template v-else>
-        <p v-if="archiveLoading">加载中</p><p v-else-if="!cases.length && !error">暂无历史记录</p>
+        <p v-if="archiveLoading" class="text-[#9bbad0]">加载中</p><p v-else-if="!cases.length && !error" class="text-[#9bbad0]">暂无历史记录</p>
         <PanelSelect v-if="cases.length" v-model="sid" label="历史台风" :options="caseOptions" overlay :max-height="240" />
         <template v-if="historyPoint">
-          <div class="history-readout my-3" aria-live="off">
-            <div class="text-cyan-200">{{ time(historyPoint.time) }}</div>
-            <div>经度 {{ historyPoint.lon.toFixed(2) }}° · 纬度 {{ historyPoint.lat.toFixed(2) }}°</div>
-            <div>风速 {{ metricText(historyPoint.wmoWind, 0, 'kt') }}</div>
-            <div>气压 {{ metricText(historyPoint.wmoPres, 0, 'hPa') }}</div>
-            <div>距矿区 {{ metricText(historyPoint.distanceToAreaKm, 1, 'km') }}</div>
+          <div class="history-readout my-3 text-[17px]" aria-live="off">
+            <div class="font-bold text-cyan-200">{{ time(historyPoint.time) }}</div>
+            <div><span class="text-[#9bbad0]">坐标</span> <strong class="ml-1 text-white">{{ historyPoint.lon.toFixed(2) }}° · {{ historyPoint.lat.toFixed(2) }}°</strong></div>
+            <div><span class="text-[#9bbad0]">风速</span> <strong class="ml-1 text-white">{{ metricText(historyPoint.wmoWind, 0, 'kt') }}</strong></div>
+            <div><span class="text-[#9bbad0]">气压</span> <strong class="ml-1 text-white">{{ metricText(historyPoint.wmoPres, 0, 'hPa') }}</strong></div>
+            <div><span class="text-[#9bbad0]">距矿区</span> <strong class="ml-1 text-white">{{ metricText(historyPoint.distanceToAreaKm, 1, 'km') }}</strong></div>
           </div>
         </template>
       </template>
@@ -152,8 +152,8 @@ onBeforeUnmount(()=>{disposed=true;loadId++;archiveId++;trackId++;bufferId++;cle
 </script>
 <style scoped>
 .typhoon-activity-panel{height:auto;max-height:calc(100% - 10.5rem);}
-.history-readout{height:120px;}
-.history-readout>div{height:24px;line-height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
-.playback-button{width:72px;min-height:36px;flex:0 0 72px;font-size:14px;font-weight:700;}
+.history-readout{height:150px;}
+.history-readout>div{height:30px;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
+.playback-button{width:76px;min-height:38px;flex:0 0 76px;font-size:16px;font-weight:700;color:#ffffff;}
 .control{background:#091726;border:1px solid #285367;color:#dce9f0;padding:.38rem .55rem}
 </style>

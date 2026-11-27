@@ -1,46 +1,46 @@
 <template>
-  <section style="position:absolute" class="mining-assessment-panel tech-panel-enhanced pointer-events-auto absolute right-6 top-36 z-50 flex w-[30rem] flex-col overflow-hidden p-4 font-['Noto_Sans_SC']">
-    <header class="flex shrink-0 items-center justify-between border-b border-cyan-500/30 pb-3">
-      <h3 class="text-xl font-bold text-white">矿区评估</h3>
+  <section style="position:absolute" class="mining-assessment-panel tech-panel-enhanced pointer-events-auto absolute right-6 top-36 z-50 flex w-[32rem] flex-col overflow-hidden p-5 font-['Noto_Sans_SC']">
+    <header class="flex shrink-0 items-center justify-between border-b-2 border-cyan-500/40 pb-3">
+      <h3 class="text-[24px] font-bold text-white">矿区评估</h3>
       <button class="floating-panel-close-btn floating-panel-close-btn--inline" title="关闭矿区评估" @click="$emit('close')">✕</button>
     </header>
     <div class="shrink-0 py-3">
       <PanelSelect v-model="areaId" label="评估矿区" :options="areaOptions" overlay :max-height="240" />
-      <div class="mt-3 flex items-center gap-3 text-sm">
+      <div class="mt-3 flex items-center gap-3 text-[16px]">
         <button type="button" :disabled="busy || !areaId" class="assessment-button" @click="start">更新评估</button>
         <button type="button" :aria-pressed="events !== null" class="assessment-button" @click="toggleEvents">预警记录</button>
-        <span v-if="run" role="status" class="ml-auto text-xs text-cyan-100">{{ statusText }}<template v-if="['QUEUED','RUNNING'].includes(run.status)"> {{ run.progress || 0 }}%</template></span>
+        <span v-if="run" role="status" class="ml-auto text-[15px] font-semibold text-cyan-200">{{ statusText }}<template v-if="['QUEUED','RUNNING'].includes(run.status)"> {{ run.progress || 0 }}%</template></span>
       </div>
     </div>
-    <div v-if="error" role="alert" class="mb-3 shrink-0 text-sm text-rose-200">{{ error }}</div>
+    <div v-if="error" role="alert" class="mb-3 shrink-0 text-[15px] text-rose-200">{{ error }}</div>
     <div class="custom-scrollbar min-h-0 overflow-y-auto">
       <template v-if="result">
-        <div class="mb-3 flex items-center justify-between text-sm"><span>采样点 {{ result.points.length }} · 间距 {{ result.spacingKm }} km</span><span v-if="run?.status !== 'COMPLETED'" class="text-xs text-slate-400">上次结果</span></div>
+        <div class="mb-3 flex items-center justify-between text-[16px] font-semibold text-white"><span>采样点 {{ result.points.length }} · 间距 {{ result.spacingKm }} km</span><span v-if="run?.status !== 'COMPLETED'" class="text-[14px] text-[#9bbad0]">上次结果</span></div>
         <div class="grid grid-cols-[1fr_2fr] gap-2">
           <PanelSelect v-model="metric" label="评估指标" :options="metricOptions" overlay :max-height="240" />
           <PanelSelect v-model="frame" label="预报时次" :options="frameOptions" overlay :max-height="240" />
         </div>
-        <div class="my-3 flex flex-wrap gap-x-3 gap-y-1 text-xs"><span>阈值 {{ rule?.warning }} {{ rule?.unit }}</span><span>超限 {{ selectedFrame?.exceeded ?? 0 }}</span><span v-if="expired" class="text-amber-200">数据已过期</span></div>
-        <div class="custom-scrollbar max-h-72 overflow-auto">
-          <table class="w-full text-sm"><thead class="sticky top-0 bg-[#091726]"><tr><th class="py-2">点位</th><th>经度</th><th>纬度</th><th>{{ rule?.unit }}</th></tr></thead>
-            <tbody><tr v-for="point in pagePoints" :key="point.index" class="cursor-pointer border-t border-slate-700" @click="locate(point)"><td class="py-2 text-center">{{ point.index + 1 }}</td><td>{{ point.lon.toFixed(4) }}</td><td>{{ point.lat.toFixed(4) }}</td><td :class="point.value != null && point.value >= rule?.warning ? 'text-rose-300' : ''">{{ point.value == null ? '--' : point.value.toFixed(2) }}</td></tr></tbody>
+        <div class="my-3 flex flex-wrap gap-x-4 gap-y-1 text-[15px] text-[#d7e6f2]"><span>阈值 <strong class="text-white">{{ rule?.warning }} {{ rule?.unit }}</strong></span><span>超限 <strong class="text-white">{{ selectedFrame?.exceeded ?? 0 }}</strong></span><span v-if="expired" class="font-semibold text-amber-200">数据已过期</span></div>
+        <div class="custom-scrollbar max-h-80 overflow-auto">
+          <table class="w-full text-[16px] tabular-nums"><thead class="sticky top-0 bg-[#091726] text-[#9bbad0]"><tr><th class="py-2">点位</th><th>经度</th><th>纬度</th><th>{{ rule?.unit }}</th></tr></thead>
+            <tbody class="text-white"><tr v-for="point in pagePoints" :key="point.index" class="cursor-pointer border-t border-slate-700 hover:bg-cyan-950/40" @click="locate(point)"><td class="py-2 text-center">{{ point.index + 1 }}</td><td>{{ point.lon.toFixed(4) }}</td><td>{{ point.lat.toFixed(4) }}</td><td :class="point.value != null && point.value >= rule?.warning ? 'font-bold text-rose-300' : 'font-semibold'">{{ point.value == null ? '--' : point.value.toFixed(2) }}</td></tr></tbody>
           </table>
         </div>
-        <div class="my-3 flex items-center justify-between text-sm"><button type="button" :disabled="page === 0" class="assessment-button" @click="page--">上一页</button><span>{{ page + 1 }} / {{ pages }}</span><button type="button" :disabled="page + 1 >= pages" class="assessment-button" @click="page++">下一页</button></div>
+        <div class="my-3 flex items-center justify-between text-[16px] font-semibold text-white"><button type="button" :disabled="page === 0" class="assessment-button" @click="page--">上一页</button><span>{{ page + 1 }} / {{ pages }}</span><button type="button" :disabled="page + 1 >= pages" class="assessment-button" @click="page++">下一页</button></div>
       </template>
-      <div v-else-if="!busy && !loadingArea" class="py-3 text-sm text-slate-400">尚无评估结果</div>
-      <div v-if="loadingArea" class="py-3 text-sm text-slate-400">读取评估结果...</div>
-      <div v-if="events !== null" class="mt-3 border-t border-cyan-500/30 pt-3 text-sm">
-        <div v-if="!events.length" class="text-slate-400">暂无预警</div>
-        <button v-for="event in events" :key="event.id" type="button" class="mb-2 block w-full border border-slate-700 p-2 text-left" @click="selectEvent(event)">{{ labels[event.metric] }} · {{ event.status === 'ACTIVE' ? '生效' : '解除' }} · {{ event.snapshot.value?.toFixed(2) }}</button>
-        <div v-if="selectedEvent" class="my-2 space-y-1">
+      <div v-else-if="!busy && !loadingArea" class="py-4 text-[16px] text-[#9bbad0]">尚无评估结果</div>
+      <div v-if="loadingArea" class="py-4 text-[16px] text-[#9bbad0]">读取评估结果...</div>
+      <div v-if="events !== null" class="mt-3 border-t border-cyan-500/30 pt-3 text-[15px]">
+        <div v-if="!events.length" class="text-[#9bbad0]">暂无预警</div>
+        <button v-for="event in events" :key="event.id" type="button" class="mb-2 block w-full border border-slate-700 p-2.5 text-left text-[16px] font-semibold text-white" @click="selectEvent(event)">{{ labels[event.metric] }} · {{ event.status === 'ACTIVE' ? '生效' : '解除' }} · {{ event.snapshot.value?.toFixed(2) }}</button>
+        <div v-if="selectedEvent" class="my-2 space-y-1 text-[15px] text-[#d7e6f2]">
           <div v-if="selectedEvent.snapshot.point">经度 {{ selectedEvent.snapshot.point.lon.toFixed(4) }}° · 纬度 {{ selectedEvent.snapshot.point.lat.toFixed(4) }}°</div>
           <div v-if="selectedEvent.snapshot.start">{{ selectedEvent.snapshot.start }} 至 {{ selectedEvent.snapshot.end }}</div>
           <div v-if="selectedEvent.snapshot.durationHours != null">持续 {{ selectedEvent.snapshot.durationHours }} h · {{ selectedEvent.severity === 'CRITICAL' ? '严重' : '预警' }}</div>
           <div v-if="selectedEvent.status === 'ACTIVE'">{{ selectedEvent.severity === 'CRITICAL' ? '暂停高风险作业，核查现场条件。' : '加强值守，跟踪预报更新。' }}</div>
           <button v-if="selectedEvent.status === 'ACTIVE'" type="button" class="assessment-button" @click="acknowledge">确认预警</button>
         </div>
-        <div v-for="(version, index) in versions" :key="index" class="py-1">{{ version.created_at }} · {{ { CREATED: '创建', UPDATED: '更新', ACKNOWLEDGED: '人工确认', RESOLVED: '解除' }[version.action] }}</div>
+        <div v-for="(version, index) in versions" :key="index" class="py-1 text-[14px] text-[#9bbad0]">{{ version.created_at }} · {{ { CREATED: '创建', UPDATED: '更新', ACKNOWLEDGED: '人工确认', RESOLVED: '解除' }[version.action] }}</div>
       </div>
     </div>
   </section>
@@ -150,7 +150,7 @@ onBeforeUnmount(() => { disposed = true; requestId++; clearTimeout(timer); clear
 </script>
 <style scoped>
 .mining-assessment-panel{height:auto;max-height:calc(100% - 10.5rem);}
-.assessment-button{border:1px solid rgba(34,211,238,.4);background:rgba(8,15,28,.65);padding:5px 9px;font-size:14px;font-weight:700;white-space:nowrap;}
+.assessment-button{border:1px solid rgba(34,211,238,.45);background:rgba(8,15,28,.7);padding:6px 12px;color:#ffffff;font-size:15px;font-weight:700;white-space:nowrap;}
 .assessment-button:disabled{cursor:default;filter:brightness(.65);}
 .assessment-button:focus-visible{outline:2px solid #67e8f9;outline-offset:2px;}
 </style>

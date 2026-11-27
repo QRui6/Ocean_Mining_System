@@ -40,7 +40,7 @@
                 <button v-for="item in leftTabs" :key="item" 
                     @click="selectTab(item)"
                     :class="[
-                        'px-4 py-2 text-base font-bold transition-all duration-300',
+                        'px-3 py-2 text-[19px] font-bold tracking-wide transition-all duration-300',
                         activeTab === item 
                             ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
                             : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
@@ -59,7 +59,7 @@
                  <button v-for="item in rightTabs" :key="item" 
                     @click="selectTab(item)"
                     :class="[
-                        'px-4 py-2 text-base font-bold transition-all duration-300',
+                        'px-3 py-2 text-[19px] font-bold tracking-wide transition-all duration-300',
                         activeTab === item 
                             ? 'text-white bg-cyan-900/70 border-2 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.4)]'
                             : 'text-cyan-100 bg-slate-900/60 border-2 border-cyan-500/30 hover:bg-cyan-900/40 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]'
@@ -87,8 +87,8 @@
                 </button>
                 <!-- Time Display -->
                 <div class="flex flex-col leading-tight text-right">
-                    <span class="text-base tracking-widest opacity-80 text-cyan-200 font-bold font-['Rajdhani']">{{ formatDate(time) }}</span>
-                    <span class="text-3xl font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] tabular-nums font-['Rajdhani']">{{ formatTime(time) }}</span>
+                    <span class="text-base tracking-wider text-cyan-200 font-semibold font-['Rajdhani']">{{ formatDate(time) }}</span>
+                    <span class="text-[30px] font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] tabular-nums font-['Rajdhani']">{{ formatTime(time) }}</span>
                 </div>
             </div>
         </div>
@@ -129,7 +129,7 @@ export default {
         const RIGHT_RESERVED_WIDTH = computed(() => (props.showMenuShortcut ? 188 : 112));
         const NAV_HORIZONTAL_PADDING = 24;
         const TAB_GAP = 12;
-        const TAB_MAX_WIDTH = 132;
+        const TAB_MAX_WIDTH = 130;
         const TAB_MIN_WIDTH = 84;
 
         // 顶部选项卡按数量自动左右二分，奇数时左侧多一个

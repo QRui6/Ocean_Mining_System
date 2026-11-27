@@ -53,7 +53,7 @@
                     left: infoPosition.x + 'px', 
                     top: infoPosition.y + 'px' 
                 }"
-                class="absolute w-[20rem] bg-slate-950/90 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                class="absolute w-[24rem] bg-slate-950/90 backdrop-blur-xl border-2 border-cyan-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
                 style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
                 <!-- Scanning Line -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent animate-pulse"></div>
@@ -62,15 +62,15 @@
                 <div class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-4 py-3 border-b border-cyan-500/30">
                     <div class="flex items-center gap-3">
                          <div class="w-2 h-2 bg-yellow-400 rotate-45 shadow-[0_0_6px_#facc15]"></div>
-                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">矿区信息</span>
+                         <span class="font-bold text-[20px] text-white tracking-wide font-['Noto_Sans_SC']">矿区信息</span>
                     </div>
                     <button @click="closeInfo" class="group p-1">
-                        <div class="w-6 h-6 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-sm">✕</div>
+                        <div class="w-7 h-7 border border-cyan-500/50 flex items-center justify-center rounded-sm group-hover:bg-cyan-500 group-hover:text-black transition-colors text-[16px]">✕</div>
                     </button>
                 </div>
                 
                 <!-- Content -->
-                <div class="p-4 space-y-3 relative">
+                <div class="p-4 space-y-2.5 relative">
                     <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
                     
                     <div v-for="(val, key) in {
@@ -79,18 +79,17 @@
                         '担保国': selectedArea.sponsor,
                         '矿种类型': selectedArea.mineral,
                         '矿区位置': selectedArea.location,
-                        '合同期限': selectedArea.dateRange,
                         '合同区面积': selectedArea.area
                     }" :key="key" class="relative flex justify-between items-center border-b border-slate-700/50 pb-2 last:border-0 group hover:bg-white/5 px-2 rounded transition-colors">
-                        <span class="text-cyan-300/80 text-sm font-medium">{{ key }}</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate" :title="val">{{ val }}</span>
+                        <span class="text-slate-400 text-[14px] font-medium">{{ key }}</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide text-right max-w-[65%] truncate" :title="val">{{ val }}</span>
                     </div>
                     
                     <!-- 监测按钮 -->
                     <div class="pt-3 border-t border-cyan-500/30 relative z-10">
                         <button 
                             @click="addToMonitoring"
-                            class="w-full px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-sm transition-all shadow-lg hover:shadow-cyan-500/50 flex items-center justify-center gap-2 pointer-events-auto cursor-pointer"
+                            class="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-lg hover:shadow-cyan-500/50 flex items-center justify-center gap-2 pointer-events-auto cursor-pointer"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -110,7 +109,7 @@
                     left: shipInfoPosition.x + 'px', 
                     top: shipInfoPosition.y + 'px' 
                 }"
-                class="absolute w-[22rem] bg-slate-950/95 backdrop-blur-xl border-2 border-yellow-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
+                class="absolute w-[25rem] bg-slate-950/95 backdrop-blur-xl border-2 border-yellow-500/50 text-white shadow-[0_0_40px_rgba(0,0,0,0.8)] z-50" 
                 style="clip-path: polygon(0 0, 100% 0, 100% 92%, 92% 100%, 0 100%)">
                 <!-- Scanning Line -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
@@ -119,98 +118,82 @@
                 <div class="flex items-center justify-between bg-gradient-to-r from-yellow-900/60 to-transparent px-4 py-3 border-b border-yellow-500/30">
                     <div class="flex items-center gap-3">
                          <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
-                         <span class="font-bold text-lg text-white tracking-wide font-['Noto_Sans_SC']">🚢 船舶信息</span>
+                         <span class="font-bold text-[20px] text-white tracking-wide font-['Noto_Sans_SC']">🚢 船舶信息</span>
                     </div>
                     <button @click="closeShipInfo" class="group p-1">
-                        <div class="w-6 h-6 border border-yellow-500/50 flex items-center justify-center rounded-sm group-hover:bg-yellow-500 group-hover:text-black transition-colors text-sm">✕</div>
+                        <div class="w-7 h-7 border border-yellow-500/50 flex items-center justify-center rounded-sm group-hover:bg-yellow-500 group-hover:text-black transition-colors text-[16px]">✕</div>
                     </button>
                 </div>
                 
                 <!-- Content -->
-                <div class="p-4 space-y-3 relative">
+                <div class="p-4 space-y-2 relative">
                     <div class="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
                     
                     <!-- 船舶名称 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船舶名称</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">船舶名称</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide text-right max-w-[65%] truncate">
                             {{ selectedShip.ship_cnname || selectedShip.ship_name }}
                         </span>
                     </div>
                     
                     <!-- 船舶类型 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船舶类型</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">船舶类型</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide">
                             {{ getShipTypeName(selectedShip.ship_type) }}
                         </span>
                     </div>
                     
                     <!-- 船长 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船长</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
-                            {{ selectedShip.length ? selectedShip.length + 'm' : 'N/A' }}
-                        </span>
-                    </div>
-                    
-                    <!-- 船宽 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">船宽</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
-                            {{ selectedShip.width ? selectedShip.width + 'm' : 'N/A' }}
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">船长 / 船宽</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide tabular-nums">
+                            {{ selectedShip.length ? selectedShip.length + 'm' : 'N/A' }} / {{ selectedShip.width ? selectedShip.width + 'm' : 'N/A' }}
                         </span>
                     </div>
                     
                     <!-- 航速 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">航速</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
-                            {{ selectedShip.sog ? selectedShip.sog + ' kn' : 'N/A' }}
-                        </span>
-                    </div>
-                    
-                    <!-- 载重 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">载重</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
-                            {{ selectedShip.draught ? selectedShip.draught + 'm' : 'N/A' }}
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">航速 / 吃水</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide tabular-nums">
+                            {{ selectedShip.sog ? selectedShip.sog + ' kn' : 'N/A' }} / {{ selectedShip.draught ? selectedShip.draught + 'm' : 'N/A' }}
                         </span>
                     </div>
                     
                     <!-- 目的港 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">目的港</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide text-right max-w-[60%] truncate">
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">目的港</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide text-right max-w-[65%] truncate">
                             {{ selectedShip.dest || 'N/A' }}
                         </span>
                     </div>
                     
                     <!-- 预计到达 - 带过期提示 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">预计到达</span>
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">预计到达</span>
                         <div class="text-right">
-                            <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                            <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide tabular-nums">
                                 {{ selectedShip.eta || 'N/A' }}
                             </span>
-                            <div v-if="isEtaExpired(selectedShip.eta, selectedShip.last_time)" class="text-xs text-orange-400 mt-0.5">
+                            <div v-if="isEtaExpired(selectedShip.eta, selectedShip.last_time)" class="text-[14px] text-orange-400 mt-0.5">
                                 ⚠️ 已过期
                             </div>
                         </div>
                     </div>
                     
                     <!-- 最后更新 -->
-                    <div class="flex justify-between items-center py-2 border-b border-yellow-500/20 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">最后更新</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                    <div class="flex justify-between items-center py-1.5 border-b border-yellow-500/20 relative z-10">
+                        <span class="text-slate-400 text-[14px]">最后更新</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[15px] tracking-wide tabular-nums">
                             {{ selectedShip.last_time || 'N/A' }}
                         </span>
                     </div>
                     
                     <!-- 状态 -->
-                    <div class="flex justify-between items-center py-2 relative z-10">
-                        <span class="text-yellow-400/80 font-['Rajdhani'] text-sm tracking-wider">状态</span>
-                        <span class="text-white font-['Rajdhani'] font-bold text-sm tracking-wide">
+                    <div class="flex justify-between items-center py-1.5 relative z-10">
+                        <span class="text-slate-400 text-[14px]">状态</span>
+                        <span class="text-white font-['Rajdhani'] font-bold text-[16px] tracking-wide">
                             {{ getNavigationStatus(selectedShip.navistat) }}
                         </span>
                     </div>

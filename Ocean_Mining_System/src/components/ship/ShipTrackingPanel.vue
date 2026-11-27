@@ -1,30 +1,30 @@
 <template>
-    <div class="absolute top-36 left-8 w-[28rem] z-40 flex flex-col gap-6 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft max-h-[calc(100vh-10rem)]">
+    <div class="absolute top-36 left-8 w-[29rem] z-40 flex flex-col gap-5 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft max-h-[calc(100vh-10rem)]">
         
         <!-- 1. 船舶搜索面板 -->
         <transition name="slide-down">
-            <div v-if="showShipSearch" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
+            <div v-if="showShipSearch" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[calc(100vh-11rem)] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-3 border-b-2 border-cyan-500/30 pb-2 px-4 pt-4 flex-shrink-0">
-                    <div class="w-1.5 h-5 bg-yellow-400 mr-2 shadow-[0_0_10px_#facc15]"></div>
-                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">船舶搜索</h3>
+                <div class="flex items-center mb-3 border-b-2 border-cyan-500/30 pb-3 px-5 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-6 bg-yellow-400 mr-3 shadow-[0_0_10px_#facc15]"></div>
+                    <h3 class="text-[24px] leading-tight font-bold text-white tracking-wider flex-1">船舶搜索</h3>
                 </div>
                 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                <div class="overflow-y-auto custom-scrollbar px-5 pb-5 flex-1">
                     <div class="flex gap-2 mb-4">
                         <button
                             @click="shipPanelTab = 'query'"
                             :class="[
-                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-[16px]',
                                 shipPanelTab === 'query'
                                     ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.45)]'
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             船舶搜索
@@ -32,10 +32,10 @@
                         <button
                             @click="shipPanelTab = 'history'"
                             :class="[
-                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-[16px]',
                                 shipPanelTab === 'history'
                                     ? 'bg-amber-600 text-white shadow-[0_0_15px_rgba(251,191,36,0.4)]'
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             历史轨迹
@@ -43,10 +43,10 @@
                         <button
                             @click="shipPanelTab = 'list'"
                             :class="[
-                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-sm',
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-[16px]',
                                 shipPanelTab === 'list'
                                     ? 'bg-sky-600 text-white shadow-[0_0_15px_rgba(14,165,233,0.4)]'
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             船舶列表
@@ -55,14 +55,14 @@
 
                     <div v-if="shipPanelTab === 'query'">
                     <!-- 搜索类型选项卡 -->
-                    <div class="flex gap-2 mb-6">
+                    <div class="flex gap-2 mb-5">
                         <button 
                             @click="searchMode = 'single'"
                             :class="[
-                                'flex-1 px-4 py-2 font-bold rounded-sm transition-all',
+                                'flex-1 px-4 py-2 text-[16px] font-bold rounded-sm transition-all',
                                 searchMode === 'single' 
                                     ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             单船搜索
@@ -70,10 +70,10 @@
                         <button 
                             @click="searchMode = 'multiple'"
                             :class="[
-                                'flex-1 px-4 py-2 font-bold rounded-sm transition-all',
+                                'flex-1 px-4 py-2 text-[16px] font-bold rounded-sm transition-all',
                                 searchMode === 'multiple' 
                                     ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.5)]' 
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             多船搜索
@@ -84,7 +84,7 @@
                     <div v-if="searchMode === 'single'" class="space-y-4">
                     <!-- MMSI输入 -->
                     <div class="space-y-2">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="text-cyan-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>MMSI编号
                         </div>
                         <div class="flex gap-2">
@@ -92,13 +92,13 @@
                                 v-model="singleMmsi"
                                 type="text"
                                 placeholder="输入9位MMSI，如：413961925"
-                                class="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani']"
+                                class="flex-1 px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani']"
                                 @keyup.enter="handleSingleSearch"
                             />
                             <button 
                                 @click="handleSingleSearch"
                                 :disabled="singleLoading || !singleMmsi"
-                                class="px-6 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
+                                class="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                             >
                                 {{ singleLoading ? '搜索中...' : '搜索' }}
                             </button>
@@ -106,44 +106,44 @@
                     </div>
 
                     <!-- 单船搜索结果 -->
-                    <div v-if="singleResult || singleError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                    <div v-if="singleResult || singleError" class="space-y-2.5 pt-4 border-t border-dashed border-slate-700/50">
+                        <div class="text-cyan-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>搜索结果
                         </div>
                         
                         <!-- 错误提示 -->
                         <div v-if="singleError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                            <div class="text-red-400 text-sm">{{ singleError }}</div>
+                            <div class="text-red-300 text-[15px]">{{ singleError }}</div>
                         </div>
                         
                         <!-- 船舶信息卡片 -->
                         <div v-else-if="singleResult" class="bg-slate-800/40 border border-cyan-500/50 rounded-sm p-4 space-y-3">
                             <div class="flex items-center justify-between">
-                                <span class="text-slate-400 text-sm">船舶名称</span>
-                                <span class="text-white font-bold text-lg">{{ singleResult.ship_cnname || singleResult.ship_name }}</span>
+                                <span class="text-slate-400 text-[14px]">船舶名称</span>
+                                <span class="text-white font-bold text-[18px]">{{ singleResult.ship_cnname || singleResult.ship_name }}</span>
                             </div>
                             <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-sm">MMSI</span>
-                                <span class="text-cyan-400 font-['Rajdhani'] font-bold">{{ singleResult.mmsi }}</span>
+                                <span class="text-slate-400 text-[14px]">MMSI</span>
+                                <span class="text-cyan-300 font-['Rajdhani'] text-[16px] font-bold tabular-nums">{{ singleResult.mmsi }}</span>
                             </div>
                             <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-sm">当前位置</span>
-                                <span class="text-white font-['Rajdhani']">{{ formatPosition(singleResult.lat, singleResult.lng) }}</span>
+                                <span class="text-slate-400 text-[14px]">当前位置</span>
+                                <span class="text-white font-['Rajdhani'] text-[16px] font-bold tabular-nums">{{ formatPosition(singleResult.lat, singleResult.lng) }}</span>
                             </div>
                             <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-sm">航速</span>
-                                <span class="text-white font-['Rajdhani']">{{ singleResult.sog }} kn</span>
+                                <span class="text-slate-400 text-[14px]">航速</span>
+                                <span class="text-white font-['Rajdhani'] text-[16px] font-bold tabular-nums">{{ singleResult.sog }} kn</span>
                             </div>
                             <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-sm">更新时间</span>
-                                <span class="text-slate-400 text-xs">{{ singleResult.last_time }}</span>
+                                <span class="text-slate-400 text-[14px]">更新时间</span>
+                                <span class="text-slate-300 text-[14px] tabular-nums">{{ singleResult.last_time }}</span>
                             </div>
                             
                             <!-- 操作按钮 -->
                             <div class="flex gap-2 pt-3 border-t border-slate-700/50">
                                 <button 
                                     @click="handleSingleLocate"
-                                    class="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-sm transition-all"
+                                    class="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-[16px] font-bold rounded-sm transition-all"
                                 >
                                     定位
                                 </button>
@@ -156,16 +156,15 @@
                     <div v-if="searchMode === 'multiple'" class="space-y-4">
                     <!-- MMSI列表输入 -->
                     <div class="space-y-2">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="text-cyan-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>MMSI列表
                         </div>
                         <textarea 
                             v-model="multipleMmsis"
-                            placeholder="输入多个MMSI，每行一个或用逗号分隔&#10;例如：&#10;413961925&#10;477232800&#10;或：413961925,477232800"
+                            placeholder="输入多个MMSI，每行一个或用逗号分隔&#10;例如：413961925,477232800（最多100个）"
                             rows="4"
-                            class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani'] text-sm"
+                            class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-cyan-500 transition-colors font-['Rajdhani'] text-[16px]"
                         ></textarea>
-                        <div class="text-xs text-slate-500">最多支持100个MMSI</div>
                     </div>
                     
                     <!-- 搜索按钮 -->
@@ -173,43 +172,43 @@
                         <button 
                             @click="handleMultipleSearch"
                             :disabled="multipleLoading || !multipleMmsis"
-                            class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
+                            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                         >
                             {{ multipleLoading ? '搜索中...' : '批量搜索' }}
                         </button>
                         <button 
                             v-if="multipleResults.length > 0"
                             @click="handleClearMultiple"
-                            class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                            class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[16px] font-bold rounded-sm transition-all"
                         >
                             清除
                         </button>
                     </div>
                     
                     <!-- 多船搜索结果 -->
-                    <div v-if="multipleResults.length > 0 || multipleError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                    <div v-if="multipleResults.length > 0 || multipleError" class="space-y-2.5 pt-4 border-t border-dashed border-slate-700/50">
+                        <div class="text-cyan-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>
                             搜索结果 ({{ multipleResults.length }} 艘)
                         </div>
                         
                         <!-- 错误提示 -->
                         <div v-if="multipleError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                            <div class="text-red-400 text-sm">{{ multipleError }}</div>
+                            <div class="text-red-300 text-[15px]">{{ multipleError }}</div>
                         </div>
                         
                         <!-- 船舶列表 -->
                         <div v-if="multipleResults.length > 0" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                             <div v-for="ship in multipleResults" :key="ship.mmsi" 
-                                class="bg-slate-800/40 border border-cyan-500/30 rounded-sm p-3 hover:border-cyan-500/60 transition-all cursor-pointer"
+                                class="bg-slate-800/40 border border-cyan-500/30 rounded-sm p-3.5 hover:border-cyan-500/60 transition-all cursor-pointer"
                                 @click="handleMultipleLocate(ship)"
                             >
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-white font-bold">{{ ship.ship_cnname || ship.ship_name }}</span>
-                                    <span class="text-cyan-400 font-['Rajdhani'] text-sm">{{ ship.mmsi }}</span>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-white text-[17px] font-bold truncate">{{ ship.ship_cnname || ship.ship_name }}</span>
+                                    <span class="text-cyan-300 font-['Rajdhani'] text-[15px] font-semibold tabular-nums">{{ ship.mmsi }}</span>
                                 </div>
-                                <div class="flex items-center justify-between text-xs text-slate-400">
-                                    <span>航速: {{ ship.sog }} kn</span>
+                                <div class="flex items-center justify-between text-[14px] text-slate-300 tabular-nums">
+                                    <span>航速 {{ ship.sog }} kn</span>
                                     <span>{{ formatPosition(ship.lat, ship.lng) }}</span>
                                 </div>
                             </div>
@@ -220,19 +219,19 @@
                     
                     <div v-else-if="shipPanelTab === 'history'" class="space-y-4">
                         <div class="space-y-2">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>船舶MMSI
                             </div>
                             <input 
                                 v-model="trackMmsi"
                                 type="text"
                                 placeholder="输入9位MMSI，如：413961925"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
 
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>快捷选择
                             </div>
                             <div class="grid grid-cols-4 gap-2">
@@ -244,24 +243,24 @@
                         </div>
 
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>开始时间
                             </div>
                             <input 
                                 v-model="trackStartTime"
                                 type="datetime-local"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
 
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>结束时间
                             </div>
                             <input 
                                 v-model="trackEndTime"
                                 type="datetime-local"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
 
@@ -269,44 +268,44 @@
                             <button 
                                 @click="handleTrackQuery"
                                 :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
-                                class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
+                                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
                             >
                                 {{ trackLoading ? '查询中...' : '查询轨迹' }}
                             </button>
                             <button 
                                 v-if="trackResult"
                                 @click="handleClearTrack"
-                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                                class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[16px] font-bold rounded-sm transition-all"
                             >
                                 清除
                             </button>
                         </div>
 
-                        <div v-if="trackResult || trackError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                        <div v-if="trackResult || trackError" class="space-y-2.5 pt-4 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>查询结果
                             </div>
 
                             <div v-if="trackError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                                <div class="text-red-400 text-sm">{{ trackError }}</div>
+                                <div class="text-red-300 text-[15px]">{{ trackError }}</div>
                             </div>
 
                             <div v-else-if="trackResult" class="bg-slate-800/40 border border-amber-500/50 rounded-sm p-4 space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-slate-400 text-sm">轨迹点数</span>
-                                    <span class="text-amber-400 font-bold text-lg font-['Rajdhani']">{{ trackResult.pointCount }} 个</span>
+                                    <span class="text-slate-400 text-[14px]">轨迹点数</span>
+                                    <span class="text-amber-300 font-bold text-[18px] font-['Rajdhani'] tabular-nums">{{ trackResult.pointCount }} 个</span>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                    <span class="text-slate-400 text-sm">MMSI</span>
-                                    <span class="text-white font-['Rajdhani']">{{ trackResult.mmsi }}</span>
+                                    <span class="text-slate-400 text-[14px]">MMSI</span>
+                                    <span class="text-white text-[16px] font-bold font-['Rajdhani'] tabular-nums">{{ trackResult.mmsi }}</span>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                    <span class="text-slate-400 text-sm">开始时间</span>
-                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
+                                    <span class="text-slate-400 text-[14px]">开始时间</span>
+                                    <span class="text-slate-200 text-[14px] tabular-nums">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                    <span class="text-slate-400 text-sm">结束时间</span>
-                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
+                                    <span class="text-slate-400 text-[14px]">结束时间</span>
+                                    <span class="text-slate-200 text-[14px] tabular-nums">{{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -314,37 +313,37 @@
 
                     <div v-else class="space-y-4">
                         <div class="flex items-center justify-between border-b border-dashed border-slate-700/50 pb-3">
-                            <div class="text-sky-400 text-base font-bold flex items-center">
+                            <div class="text-sky-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-sky-400 rounded-full mr-2.5"></div>已搜索船舶
                             </div>
                             <button
                                 v-if="shipListData.length > 0"
                                 @click="handleClearShipList"
-                                class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
+                                class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-[14px] font-bold rounded-sm transition-all"
                             >
                                 清空列表
                             </button>
                         </div>
 
-                        <div v-if="shipListData.length === 0" class="text-sm text-slate-500 text-center py-8 border border-dashed border-slate-700/50 rounded-sm">
+                        <div v-if="shipListData.length === 0" class="text-[15px] text-slate-400 text-center py-8 border border-dashed border-slate-700/50 rounded-sm">
                             暂无船舶，请先执行船舶搜索
                         </div>
 
-                        <div v-else class="space-y-2 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
+                        <div v-else class="space-y-2.5 max-h-[28rem] overflow-y-auto custom-scrollbar pr-1">
                             <button
                                 v-for="ship in shipListData"
                                 :key="ship.mmsi"
                                 @click="handleShipListRowClick(ship)"
-                                class="w-full text-left bg-slate-800/40 border border-sky-500/25 rounded-sm p-3 hover:border-sky-400/50 transition-all"
+                                class="w-full text-left bg-slate-800/40 border border-sky-500/25 rounded-sm p-3.5 hover:border-sky-400/50 transition-all"
                             >
                                 <div class="flex items-center justify-between gap-3">
                                     <div class="min-w-0">
-                                        <div class="text-white font-bold truncate">{{ ship.ship_cnname || ship.ship_name || `MMSI ${ship.mmsi}` }}</div>
-                                        <div class="text-xs text-slate-400 mt-1">{{ ship.mmsi }}</div>
+                                        <div class="text-white text-[17px] font-bold truncate">{{ ship.ship_cnname || ship.ship_name || `MMSI ${ship.mmsi}` }}</div>
+                                        <div class="text-[14px] text-slate-400 mt-1 tabular-nums">{{ ship.mmsi }}</div>
                                     </div>
-                                    <div class="text-right text-xs text-slate-400">
-                                        <div>{{ ship.sog ? `${ship.sog} kn` : '航速未知' }}</div>
-                                        <div class="mt-1">{{ ship.last_time || '暂无更新时间' }}</div>
+                                    <div class="text-right text-[14px] text-slate-300 shrink-0 tabular-nums">
+                                        <div class="font-semibold">{{ ship.sog ? `${ship.sog} kn` : '航速未知' }}</div>
+                                        <div class="mt-1 text-slate-400">{{ ship.last_time || '--' }}</div>
                                     </div>
                                 </div>
                             </button>
@@ -356,29 +355,29 @@
         
         <!-- 2. 航线规划面板 -->
         <transition name="slide-down">
-            <div v-if="showRoutePlan" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
+            <div v-if="showRoutePlan" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[calc(100vh-11rem)] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-3 border-b-2 border-purple-500/30 pb-2 px-4 pt-4 flex-shrink-0">
-                    <div class="w-1.5 h-5 bg-purple-400 mr-2 shadow-[0_0_10px_#a855f7]"></div>
-                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">航线规划</h3>
+                <div class="flex items-center mb-3 border-b-2 border-purple-500/30 pb-3 px-5 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-6 bg-purple-400 mr-3 shadow-[0_0_10px_#a855f7]"></div>
+                    <h3 class="text-[24px] leading-tight font-bold text-white tracking-wider flex-1">航线规划</h3>
                 </div>
 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                <div class="overflow-y-auto custom-scrollbar px-5 pb-5 flex-1">
                     <!-- 规划模式选项卡 -->
-                    <div class="flex gap-2 mb-3">
+                    <div class="flex gap-2 mb-4">
                         <button 
                             @click="planMode = 'port'"
                             :class="[
-                                'flex-1 px-3 py-1.5 font-bold rounded-sm transition-all text-sm',
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-[16px]',
                                 planMode === 'port' 
                                     ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             港到港
@@ -386,10 +385,10 @@
                         <button 
                             @click="planMode = 'point'"
                             :class="[
-                                'flex-1 px-3 py-1.5 font-bold rounded-sm transition-all text-sm',
+                                'flex-1 px-3 py-2 font-bold rounded-sm transition-all text-[16px]',
                                 planMode === 'point' 
                                     ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
-                                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                                    : 'bg-slate-800/55 text-slate-300 hover:bg-slate-700/60'
                             ]"
                         >
                             点到点
@@ -397,66 +396,64 @@
                     </div>
                     
                     <!-- 港到港模式 -->
-                    <div v-if="planMode === 'port'" class="space-y-3">
+                    <div v-if="planMode === 'port'" class="space-y-3.5">
                         <!-- 出发港 -->
                         <div class="space-y-1.5">
-                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                            <div class="text-purple-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></div>出发港
                             </div>
                             <input 
                                 v-model="startPort" 
                                 type="text" 
-                                placeholder="输入港口代码，如: CNSHA"
-                                class="w-full px-3 py-1.5 bg-slate-800/50 border border-slate-700 text-white text-sm rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                                placeholder="输入五位港口代码，如 CNSHA"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
                             />
-                            <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
                         </div>
                         
                         <!-- 到达港 -->
                         <div class="space-y-1.5">
-                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                            <div class="text-purple-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2"></div>到达港
                             </div>
                             <input 
                                 v-model="endPort" 
                                 type="text" 
-                                placeholder="输入港口代码，如: JPYOK"
-                                class="w-full px-3 py-1.5 bg-slate-800/50 border border-slate-700 text-white text-sm rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
+                                placeholder="输入五位港口代码，如 JPYOK"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-purple-500 transition-colors"
                             />
-                            <div class="text-xs text-slate-500">提示: 请输入标准五位港口代码</div>
                         </div>
                     </div>
                     
                     <!-- 点到点模式 -->
-                    <div v-else-if="planMode === 'point'" class="space-y-3">
+                    <div v-else-if="planMode === 'point'" class="space-y-3.5">
                         <!-- 起始点 -->
-                        <div class="space-y-1.5">
-                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                        <div class="space-y-2">
+                            <div class="text-purple-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2"></div>起始点
                             </div>
-                            <div class="flex gap-1.5">
+                            <div class="flex gap-2">
                                 <input 
                                     v-model="startLng" 
                                     type="number" 
                                     step="0.000001"
                                     placeholder="经度"
-                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                    class="flex-1 min-w-0 px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                                 />
                                 <input 
                                     v-model="startLat" 
                                     type="number" 
                                     step="0.000001"
                                     placeholder="纬度"
-                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                    class="flex-1 min-w-0 px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                                 />
                             </div>
                             <button 
                                 @click="pickStartPoint"
                                 :class="[
-                                    'w-full px-2 py-1 text-xs font-bold rounded-sm transition-all',
+                                    'w-full px-3 py-2 text-[15px] font-bold rounded-sm transition-all',
                                     pickingStart 
                                         ? 'bg-green-600 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)] animate-pulse' 
-                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                                 ]"
                             >
                                 {{ pickingStart ? '点击地图选择起点...' : '地图选点' }}
@@ -464,56 +461,52 @@
                         </div>
                         
                         <!-- 结束点 -->
-                        <div class="space-y-1.5">
-                            <div class="text-purple-400 text-sm font-bold flex items-center">
+                        <div class="space-y-2">
+                            <div class="text-purple-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2"></div>结束点
                             </div>
-                            <div class="flex gap-1.5">
+                            <div class="flex gap-2">
                                 <input 
                                     v-model="endLng" 
                                     type="number" 
                                     step="0.000001"
                                     placeholder="经度"
-                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                    class="flex-1 min-w-0 px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                                 />
                                 <input 
                                     v-model="endLat" 
                                     type="number" 
                                     step="0.000001"
                                     placeholder="纬度"
-                                    class="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-xs"
+                                    class="flex-1 min-w-0 px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[15px]"
                                 />
                             </div>
                             <button 
                                 @click="pickEndPoint"
                                 :class="[
-                                    'w-full px-2 py-1 text-xs font-bold rounded-sm transition-all',
+                                    'w-full px-3 py-2 text-[15px] font-bold rounded-sm transition-all',
                                     pickingEnd 
                                         ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse' 
-                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                                 ]"
                             >
                                 {{ pickingEnd ? '点击地图选择终点...' : '地图选点' }}
                             </button>
                         </div>
-                        
-                        <div class="text-xs text-slate-500 bg-slate-800/30 p-1.5 rounded">
-                            提示: 点击"地图选点"后，在地图上点击选择位置
-                        </div>
                     </div>
                     
                     <!-- 航线高级配置 -->
-                    <div class="space-y-2 pt-3 border-t border-dashed border-slate-700/50">
+                    <div class="space-y-2 pt-3.5 mt-3.5 border-t border-dashed border-slate-700/50">
                         <button 
                             @click="showRouteAdvanced = !showRouteAdvanced"
-                            class="w-full flex items-center justify-between text-purple-400 text-xs font-bold hover:text-purple-300 transition-colors"
+                            class="w-full flex items-center justify-between text-purple-300 text-[15px] font-bold hover:text-purple-200 transition-colors"
                         >
                             <div class="flex items-center">
                                 <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></div>
                                 航线高级配置
                             </div>
                             <svg 
-                                class="w-3 h-3 transition-transform" 
+                                class="w-4 h-4 transition-transform" 
                                 :class="{ 'rotate-180': showRouteAdvanced }"
                                 fill="none" 
                                 stroke="currentColor" 
@@ -524,155 +517,153 @@
                         </button>
                         
                         <transition name="slide-down">
-                            <div v-if="showRouteAdvanced" class="bg-slate-800/40 border border-purple-500/30 rounded-sm p-2 space-y-3">
+                            <div v-if="showRouteAdvanced" class="bg-slate-800/40 border border-purple-500/30 rounded-sm p-3 space-y-3">
                                 <!-- 避让点 -->
-                                <div class="space-y-1.5">
-                                    <div class="text-xs text-slate-300 font-bold flex items-center justify-between">
-                                        <span>避让点 (Avoid)</span>
-                                        <span class="text-[10px] text-slate-500">最多10个</span>
+                                <div class="space-y-2">
+                                    <div class="text-[14px] text-slate-200 font-bold flex items-center justify-between">
+                                        <span>避让点</span>
+                                        <span class="text-[14px] text-slate-400">最多10个</span>
                                     </div>
                                     <div class="space-y-1.5">
-                                        <div v-for="(avoid, index) in avoidPoints" :key="'avoid-' + index" class="flex gap-1">
+                                        <div v-for="(avoid, index) in avoidPoints" :key="'avoid-' + index" class="flex gap-1.5">
                                             <input 
                                                 v-model="avoid.lng" 
                                                 type="number" 
                                                 step="0.000001"
                                                 placeholder="经度"
-                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                                class="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[14px]"
                                             />
                                             <input 
                                                 v-model="avoid.lat" 
                                                 type="number" 
                                                 step="0.000001"
                                                 placeholder="纬度"
-                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                                class="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[14px]"
                                             />
                                             <button 
                                                 @click="pickAvoidPoint(index)"
                                                 :class="[
-                                                    'px-1.5 py-1 text-[10px] font-bold rounded-sm transition-all whitespace-nowrap',
+                                                    'px-2.5 py-1.5 text-[14px] font-bold rounded-sm transition-all whitespace-nowrap',
                                                     pickingAvoidIndex === index
                                                         ? 'bg-orange-600 text-white shadow-[0_0_10px_rgba(249,115,22,0.5)] animate-pulse' 
-                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                                                 ]"
                                             >
                                                 {{ pickingAvoidIndex === index ? '选择中' : '选点' }}
                                             </button>
                                             <button 
                                                 @click="removeAvoidPoint(index)"
-                                                class="px-1.5 py-1 bg-red-900/50 hover:bg-red-800/50 text-red-400 text-[10px] font-bold rounded-sm transition-all"
+                                                class="px-2.5 py-1.5 bg-red-900/50 hover:bg-red-800/50 text-red-300 text-[14px] font-bold rounded-sm transition-all"
                                             >
-                                                删除
+                                                删
                                             </button>
                                         </div>
                                     </div>
                                     <button 
                                         v-if="avoidPoints.length < 10"
                                         @click="addAvoidPoint"
-                                        class="w-full px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] font-bold rounded-sm transition-all"
+                                        class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-[14px] font-bold rounded-sm transition-all"
                                     >
                                         + 添加避让点
                                     </button>
-                                    <div class="text-[10px] text-slate-500">提示: 航线将绕开这些点</div>
                                 </div>
                                 
                                 <!-- 途经点 -->
-                                <div class="space-y-1.5">
-                                    <div class="text-xs text-slate-300 font-bold flex items-center justify-between">
-                                        <span>途经点 (Through)</span>
-                                        <span class="text-[10px] text-slate-500">最多30个</span>
+                                <div class="space-y-2">
+                                    <div class="text-[14px] text-slate-200 font-bold flex items-center justify-between">
+                                        <span>途经点</span>
+                                        <span class="text-[14px] text-slate-400">最多30个</span>
                                     </div>
                                     <div class="space-y-1.5">
-                                        <div v-for="(through, index) in throughPoints" :key="'through-' + index" class="flex gap-1">
+                                        <div v-for="(through, index) in throughPoints" :key="'through-' + index" class="flex gap-1.5">
                                             <input 
                                                 v-model="through.lng" 
                                                 type="number" 
                                                 step="0.000001"
                                                 placeholder="经度"
-                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                                class="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[14px]"
                                             />
                                             <input 
                                                 v-model="through.lat" 
                                                 type="number" 
                                                 step="0.000001"
                                                 placeholder="纬度"
-                                                class="flex-1 px-1.5 py-1 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[10px]"
+                                                class="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600 text-white rounded-sm focus:outline-none focus:border-purple-500 transition-colors text-[14px]"
                                             />
                                             <button 
                                                 @click="pickThroughPoint(index)"
                                                 :class="[
-                                                    'px-1.5 py-1 text-[10px] font-bold rounded-sm transition-all whitespace-nowrap',
+                                                    'px-2.5 py-1.5 text-[14px] font-bold rounded-sm transition-all whitespace-nowrap',
                                                     pickingThroughIndex === index
                                                         ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)] animate-pulse' 
-                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
                                                 ]"
                                             >
                                                 {{ pickingThroughIndex === index ? '选择中' : '选点' }}
                                             </button>
                                             <button 
                                                 @click="removeThroughPoint(index)"
-                                                class="px-1.5 py-1 bg-red-900/50 hover:bg-red-800/50 text-red-400 text-[10px] font-bold rounded-sm transition-all"
+                                                class="px-2.5 py-1.5 bg-red-900/50 hover:bg-red-800/50 text-red-300 text-[14px] font-bold rounded-sm transition-all"
                                             >
-                                                删除
+                                                删
                                             </button>
                                         </div>
                                     </div>
                                     <button 
                                         v-if="throughPoints.length < 30"
                                         @click="addThroughPoint"
-                                        class="w-full px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] font-bold rounded-sm transition-all"
+                                        class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-[14px] font-bold rounded-sm transition-all"
                                     >
                                         + 添加途经点
                                     </button>
-                                    <div class="text-[10px] text-slate-500">提示: 航线将依次经过这些点</div>
                                 </div>
                             </div>
                         </transition>
                     </div>
                     
                     <!-- 规划按钮 -->
-                    <div class="flex gap-2 pt-3 border-t border-dashed border-slate-700/50">
+                    <div class="flex gap-2 pt-3.5 mt-3.5 border-t border-dashed border-slate-700/50">
                         <button 
                             @click="handleRoutePlan"
                             :disabled="routeLoading || (planMode === 'port' ? (!startPort || !endPort) : (!startLng || !startLat || !endLng || !endLat))"
-                            class="flex-1 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-sm font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
+                            class="flex-1 px-3 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:shadow-none"
                         >
                             {{ routeLoading ? '规划中...' : '规划路径' }}
                         </button>
                         <button 
                             v-if="routeResult"
                             @click="handleClearRoute"
-                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-sm transition-all"
+                            class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[16px] font-bold rounded-sm transition-all"
                         >
                             清除
                         </button>
                     </div>
                     
                     <!-- 路径规划结果 -->
-                    <div v-if="routeResult || routeError" class="space-y-2 pt-3 border-t border-dashed border-slate-700/50">
-                        <div class="text-purple-400 text-sm font-bold flex items-center">
+                    <div v-if="routeResult || routeError" class="space-y-2.5 pt-4 mt-3 border-t border-dashed border-slate-700/50">
+                        <div class="text-purple-300 text-[16px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2"></div>规划结果
                         </div>
                         
                         <!-- 错误提示 -->
-                        <div v-if="routeError" class="p-2 bg-red-900/30 border border-red-500/50 rounded-sm">
-                            <div class="text-red-400 text-xs">{{ routeError }}</div>
+                        <div v-if="routeError" class="p-3 bg-red-900/30 border border-red-500/50 rounded-sm">
+                            <div class="text-red-300 text-[15px]">{{ routeError }}</div>
                         </div>
                         
                         <!-- 路径信息 -->
-                        <div v-else-if="routeResult" class="bg-slate-800/40 border border-purple-500/50 rounded-sm p-3 space-y-2">
+                        <div v-else-if="routeResult" class="bg-slate-800/40 border border-purple-500/50 rounded-sm p-3.5 space-y-2.5">
                             <div class="flex items-center justify-between">
-                                <span class="text-slate-400 text-xs">航线距离</span>
-                                <span class="text-purple-400 font-bold text-sm font-['Rajdhani']">{{ routeResult.distance }} 海里</span>
+                                <span class="text-slate-400 text-[14px]">航线距离</span>
+                                <span class="text-purple-300 font-bold text-[17px] font-['Rajdhani'] tabular-nums">{{ routeResult.distance }} 海里</span>
                             </div>
-                            <div class="flex items-center justify-between border-t border-slate-700/50 pt-1.5">
-                                <span class="text-slate-400 text-xs">航点数量</span>
-                                <span class="text-white text-sm font-['Rajdhani']">{{ routeResult.pointCount }} 个</span>
+                            <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
+                                <span class="text-slate-400 text-[14px]">航点数量</span>
+                                <span class="text-white text-[17px] font-bold font-['Rajdhani'] tabular-nums">{{ routeResult.pointCount }} 个</span>
                             </div>
                             
                             <!-- 船速设置 -->
                             <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                <span class="text-slate-400 text-xs">船速设置</span>
+                                <span class="text-slate-400 text-[14px]">船速设置</span>
                                 <div class="flex items-center gap-2">
                                     <input 
                                         v-model.number="shipSpeed"
@@ -680,38 +671,38 @@
                                         min="5"
                                         max="30"
                                         step="0.5"
-                                        class="w-16 px-2 py-1 bg-slate-800 border border-slate-600 text-white text-xs rounded-sm focus:outline-none focus:border-cyan-500 font-['Rajdhani']"
+                                        class="w-20 px-2.5 py-1 bg-slate-800 border border-slate-600 text-white text-[15px] font-bold rounded-sm focus:outline-none focus:border-cyan-500 font-['Rajdhani']"
                                     />
-                                    <span class="text-slate-400 text-xs">节</span>
+                                    <span class="text-slate-300 text-[14px]">节</span>
                                 </div>
                             </div>
                             
                             <!-- 操作按钮 -->
-                            <div class="flex gap-2 pt-2 border-t border-slate-700/50">
+                            <div class="flex gap-2 pt-2.5 border-t border-slate-700/50">
                                 <button 
                                     @click="handleRouteWeather"
                                     :disabled="weatherLoading"
-                                    class="flex-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-xs font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
+                                    class="flex-1 px-3 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[15px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:shadow-none"
                                 >
                                     {{ weatherLoading ? '分析中...' : '航线气象' }}
                                 </button>
                                 <button 
                                     @click="handleCancelRoute"
-                                    class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
+                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[15px] font-bold rounded-sm transition-all"
                                 >
                                     取消
                                 </button>
                             </div>
                             
                             <!-- 高级设置 - 气象风险阈值 -->
-                            <div class="mt-4 pt-4 border-t border-dashed border-slate-700/50">
+                            <div class="mt-3 pt-3 border-t border-dashed border-slate-700/50">
                                 <button 
                                     @click="showAdvanced = !showAdvanced"
-                                    class="w-full flex items-center justify-between text-cyan-400 text-sm font-bold hover:text-cyan-300 transition-colors"
+                                    class="w-full flex items-center justify-between text-cyan-300 text-[15px] font-bold hover:text-cyan-200 transition-colors"
                                 >
                                     <div class="flex items-center">
                                         <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2"></div>
-                                        高级设置
+                                        风险阈值设置
                                     </div>
                                     <svg 
                                         class="w-4 h-4 transition-transform" 
@@ -726,65 +717,63 @@
                                 
                                 <transition name="slide-down">
                                     <div v-if="showAdvanced" class="bg-slate-800/40 border border-cyan-500/30 rounded-sm p-3 space-y-3 mt-2">
-                                        <div class="text-xs text-slate-400 mb-2">气象风险阈值设置（采矿船标准）</div>
-                                        
                                         <!-- 风速阈值 -->
                                         <div class="space-y-1.5">
-                                            <div class="text-xs text-slate-300 font-bold">风速（蒲福风级）</div>
-                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                            <div class="text-[14px] text-slate-200 font-bold">风速（蒲福风级）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-[14px]">
                                                 <div>
-                                                    <label class="text-slate-400 text-[10px]">安全</label>
-                                                    <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <label class="text-slate-400 text-[14px]">安全</label>
+                                                    <input v-model.number="thresholds.safe.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <label class="text-slate-400 text-[10px]">注意</label>
-                                                    <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <label class="text-slate-400 text-[14px]">注意</label>
+                                                    <input v-model.number="thresholds.caution.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <label class="text-slate-400 text-[10px]">警告</label>
-                                                    <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <label class="text-slate-400 text-[14px]">警告</label>
+                                                    <input v-model.number="thresholds.warning.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <label class="text-slate-400 text-[10px]">危险</label>
-                                                    <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <label class="text-slate-400 text-[14px]">危险</label>
+                                                    <input v-model.number="thresholds.danger.windBeaufort" type="number" min="0" max="12" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <!-- 浪高阈值 -->
                                         <div class="space-y-1.5">
-                                            <div class="text-xs text-slate-300 font-bold">浪高（米）</div>
-                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                            <div class="text-[14px] text-slate-200 font-bold">浪高（米）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-[14px]">
                                                 <div>
-                                                    <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.safe.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.caution.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.warning.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.danger.waveHeight" type="number" min="0" step="0.5" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <!-- 能见度阈值 -->
                                         <div class="space-y-1.5">
-                                            <div class="text-xs text-slate-300 font-bold">能见度（米）</div>
-                                            <div class="grid grid-cols-4 gap-1.5 text-xs">
+                                            <div class="text-[14px] text-slate-200 font-bold">能见度（米）</div>
+                                            <div class="grid grid-cols-4 gap-1.5 text-[14px]">
                                                 <div>
-                                                    <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.safe.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.caution.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.warning.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                                 <div>
-                                                    <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-xs" />
+                                                    <input v-model.number="thresholds.danger.visibility" type="number" min="0" step="100" class="w-full bg-slate-900/50 border border-slate-600 rounded px-1.5 py-1 text-white text-center text-[14px]" />
                                                 </div>
                                             </div>
                                         </div>
@@ -793,13 +782,13 @@
                                         <div class="flex gap-2 pt-2">
                                             <button 
                                                 @click="resetThresholds"
-                                                class="flex-1 px-2 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-sm transition-all"
+                                                class="flex-1 px-2.5 py-2 bg-slate-700 hover:bg-slate-600 text-white text-[14px] font-bold rounded-sm transition-all"
                                             >
                                                 恢复默认
                                             </button>
                                             <button 
                                                 @click="applyThresholds"
-                                                class="flex-1 px-2 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-sm transition-all"
+                                                class="flex-1 px-2.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-[14px] font-bold rounded-sm transition-all"
                                             >
                                                 应用设置
                                             </button>
@@ -815,88 +804,68 @@
         
         <!-- 3. 历史轨迹面板 -->
         <transition name="slide-down">
-            <div v-if="showHistoryTrack" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[45vh] panel-clip-path">
+            <div v-if="showHistoryTrack" class="tech-panel-enhanced pointer-events-auto relative group flex flex-col max-h-[calc(100vh-11rem)] panel-clip-path">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
                 <!-- 标题 - 固定不滚动 -->
-                <div class="flex items-center mb-3 border-b-2 border-amber-500/30 pb-2 px-4 pt-4 flex-shrink-0">
-                    <div class="w-1.5 h-5 bg-amber-400 mr-2 shadow-[0_0_10px_#fbbf24]"></div>
-                    <h3 class="text-xl font-bold text-white tracking-wider flex-1">历史轨迹</h3>
+                <div class="flex items-center mb-3 border-b-2 border-amber-500/30 pb-3 px-5 pt-4 flex-shrink-0">
+                    <div class="w-1.5 h-6 bg-amber-400 mr-3 shadow-[0_0_10px_#fbbf24]"></div>
+                    <h3 class="text-[24px] leading-tight font-bold text-white tracking-wider flex-1">历史轨迹</h3>
                 </div>
 
                 <!-- 可滚动内容区域 -->
-                <div class="overflow-y-auto custom-scrollbar px-4 pb-4 flex-1">
+                <div class="overflow-y-auto custom-scrollbar px-5 pb-5 flex-1">
                     <div class="space-y-4">
                         <!-- MMSI输入 -->
                         <div class="space-y-2">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>船舶MMSI
                             </div>
                             <input 
                                 v-model="trackMmsi"
                                 type="text"
                                 placeholder="输入9位MMSI，如：413961925"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
                         
                         <!-- 快捷时间选择 -->
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>快捷选择
                             </div>
                             <div class="grid grid-cols-4 gap-2">
-                                <button 
-                                    @click="setQuickTime(1)"
-                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
-                                >
-                                    1小时
-                                </button>
-                                <button 
-                                    @click="setQuickTime(6)"
-                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
-                                >
-                                    6小时
-                                </button>
-                                <button 
-                                    @click="setQuickTime(24)"
-                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
-                                >
-                                    24小时
-                                </button>
-                                <button 
-                                    @click="setQuickTime(168)"
-                                    class="px-3 py-2 bg-slate-800/50 hover:bg-amber-600/30 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-bold rounded-sm transition-all"
-                                >
-                                    7天
-                                </button>
+                                <button @click="setQuickTime(1)" class="quick-track-btn">1小时</button>
+                                <button @click="setQuickTime(6)" class="quick-track-btn">6小时</button>
+                                <button @click="setQuickTime(24)" class="quick-track-btn">24小时</button>
+                                <button @click="setQuickTime(168)" class="quick-track-btn">7天</button>
                             </div>
                         </div>
                         
                         <!-- 开始时间 -->
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-green-400 rounded-full mr-2.5"></div>开始时间
                             </div>
                             <input 
                                 v-model="trackStartTime"
                                 type="datetime-local"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
                         
                         <!-- 结束时间 -->
                         <div class="space-y-2 pt-2 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2.5"></div>结束时间
                             </div>
                             <input 
                                 v-model="trackEndTime"
                                 type="datetime-local"
-                                class="w-full px-4 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
+                                class="w-full px-3.5 py-2 bg-slate-800/50 border border-slate-700 text-white text-[16px] rounded-sm focus:outline-none focus:border-amber-500 transition-colors font-['Rajdhani']"
                             />
                         </div>
                         
@@ -905,46 +874,46 @@
                             <button 
                                 @click="handleTrackQuery"
                                 :disabled="trackLoading || !trackMmsi || !trackStartTime || !trackEndTime"
-                                class="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
+                                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:from-slate-700 disabled:to-slate-600 text-white text-[16px] font-bold rounded-sm transition-all shadow-[0_0_15px_rgba(251,191,36,0.3)] disabled:shadow-none"
                             >
                                 {{ trackLoading ? '查询中...' : '查询轨迹' }}
                             </button>
                             <button 
                                 v-if="trackResult"
                                 @click="handleClearTrack"
-                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-sm transition-all"
+                                class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[16px] font-bold rounded-sm transition-all"
                             >
                                 清除
                             </button>
                         </div>
                         
                         <!-- 轨迹查询结果 -->
-                        <div v-if="trackResult || trackError" class="space-y-2 pt-4 border-t border-dashed border-slate-700/50">
-                            <div class="text-amber-400 text-base font-bold flex items-center">
+                        <div v-if="trackResult || trackError" class="space-y-2.5 pt-4 border-t border-dashed border-slate-700/50">
+                            <div class="text-amber-300 text-[16px] font-bold flex items-center">
                                 <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2.5"></div>查询结果
                             </div>
                             
                             <!-- 错误提示 -->
                             <div v-if="trackError" class="p-4 bg-red-900/30 border border-red-500/50 rounded-sm">
-                                <div class="text-red-400 text-sm">{{ trackError }}</div>
+                                <div class="text-red-300 text-[15px]">{{ trackError }}</div>
                             </div>
                             
                             <!-- 轨迹信息 -->
                             <div v-else-if="trackResult" class="bg-slate-800/40 border border-amber-500/50 rounded-sm p-4 space-y-3">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-slate-400 text-sm">轨迹点数</span>
-                                    <span class="text-amber-400 font-bold text-lg font-['Rajdhani']">{{ trackResult.pointCount }} 个</span>
+                                    <span class="text-slate-400 text-[14px]">轨迹点数</span>
+                                    <span class="text-amber-300 font-bold text-[18px] font-['Rajdhani'] tabular-nums">{{ trackResult.pointCount }} 个</span>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                    <span class="text-slate-400 text-sm">MMSI</span>
-                                    <span class="text-white font-['Rajdhani']">{{ trackResult.mmsi }}</span>
+                                    <span class="text-slate-400 text-[14px]">MMSI</span>
+                                    <span class="text-white text-[16px] font-bold font-['Rajdhani'] tabular-nums">{{ trackResult.mmsi }}</span>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2">
-                                    <span class="text-slate-400 text-sm">时间跨度</span>
-                                    <span class="text-slate-400 text-xs">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
+                                    <span class="text-slate-400 text-[14px]">时间跨度</span>
+                                    <span class="text-slate-200 text-[14px] tabular-nums">{{ new Date(trackResult.startTime).toLocaleString('zh-CN') }}</span>
                                 </div>
                                 <div class="flex items-center justify-end">
-                                    <span class="text-slate-400 text-xs">至 {{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
+                                    <span class="text-slate-200 text-[14px] tabular-nums">至 {{ new Date(trackResult.endTime).toLocaleString('zh-CN') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1598,11 +1567,11 @@ export default {
 }
 
 .quick-track-btn {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.5rem;
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid rgba(71, 85, 105, 0.8);
-    color: #cbd5e1;
-    font-size: 0.75rem;
+    color: #d7e6f2;
+    font-size: 15px;
     font-weight: 700;
     border-radius: 0.125rem;
     transition: all 0.2s ease;

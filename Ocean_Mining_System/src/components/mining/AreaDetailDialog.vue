@@ -2,16 +2,16 @@
     <el-dialog
         v-model="visible"
         :title="`📍 ${areaData.name}`"
-        width="800px"
+        width="880px"
         destroy-on-close
         @close="handleClose"
     >
         <!-- 基本信息 -->
         <div class="mb-5">
-            <el-descriptions :column="2" border size="small">
+            <el-descriptions :column="2" border size="default">
                 <el-descriptions-item label="区域名称">{{ areaData.name }}</el-descriptions-item>
                 <el-descriptions-item label="区域ID">
-                    <span style="font-size: 12px; font-family: monospace;">{{ areaData.areaId || areaData.id }}</span>
+                    <span style="font-size: 14px; font-family: monospace;">{{ areaData.areaId || areaData.id }}</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="风速阈值">
                     <span style="color: #409EFF;">{{ areaData.thresholds?.windSpeed || 15 }} m/s</span>
@@ -23,7 +23,7 @@
                     <span style="color: #67C23A; font-weight: bold;">{{ areaData.area }} km²</span>
                 </el-descriptions-item>
                 <el-descriptions-item label="坐标范围" v-if="areaData.bounds">
-                    <div style="font-size: 11px; font-family: monospace; line-height: 1.4;">
+                    <div style="font-size: 14px; font-family: monospace; line-height: 1.5;">
                         <div>经度: {{ areaData.bounds.minLng }}° ~ {{ areaData.bounds.maxLng }}°</div>
                         <div>纬度: {{ areaData.bounds.minLat }}° ~ {{ areaData.bounds.maxLat }}°</div>
                     </div>
@@ -42,7 +42,7 @@
                 @click="activeTab = 'ships'"
             >
                 <div class="text-3xl font-bold text-blue-500 text-center">{{ ships.length }}</div>
-                <div class="text-xs text-gray-500 text-center mt-2">区域内船舶</div>
+                <div class="text-[15px] text-gray-600 text-center mt-2">区域内船舶</div>
             </div>
             <div 
                 class="flex-1 p-4 rounded cursor-pointer transition-all"
@@ -52,7 +52,7 @@
                 <div class="text-3xl font-bold text-center" :class="events.length > 0 ? 'text-orange-500' : 'text-gray-400'">
                     {{ events.length }}
                 </div>
-                <div class="text-xs text-gray-500 text-center mt-2">
+                <div class="text-[15px] text-gray-600 text-center mt-2">
                     <span class="text-red-500">{{ warningCount }}</span> 预警 / 
                     <span class="text-blue-500">{{ enterCount }}</span> 进入 / 
                     <span class="text-green-500">{{ leaveCount }}</span> 离开
@@ -62,11 +62,11 @@
 
         <!-- 标签页内容 -->
         <div v-if="activeTab === 'ships'" class="max-h-96 overflow-y-auto">
-            <h4 class="mb-3 text-sm font-bold text-gray-600">🚢 区域内船舶 ({{ ships.length }})</h4>
+            <h4 class="mb-3 text-[16px] font-bold text-gray-700">🚢 区域内船舶 ({{ ships.length }})</h4>
             
             <div v-if="loadingShips" class="text-center py-8">
                 <el-icon class="is-loading" :size="30"><Loading /></el-icon>
-                <div class="text-sm text-gray-500 mt-2">正在加载船舶信息...</div>
+                <div class="text-[15px] text-gray-500 mt-2">正在加载船舶信息...</div>
             </div>
             
             <div v-else-if="ships.length > 0" class="space-y-4">
@@ -82,14 +82,14 @@
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="font-bold text-lg">
+                                <span class="font-bold text-[19px]">
                                     {{ ship.shipCnName || ship.shipName || '未知船舶' }}
                                 </span>
-                                <el-tag :type="getRiskTagType(ship.riskLevel)" size="small">
+                                <el-tag :type="getRiskTagType(ship.riskLevel)" size="default">
                                     {{ getRiskLabel(ship.riskLevel) }}
                                 </el-tag>
                             </div>
-                            <div class="text-xs text-gray-500 space-x-3">
+                            <div class="text-[14px] text-gray-600 space-x-3">
                                 <span>MMSI: <span class="font-mono">{{ ship.mmsi }}</span></span>
                                 <span v-if="ship.imo">IMO: <span class="font-mono">{{ ship.imo }}</span></span>
                                 <span v-if="ship.callSign">呼号: {{ ship.callSign }}</span>
@@ -98,7 +98,7 @@
                     </div>
 
                     <!-- 船舶详细信息 -->
-                    <el-descriptions :column="3" size="small" border class="mb-3">
+                    <el-descriptions :column="3" size="default" border class="mb-3">
                         <el-descriptions-item label="船舶类型">
                             <span class="font-medium">{{ getShipTypeName(ship.shipType) }}</span>
                         </el-descriptions-item>
@@ -118,7 +118,7 @@
                             {{ ship.cog || '-' }}° <span v-if="ship.hdg">(船首向: {{ ship.hdg }}°)</span>
                         </el-descriptions-item>
                         <el-descriptions-item label="当前位置" :span="3">
-                            <span class="font-mono text-sm">
+                            <span class="font-mono text-[15px]">
                                 {{ ship.lat?.toFixed(6) || '-' }}°N, {{ ship.lng?.toFixed(6) || '-' }}°E
                             </span>
                         </el-descriptions-item>
@@ -132,8 +132,8 @@
 
                     <!-- 气象信息 -->
                     <div v-if="ship.lastWeather" class="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
-                        <div class="text-xs font-bold text-blue-700 mb-2">⛅ 当前气象条件</div>
-                        <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div class="text-[15px] font-bold text-blue-700 mb-2">⛅ 当前气象条件</div>
+                        <div class="grid grid-cols-3 gap-2 text-[14px]">
                             <div v-if="ship.lastWeather.windSpeed && ship.lastWeather.windSpeed > 0">
                                 <span class="text-gray-600">风速:</span>
                                 <span class="ml-1 font-medium" :class="ship.lastWeather.windSpeed > (areaData.thresholds?.windSpeed || 15) ? 'text-red-600' : 'text-green-600'">
@@ -163,13 +163,13 @@
                                 <span class="ml-1 font-medium">{{ (ship.lastWeather.visibility / 1000).toFixed(1) }} km</span>
                             </div>
                         </div>
-                        <div v-if="ship.lastWeather.publishTime" class="mt-2 text-xs text-gray-500">
+                        <div v-if="ship.lastWeather.publishTime" class="mt-2 text-[14px] text-gray-500">
                             更新时间: {{ ship.lastWeather.publishTime }}
                         </div>
                     </div>
 
                     <!-- 时间信息 -->
-                    <div class="pt-3 border-t text-xs text-gray-500 space-y-1">
+                    <div class="pt-3 border-t text-[14px] text-gray-600 space-y-1">
                         <div class="flex items-center gap-2">
                             <span>📍 进入时间:</span>
                             <span class="font-medium">{{ formatTime(ship.enterTime) }}</span>
@@ -188,10 +188,10 @@
         <!-- 事件日志 -->
         <div v-else-if="activeTab === 'events'" class="max-h-96 overflow-y-auto">
             <div class="mb-3">
-                <h4 class="text-sm font-bold text-gray-600 mb-2">📋 事件日志</h4>
-                <div class="flex gap-2 text-xs">
+                <h4 class="text-[16px] font-bold text-gray-700 mb-2">📋 事件日志</h4>
+                <div class="flex gap-2 text-[14px]">
                     <el-tag 
-                        size="small" 
+                        size="default" 
                         :type="eventFilter === 'all' ? 'info' : ''"
                         class="cursor-pointer"
                         :effect="eventFilter === 'all' ? 'dark' : 'plain'"
@@ -200,7 +200,7 @@
                         全部 {{ events.length }}
                     </el-tag>
                     <el-tag 
-                        size="small" 
+                        size="default" 
                         type="danger"
                         class="cursor-pointer"
                         :effect="eventFilter === 'warning' ? 'dark' : 'plain'"
@@ -209,7 +209,7 @@
                         {{ warningCount }} 预警
                     </el-tag>
                     <el-tag 
-                        size="small" 
+                        size="default" 
                         type="primary"
                         class="cursor-pointer"
                         :effect="eventFilter === 'enter' ? 'dark' : 'plain'"
@@ -218,7 +218,7 @@
                         {{ enterCount }} 进入
                     </el-tag>
                     <el-tag 
-                        size="small" 
+                        size="default" 
                         type="success"
                         class="cursor-pointer"
                         :effect="eventFilter === 'leave' ? 'dark' : 'plain'"
@@ -231,7 +231,7 @@
             
             <div v-if="loadingEvents" class="text-center py-8">
                 <el-icon class="is-loading" :size="30"><Loading /></el-icon>
-                <div class="text-sm text-gray-500 mt-2">正在加载事件日志...</div>
+                <div class="text-[15px] text-gray-500 mt-2">正在加载事件日志...</div>
             </div>
             
             <el-timeline v-else-if="filteredEvents.length > 0">
@@ -246,16 +246,16 @@
                     <el-card class="event-card" :class="getEventCardClass(event)">
                         <!-- 事件标题 -->
                         <div class="flex justify-between items-start mb-2">
-                            <div class="font-bold text-sm">
+                            <div class="font-bold text-[16px]">
                                 {{ getEventTitle(event) }}
                             </div>
-                            <el-tag :type="getEventTagType(event)" size="small">
+                            <el-tag :type="getEventTagType(event)" size="default">
                                 {{ getEventLabel(event) }}
                             </el-tag>
                         </div>
                         
                         <!-- 事件详情 -->
-                        <div class="text-xs text-gray-600 space-y-1">
+                        <div class="text-[14px] text-gray-600 space-y-1">
                             <div v-if="event.mmsi">
                                 <span class="text-gray-500">MMSI:</span>
                                 <span class="font-mono ml-1">{{ event.mmsi }}</span>
@@ -264,7 +264,7 @@
                             <!-- 预警详情 -->
                             <div v-if="event.category === 'warning'">
                                 <div class="text-red-600 font-medium">{{ event.message }}</div>
-                                <div v-if="event.weatherData" class="mt-1 text-xs">
+                                <div v-if="event.weatherData" class="mt-1 text-[14px]">
                                     <span v-if="event.weatherData.windSpeed">风速: {{ event.weatherData.windSpeed }} m/s</span>
                                     <span v-if="event.weatherData.waveHeight" class="ml-2">浪高: {{ event.weatherData.waveHeight }} m</span>
                                 </div>
@@ -516,12 +516,13 @@ onMounted(() => {
 
 <style scoped>
 .el-descriptions :deep(.el-descriptions__label) {
-    width: 90px;
-    font-weight: 500;
+    width: 108px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .el-descriptions :deep(.el-descriptions__content) {
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .event-card {

@@ -16,7 +16,7 @@
                         <div><span class="text-white/55">发现时间：</span>{{ formatTime(globalAlert.at) }}</div>
                     </div>
                     <div class="mt-4 flex justify-end">
-                        <button type="button" class="rounded border border-white/60 bg-white/15 px-4 py-2 text-xs font-black text-white transition hover:bg-white hover:text-slate-900" @click="openGlobalWarningCenter">进入预警中心查看详情</button>
+                        <button type="button" class="rounded border border-white/60 bg-white/15 px-4 py-2 text-[15px] font-black text-white transition hover:bg-white hover:text-slate-900" @click="openGlobalWarningCenter">进入预警中心查看详情</button>
                     </div>
                 </div>
             </div>
@@ -26,108 +26,142 @@
     <MiningAssessmentWorkspace v-if="show && assessmentMode" :getViewer="getViewer" :mine-id="filters.mine" @select-target="target => emit('select-target', target)" @close="assessmentMode=false" />
     <transition name="workspace-fade">
         <div v-if="show" class="pointer-events-none absolute inset-0 z-40 font-['Noto_Sans_SC']">
-            <div class="pointer-events-none absolute left-8 top-36 flex h-[54.5rem] w-[30rem] flex-col">
+            <div class="pointer-events-none absolute left-8 top-36 flex h-[54.5rem] w-[31rem] flex-col">
                 <section class="tech-panel-enhanced pointer-events-auto relative flex max-h-full min-h-0 flex-col overflow-hidden p-5" style="clip-path: polygon(0 0,100% 0,100% calc(100% - 24px),calc(100% - 24px) 100%,0 100%);">
                     <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
                     <div class="corner-decoration corner-tl scale-125"></div><div class="corner-decoration corner-tr scale-125"></div>
                     <div class="mb-4 flex shrink-0 items-center border-b-2 border-cyan-500/40 pb-3">
-                        <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                        <div class="min-w-0 flex-1"><h3 class="text-2xl font-bold tracking-wider text-white">预警中心</h3></div>
-                        <nav aria-label="预警视图" class="mr-3 flex shrink-0 gap-2 text-sm font-bold">
+                        <div class="mr-3 h-7 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
+                        <div class="min-w-0 flex-1"><h3 class="text-[26px] font-bold tracking-wider text-white">预警中心</h3></div>
+                        <nav aria-label="预警视图" class="mr-2.5 flex shrink-0 gap-2 font-bold">
                             <button type="button" :aria-pressed="assessmentMode" :class="['warning-workspace-tab', { 'is-active': assessmentMode }]" @click="assessmentMode=!assessmentMode;typhoonMode=false">矿区评估</button>
                             <button type="button" :aria-pressed="typhoonMode" :class="['warning-workspace-tab', { 'is-active': typhoonMode }]" @click="typhoonMode=!typhoonMode;assessmentMode=false">台风活动</button>
                         </nav>
                         <button class="floating-panel-close-btn floating-panel-close-btn--inline" type="button" title="关闭预警中心" @click="emit('close')">✕</button>
                     </div>
 
-                    <div class="mb-4 grid shrink-0 grid-cols-4 gap-2 text-xs">
-                        <div class="border border-cyan-500/20 bg-slate-950/45 p-2 text-slate-400">全部<strong class="mt-1 block text-lg text-cyan-100">{{ stats.total }}</strong></div>
-                        <div class="border border-amber-500/20 bg-slate-950/45 p-2 text-slate-400">生效中<strong class="mt-1 block text-lg text-amber-100">{{ stats.active }}</strong></div>
-                        <div class="border border-rose-500/20 bg-slate-950/45 p-2 text-slate-400">严重<strong class="mt-1 block text-lg text-rose-100">{{ stats.critical }}</strong></div>
-                        <div class="border border-violet-500/20 bg-slate-950/45 p-2 text-slate-400">候选<strong class="mt-1 block text-lg text-violet-100">{{ stats.candidate }}</strong></div>
+                    <div class="mb-4 grid shrink-0 grid-cols-4 gap-2">
+                        <div class="border border-cyan-500/25 bg-slate-950/45 px-2.5 py-2 text-[14px] text-[#9bbad0]">全部<strong class="mt-0.5 block text-[26px] font-extrabold leading-tight tabular-nums text-white">{{ stats.total }}</strong></div>
+                        <div class="border border-amber-500/25 bg-slate-950/45 px-2.5 py-2 text-[14px] text-[#9bbad0]">生效中<strong class="mt-0.5 block text-[26px] font-extrabold leading-tight tabular-nums text-amber-200">{{ stats.active }}</strong></div>
+                        <div class="border border-rose-500/25 bg-slate-950/45 px-2.5 py-2 text-[14px] text-[#9bbad0]">严重<strong class="mt-0.5 block text-[26px] font-extrabold leading-tight tabular-nums text-rose-200">{{ stats.critical }}</strong></div>
+                        <div class="border border-violet-500/25 bg-slate-950/45 px-2.5 py-2 text-[14px] text-[#9bbad0]">候选<strong class="mt-0.5 block text-[26px] font-extrabold leading-tight tabular-nums text-violet-200">{{ stats.candidate }}</strong></div>
                     </div>
 
-                    <div class="mb-3 grid shrink-0 grid-cols-2 gap-2">
-                        <PanelSelect v-model="filters.mine" label="预警矿区" :options="mineOptions" class="col-span-2" overlay :max-height="240" />
-                        <select v-model="filters.source" class="border border-slate-700 bg-slate-950/70 px-2 py-2 text-xs text-slate-200"><option value="">全部来源</option><option value="预报候选">预报研判</option><option value="矿区评估">矿区评估</option></select>
-                        <select v-model="filters.range" class="border border-slate-700 bg-slate-950/70 px-2 py-2 text-xs text-slate-200"><option value="">全部时段</option><option value="12h">12小时</option><option value="7d">7天</option><option value="15d">15天</option><option value="grid">网格评估时段</option></select>
-                        <select v-model="filters.severity" class="border border-slate-700 bg-slate-950/70 px-2 py-2 text-xs text-slate-200"><option value="">全部等级</option><option value="INFO">关注</option><option value="WARNING">预警</option><option value="CRITICAL">严重</option></select>
-                        <select v-model="filters.status" class="border border-slate-700 bg-slate-950/70 px-2 py-2 text-xs text-slate-200"><option value="">全部状态</option><option value="ACTIVE">生效中</option><option value="CANDIDATE">预警候选</option><option value="RESOLVED">已解除</option><option value="EXPIRED">已过期</option></select>
+                    <div class="mb-3 shrink-0 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <PanelSelect v-model="filters.mine" label="预警矿区" :options="mineOptions" class="min-w-0 flex-1" overlay :max-height="240" />
+                            <button type="button" :aria-expanded="showFilters" :class="['shrink-0 border px-3 py-2 text-[15px] font-bold transition-colors', showFilters || activeSubFilterCount ? 'border-cyan-300 bg-cyan-950/60 text-white' : 'border-slate-700 bg-slate-950/60 text-[#d7e6f2] hover:border-cyan-400']" @click="showFilters = !showFilters">
+                                筛选<span v-if="activeSubFilterCount" class="ml-1 text-cyan-300">({{ activeSubFilterCount }})</span>
+                            </button>
+                        </div>
+                        <div v-if="showFilters" class="grid grid-cols-2 gap-2">
+                            <select v-model="filters.source" class="border border-slate-700 bg-slate-950/75 px-2.5 py-2 text-[15px] text-white"><option value="">全部来源</option><option value="预报候选">预报研判</option><option value="矿区评估">矿区评估</option></select>
+                            <select v-model="filters.range" class="border border-slate-700 bg-slate-950/75 px-2.5 py-2 text-[15px] text-white"><option value="">全部时段</option><option value="12h">12小时</option><option value="7d">7天</option><option value="15d">15天</option><option value="grid">网格评估时段</option></select>
+                            <select v-model="filters.severity" class="border border-slate-700 bg-slate-950/75 px-2.5 py-2 text-[15px] text-white"><option value="">全部等级</option><option value="INFO">关注</option><option value="WARNING">预警</option><option value="CRITICAL">严重</option></select>
+                            <select v-model="filters.status" class="border border-slate-700 bg-slate-950/75 px-2.5 py-2 text-[15px] text-white"><option value="">全部状态</option><option value="ACTIVE">生效中</option><option value="CANDIDATE">预警候选</option><option value="RESOLVED">已解除</option><option value="EXPIRED">已过期</option></select>
+                        </div>
                     </div>
 
-                    <div class="mb-3 shrink-0 rounded border border-slate-700/70 bg-slate-950/40 px-3 py-2 text-[11px] text-slate-400">
-                        <div class="flex items-center justify-between gap-2"><span>最近刷新：{{ formatTime(lastLoadedAt) }}</span><span v-if="forecastStaleCount" class="text-amber-200">{{ forecastStaleCount }} 个站点预报已过期</span></div>
+                    <div v-if="errorMessage" class="mb-3 shrink-0 border border-amber-500/35 bg-amber-950/30 p-3 text-[15px] leading-6 text-amber-100">{{ errorMessage }}</div>
+                    <div class="mb-2.5 flex shrink-0 items-center justify-between gap-2">
+                        <div class="flex items-center gap-2"><span class="text-[17px] font-bold text-cyan-200">{{ showHistory ? '历史预警档案' : '预警记录' }}</span><span v-if="unreadCount" class="rounded-full border border-rose-400/45 bg-rose-950/45 px-2.5 py-0.5 text-[14px] font-bold text-rose-100">未读 {{ unreadCount }}</span></div>
+                        <div class="flex items-center gap-3"><button class="text-[15px] font-bold text-violet-200 hover:text-white" type="button" @click="toggleHistory">{{ showHistory ? '返回当前' : `历史档案（${historyRows.length}）` }}</button><button v-if="unreadCount" class="text-[15px] font-bold text-[#9bbad0] hover:text-white" type="button" @click="markNotificationsRead">已读</button><button class="text-[15px] font-bold text-cyan-300 hover:text-white" type="button" @click="loadWarnings(true)">刷新</button></div>
                     </div>
-                    <div v-if="errorMessage" class="mb-3 shrink-0 border border-amber-500/35 bg-amber-950/30 p-3 text-xs leading-5 text-amber-100">{{ errorMessage }}</div>
-                    <div class="mb-2 flex shrink-0 items-center justify-between gap-2"><div class="flex items-center gap-2"><span class="text-sm font-bold text-cyan-200">{{ showHistory ? '历史预警档案' : '预警记录' }}</span><span v-if="unreadCount" class="rounded-full border border-rose-400/45 bg-rose-950/45 px-2 py-0.5 text-[10px] font-bold text-rose-100">未读 {{ unreadCount }}</span></div><div class="flex items-center gap-3"><button class="text-xs font-bold text-violet-300 hover:text-white" type="button" @click="toggleHistory">{{ showHistory ? '返回当前预警' : `历史档案（${historyRows.length}）` }}</button><button v-if="unreadCount" class="text-xs font-bold text-slate-400 hover:text-white" type="button" @click="markNotificationsRead">标记已读</button><button class="text-xs font-bold text-cyan-300 hover:text-white" type="button" @click="loadWarnings(true)">刷新数据</button></div></div>
-                    <div class="custom-scrollbar min-h-0 space-y-2 overflow-y-auto pr-2">
-                        <div v-if="loading" class="flex h-36 items-center justify-center text-sm text-slate-400">正在读取预警与预报数据...</div>
+                    <div class="custom-scrollbar min-h-0 space-y-2.5 overflow-y-auto pr-2">
+                        <div v-if="loading" class="flex h-36 items-center justify-center text-[16px] text-[#9bbad0]">正在读取预警数据...</div>
                         <button v-for="item in displayWarnings" :key="`${showHistory ? 'history' : 'active'}-${item.id}-${item.resolvedAt || ''}`" type="button" :class="warningCardClass(item, item.id === selectedWarning?.id)" :style="{ borderLeftColor: warningAccent(item.severity) }" @click="selectWarning(item, { locate: true })">
-                            <div class="flex items-start justify-between gap-2"><div class="min-w-0 flex-1"><div class="flex min-w-0 items-center gap-2"><span :class="['shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-bold', sourceClass(item.source)]">{{ item.source }}</span><div class="truncate text-sm font-bold text-white">{{ warningDisplayTitle(item) }}</div></div><div class="mt-1 truncate text-xs text-slate-400">{{ item.regionName || item.miningArea || '--' }}<span v-if="item.siteName"> · {{ item.siteName }}</span> · {{ rangeText(item.timeRange, item.stale) }}</div></div><span :class="['shrink-0 border px-2 py-0.5 text-xs font-bold', severityClass(item.severity)]">{{ severityText(item.severity) }}</span></div>
-                            <div class="mt-2 border-t border-slate-700/60 pt-2 text-xs leading-5 text-slate-300">{{ item.warningMessage }}</div>
-                            <div class="mt-1 flex items-center justify-between gap-2 text-[11px] text-slate-500"><span>{{ item.triggerType || '综合指标' }}</span><span v-if="showHistory" class="text-slate-400">{{ item.resolvedAt ? `解除于 ${formatTime(item.resolvedAt)}` : '历史记录' }}</span><span v-else-if="item.stale" class="text-amber-300">已过期</span><span v-else>{{ statusText(item.status) }}</span></div>
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="min-w-0 flex-1 truncate text-[17px] font-bold text-white">{{ item.regionName || item.miningArea || warningDisplayTitle(item) }}</div>
+                                <span :class="['shrink-0 border px-2 py-0.5 text-[14px] font-bold', severityClass(item.severity)]">{{ severityText(item.severity) }}</span>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between gap-2 text-[15px]">
+                                <span class="min-w-0 truncate text-[#e2eff7]">{{ item.warningMessage }}</span>
+                                <span v-if="showHistory" class="shrink-0 text-[14px] text-[#9bbad0]">历史</span>
+                                <span v-else-if="item.stale" class="shrink-0 text-[14px] font-bold text-amber-300">已过期</span>
+                                <span v-else class="shrink-0 text-[14px] font-bold text-cyan-200">{{ statusText(item.status) }}</span>
+                            </div>
                         </button>
-                        <div v-if="!loading && !displayWarnings.length" class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">{{ showHistory ? '暂无历史预警档案' : '暂无符合条件的预警或候选记录' }}</div>
+                        <div v-if="!loading && !displayWarnings.length" class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-[16px] text-[#9bbad0]">{{ showHistory ? '暂无历史预警档案' : '暂无符合条件的预警记录' }}</div>
                     </div>
                 </section>
             </div>
 
-            <div v-show="!assessmentMode && !typhoonMode" class="pointer-events-none absolute right-6 top-36 flex h-[54.5rem] w-[31rem] flex-col">
+            <div v-show="!assessmentMode && !typhoonMode" class="pointer-events-none absolute right-6 top-36 flex h-[54.5rem] w-[32rem] flex-col">
                 <section class="tech-panel-enhanced pointer-events-auto relative flex max-h-full min-h-0 flex-col overflow-hidden p-5" style="clip-path: polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%);">
                     <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div><div class="corner-decoration corner-bl scale-125"></div><div class="corner-decoration corner-br scale-125"></div>
-                    <div class="mb-3 flex shrink-0 items-start justify-between border-b-2 border-cyan-500/40 pb-3"><div class="min-w-0"><div class="flex items-center gap-2"><span v-if="selectedWarning" :class="['rounded-sm border px-2 py-1 text-[11px] font-bold', sourceClass(selectedWarning.source)]">{{ selectedWarning.source }}</span><div class="truncate text-xl font-bold text-white">{{ selectedWarning ? warningDisplayTitle(selectedWarning) : '预警详情' }}</div></div><div class="mt-1 truncate text-xs text-slate-400">{{ selectedWarning?.regionName || selectedWarning?.miningArea || '请选择左侧预警记录' }}<span v-if="selectedWarning?.siteName"> · {{ selectedWarning.siteName }}</span></div></div><button v-if="selectedWarning" class="shrink-0 border border-cyan-500/45 bg-cyan-950/45 px-3 py-1.5 text-xs font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" type="button" @click="download('txt')">下载TXT</button><button v-if="selectedWarning" class="shrink-0 border border-cyan-500/45 bg-cyan-950/45 px-3 py-1.5 text-xs font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" type="button" @click="download('pdf')">下载PDF</button></div>
-                    <div v-if="detailLoading" class="flex h-36 items-center justify-center text-sm text-slate-400">正在加载预警详情...</div>
+                    <div class="mb-3 flex shrink-0 items-center justify-between gap-2 border-b-2 border-cyan-500/40 pb-3">
+                        <div class="min-w-0">
+                            <div class="truncate text-[22px] font-bold text-white">{{ selectedWarning ? (selectedWarning.regionName || selectedWarning.miningArea || warningDisplayTitle(selectedWarning)) : '预警详情' }}</div>
+                            <div class="mt-1 flex items-center gap-2 text-[14px] text-[#9bbad0]">
+                                <span v-if="selectedWarning" :class="['rounded-sm border px-2 py-0.5 text-[14px] font-bold', sourceClass(selectedWarning.source)]">{{ selectedWarning.source }}</span>
+                                <span v-if="selectedWarning">{{ severityText(selectedWarning.severity) }} · {{ selectedWarning.stale ? '已过期' : statusText(selectedWarning.status) }}</span>
+                                <span v-else>请选择左侧预警记录</span>
+                            </div>
+                        </div>
+                        <div v-if="selectedWarning" class="flex shrink-0 items-center gap-2">
+                            <button class="border border-cyan-500/45 bg-cyan-950/50 px-3 py-1.5 text-[15px] font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" type="button" @click="download('txt')">TXT</button>
+                            <button class="border border-cyan-500/45 bg-cyan-950/50 px-3 py-1.5 text-[15px] font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" type="button" @click="download('pdf')">PDF</button>
+                        </div>
+                    </div>
+                    <div v-if="detailLoading" class="flex h-36 items-center justify-center text-[16px] text-[#9bbad0]">正在加载预警详情...</div>
                     <template v-else-if="selectedWarning">
                         <div class="custom-scrollbar min-h-0 space-y-3 overflow-y-auto pr-1">
-                            <section v-if="selectedWarning.sourceType === 'grid'" class="rounded border border-amber-500/35 bg-amber-950/20 p-3">
-                                <div class="mb-1 text-sm font-bold text-amber-100">预警结论</div>
-                                <div class="text-sm leading-6 text-white">{{ selectedWarning.warningMessage }}</div>
-                                <div v-if="selectedWarning.point" class="text-xs text-slate-300">经度 {{ selectedWarning.point.lng.toFixed(4) }}° · 纬度 {{ selectedWarning.point.lat.toFixed(4) }}°</div>
-                                <div v-if="selectedWarning.validFrom" class="mt-1 text-xs text-slate-300">{{ formatTime(selectedWarning.validFrom) }} 至 {{ formatTime(selectedWarning.validUntil) }}</div>
+                            <section v-if="selectedWarning.sourceType === 'grid'" class="rounded border border-amber-500/35 bg-amber-950/20 p-3.5">
+                                <div class="mb-1 text-[16px] font-bold text-amber-100">预警结论</div>
+                                <div class="text-[17px] font-bold leading-7 text-white">{{ selectedWarning.warningMessage }}</div>
+                                <div v-if="selectedWarning.point" class="mt-1.5 text-[15px] tabular-nums text-[#d7e6f2]">经度 {{ selectedWarning.point.lng.toFixed(4) }}° · 纬度 {{ selectedWarning.point.lat.toFixed(4) }}°</div>
+                                <div v-if="selectedWarning.validFrom" class="mt-1 text-[15px] tabular-nums text-[#9bbad0]">{{ formatTime(selectedWarning.validFrom) }} 至 {{ formatTime(selectedWarning.validUntil) }}</div>
                             </section>
                             <section v-if="selectedWarning.source === '预报候选'" class="rounded border border-violet-400/35 bg-gradient-to-br from-violet-950/45 via-slate-950/55 to-slate-950/85 p-4">
-                                <div class="flex flex-wrap items-center justify-between gap-2"><div class="text-sm font-bold tracking-wide text-violet-100">风险窗口</div><div class="flex flex-wrap items-center justify-end gap-1.5"><span class="border border-violet-300/30 bg-violet-950/45 px-2 py-1 text-[10px] text-violet-200">{{ candidateReport.granularity }}</span><button v-if="selectedWarning.region" type="button" class="border border-cyan-500/45 bg-cyan-950/35 px-2 py-1 text-[11px] font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" @click="emit('locate-region', selectedWarning)">定位地图</button><button v-if="selectedWarning.region" type="button" class="border border-violet-500/45 bg-violet-950/35 px-2 py-1 text-[11px] font-bold text-violet-100 hover:bg-violet-500 hover:text-slate-950" @click="emit('open-forecast', selectedWarning)">进入预报中心</button></div></div>
-                                <div class="mt-2 text-[15px] font-bold leading-7 text-white">{{ candidateReport.conclusion }}</div>
-                                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
-                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 p-2"><div class="text-slate-500">首次达到</div><strong class="mt-1 block text-amber-100">{{ candidateReport.firstAt }}</strong></div>
-                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 p-2"><div class="text-slate-500">{{ expiredCandidate ? "峰值" : "预计峰值" }}</div><strong class="mt-1 block text-rose-100">{{ candidateReport.peakAt }}</strong></div>
-                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 p-2"><div class="text-slate-500">{{ expiredCandidate ? "末次超限" : "预计解除" }}</div><strong class="mt-1 block text-cyan-100">{{ candidateReport.endAt }}</strong></div>
-                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 p-2"><div class="text-slate-500">{{ expiredCandidate ? "首次回落" : "预计持续" }}</div><strong class="mt-1 block text-violet-100">{{ expiredCandidate ? candidateReport.recoveredAt : candidateReport.duration }}</strong></div>
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="text-[16px] font-bold text-violet-100">风险窗口</div>
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                        <button v-if="selectedWarning.region" type="button" class="border border-cyan-500/45 bg-cyan-950/40 px-2.5 py-1 text-[14px] font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" @click="emit('locate-region', selectedWarning)">定位地图</button>
+                                        <button v-if="selectedWarning.region" type="button" class="border border-violet-500/45 bg-violet-950/40 px-2.5 py-1 text-[14px] font-bold text-violet-100 hover:bg-violet-500 hover:text-slate-950" @click="emit('open-forecast', selectedWarning)">预报中心</button>
+                                    </div>
                                 </div>
-                                <div v-if="selectedWarning.buoyId" class="mt-3 flex flex-wrap gap-2"><button type="button" class="border border-sky-500/45 bg-sky-950/35 px-3 py-1.5 text-xs font-bold text-sky-100 hover:bg-sky-500 hover:text-slate-950" @click="emit('open-buoy', selectedWarning)">查看浮标监测</button></div>
+                                <div class="mt-2 text-[19px] font-bold leading-7 text-white">{{ candidateReport.conclusion }}</div>
+                                <div class="mt-3 grid grid-cols-2 gap-2.5">
+                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 px-3 py-2"><div class="text-[14px] text-[#9bbad0]">首次达到</div><strong class="mt-1 block text-[16px] font-bold tabular-nums text-amber-100">{{ candidateReport.firstAt }}</strong></div>
+                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 px-3 py-2"><div class="text-[14px] text-[#9bbad0]">{{ expiredCandidate ? "峰值" : "预计峰值" }}</div><strong class="mt-1 block text-[16px] font-bold tabular-nums text-rose-100">{{ candidateReport.peakAt }}</strong></div>
+                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 px-3 py-2"><div class="text-[14px] text-[#9bbad0]">{{ expiredCandidate ? "末次超限" : "预计解除" }}</div><strong class="mt-1 block text-[16px] font-bold tabular-nums text-cyan-100">{{ candidateReport.endAt }}</strong></div>
+                                    <div class="rounded border border-slate-700/60 bg-slate-950/45 px-3 py-2"><div class="text-[14px] text-[#9bbad0]">{{ expiredCandidate ? "首次回落" : "预计持续" }}</div><strong class="mt-1 block text-[16px] font-bold tabular-nums text-violet-100">{{ expiredCandidate ? candidateReport.recoveredAt : candidateReport.duration }}</strong></div>
+                                </div>
+                                <div v-if="selectedWarning.buoyId" class="mt-3 flex flex-wrap gap-2"><button type="button" class="border border-sky-500/45 bg-sky-950/35 px-3 py-1.5 text-[15px] font-bold text-sky-100 hover:bg-sky-500 hover:text-slate-950" @click="emit('open-buoy', selectedWarning)">查看浮标监测</button></div>
                             </section>
-                            <div :class="['grid gap-2 text-xs', expiredCandidate ? 'grid-cols-2' : 'grid-cols-3']">
-                                <div class="border border-slate-700/60 bg-slate-950/35 p-3 text-slate-400">预警等级<strong :class="['mt-1 block text-base', severityClass(selectedWarning.severity)]">{{ severityText(selectedWarning.severity) }}</strong></div>
-                                <div class="border border-slate-700/60 bg-slate-950/35 p-3 text-slate-400">记录状态<strong class="mt-1 block text-base text-cyan-100">{{ statusText(selectedWarning.status) }}</strong></div>
-                                <div v-if="!expiredCandidate" class="border border-slate-700/60 bg-slate-950/35 p-3 text-slate-400">数据状态<strong :class="['mt-1 block text-base', selectedWarning.stale ? 'text-amber-200' : 'text-emerald-200']">{{ selectedWarning.stale ? '需核对' : '有效' }}</strong></div>
-                            </div>
-                            <div class="rounded border border-cyan-500/20 bg-cyan-950/20 p-3 text-xs leading-5 text-slate-300">
-                                <div class="grid grid-cols-2 gap-y-1">
-                                    <span :class="{ 'col-span-2': expiredCandidate }">数据批次<strong class="ml-2 text-cyan-100">{{ selectedWarning.sourceBase || '--' }}</strong></span>
+                            <div class="rounded border border-cyan-500/20 bg-cyan-950/20 px-3.5 py-3 text-[15px] leading-6 text-[#d7e6f2]">
+                                <div class="grid grid-cols-2 gap-y-1.5">
+                                    <span :class="{ 'col-span-2': expiredCandidate }"><span class="text-[#9bbad0]">数据批次</span><strong class="ml-2 font-bold tabular-nums text-white">{{ selectedWarning.sourceBase || '--' }}</strong></span>
                                     <template v-if="expiredCandidate && candidateCoordinates">
-                                        <span>经度<strong class="ml-2 text-cyan-100">{{ candidateCoordinates.lng }}°</strong></span>
-                                        <span>纬度<strong class="ml-2 text-cyan-100">{{ candidateCoordinates.lat }}°</strong></span>
+                                        <span><span class="text-[#9bbad0]">经度</span><strong class="ml-2 font-bold tabular-nums text-white">{{ candidateCoordinates.lng }}°</strong></span>
+                                        <span><span class="text-[#9bbad0]">纬度</span><strong class="ml-2 font-bold tabular-nums text-white">{{ candidateCoordinates.lat }}°</strong></span>
                                     </template>
                                     <template v-if="!expiredCandidate">
-                                        <span>有效至：<strong class="text-cyan-100">{{ selectedWarning.validUntil || '--' }}</strong></span>
-                                        <span>预报时段：<strong class="text-cyan-100">{{ rangeText(selectedWarning.timeRange) }}</strong></span>
-                                        <span v-if="selectedWarning.createdAt">生成时间：<strong class="text-cyan-100">{{ formatTime(selectedWarning.createdAt) }}</strong></span>
+                                        <span><span class="text-[#9bbad0]">有效至</span><strong class="ml-2 font-bold tabular-nums text-white">{{ selectedWarning.validUntil || '--' }}</strong></span>
+                                        <span><span class="text-[#9bbad0]">时段</span><strong class="ml-2 font-bold text-white">{{ rangeText(selectedWarning.timeRange) }}</strong></span>
                                     </template>
-                                    <span v-if="selectedWarning.resolvedAt">解除时间：<strong class="text-amber-100">{{ formatTime(selectedWarning.resolvedAt) }}</strong></span>
-                                    <span v-if="selectedWarning.resolvedAt">解除原因：<strong class="text-amber-100">{{ selectedWarning.resolveReason || '最新预报不再满足条件' }}</strong></span>
+                                    <span v-if="selectedWarning.resolvedAt" class="col-span-2"><span class="text-[#9bbad0]">解除时间</span><strong class="ml-2 font-bold text-amber-100">{{ formatTime(selectedWarning.resolvedAt) }}</strong></span>
                                 </div>
-                                <div v-if="selectedWarning.stale && !expiredCandidate" class="mt-2 border-t border-amber-500/20 pt-2 text-amber-200">预报已过期</div>
                             </div>
-                            <div class="border-y border-cyan-500/20 py-3"><div class="mb-2 text-sm font-bold text-cyan-200">触发指标</div><div class="space-y-1.5 text-xs text-slate-300"><div v-for="trigger in selectedWarning.triggerDetail || []" :key="`${trigger.type}-${trigger.value}-${trigger.forecastDate}`" class="flex items-center justify-between gap-2 rounded bg-slate-950/35 px-2 py-1.5"><span>{{ trigger.type }}：<strong class="text-amber-100">{{ trigger.value }} {{ displayUnit(trigger.unit) }}</strong></span><span class="text-slate-500">阈值 {{ trigger.threshold }} {{ displayUnit(trigger.unit) }}<span v-if="trigger.forecastDate"> · {{ shortDate(trigger.forecastDate) }}</span></span></div><div v-if="!selectedWarning.triggerDetail?.length" class="text-slate-500">暂无结构化指标</div></div></div>
-                            <div v-if="selectedWarning.source !== '预报候选'" class="flex flex-wrap gap-2"><button v-if="selectedWarning.region" type="button" class="border border-cyan-500/45 bg-cyan-950/35 px-3 py-1.5 text-xs font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" @click="emit('locate-region', selectedWarning)">定位地图</button><button v-if="selectedWarning.region" type="button" class="border border-violet-500/45 bg-violet-950/35 px-3 py-1.5 text-xs font-bold text-violet-100 hover:bg-violet-500 hover:text-slate-950" @click="emit('open-forecast', selectedWarning)">进入预报中心</button></div>
-                            <div v-if="selectedWarning.versions?.length" class="rounded border border-violet-500/20 bg-violet-950/15 p-3"><div class="mb-2 text-xs font-bold text-violet-200">生命周期记录</div><div class="space-y-1.5 text-[11px] text-slate-300"><div v-for="version in selectedWarning.versions" :key="`${version.at}-${version.type}`" class="flex gap-2"><span class="shrink-0 text-slate-500">{{ formatTime(version.at) }}</span><span>{{ lifecycleEventText(version.type) }}{{ version.text ? `：${version.text}` : '' }}</span></div></div></div>
+                            <div class="border-t border-cyan-500/20 pt-3">
+                                <div class="mb-2 text-[16px] font-bold text-cyan-200">触发指标</div>
+                                <div class="space-y-2">
+                                    <div v-for="trigger in selectedWarning.triggerDetail || []" :key="`${trigger.type}-${trigger.value}-${trigger.forecastDate}`" class="flex items-center justify-between gap-2 rounded bg-slate-950/45 px-3 py-2">
+                                        <span class="text-[17px] text-[#d7e6f2]">{{ trigger.type }} <strong class="ml-1 text-[20px] font-extrabold tabular-nums text-amber-200">{{ trigger.value }} {{ displayUnit(trigger.unit) }}</strong></span>
+                                        <span class="text-[15px] tabular-nums text-[#9bbad0]">阈值 {{ trigger.threshold }} {{ displayUnit(trigger.unit) }}<span v-if="trigger.forecastDate"> · {{ shortDate(trigger.forecastDate) }}</span></span>
+                                    </div>
+                                    <div v-if="!selectedWarning.triggerDetail?.length" class="text-[15px] text-[#9bbad0]">暂无结构化指标</div>
+                                </div>
+                            </div>
+                            <div v-if="selectedWarning.source !== '预报候选'" class="flex flex-wrap gap-2"><button v-if="selectedWarning.region" type="button" class="border border-cyan-500/45 bg-cyan-950/35 px-3 py-1.5 text-[15px] font-bold text-cyan-100 hover:bg-cyan-500 hover:text-slate-950" @click="emit('locate-region', selectedWarning)">定位地图</button><button v-if="selectedWarning.region" type="button" class="border border-violet-500/45 bg-violet-950/35 px-3 py-1.5 text-[15px] font-bold text-violet-100 hover:bg-violet-500 hover:text-slate-950" @click="emit('open-forecast', selectedWarning)">进入预报中心</button></div>
+                            <div v-if="selectedWarning.versions?.length" class="rounded border border-violet-500/20 bg-violet-950/15 p-3"><div class="mb-2 text-[15px] font-bold text-violet-200">生命周期记录</div><div class="space-y-1.5 text-[14px] text-[#d7e6f2]"><div v-for="version in selectedWarning.versions" :key="`${version.at}-${version.type}`" class="flex gap-2"><span class="shrink-0 tabular-nums text-[#9bbad0]">{{ formatTime(version.at) }}</span><span>{{ lifecycleEventText(version.type) }}{{ version.text ? `：${version.text}` : '' }}</span></div></div></div>
                         </div>
                     </template>
-                    <div v-else class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">请选择一条预警记录</div>
+                    <div v-else class="flex h-36 items-center justify-center border border-dashed border-slate-700/50 text-[16px] text-[#9bbad0]">请选择一条预警记录</div>
                 </section>
             </div>
 
-            <div v-show="!assessmentMode && !typhoonMode" class="pointer-events-none absolute bottom-16 left-[33rem] right-[33rem] h-[19rem]"><section class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-4"><div class="absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div><div class="mb-3 flex items-start justify-between gap-3"><div class="min-w-0"><div class="text-lg font-bold text-white">{{ trendTitle }}</div><div class="mt-1 truncate text-xs text-slate-400">{{ trendSubtitle }}</div></div><div class="flex shrink-0 items-center gap-2"><div v-if="hasDailyHourlyTrend" class="flex items-center border border-violet-500/30 bg-violet-950/25 p-0.5"><button type="button" :class="['px-2 py-1 text-[10px] font-bold transition', trendMode === 'daily' ? 'bg-violet-500/80 text-white' : 'text-violet-200 hover:bg-violet-500/25']" @click="setTrendMode('daily')">未来7天概览</button><button type="button" :class="['px-2 py-1 text-[10px] font-bold transition', trendMode === 'hourly' ? 'bg-cyan-500/80 text-slate-950' : 'text-cyan-200 hover:bg-cyan-500/25']" @click="setTrendMode('hourly')">风险日逐小时</button></div><span class="border border-cyan-500/25 bg-cyan-950/25 px-2 py-1 text-[10px] text-cyan-200">{{ trendGranularity }}</span></div></div><div class="relative min-h-0 flex-1"><div v-if="trendRecords.length" ref="chartRef" class="h-full w-full"></div><div v-if="trendLoading" class="absolute inset-0 flex items-center justify-center bg-slate-950/65 text-sm text-slate-300">正在读取趋势数据...</div><div v-else-if="trendError" class="absolute inset-0 flex items-center justify-center text-sm text-amber-200">{{ trendError }}</div><div v-else-if="!trendRecords.length" class="absolute inset-0 flex items-center justify-center border border-dashed border-slate-700/50 text-sm text-slate-500">{{ trendEmptyText }}</div></div></section></div>
+            <div v-show="!assessmentMode && !typhoonMode" class="pointer-events-none absolute bottom-12 left-[33.5rem] right-[34rem] h-[20.5rem]"><section class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-4"><div class="absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div><div class="mb-2 flex shrink-0 items-center justify-between gap-3"><div class="flex min-w-0 items-baseline gap-3"><div class="shrink-0 text-[20px] font-bold text-white">{{ trendTitle }}</div><div class="truncate text-[15px] text-[#9bbad0]">{{ trendSubtitle }}</div></div><div class="flex shrink-0 items-center gap-2"><div v-if="hasDailyHourlyTrend" class="flex items-center border border-violet-500/30 bg-violet-950/25 p-0.5"><button type="button" :class="['px-2.5 py-1 text-[14px] font-bold transition', trendMode === 'daily' ? 'bg-violet-500/80 text-white' : 'text-violet-200 hover:bg-violet-500/25']" @click="setTrendMode('daily')">7天概览</button><button type="button" :class="['px-2.5 py-1 text-[14px] font-bold transition', trendMode === 'hourly' ? 'bg-cyan-500/80 text-slate-950' : 'text-cyan-200 hover:bg-cyan-500/25']" @click="setTrendMode('hourly')">逐小时</button></div><span class="border border-cyan-500/25 bg-cyan-950/25 px-2.5 py-1 text-[14px] font-semibold text-cyan-200">{{ trendGranularity }}</span></div></div><div class="relative min-h-0 flex-1"><div v-if="trendRecords.length" ref="chartRef" class="h-full w-full"></div><div v-if="trendLoading" class="absolute inset-0 flex items-center justify-center bg-slate-950/65 text-[16px] text-[#d7e6f2]">正在读取趋势数据...</div><div v-else-if="trendError" class="absolute inset-0 flex items-center justify-center text-[16px] text-amber-200">{{ trendError }}</div><div v-else-if="!trendRecords.length" class="absolute inset-0 flex items-center justify-center border border-dashed border-slate-700/50 text-[16px] text-[#9bbad0]">{{ trendEmptyText }}</div></div></section></div>
         </div>
     </transition>
 </template>
@@ -144,9 +178,10 @@ import { downloadWarningAnalysisPdf, fetchForecastTargets } from '../../api/fore
 import PanelSelect from '../common/PanelSelect.vue';
 import { fetchWarningCandidates } from '../../utils/warning/warningCandidateService.js';
 import { getWarningLifecycleState, reconcileWarningLifecycle } from '../../utils/warning/warningLifecycleService.js';
+import { chartAxisLabel, chartAxisName, chartLegendText, chartTooltipStyle } from '../../utils/chartTypography.js';
 
 const props = defineProps({ show: Boolean, getViewer: Function });
-const assessmentMode=ref(false),typhoonMode=ref(false);
+const assessmentMode=ref(false),typhoonMode=ref(false),showFilters=ref(false);
 const emit = defineEmits(['close', 'locate-region', 'select-target', 'clear-target', 'open-forecast', 'open-warning-center']);
 const warnings = ref([]), history = ref([]), targets = ref([]);
 const selectedWarning = ref(null), loading = ref(false), detailLoading = ref(false);
@@ -154,6 +189,7 @@ const trendLoading = ref(false), trendError = ref(''), trendRecords = ref([]);
 const trendDailyRecords = ref([]), trendHourlyRecords = ref([]), trendMode = ref('daily');
 const errorMessage = ref(''), lastLoadedAt = ref(''), forecastFreshness = ref(null);
 const filters = reactive({ mine: '', source: '', range: '', severity: '', status: '' });
+const activeSubFilterCount = computed(() => [filters.source, filters.range, filters.severity, filters.status].filter(Boolean).length);
 const forecastStaleCount = computed(() => (filters.mine
     ? forecastFreshness.value?.staleByArea?.[filters.mine] : forecastFreshness.value?.staleCount) || 0);
 const mineOptions = computed(() => targets.value.length
@@ -335,7 +371,7 @@ const setTrendMode = (mode) => {
 };
 const trendMarkLine = (type) => {
     const value = thresholdFor(type);
-    return value === null ? undefined : { silent: true, symbol: 'none', lineStyle: { color: '#fb7185', type: 'dashed', width: 1 }, label: { color: '#fecdd3', fontSize: 10, formatter: `阈值 ${value}` }, data: [{ yAxis: value }] };
+    return value === null ? undefined : { silent: true, symbol: 'none', lineStyle: { color: '#fb7185', type: 'dashed', width: 1.5 }, label: { color: '#fecdd3', fontSize: 14, fontWeight: 700, formatter: `阈值 ${value}` }, data: [{ yAxis: value }] };
 };
 const trendDateValue = (value) => {
     const raw = String(value || '').trim();
@@ -400,7 +436,7 @@ const trendRiskMarkArea = () => {
     const lastIndex = Math.max(0, trendRecords.value.length - 1);
     const startAxis = isDaily ? Math.max(-0.5, bounds.startIndex - 0.5) : bounds.startIndex;
     const endAxis = isDaily ? Math.min(lastIndex + 0.5, bounds.endIndex + 0.5) : bounds.endIndex;
-    return { silent: true, itemStyle: { color: 'rgba(244, 63, 94, .14)', borderColor: 'rgba(251, 113, 133, .75)', borderWidth: 1 }, label: { show: true, color: '#fecdd3', fontSize: 10, formatter: expiredCandidate.value ? '超限时段' : '预计风险窗口', position: 'insideTop' }, data: [[{ xAxis: startAxis }, { xAxis: endAxis }]] };
+    return { silent: true, itemStyle: { color: 'rgba(244, 63, 94, .14)', borderColor: 'rgba(251, 113, 133, .75)', borderWidth: 1 }, label: { show: true, color: '#fecdd3', fontSize: 14, fontWeight: 700, formatter: expiredCandidate.value ? '超限时段' : '预计风险窗口', position: 'insideBottom', distance: 10 }, data: [[{ xAxis: startAxis }, { xAxis: endAxis }]] };
 };
 const trendHighlightData = (values) => {
     const bounds = trendRiskBounds.value;
@@ -468,11 +504,11 @@ const renderChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         color: ['#22d3ee', '#facc15', '#a78bfa'],
-        tooltip: { trigger: 'axis', backgroundColor: 'rgba(8,20,38,.98)', borderColor: '#67e8f9', textStyle: { color: '#ffffff', fontSize: 12 }, axisPointer: { lineStyle: { color: '#bae6fd' } } },
-        legend: { top: 0, textStyle: { color: '#ffffff', fontSize: 11, fontWeight: 600 }, data: ['风速', '浪高', '流速'] },
-        grid: { left: 58, right: 58, top: 34, bottom: 56 },
-        xAxis: { type: 'category', data: records.map(trendAxisLabel), axisLabel: { color: '#ffffff', fontSize: 11, fontWeight: 600, hideOverlap: false, interval: records.length > 10 ? Math.ceil(records.length / 8) - 1 : 0, rotate: 0, lineHeight: 16 }, axisLine: { lineStyle: { color: '#cbd5e1', width: 1 } }, axisTick: { lineStyle: { color: '#cbd5e1' } } },
-        yAxis: [{ type: 'value', name: '风速/流速（米/秒）', axisLabel: { color: '#ffffff', fontSize: 11, fontWeight: 600 }, nameTextStyle: { color: '#ffffff', fontSize: 11, fontWeight: 700 }, axisLine: { show: true, lineStyle: { color: '#cbd5e1' } }, splitLine: { lineStyle: { color: 'rgba(148,163,184,.42)' } } }, { type: 'value', name: '浪高（米）', position: 'right', axisLabel: { color: '#ffffff', fontSize: 11, fontWeight: 600 }, nameTextStyle: { color: '#ffffff', fontSize: 11, fontWeight: 700 }, axisLine: { show: true, lineStyle: { color: '#cbd5e1' } }, splitLine: { show: false } }],
+        tooltip: { trigger: 'axis', ...chartTooltipStyle(), axisPointer: { lineStyle: { color: '#bae6fd' } } },
+        legend: { top: 0, itemWidth: 16, itemHeight: 8, itemGap: 16, textStyle: chartLegendText(), data: ['风速', '浪高', '流速'] },
+        grid: { left: 66, right: 64, top: 42, bottom: 58 },
+        xAxis: { type: 'category', data: records.map(trendAxisLabel), axisLabel: chartAxisLabel({ hideOverlap: true, interval: records.length > 8 ? Math.ceil(records.length / 6) - 1 : 0, rotate: 0, lineHeight: 18 }), axisLine: { lineStyle: { color: '#64829c', width: 1 } }, axisTick: { lineStyle: { color: '#64829c' } } },
+        yAxis: [{ type: 'value', name: '风/流 m/s', axisLabel: chartAxisLabel(), nameTextStyle: chartAxisName(), axisLine: { show: true, lineStyle: { color: '#64829c' } }, splitLine: { lineStyle: { color: 'rgba(148,179,204,.24)' } } }, { type: 'value', name: '浪高 m', position: 'right', axisLabel: chartAxisLabel(), nameTextStyle: chartAxisName(), axisLine: { show: true, lineStyle: { color: '#64829c' } }, splitLine: { show: false } }],
         series: [
             { name: '风速', type: 'line', smooth: true, showSymbol: records.length < 3, data: windData, markLine: trendMarkLine('风速'), markArea: markRiskArea('风速') },
             { name: '浪高', type: 'line', smooth: true, yAxisIndex: 1, showSymbol: records.length < 3, data: waveData, markLine: trendMarkLine('浪高'), markArea: markRiskArea('浪高') },
@@ -628,7 +664,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.warning-workspace-tab{padding:5px 8px;border:1px solid rgba(34,211,238,.35);background:rgba(8,15,28,.65);font-family:inherit;font-size:14px;font-weight:700;white-space:nowrap;}
-.warning-workspace-tab.is-active{border-color:#67e8f9;background:rgba(8,145,178,.25);}
+.warning-workspace-tab{padding:6px 10px;border:1px solid rgba(34,211,238,.35);background:rgba(8,15,28,.65);color:#d7e6f2;font-family:inherit;font-size:15px;font-weight:700;white-space:nowrap;}
+.warning-workspace-tab.is-active{border-color:#67e8f9;background:rgba(8,145,178,.3);color:#ffffff;}
 .warning-workspace-tab:focus-visible{outline:2px solid #67e8f9;outline-offset:2px;}
 </style>

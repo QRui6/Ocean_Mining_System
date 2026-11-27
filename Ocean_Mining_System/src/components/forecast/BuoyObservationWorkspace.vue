@@ -18,7 +18,7 @@
             <polyline :points="`${label.ax},${label.ay} ${label.endX},${label.y}`" fill="none" stroke="#8cb7c9" stroke-width="0.8"/>
             <circle :cx="label.ax" :cy="label.ay" r="2" fill="#67e8f9"/>
             <text :x="label.x" :y="label.y-5" :text-anchor="label.side==='left'?'start':'end'" class="model-label">
-              <tspan v-for="(line,i) in label.lines" :key="i" :x="label.x" :dy="i?14:0">{{line}}</tspan>
+              <tspan v-for="(line,i) in label.lines" :key="i" :x="label.x" :dy="i?17:0">{{line}}</tspan>
             </text>
           </g>
           <g v-if="ruler.length">
@@ -151,13 +151,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.model-label{font:12px sans-serif;fill:#e0f2fe;stroke:#071526;stroke-width:3px;paint-order:stroke;stroke-linejoin:round;}
+.model-label{font:600 14px 'Noto Sans SC',sans-serif;fill:#eef6fa;stroke:#071526;stroke-width:3px;paint-order:stroke;stroke-linejoin:round;}
 .model-button {
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid rgba(34, 211, 238, .35);
-  background: rgba(8, 15, 28, .65);
-  font: 700 14px/1 'Noto Sans SC', sans-serif;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(34, 211, 238, .4);
+  background: rgba(8, 15, 28, .7);
+  color: #ffffff;
+  font: 700 16px/1 'Noto Sans SC', sans-serif;
   white-space: nowrap;
 }
 .model-button:hover, .model-button[aria-pressed="true"] {

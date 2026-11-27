@@ -1,7 +1,7 @@
 <template>
     <transition name="slide-left">
         <div v-if="show && currentWarning" 
-            class="fixed top-24 right-8 w-[18rem] z-50 pointer-events-auto font-['Noto_Sans_SC']">
+            class="fixed top-24 right-8 w-[22rem] z-50 pointer-events-auto font-['Noto_Sans_SC']">
             <div class="tech-panel-enhanced p-4 relative" 
                 :class="warningClass"
                 style="clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);">
@@ -14,57 +14,57 @@
                 <div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-current"></div>
                 
                 <!-- 标题栏 -->
-                <div class="flex items-center justify-between mb-3 pb-2 border-b border-current/30">
+                <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-current/30">
                     <div class="flex items-center gap-2">
-                        <div class="w-1.5 h-1.5 bg-current rotate-45 shadow-[0_0_8px_currentColor] animate-pulse"></div>
-                        <span class="text-base font-bold tracking-wide">{{ warningTitle }}</span>
+                        <div class="w-2 h-2 bg-current rotate-45 shadow-[0_0_8px_currentColor] animate-pulse"></div>
+                        <span class="text-[19px] font-bold tracking-wide">{{ warningTitle }}</span>
                     </div>
                     <button @click="close" 
-                        class="w-5 h-5 border border-current/50 flex items-center justify-center rounded-sm hover:bg-current hover:text-black transition-all">
-                        <span class="text-sm font-bold">×</span>
+                        class="w-7 h-7 border border-current/50 flex items-center justify-center rounded-sm hover:bg-current hover:text-black transition-all">
+                        <span class="text-[16px] font-bold">×</span>
                     </button>
                 </div>
                 
                 <!-- 内容 -->
-                <div class="space-y-2 relative">
+                <div class="space-y-2.5 relative">
                     <!-- 网格背景 -->
                     <div class="absolute inset-0 opacity-5 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:15px_15px]"></div>
                     
                     <!-- 航点名称 -->
-                    <div class="relative z-10 bg-black/20 p-2 rounded-sm border border-current/20">
-                        <div class="text-xs text-white/60 mb-0.5">航点位置</div>
-                        <div class="text-sm font-bold">{{ currentWarning.name }}</div>
+                    <div class="relative z-10 bg-black/20 p-2.5 rounded-sm border border-current/20">
+                        <div class="text-[14px] text-white/75 mb-0.5">航点位置</div>
+                        <div class="text-[17px] font-bold text-white">{{ currentWarning.name }}</div>
                     </div>
                     
                     <!-- 气象数据 -->
-                    <div class="relative z-10 grid grid-cols-2 gap-1.5 text-xs">
-                        <div class="bg-black/20 p-1.5 rounded-sm border border-current/10">
-                            <div class="text-white/60 text-xs">风速</div>
-                            <div class="font-bold font-['Rajdhani'] text-sm">{{ currentWarning.weather.windSpeed }} m/s</div>
+                    <div class="relative z-10 grid grid-cols-2 gap-2">
+                        <div class="bg-black/20 p-2 rounded-sm border border-current/15">
+                            <div class="text-white/75 text-[14px]">风速</div>
+                            <div class="font-bold font-['Rajdhani'] text-[17px] text-white tabular-nums">{{ currentWarning.weather.windSpeed }} m/s</div>
                         </div>
-                        <div class="bg-black/20 p-1.5 rounded-sm border border-current/10">
-                            <div class="text-white/60 text-xs">风级</div>
-                            <div class="font-bold font-['Rajdhani'] text-sm">{{ currentWarning.weather.windBeaufort }} 级</div>
+                        <div class="bg-black/20 p-2 rounded-sm border border-current/15">
+                            <div class="text-white/75 text-[14px]">风级</div>
+                            <div class="font-bold font-['Rajdhani'] text-[17px] text-white tabular-nums">{{ currentWarning.weather.windBeaufort }} 级</div>
                         </div>
-                        <div class="bg-black/20 p-1.5 rounded-sm border border-current/10">
-                            <div class="text-white/60 text-xs">浪高</div>
-                            <div class="font-bold font-['Rajdhani'] text-sm">{{ currentWarning.weather.waveHeight }} m</div>
+                        <div class="bg-black/20 p-2 rounded-sm border border-current/15">
+                            <div class="text-white/75 text-[14px]">浪高</div>
+                            <div class="font-bold font-['Rajdhani'] text-[17px] text-white tabular-nums">{{ currentWarning.weather.waveHeight }} m</div>
                         </div>
-                        <div class="bg-black/20 p-1.5 rounded-sm border border-current/10">
-                            <div class="text-white/60 text-xs">能见度</div>
-                            <div class="font-bold font-['Rajdhani'] text-sm">{{ (currentWarning.weather.visibility / 1000).toFixed(1) }} km</div>
+                        <div class="bg-black/20 p-2 rounded-sm border border-current/15">
+                            <div class="text-white/75 text-[14px]">能见度</div>
+                            <div class="font-bold font-['Rajdhani'] text-[17px] text-white tabular-nums">{{ (currentWarning.weather.visibility / 1000).toFixed(1) }} km</div>
                         </div>
                     </div>
                     
                     <!-- 警告信息 -->
-                    <div class="relative z-10 bg-current/10 border border-current/30 p-2 rounded-sm">
-                        <div class="text-xs leading-relaxed">{{ warningMessage }}</div>
+                    <div class="relative z-10 bg-current/10 border border-current/30 p-2.5 rounded-sm">
+                        <div class="text-[15px] leading-relaxed text-white">{{ warningMessage }}</div>
                         <!-- 如果有作业状态信息，显示 -->
-                        <div v-if="currentWarning.workable !== undefined" class="mt-1.5 pt-1.5 border-t border-current/20">
+                        <div v-if="currentWarning.workable !== undefined" class="mt-2 pt-2 border-t border-current/20">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs text-white/60">作业状态</span>
-                                <span class="text-xs px-1.5 py-0.5 rounded font-bold"
-                                    :class="currentWarning.workable ? 'bg-green-900/50 text-green-400 border border-green-500/50' : 'bg-red-900/50 text-red-400 border border-red-500/50'">
+                                <span class="text-[14px] text-white/80">作业状态</span>
+                                <span class="text-[14px] px-2 py-0.5 rounded font-bold"
+                                    :class="currentWarning.workable ? 'bg-green-900/50 text-green-300 border border-green-500/50' : 'bg-red-900/50 text-red-300 border border-red-500/50'">
                                     {{ currentWarning.workable ? '可作业' : '不可作业' }}
                                 </span>
                             </div>

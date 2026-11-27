@@ -35,52 +35,52 @@
                 <!-- 航线航程气象预报卡片 - 航行模式 -->
                 <div v-if="displayMode === 'voyage'" 
                     key="voyage-panel"
-                    class="flex gap-3 w-[1200px] h-[300px]">
+                    class="flex gap-3 w-[1240px] h-[340px]">
                     
                     <!-- 左侧：航线航程表格 -->
-                    <div class="w-[800px] bg-slate-950/95 backdrop-blur-lg border-t-2 border-yellow-500/30 rounded-lg overflow-hidden flex flex-col">
-                        <div class="h-8 flex items-center justify-between px-3 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/30 to-transparent flex-shrink-0">
+                    <div class="w-[820px] bg-slate-950/95 backdrop-blur-lg border-t-2 border-yellow-500/30 rounded-lg overflow-hidden flex flex-col">
+                        <div class="h-10 flex items-center justify-between px-4 border-b border-yellow-500/20 bg-gradient-to-r from-yellow-900/30 to-transparent flex-shrink-0">
                             <div class="flex items-center gap-2">
-                                <div class="w-1 h-3 bg-yellow-400 shadow-[0_0_8px_#facc15]"></div>
-                                <h3 class="text-sm font-bold text-cyan-50">航线航程气象预报 (20天)</h3>
+                                <div class="w-1.5 h-4 bg-yellow-400 shadow-[0_0_8px_#facc15]"></div>
+                                <h3 class="text-[17px] font-bold text-white">航线航程气象预报 (20天)</h3>
                             </div>
-                            <div class="flex gap-3 text-xs">
+                            <div class="flex gap-4 text-[15px] font-semibold">
                                 <span class="text-red-400">高风险: {{ areaData.voyageStats.highRiskDays }}天</span>
                                 <span class="text-green-400">适航: {{ areaData.voyageStats.safeDays }}天</span>
                             </div>
                         </div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar p-3" ref="tableScrollRef">
-                            <table class="w-full text-xs">
-                                <thead class="text-yellow-400 sticky top-0 bg-slate-950/95">
+                            <table class="w-full text-[15px]">
+                                <thead class="text-yellow-300 sticky top-0 bg-slate-950/95">
                                     <tr class="border-b border-yellow-500/20">
-                                        <th class="px-2 py-1 text-left">日期</th>
-                                        <th class="px-2 py-1 text-left">航段</th>
-                                        <th class="px-2 py-1 text-center">风速</th>
-                                        <th class="px-2 py-1 text-center">浪高</th>
-                                        <th class="px-2 py-1 text-center">洋流</th>
-                                        <th class="px-2 py-1 text-center">状态</th>
+                                        <th class="px-2.5 py-2 text-left">日期</th>
+                                        <th class="px-2.5 py-2 text-left">航段</th>
+                                        <th class="px-2.5 py-2 text-center">风速</th>
+                                        <th class="px-2.5 py-2 text-center">浪高</th>
+                                        <th class="px-2.5 py-2 text-center">洋流</th>
+                                        <th class="px-2.5 py-2 text-center">状态</th>
                                     </tr>
                                 </thead>
-                                <tbody class="text-slate-300">
+                                <tbody class="text-slate-200">
                                     <tr v-for="(day, index) in areaData.voyageForecast" :key="index"
                                         class="border-b border-slate-800/50 hover:bg-yellow-500/5 transition-colors"
                                         :class="[
                                             getRowRiskClass(day.risk),
                                             index === currentDayIndex ? 'bg-yellow-500/20 ring-2 ring-yellow-400/50' : ''
                                         ]">
-                                        <td class="px-2 py-1 whitespace-nowrap">{{ day.date }}</td>
-                                        <td class="px-2 py-1 text-slate-400 text-xs">{{ getSegmentName(index) }}</td>
-                                        <td class="px-2 py-1 text-center font-bold font-['Rajdhani']" :class="getRiskColor(day.windSpeed, 12)">
+                                        <td class="px-2.5 py-1.5 whitespace-nowrap tabular-nums">{{ day.date }}</td>
+                                        <td class="px-2.5 py-1.5 text-slate-300 text-[15px]">{{ getSegmentName(index) }}</td>
+                                        <td class="px-2.5 py-1.5 text-center font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(day.windSpeed, 12)">
                                             {{ day.windSpeed.toFixed(1) }} m/s
                                         </td>
-                                        <td class="px-2 py-1 text-center font-bold font-['Rajdhani']" :class="getRiskColor(day.waveHeight, 3)">
+                                        <td class="px-2.5 py-1.5 text-center font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(day.waveHeight, 3)">
                                             {{ day.waveHeight.toFixed(1) }} m
                                         </td>
-                                        <td class="px-2 py-1 text-center font-bold font-['Rajdhani'] text-purple-400">
+                                        <td class="px-2.5 py-1.5 text-center font-bold font-['Rajdhani'] text-purple-300 tabular-nums">
                                             {{ getCurrentSpeed(day.currentSpeed, day.windSpeed) }} m/s
                                         </td>
-                                        <td class="px-2 py-1 text-center">
-                                            <span class="px-2 py-0.5 rounded text-xs font-bold" :class="getRiskBadgeClass(day.risk)">
+                                        <td class="px-2.5 py-1.5 text-center">
+                                            <span class="px-2.5 py-0.5 rounded text-[14px] font-bold" :class="getRiskBadgeClass(day.risk)">
                                                 {{ getRiskLabel(day.risk) }}
                                             </span>
                                         </td>
@@ -92,55 +92,51 @@
                     
                     <!-- 右侧：矿区实时气象数据简报 -->
                     <div class="flex-1 bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden flex flex-col">
-                        <div class="h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent flex-shrink-0">
+                        <div class="h-10 flex items-center justify-between px-4 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent flex-shrink-0">
                             <div class="flex items-center gap-2">
-                                <div class="w-1 h-3 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
-                                <h3 class="text-sm font-bold text-cyan-50">目标矿区气象简报</h3>
+                                <div class="w-1.5 h-4 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
+                                <h3 class="text-[17px] font-bold text-white">目标矿区气象简报</h3>
                             </div>
                         </div>
-                        <div class="flex-1 p-3 space-y-3">
+                        <div class="flex-1 p-3 space-y-2.5 flex flex-col justify-between overflow-hidden">
                             <!-- 矿区信息和预计到达时间 -->
-                            <div class="bg-slate-800/40 p-3 rounded border border-cyan-500/20">
-                                <div class="text-white font-bold text-base mb-1">{{ areaData.name }}</div>
-                                <div class="text-xs text-slate-400 mb-2">{{ areaData.contractor }}</div>
-                                <div class="flex items-center gap-2 pt-2 border-t border-slate-700/50">
-                                    <div class="text-xs text-yellow-400">预计到达时间:</div>
-                                    <div class="text-sm font-bold text-white font-['Rajdhani']">{{ getEstimatedArrivalTime() }}</div>
+                            <div class="bg-slate-800/40 px-3 py-2.5 rounded border border-cyan-500/20">
+                                <div class="text-white font-bold text-[18px] truncate">{{ areaData.name }}</div>
+                                <div class="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-700/50">
+                                    <span class="text-[14px] text-yellow-300">预计到达</span>
+                                    <span class="text-[16px] font-bold text-white font-['Rajdhani'] tabular-nums">{{ getEstimatedArrivalTime() }}</span>
                                 </div>
                             </div>
                             
                             <!-- 实时气象预报 -->
-                            <div class="bg-slate-800/40 p-3 rounded border border-green-500/20">
-                                <div class="text-xs text-green-400 mb-2">矿区实时气象</div>
+                            <div class="bg-slate-800/40 px-3 py-2.5 rounded border border-green-500/20">
+                                <div class="text-[14px] font-semibold text-green-300 mb-1.5">矿区实时气象</div>
                                 <div class="grid grid-cols-3 gap-2">
                                     <div class="text-center">
-                                        <div class="text-xs text-slate-400">风速</div>
-                                        <div class="text-lg font-bold font-['Rajdhani']" :class="getRiskColor(areaData.current.windSpeed, 12)">
-                                            {{ areaData.current.windSpeed.toFixed(1) }}
+                                        <div class="text-[14px] text-slate-400">风速</div>
+                                        <div class="text-[20px] font-bold font-['Rajdhani'] tabular-nums leading-tight mt-0.5" :class="getRiskColor(areaData.current.windSpeed, 12)">
+                                            {{ areaData.current.windSpeed.toFixed(1) }}<span class="text-[13px] font-normal text-slate-400 ml-0.5">m/s</span>
                                         </div>
-                                        <div class="text-xs text-slate-400">m/s</div>
                                     </div>
                                     <div class="text-center">
-                                        <div class="text-xs text-slate-400">浪高</div>
-                                        <div class="text-lg font-bold font-['Rajdhani']" :class="getRiskColor(areaData.current.waveHeight, 3)">
-                                            {{ areaData.current.waveHeight.toFixed(1) }}
+                                        <div class="text-[14px] text-slate-400">浪高</div>
+                                        <div class="text-[20px] font-bold font-['Rajdhani'] tabular-nums leading-tight mt-0.5" :class="getRiskColor(areaData.current.waveHeight, 3)">
+                                            {{ areaData.current.waveHeight.toFixed(1) }}<span class="text-[13px] font-normal text-slate-400 ml-0.5">m</span>
                                         </div>
-                                        <div class="text-xs text-slate-400">m</div>
                                     </div>
                                     <div class="text-center">
-                                        <div class="text-xs text-slate-400">洋流</div>
-                                        <div class="text-lg font-bold font-['Rajdhani'] text-purple-400">
-                                            {{ getCurrentSpeed(areaData.current.currentSpeed, areaData.current.windSpeed) }}
+                                        <div class="text-[14px] text-slate-400">洋流</div>
+                                        <div class="text-[20px] font-bold font-['Rajdhani'] text-purple-300 tabular-nums leading-tight mt-0.5">
+                                            {{ getCurrentSpeed(areaData.current.currentSpeed, areaData.current.windSpeed) }}<span class="text-[13px] font-normal text-slate-400 ml-0.5">m/s</span>
                                         </div>
-                                        <div class="text-xs text-slate-400">m/s</div>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- 作业建议 -->
-                            <div class="bg-slate-800/40 p-3 rounded border" :class="(areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? 'border-green-500/20' : 'border-red-500/20'">
-                                <div class="text-xs mb-1" :class="(areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? 'text-green-400' : 'text-red-400'">作业建议</div>
-                                <div class="text-sm font-bold" :class="(areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? 'text-green-400' : 'text-red-400'">
+                            <div class="bg-slate-800/40 px-3 py-2.5 rounded border flex items-center justify-between" :class="(areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? 'border-green-500/25' : 'border-red-500/25'">
+                                <div class="text-[15px] text-slate-300">作业建议</div>
+                                <div class="text-[17px] font-bold" :class="(areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? 'text-green-400' : 'text-red-400'">
                                     {{ (areaData.current.windSpeed < 12 && areaData.current.waveHeight < 3) ? '✓ 适宜作业' : '✗ 不适宜作业' }}
                                 </div>
                             </div>
@@ -151,73 +147,73 @@
                 <!-- 矿区气象预报卡片 - 作业模式 -->
                 <div v-else-if="displayMode === 'working'" 
                     key="working-panel"
-                    class="flex-shrink-0 w-[1200px] h-[300px] bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.3)] flex flex-col">
-                    <div class="h-8 flex items-center justify-between px-3 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent flex-shrink-0">
+                    class="flex-shrink-0 w-[1240px] h-[340px] bg-slate-950/95 backdrop-blur-lg border-t-2 border-cyan-500/30 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.3)] flex flex-col">
+                    <div class="h-10 flex items-center justify-between px-4 border-b border-cyan-500/20 bg-gradient-to-r from-cyan-900/30 to-transparent flex-shrink-0">
                         <div class="flex items-center gap-2">
-                            <div class="w-1 h-3 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
-                            <h3 class="text-sm font-bold text-cyan-50">矿区气象预报</h3>
+                            <div class="w-1.5 h-4 bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
+                            <h3 class="text-[17px] font-bold text-white">矿区气象预报</h3>
                         </div>
                         <button @click="close" 
-                            class="w-5 h-5 border border-cyan-500/50 flex items-center justify-center rounded-sm hover:bg-cyan-500 hover:text-black transition-all text-xs">
+                            class="w-7 h-7 border border-cyan-500/50 flex items-center justify-center rounded-sm hover:bg-cyan-500 hover:text-black transition-all text-[16px]">
                             ×
                         </button>
                     </div>
-                    <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-3.5 space-y-2.5">
                         <!-- 矿区信息和当前气象 -->
                         <div class="grid grid-cols-2 gap-3">
                             <!-- 矿区信息 -->
                             <div class="bg-slate-800/40 p-3 rounded border border-cyan-500/20">
-                                <div class="text-white font-bold text-base mb-2">{{ areaData.name }}</div>
-                                <div class="text-xs text-slate-400">{{ areaData.contractor }} · {{ areaData.mineral }}</div>
+                                <div class="text-white font-bold text-[18px] mb-1.5 truncate">{{ areaData.name }}</div>
+                                <div class="text-[14px] text-slate-400 truncate">{{ areaData.contractor }} · {{ areaData.mineral }}</div>
                             </div>
                             <!-- 当前气象数据 -->
                             <div class="grid grid-cols-4 gap-2">
                                 <div class="text-center bg-slate-800/30 p-2 rounded">
-                                    <div class="text-xs text-cyan-400">风速</div>
-                                    <div class="text-lg font-bold font-['Rajdhani']" :class="getRiskColor(currentDayWeather.windSpeed, 12)">
+                                    <div class="text-[14px] text-slate-400">风速</div>
+                                    <div class="text-[22px] font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(currentDayWeather.windSpeed, 12)">
                                         {{ currentDayWeather.windSpeed.toFixed(1) }}
                                     </div>
-                                    <div class="text-xs text-slate-400">m/s</div>
+                                    <div class="text-[14px] text-slate-400">m/s</div>
                                 </div>
                                 <div class="text-center bg-slate-800/30 p-2 rounded">
-                                    <div class="text-xs text-cyan-400">浪高</div>
-                                    <div class="text-lg font-bold font-['Rajdhani']" :class="getRiskColor(currentDayWeather.waveHeight, 3)">
+                                    <div class="text-[14px] text-slate-400">浪高</div>
+                                    <div class="text-[22px] font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(currentDayWeather.waveHeight, 3)">
                                         {{ currentDayWeather.waveHeight.toFixed(1) }}
                                     </div>
-                                    <div class="text-xs text-slate-400">m</div>
+                                    <div class="text-[14px] text-slate-400">m</div>
                                 </div>
                                 <div class="text-center bg-slate-800/30 p-2 rounded">
-                                    <div class="text-xs text-cyan-400">洋流</div>
-                                    <div class="text-lg font-bold font-['Rajdhani'] text-purple-400">
+                                    <div class="text-[14px] text-slate-400">洋流</div>
+                                    <div class="text-[22px] font-bold font-['Rajdhani'] text-purple-300 tabular-nums">
                                         {{ getCurrentSpeed(currentDayWeather.currentSpeed, currentDayWeather.windSpeed) }}
                                     </div>
-                                    <div class="text-xs text-slate-400">m/s</div>
+                                    <div class="text-[14px] text-slate-400">m/s</div>
                                 </div>
                                 <div class="text-center bg-slate-800/30 p-2 rounded">
-                                    <div class="text-xs text-cyan-400">温度</div>
-                                    <div class="text-lg font-bold font-['Rajdhani'] text-cyan-400">
+                                    <div class="text-[14px] text-slate-400">温度</div>
+                                    <div class="text-[22px] font-bold font-['Rajdhani'] text-cyan-300 tabular-nums">
                                         {{ currentDayWeather.temperature }}
                                     </div>
-                                    <div class="text-xs text-slate-400">°C</div>
+                                    <div class="text-[14px] text-slate-400">°C</div>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- 到达后预报 -->
                         <div v-if="areaData.arrivalForecast">
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="text-xs font-bold text-green-400 flex items-center gap-1">
-                                    <div class="w-1 h-2 bg-green-400"></div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div class="text-[15px] font-bold text-green-300 flex items-center gap-1.5">
+                                    <div class="w-1.5 h-3 bg-green-400"></div>
                                     到达后预报 (7天)
                                 </div>
-                                <div class="text-xs text-green-400">
+                                <div class="text-[15px] font-semibold text-green-300">
                                     可作业: {{ areaData.arrivalStats.workableDays }}/7天
                                 </div>
                             </div>
-                            <div class="bg-slate-800/40 rounded border border-green-500/20 overflow-hidden h-[140px] relative">
+                            <div class="bg-slate-800/40 rounded border border-green-500/20 overflow-hidden h-[165px] relative">
                                 <div class="absolute top-0 left-0 right-0 bottom-0 overflow-y-auto custom-scrollbar" ref="workingTableScrollRef">
-                                    <table class="w-full text-xs table-fixed">
-                                        <thead class="text-green-400 sticky top-0 bg-slate-950/95">
+                                    <table class="w-full text-[15px] table-fixed">
+                                        <thead class="text-green-300 sticky top-0 bg-slate-950/95">
                                             <tr class="border-b border-green-500/20">
                                                 <th class="px-3 py-2 text-left w-[15%]">日期</th>
                                                 <th class="px-3 py-2 text-center w-[20%]">风速</th>
@@ -226,25 +222,25 @@
                                                 <th class="px-3 py-2 text-center w-[25%]">作业</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="text-slate-300">
+                                        <tbody class="text-slate-200">
                                             <tr v-for="(day, index) in displayedForecast" :key="index"
                                                 class="border-b border-slate-800/50 hover:bg-green-500/5 transition-colors"
                                                 :class="[
                                                     getRowRiskClass(day.risk),
                                                     index === 0 ? 'bg-green-500/20 ring-2 ring-green-400/50' : ''
                                                 ]">
-                                                <td class="px-3 py-1">{{ day.date }}</td>
-                                                <td class="px-3 py-1 text-center font-bold font-['Rajdhani']" :class="getRiskColor(day.windSpeed, 12)">
+                                                <td class="px-3 py-1.5 tabular-nums">{{ day.date }}</td>
+                                                <td class="px-3 py-1.5 text-center font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(day.windSpeed, 12)">
                                                     {{ day.windSpeed.toFixed(1) }} m/s
                                                 </td>
-                                                <td class="px-3 py-1 text-center font-bold font-['Rajdhani']" :class="getRiskColor(day.waveHeight, 3)">
+                                                <td class="px-3 py-1.5 text-center font-bold font-['Rajdhani'] tabular-nums" :class="getRiskColor(day.waveHeight, 3)">
                                                     {{ day.waveHeight.toFixed(1) }} m
                                                 </td>
-                                                <td class="px-3 py-1 text-center font-bold font-['Rajdhani'] text-purple-400">
+                                                <td class="px-3 py-1.5 text-center font-bold font-['Rajdhani'] text-purple-300 tabular-nums">
                                                     {{ getCurrentSpeed(day.currentSpeed, day.windSpeed) }} m/s
                                                 </td>
-                                                <td class="px-3 py-1 text-center">
-                                                    <span class="px-2 py-0.5 rounded text-xs font-bold"
+                                                <td class="px-3 py-1.5 text-center">
+                                                    <span class="px-2.5 py-0.5 rounded text-[14px] font-bold"
                                                         :class="day.workable ? 'bg-green-900/50 text-green-400 border border-green-500/50' : 'bg-red-900/50 text-red-400 border border-red-500/50'">
                                                         {{ day.workable ? '可作业' : '不可作业' }}
                                                     </span>

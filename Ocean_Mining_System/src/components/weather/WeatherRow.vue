@@ -115,12 +115,12 @@ export default {
 .weather-row {
     display: flex;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    height: 42px;
+    height: 52px;
 }
 
 /* 左侧标签 */
 .row-label {
-    width: 100px;
+    width: 118px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -132,20 +132,20 @@ export default {
 .label-text {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
 }
 
 .label-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    line-height: 1;
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.96);
+    line-height: 1.1;
 }
 
 .label-unit {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1;
+    font-size: 14px;
+    color: #9bbad0;
+    line-height: 1.1;
 }
 
 /* 右侧数值网格 */
@@ -161,7 +161,7 @@ export default {
 }
 
 .value-cell {
-    width: 32px;
+    width: 44px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -185,8 +185,8 @@ export default {
 }
 
 .value {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: white;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     font-family: 'Rajdhani', monospace;
@@ -196,7 +196,7 @@ export default {
     position: absolute;
     top: 2px;
     right: 2px;
-    font-size: 12px;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     transition: transform 0.3s;

@@ -3,43 +3,43 @@
         <div v-if="show && currentLayer" class="absolute bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center">
             <!-- Windy 风格时间轴面板 -->
             <div class="bg-slate-900/50 backdrop-blur-xl border border-cyan-500/20 rounded-t-xl shadow-[0_-8px_32px_rgba(0,0,0,0.6)] pointer-events-auto" style="max-width: 1400px; width: 90%;">
-                <div class="px-8 py-3">
+                <div class="px-8 py-3.5">
                     <!-- 顶部信息栏 -->
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-4">
                             <!-- 图层信息 -->
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2.5">
                                 <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                                <span class="text-sm font-medium text-white">{{ currentLayer.label }}</span>
-                                <span class="text-xs text-slate-400 px-2 py-0.5 bg-slate-800/50 rounded border border-slate-700">
+                                <span class="text-[17px] font-bold text-white">{{ currentLayer.label }}</span>
+                                <span class="text-[14px] text-slate-300 px-2.5 py-0.5 bg-slate-800/60 rounded border border-slate-700">
                                     {{ currentLayer.dataSource }}
                                 </span>
                             </div>
                             
                             <!-- 当前时间显示 -->
-                            <div class="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded border border-slate-700">
-                                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center gap-2 px-3 py-1 bg-slate-800/60 rounded border border-slate-700">
+                                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span class="text-sm font-mono text-white">{{ formatDateTime(currentTime) }}</span>
-                                <span v-if="isCurrentTime" class="text-xs text-green-400 font-medium">NOW</span>
-                                <span v-else-if="isFutureTime" class="text-xs text-orange-400 font-medium">+{{ forecastHours }}h</span>
-                                <span v-else class="text-xs text-blue-400 font-medium">{{ pastHours }}h</span>
+                                <span class="text-[16px] font-mono font-bold text-white tabular-nums">{{ formatDateTime(currentTime) }}</span>
+                                <span v-if="isCurrentTime" class="text-[14px] text-green-400 font-bold">NOW</span>
+                                <span v-else-if="isFutureTime" class="text-[14px] text-orange-400 font-bold">+{{ forecastHours }}h</span>
+                                <span v-else class="text-[14px] text-blue-400 font-bold">{{ pastHours }}h</span>
                             </div>
                         </div>
                         
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2.5">
                             <!-- 速度控制 -->
-                            <div class="flex items-center gap-1 bg-slate-800/50 rounded border border-slate-700 p-0.5">
+                            <div class="flex items-center gap-1 bg-slate-800/60 rounded border border-slate-700 p-0.5">
                                 <button 
                                     v-for="speed in [0.5, 1, 2, 4]"
                                     :key="speed"
                                     @click="playSpeed = speed"
                                     :class="[
-                                        'px-2 py-1 text-xs rounded transition-all',
+                                        'px-2.5 py-1 text-[14px] font-semibold rounded transition-all',
                                         playSpeed === speed 
                                             ? 'bg-cyan-600 text-white' 
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                            : 'text-slate-300 hover:text-white hover:bg-slate-700'
                                     ]"
                                 >
                                     {{ speed }}x
@@ -49,7 +49,7 @@
                             <!-- 关闭按钮 -->
                             <button 
                                 @click="$emit('close')" 
-                                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-all border border-slate-700"
+                                class="w-9 h-9 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-all border border-slate-700"
                                 title="关闭时间轴"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@
                         <!-- 播放控制 -->
                         <button 
                             @click="togglePlay"
-                            class="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 rounded-lg shadow-lg transition-all transform hover:scale-105"
+                            class="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 rounded-lg shadow-lg transition-all transform hover:scale-105"
                             :title="isPlaying ? '暂停' : '播放'"
                         >
                             <svg v-if="!isPlaying" class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -76,9 +76,9 @@
                         </button>
                         
                         <!-- 时间轴容器 -->
-                        <div class="flex-1 relative" style="height: 60px; padding-top: 24px; padding-bottom: 20px;">
+                        <div class="flex-1 relative" style="height: 76px; padding-top: 30px; padding-bottom: 24px;">
                             <!-- 日期标签层（在轨道上方） -->
-                            <div class="absolute left-0 right-0 top-0 h-5 pointer-events-none">
+                            <div class="absolute left-0 right-0 top-0 h-6 pointer-events-none">
                                 <div 
                                     v-for="(day, idx) in dayMarkers" 
                                     :key="`day-${idx}`"
@@ -86,15 +86,15 @@
                                     class="absolute top-0 -translate-x-1/2"
                                 >
                                     <!-- 日期标签 -->
-                                    <div class="px-2 py-0.5 bg-slate-800/90 rounded text-xs font-medium whitespace-nowrap border border-slate-700"
-                                         :class="day.isToday ? 'text-green-400 border-green-500/30' : 'text-slate-300'">
+                                    <div class="px-2.5 py-0.5 bg-slate-800/90 rounded text-[14px] font-semibold whitespace-nowrap border border-slate-700"
+                                         :class="day.isToday ? 'text-green-400 border-green-500/30' : 'text-slate-200'">
                                         {{ day.label }}
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- 轨道区域 -->
-                            <div class="absolute left-0 right-0 top-6 h-8 flex items-center">
+                            <div class="absolute left-0 right-0 top-7 h-8 flex items-center">
                                 <!-- 背景轨道 -->
                                 <div class="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                                     <!-- 历史数据区域（蓝色） -->
@@ -197,7 +197,7 @@
                             </div>
                             
                             <!-- 小时标签层（在轨道下方） -->
-                            <div class="absolute left-0 right-0 bottom-0 h-4 pointer-events-none">
+                            <div class="absolute left-0 right-0 bottom-0 h-5 pointer-events-none">
                                 <!-- 显示每6小时的时间标签 -->
                                 <template v-for="(hour, idx) in hourMarkers" :key="`hour-label-${idx}`">
                                     <div 
@@ -205,24 +205,7 @@
                                         :style="{ left: `${hour.position}%` }"
                                         class="absolute top-0 -translate-x-1/2"
                                     >
-                                        <span class="text-[10px] font-mono text-slate-500">{{ hour.label }}</span>
-                                    </div>
-                                </template>
-                                
-                                <!-- 显示每个时间步的简短标记（仅在3小时步长时） -->
-                                <template v-if="timeStepHours === 3">
-                                    <div 
-                                        v-for="(step, idx) in timeSteps" 
-                                        :key="`step-label-${idx}`"
-                                        :style="{ left: `${getIndexPosition(idx)}%` }"
-                                        class="absolute top-0 -translate-x-1/2"
-                                    >
-                                        <div 
-                                            v-if="step.getHours() % 6 !== 0 && step.getHours() !== 0"
-                                            class="text-[8px] font-mono text-slate-600/50"
-                                        >
-                                            {{ step.getHours().toString().padStart(2, '0') }}
-                                        </div>
+                                        <span class="text-[14px] font-mono text-slate-300">{{ hour.label }}</span>
                                     </div>
                                 </template>
                             </div>

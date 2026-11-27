@@ -2,10 +2,10 @@
     <transition name="slide-down">
         <div
             v-if="show"
-            class="pointer-events-none absolute bottom-6 left-8 top-36 z-40 flex w-[28rem] flex-col gap-4 font-['Noto_Sans_SC']"
+            class="pointer-events-none absolute bottom-6 left-8 top-36 z-40 flex w-[29rem] flex-col gap-4 font-['Noto_Sans_SC']"
         >
             <section
-                class="tech-panel-enhanced pointer-events-auto relative shrink-0 overflow-hidden p-6"
+                class="tech-panel-enhanced pointer-events-auto relative shrink-0 overflow-hidden p-5"
                 style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);"
             >
                 <div class="absolute left-0 top-0 h-[2px] w-full animate-pulse bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
@@ -14,14 +14,14 @@
 
                 <div class="mb-4 flex items-center border-b-2 border-cyan-500/40 pb-3">
                     <div class="mr-3 h-6 w-1.5 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
-                    <h3 class="text-2xl font-bold tracking-wider text-white">历史海况查询</h3>
+                    <h3 class="text-[26px] leading-tight font-bold tracking-wider text-white">历史海况查询</h3>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="space-y-3">
+                <div class="space-y-3.5">
+                    <div class="space-y-2.5">
                         <div class="flex items-center justify-between">
                             <div class="section-title">区域切换</div>
-                            <span class="text-xs text-slate-400">共 {{ quickAreas.length }} 个</span>
+                            <span class="text-[15px] text-slate-400 tabular-nums">共 {{ quickAreas.length }} 个</span>
                         </div>
                         <div class="grid grid-cols-4 gap-2">
                             <button
@@ -38,9 +38,8 @@
                     </div>
 
                     <div class="border-t border-dashed border-slate-700/60 pt-3">
-                        <div class="mb-3 flex items-center justify-between">
+                        <div class="mb-2.5 flex items-center justify-between">
                             <div class="section-title">数据类型</div>
-                            <span class="text-xs text-slate-400">风 · 浪 · 流</span>
                         </div>
                         <div class="grid grid-cols-3 gap-2">
                             <button
@@ -74,10 +73,10 @@
 
                 <div class="mb-3 flex shrink-0 items-center justify-between">
                     <div class="section-title">历史海况列表</div>
-                    <span class="text-xs text-slate-400">共 {{ totalRecords }} 条</span>
+                    <span class="text-[15px] text-slate-400 tabular-nums">共 {{ totalRecords }} 条</span>
                 </div>
 
-                <div class="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
+                <div class="custom-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-2">
                     <div v-if="loading" class="empty-box">正在加载历史海况数据...</div>
                     <div v-else-if="errorMessage" class="empty-box">历史海况列表暂不可用</div>
                     <div v-else-if="!records.length" class="empty-box">当前查询条件暂无历史海况记录</div>
@@ -89,12 +88,8 @@
                             :class="['event-card', isSelectedRecord(record) ? 'event-card-active' : '']"
                             @click="emit('selectRecord', record)"
                         >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="truncate text-base font-bold text-white">{{ record.monthLabel || record.key }}</div>
-                                    <div class="mt-1 truncate text-xs text-slate-400">月均再分析 · {{ getRecordAvailabilityLabel(record) }}</div>
-                                </div>
-                                <span class="impact-badge impact-outer">海况</span>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="truncate text-[18px] font-bold text-white tabular-nums">{{ record.monthLabel || record.key }}</div>
                             </div>
                             <div class="event-metric-grid">
                                 <template v-if="filters.dataType === 'wind'">
@@ -105,7 +100,7 @@
                                 <template v-else-if="filters.dataType === 'current'">
                                     <div><span>流速</span><strong>{{ formatMetric(record.currentSpeed, 2) }} m/s</strong></div>
                                     <div><span>流向</span><strong>{{ formatDirection(record.currentDirection) }}</strong></div>
-                                    <div><span>水层深度</span><strong>{{ formatMetric(record.currentDepthMeters, 2) }} m</strong></div>
+                                    <div><span>水深</span><strong>{{ formatMetric(record.currentDepthMeters, 2) }} m</strong></div>
                                 </template>
                                 <template v-else>
                                     <div><span>浪高</span><strong>{{ formatMetric(record.waveHeight, 2) }} m</strong></div>
@@ -117,11 +112,11 @@
                     </template>
                 </div>
 
-                <div v-if="totalPages > 1" class="mt-3 flex shrink-0 items-center justify-between border-t border-slate-700/70 pt-3 text-xs">
+                <div v-if="totalPages > 1" class="mt-3 flex shrink-0 items-center justify-between border-t border-slate-700/70 pt-3 text-[15px]">
                     <button class="pager-btn" type="button" :disabled="page <= 1" @click="emit('pageChange', Math.max(1, page - 1))">
                         上一页
                     </button>
-                    <span class="text-slate-300">第 {{ page }} / {{ totalPages }} 页</span>
+                    <span class="text-slate-200 font-semibold tabular-nums">第 {{ page }} / {{ totalPages }} 页</span>
                     <button class="pager-btn" type="button" :disabled="page >= totalPages" @click="emit('pageChange', Math.min(totalPages, page + 1))">
                         下一页
                     </button>
@@ -223,7 +218,7 @@ const getAreaTitle = (area) => (
 
 const getAreaShortLabel = (area) => {
     const source = getAreaTitle(area);
-    return String(source).replace(/^环境特别受关注区/, 'APEI');
+    return String(source).replace(/^环境特别受关注区/, 'APEI').replace(/\s*\(CCZ\)\s*/i, '');
 };
 
 const isSelectedArea = (area) => {
@@ -282,8 +277,8 @@ const getRecordAvailabilityLabel = (record) => {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    color: #22d3ee;
-    font-size: 1rem;
+    color: #67e8f9;
+    font-size: 17px;
     font-weight: 800;
 }
 
@@ -298,15 +293,15 @@ const getRecordAvailabilityLabel = (record) => {
 
 .query-btn {
     min-width: 0;
-    min-height: 2.45rem;
+    min-height: 2.6rem;
     overflow: hidden;
     border: 1px solid rgba(51, 65, 85, 0.72);
     border-radius: 0.125rem;
-    background: rgba(30, 41, 59, 0.5);
+    background: rgba(30, 41, 59, 0.55);
     padding: 0.35rem 0.45rem;
-    color: #94a3b8;
-    font-size: 0.95rem;
-    font-weight: 800;
+    color: #d7e6f2;
+    font-size: 16px;
+    font-weight: 700;
     text-align: center;
     transform: skewX(-10deg);
     transition: all 0.18s ease;
@@ -332,25 +327,26 @@ const getRecordAvailabilityLabel = (record) => {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.55rem;
-    border: 1px solid rgba(34, 211, 238, 0.2);
+    gap: 0.6rem;
+    border: 1px solid rgba(34, 211, 238, 0.24);
     background: rgba(15, 23, 42, 0.58);
-    padding: 0.62rem 0.7rem;
+    padding: 0.65rem 0.8rem;
 }
 
 .current-area-strip span,
 .current-area-strip em {
-    color: #94a3b8;
-    font-size: 0.72rem;
+    color: #9bbad0;
+    font-size: 14px;
     font-style: normal;
-    font-weight: 800;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 
 .current-area-strip strong {
     overflow: hidden;
     color: #ffffff;
-    font-size: 0.9rem;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -360,10 +356,10 @@ const getRecordAvailabilityLabel = (record) => {
     border: 1px solid rgba(71, 85, 105, 0.8);
     border-radius: 0.125rem;
     background: rgba(15, 23, 42, 0.68);
-    padding: 0.42rem 0.35rem;
-    color: #cbd5e1;
-    font-size: 0.78rem;
-    font-weight: 800;
+    padding: 0.5rem 0.55rem;
+    color: #d7e6f2;
+    font-size: 16px;
+    font-weight: 700;
     transition: all 0.18s ease;
 }
 
@@ -380,46 +376,47 @@ const getRecordAvailabilityLabel = (record) => {
     border: 1px solid rgba(71, 85, 105, 0.72);
     border-radius: 0.125rem;
     background: rgba(8, 15, 28, 0.68);
-    padding: 0.72rem;
+    padding: 0.8rem;
     text-align: left;
     transition: all 0.18s ease;
 }
 
 .event-card:hover,
 .event-card-active {
-    border-color: rgba(34, 211, 238, 0.48);
-    background: rgba(13, 33, 53, 0.82);
-    box-shadow: 0 0 12px rgba(34, 211, 238, 0.1);
+    border-color: rgba(34, 211, 238, 0.55);
+    background: rgba(13, 33, 53, 0.84);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.14);
 }
 
 .event-metric-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.4rem;
-    margin-top: 0.65rem;
+    gap: 0.45rem;
+    margin-top: 0.6rem;
 }
 
 .event-metric-grid div {
     min-width: 0;
     border: 1px solid rgba(51, 65, 85, 0.6);
-    background: rgba(15, 23, 42, 0.45);
-    padding: 0.4rem;
+    background: rgba(15, 23, 42, 0.48);
+    padding: 0.48rem 0.52rem;
 }
 
 .event-metric-grid span {
     display: block;
-    color: #64748b;
-    font-size: 0.68rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .event-metric-grid strong {
     display: block;
-    margin-top: 0.18rem;
+    margin-top: 0.22rem;
     overflow: hidden;
-    color: #e2e8f0;
-    font-size: 0.78rem;
-    font-weight: 900;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -427,10 +424,10 @@ const getRecordAvailabilityLabel = (record) => {
 .impact-badge {
     flex-shrink: 0;
     border: 1px solid currentColor;
-    padding: 0.12rem 0.35rem;
+    padding: 0.15rem 0.45rem;
     color: #cbd5e1;
-    font-size: 0.7rem;
-    font-weight: 900;
+    font-size: 14px;
+    font-weight: 800;
 }
 
 .impact-outer {
@@ -441,9 +438,9 @@ const getRecordAvailabilityLabel = (record) => {
 .warning-box {
     border: 1px dashed rgba(71, 85, 105, 0.72);
     padding: 1rem;
-    color: #94a3b8;
-    font-size: 0.82rem;
-    font-weight: 800;
+    color: #9bbad0;
+    font-size: 15px;
+    font-weight: 600;
     line-height: 1.55;
     text-align: center;
 }
@@ -455,7 +452,8 @@ const getRecordAvailabilityLabel = (record) => {
 }
 
 .pager-btn {
-    min-width: 4.5rem;
+    min-width: 5.2rem;
+    font-size: 15px;
 }
 
 .pager-btn:disabled {

@@ -1,23 +1,23 @@
 <template>
     <transition name="workspace-fade">
         <div v-if="show" class="pointer-events-none absolute inset-0 z-40 font-['Noto_Sans_SC']">
-            <div class="pointer-events-none absolute left-8 top-36 bottom-6 flex w-[28rem] flex-col">
+            <div class="pointer-events-none absolute left-8 top-36 bottom-6 flex w-[29rem] flex-col">
                 <section aria-label="浮标监测"
                     class="tech-panel-enhanced pointer-events-auto relative flex min-h-0 max-h-full flex-col overflow-hidden p-5">
                     <div class="corner-decoration corner-tl scale-125"></div>
                     <div class="corner-decoration corner-br scale-125"></div>
                     <header class="mb-4 flex shrink-0 items-center gap-3 border-b-2 border-cyan-500/40 pb-3">
-                        <span class="h-6 w-1.5 shrink-0 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,.8)]"></span>
-                        <h3 class="flex-1 text-2xl font-bold tracking-wider text-white">浮标监测</h3>
+                        <span class="h-7 w-1.5 shrink-0 bg-yellow-400 shadow-[0_0_15px_rgba(255,215,0,.8)]"></span>
+                        <h3 class="flex-1 text-[26px] font-bold tracking-wider text-white">浮标监测</h3>
                         <button class="floating-panel-close-btn floating-panel-close-btn--inline" type="button"
                             aria-label="关闭浮标监测" title="关闭浮标监测" @click="emit('close')">✕</button>
                     </header>
 
                     <div class="mb-3 flex shrink-0 items-center justify-between gap-3">
-                        <span class="text-sm font-bold text-cyan-200">浮标列表 <small class="ml-1 text-slate-300">{{ filteredBuoys.length }} 个</small></span>
+                        <span class="text-[16px] font-bold text-cyan-200">浮标列表 <small class="ml-1 text-[14px] font-normal text-[#9bbad0]">{{ filteredBuoys.length }} 个</small></span>
                         <div class="flex items-center gap-2">
                             <button type="button" class="buoy-button" @click="autoRefresh = !autoRefresh">
-                                {{ autoRefresh ? '暂停自动刷新' : '恢复自动刷新' }}
+                                {{ autoRefresh ? '暂停刷新' : '自动刷新' }}
                             </button>
                             <button type="button" class="buoy-button" :disabled="refreshing" @click="refreshStations()">
                                 {{ refreshing ? '刷新中' : '刷新' }}
@@ -26,33 +26,33 @@
                     </div>
                     <div class="mb-3 flex shrink-0 gap-2">
                         <input v-model="searchTerm" type="search" aria-label="搜索浮标" placeholder="搜索名称或编号"
-                            class="min-w-0 flex-1 border border-cyan-500/25 bg-slate-950/45 px-3 text-sm text-white outline-none placeholder:text-slate-400 focus:border-cyan-400" />
-                        <div class="w-28 shrink-0">
+                            class="min-w-0 flex-1 border border-cyan-500/30 bg-slate-950/50 px-3 py-2 text-[16px] text-white outline-none placeholder:text-[#9bbad0] focus:border-cyan-400" />
+                        <div class="w-32 shrink-0">
                             <PanelSelect v-model="statusFilter" label="浮标状态" :options="statusOptions" overlay :max-height="240" />
                         </div>
                     </div>
-                    <p v-if="stationError" role="status" class="mb-3 border border-rose-500/30 bg-rose-950/30 p-2 text-sm text-rose-200">
+                    <p v-if="stationError" role="status" class="mb-3 border border-rose-500/30 bg-rose-950/30 p-2.5 text-[15px] text-rose-200">
                         {{ stationError }}
                     </p>
-                    <div class="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto pr-2">
+                    <div class="custom-scrollbar min-h-0 space-y-2 overflow-y-auto pr-2">
                         <button v-for="buoy in filteredBuoys" :key="buoy.id" type="button"
-                            class="buoy-row w-full p-3 text-left"
+                            class="buoy-row w-full px-3.5 py-3 text-left"
                             :aria-pressed="selectedBuoyId === buoy.id"
                             @click="selectBuoy(buoy.id)">
                             <span class="flex items-center justify-between gap-3">
-                                <span class="min-w-0 truncate text-base font-bold text-white">{{ buoy.name }}</span>
-                                <span v-if="buoy.status" :class="['shrink-0 text-xs font-bold', statusColors[buoy.status]]">
+                                <span class="min-w-0 truncate text-[18px] font-bold text-white">{{ buoy.name }}</span>
+                                <span v-if="buoy.status" :class="['shrink-0 text-[15px] font-bold', statusColors[buoy.status]]">
                                     {{ statusNames[buoy.status] }}
                                 </span>
+                                <span v-else class="shrink-0 text-[14px] font-semibold text-cyan-200">实测</span>
                             </span>
-                            <span class="mt-1 block text-xs text-slate-300">{{ buoy.source }}</span>
                         </button>
-                        <div v-if="!filteredBuoys.length" class="p-5 text-center text-sm text-slate-400">没有符合条件的浮标</div>
+                        <div v-if="!filteredBuoys.length" class="p-5 text-center text-[16px] text-[#9bbad0]">没有符合条件的浮标</div>
                     </div>
                 </section>
             </div>
 
-            <div class="absolute right-6 top-36 bottom-6 flex w-[28rem] flex-col">
+            <div class="absolute right-6 top-36 bottom-6 flex w-[30rem] flex-col">
                 <section aria-label="浮标详情"
                     :class="['tech-panel-enhanced pointer-events-auto relative flex min-h-0 max-h-full flex-col overflow-hidden',
                         { 'flex-1': selectedIsFlux }]">
@@ -60,65 +60,65 @@
                     <div class="corner-decoration corner-br scale-125"></div>
                     <header class="shrink-0 border-b border-cyan-500/30 px-5 py-4">
                         <div class="flex items-center justify-between gap-3">
-                            <h3 class="min-w-0 truncate text-xl font-bold text-white">{{ selectedBuoy?.name || '浮标详情' }}</h3>
+                            <h3 class="min-w-0 truncate text-[22px] font-bold text-white">{{ selectedBuoy?.name || '浮标详情' }}</h3>
                             <button v-if="selectedLocation" type="button" class="buoy-button shrink-0" @click="focusSelectedBuoy">定位</button>
                         </div>
-                        <div v-if="selectedLocation" class="mt-1 text-xs text-slate-300">
-                            <span v-if="!selectedIsFlux">{{ selectedBuoy.id }} · </span>{{ coordinateLabel }}
+                        <div v-if="selectedLocation" class="mt-1.5 text-[15px] tabular-nums text-[#d7e6f2]">
+                            {{ coordinateLabel }}
                         </div>
-                        <div v-if="selectedReading" class="mt-2 flex items-center justify-between gap-2 text-xs">
+                        <div v-if="selectedReading" class="mt-2 flex items-center justify-between gap-2 text-[15px]">
                             <span :class="['font-bold', riskStyles[selectedBuoy.risk].text]">{{ riskStyles[selectedBuoy.risk].label }}</span>
-                            <span class="text-slate-300">更新 {{ formatTime(selectedReading.timestamp) }}</span>
+                            <span class="tabular-nums text-[#9bbad0]">更新 {{ formatTime(selectedReading.timestamp) }}</span>
                         </div>
                     </header>
                     <BuoyObservationWorkspace v-if="selectedIsFlux" @select-metric="selectObservationMetric" />
-                    <div v-else-if="selectedReading" class="custom-scrollbar min-h-0 space-y-2 overflow-y-auto p-4">
+                    <div v-else-if="selectedReading" class="custom-scrollbar min-h-0 space-y-2.5 overflow-y-auto p-4">
                         <article v-for="item in readingCards" :key="item.key"
-                            :class="['border px-3 py-2.5', riskStyles[item.risk].panel]">
+                            :class="['border px-3.5 py-3', riskStyles[item.risk].panel]">
                             <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm font-bold text-cyan-100">{{ item.label }}</span>
-                                <strong :class="['text-xl tabular-nums', item.risk === 'normal' ? 'text-white' : riskStyles[item.risk].text]">
-                                    {{ item.value }} <small class="text-xs text-slate-300">{{ item.unit }}</small>
+                                <span class="text-[16px] font-bold text-cyan-100">{{ item.label }}</span>
+                                <strong :class="['text-[24px] font-extrabold tabular-nums', item.risk === 'normal' ? 'text-white' : riskStyles[item.risk].text]">
+                                    {{ item.value }} <small class="text-[14px] font-normal text-[#9bbad0]">{{ item.unit }}</small>
                                 </strong>
                             </div>
-                            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-3 text-xs text-slate-300">
-                                <span>{{ item.directionLabel }} {{ item.direction }}<template v-if="item.period"> · 周期 {{ item.period }}</template></span>
-                                <span v-if="item.risk !== 'normal' && item.risk !== 'unknown'" :class="riskStyles[item.risk].text">
+                            <div class="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 text-[14px] text-[#9bbad0]">
+                                <span>{{ item.directionLabel }} <strong class="text-[#e2eff7]">{{ item.direction }}</strong><template v-if="item.period"> · 周期 <strong class="text-[#e2eff7]">{{ item.period }}</strong></template></span>
+                                <span v-if="item.risk !== 'normal' && item.risk !== 'unknown'" :class="['font-bold', riskStyles[item.risk].text]">
                                     {{ riskStyles[item.risk].label }}
                                 </span>
                             </div>
                         </article>
                     </div>
-                    <div v-else class="p-6 text-center text-sm text-slate-400">
+                    <div v-else class="p-6 text-center text-[16px] text-[#9bbad0]">
                         {{ selectedBuoy ? '暂无实时数据' : '请选择浮标' }}
                     </div>
                 </section>
             </div>
 
-            <div class="absolute bottom-6 left-[32rem] right-[31rem] h-[19rem]">
+            <div class="absolute bottom-6 left-[31.5rem] right-[32rem] h-[20rem]">
                 <section aria-label="浮标趋势"
                     class="tech-panel-enhanced pointer-events-auto relative flex h-full flex-col overflow-hidden p-4">
                     <div class="corner-decoration corner-tl"></div>
                     <div class="corner-decoration corner-br"></div>
-                    <header class="mb-2 flex shrink-0 items-center justify-between gap-3 border-b border-cyan-500/30 pb-2">
-                        <h3 class="shrink-0 text-lg font-bold text-white">浮标趋势</h3>
-                        <span v-if="lastObservation" class="ml-auto whitespace-nowrap text-xs tabular-nums text-slate-300">
-                            末次观测 <strong class="text-cyan-100">{{ formatMetric(lastObservation.value, 2) }} {{ trendMetric.unit }}</strong>
+                    <header class="mb-2 flex shrink-0 items-center justify-between gap-3 border-b border-cyan-500/30 pb-2.5">
+                        <h3 class="shrink-0 text-[20px] font-bold text-white">浮标趋势</h3>
+                        <span v-if="lastObservation" class="ml-auto whitespace-nowrap text-[15px] tabular-nums text-[#9bbad0]">
+                            末次观测 <strong class="ml-1 text-[20px] font-extrabold text-white">{{ formatMetric(lastObservation.value, 2) }} {{ trendMetric.unit }}</strong>
                         </span>
                         <div v-if="selectedIsFlux" class="flex shrink-0 items-center gap-2">
-                            <div class="w-36">
+                            <div class="w-40">
                                 <PanelSelect v-model="observationDay" label="观测日期" :options="observationDates" overlay :max-height="240" />
                             </div>
-                            <div class="w-44">
+                            <div class="w-48">
                                 <PanelSelect v-model="observationMetricKey" label="观测指标" :options="observationMetrics" overlay :max-height="240" />
                             </div>
                         </div>
                         <div v-else-if="selectedBuoy" class="flex shrink-0 items-center gap-2">
-                            <nav aria-label="趋势时段" class="flex gap-1">
+                            <nav aria-label="趋势时段" class="flex gap-1.5">
                                 <button v-for="option in ranges" :key="option.value" type="button" class="buoy-button"
                                     :aria-pressed="range === option.value" @click="range = option.value">{{ option.label }}</button>
                             </nav>
-                            <div class="w-28">
+                            <div class="w-32">
                                 <PanelSelect v-model="stationMetricKey" label="趋势指标" :options="stationMetricOptions" overlay :max-height="240" />
                             </div>
                         </div>
@@ -152,6 +152,7 @@ import { fetchBuoyHistory, fetchBuoyRealtime, fetchBuoys } from '../../api/forec
 import { monitoringRequest } from '../../api/monitoring.js';
 import { lastValidObservation, validObservationValue } from '../../utils/buoyObservationData.js';
 import { darkChartTooltip } from '../../utils/chartTooltip.js';
+import { chartAxisLabel, chartAxisName } from '../../utils/chartTypography.js';
 
 const props = defineProps({ show: Boolean, getViewer: { type: Function, default: () => null } });
 const emit = defineEmits(['close']);
@@ -508,25 +509,26 @@ function renderChart() {
         backgroundColor: 'transparent',
         tooltip: {
             ...darkChartTooltip,
+            textStyle: { ...(darkChartTooltip.textStyle || {}), fontSize: 15 },
             valueFormatter: value => value == null ? '—' : [formatMetric(value, 2), unit].filter(Boolean).join(' ')
         },
-        grid: { left: 52, right: 24, top: 27, bottom: 34 },
+        grid: { left: 60, right: 26, top: 34, bottom: 38 },
         xAxis: {
             type: 'category',
             boundaryGap: false,
             data: series.map(point => point.time),
-            axisLabel: {
-                color: '#cbd5e1', hideOverlap: true,
-                formatter: value => selectedIsFlux.value ? value.slice(11, 19) : value.replace(/^\d{4}\//, '').slice(0, -3)
-            },
-            axisLine: { lineStyle: { color: '#475569' } }
+            axisLabel: chartAxisLabel({
+                hideOverlap: true,
+                formatter: value => selectedIsFlux.value ? value.slice(11, 16) : value.replace(/^\d{4}\//, '').slice(0, -3)
+            }),
+            axisLine: { lineStyle: { color: '#64829c' } }
         },
         yAxis: {
             type: 'value',
             name: unit,
-            nameTextStyle: { color: '#cbd5e1' },
-            axisLabel: { color: '#cbd5e1' },
-            splitLine: { lineStyle: { color: '#334155' } }
+            nameTextStyle: chartAxisName(),
+            axisLabel: chartAxisLabel(),
+            splitLine: { lineStyle: { color: 'rgba(148, 179, 204, 0.24)' } }
         },
         dataZoom: selectedIsFlux.value ? [{ type: 'inside' }] : [],
         series: [{
@@ -667,11 +669,11 @@ defineExpose({ selectBuoy, focusBuoyRegion });
     outline-offset: 1px;
 }
 .buoy-button {
-    border: 1px solid rgba(34, 211, 238, .36);
-    background: rgba(8, 47, 73, .38);
-    padding: 5px 9px;
-    color: #e0f2fe;
-    font-size: 13px;
+    border: 1px solid rgba(34, 211, 238, .4);
+    background: rgba(8, 47, 73, .42);
+    padding: 6px 11px;
+    color: #ffffff;
+    font-size: 15px;
     font-weight: 700;
     white-space: nowrap;
 }

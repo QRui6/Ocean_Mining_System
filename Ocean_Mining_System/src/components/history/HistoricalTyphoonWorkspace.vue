@@ -2,7 +2,7 @@
     <transition name="workspace-fade">
         <div
             v-if="show"
-            class="absolute right-6 top-36 bottom-6 z-40 w-[27rem] pointer-events-none font-['Noto_Sans_SC']"
+            class="absolute right-6 top-36 bottom-6 z-40 w-[30rem] pointer-events-none font-['Noto_Sans_SC']"
         >
             <div
                 class="tech-panel-enhanced relative flex h-full min-h-0 flex-col overflow-hidden pointer-events-auto group"
@@ -19,12 +19,12 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
                             <div>
-                                <div class="text-[22px] font-bold tracking-wide text-white">历史台风窗口</div>
+                                <div class="text-[24px] leading-tight font-bold tracking-wide text-white">历史台风窗口</div>
                             </div>
                         </div>
-                        <div class="ml-auto text-right text-[15px] text-slate-200">
-                            <div>{{ selectedAreaTitle }}</div>
-                            <div class="mt-1 text-slate-300">年份 {{ selectedYearRange }}</div>
+                        <div class="ml-auto mr-2 text-right text-[15px] text-slate-200">
+                            <div class="font-bold text-white">{{ selectedAreaTitle }}</div>
+                            <div class="mt-0.5 text-[14px] text-slate-400 tabular-nums">{{ selectedYearRange }}</div>
                         </div>
                         <button
                             class="floating-panel-close-btn floating-panel-close-btn--inline"
@@ -40,7 +40,7 @@
                     <div v-if="loadingWindow" class="flex h-[calc(100%-4rem)] items-center justify-center text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
-                            <span class="text-base">正在加载历史台风统计...</span>
+                            <span class="text-[16px]">正在加载历史台风统计...</span>
                         </div>
                     </div>
 
@@ -77,12 +77,12 @@
                         <div class="flex items-center gap-3">
                             <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
                             <div>
-                                <div class="text-[22px] font-bold tracking-wide text-white">当前台风过程</div>
+                                <div class="text-[24px] leading-tight font-bold tracking-wide text-white">当前台风过程</div>
                             </div>
                         </div>
                         <div class="text-right text-[15px] text-slate-200">
-                            <div>{{ selectedEvent?.name || '未选择台风' }}</div>
-                            <div class="mt-1 text-slate-300">{{ selectedEvent?.sid || '--' }}</div>
+                            <div class="font-bold text-white">{{ selectedEvent?.name || '未选择台风' }}</div>
+                            <div class="mt-0.5 text-[14px] text-slate-400 tabular-nums">{{ selectedEvent?.sid || '--' }}</div>
                         </div>
                     </div>
 
@@ -92,8 +92,8 @@
 
                     <div v-else-if="!selectedEvent" class="flex h-[calc(100%-4rem)] items-center justify-center px-8 text-center">
                         <div>
-                            <div class="text-xl font-bold text-slate-100">未选择台风</div>
-                            <div class="mt-2 text-base text-slate-300">点击左侧历史台风列表后显示过程图</div>
+                            <div class="text-[20px] font-bold text-slate-100">未选择台风</div>
+                            <div class="mt-2 text-[16px] text-slate-300">点击左侧历史台风列表后显示过程图</div>
                         </div>
                     </div>
 
@@ -101,7 +101,7 @@
                         <div v-if="loadingTrack" class="loading-box h-full">正在加载台风轨迹...</div>
                         <div v-else-if="!selectedTrack?.points?.length" class="empty-box h-full">当前台风暂无轨迹数据</div>
                         <div v-else class="flex h-full flex-col gap-3">
-                            <div class="grid grid-cols-3 gap-3">
+                            <div class="grid grid-cols-3 gap-2.5">
                                 <div
                                     v-for="item in trackSummaryCards"
                                     :key="item.label"
@@ -123,6 +123,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import * as echarts from 'echarts';
+import {
+    CHART_FONT_FAMILY,
+    CHART_COLORS,
+    chartAxisLabel,
+    chartAxisName,
+    chartLegendText,
+    chartTooltipStyle
+} from '../../utils/chartTypography.js';
 
 const emit = defineEmits(['close']);
 
@@ -344,15 +352,11 @@ const renderWindowChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
+        tooltip: chartTooltipStyle({
             trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#22d3ee',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 },
             formatter: (params) => {
                 const item = monthCounts[params?.[0]?.dataIndex];
                 if (!item) return '';
@@ -363,25 +367,31 @@ const renderWindowChart = async () => {
 
                 return `${item.label}<br/>历史影响：${item.count} 次${windowText}`;
             }
-        },
+        }),
         grid: {
-            top: 24,
-            left: 44,
-            right: 22,
+            top: 28,
+            left: 46,
+            right: 34,
             bottom: 34
         },
         xAxis: {
             type: 'category',
+            name: '月',
+            nameGap: 6,
+            nameTextStyle: chartAxisName(),
             data: monthCounts.map((item) => item.label),
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 11 }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel({
+                interval: 0,
+                formatter: (value) => String(value).replace(/月$/, '')
+            })
         },
         yAxis: {
             type: 'value',
             minInterval: 1,
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 11 },
-            splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel(),
+            splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
         },
         graphic: props.windowStats?.hasData ? [] : createEmptyGraphic('暂无历史台风窗口统计'),
         series: [
@@ -399,9 +409,10 @@ const renderWindowChart = async () => {
                 label: {
                     show: true,
                     position: 'top',
-                    color: '#f8fafc',
-                    fontSize: 11,
-                    fontWeight: 800,
+                    color: '#ffffff',
+                    fontFamily: CHART_FONT_FAMILY,
+                    fontSize: 14,
+                    fontWeight: 700,
                     formatter: ({ value }) => (Number(value) > 0 ? value : '')
                 }
             }
@@ -460,8 +471,14 @@ const renderTrackChart = async () => {
                 markLine: {
                     silent: true,
                     symbol: 'none',
-                    lineStyle: { color: 'rgba(248, 113, 113, 0.72)', type: 'dashed', width: 1 },
-                    label: { color: '#fecaca', formatter: `${props.filters?.bufferKm ?? '--'}km` },
+                    lineStyle: { color: 'rgba(248, 113, 113, 0.72)', type: 'dashed', width: 1.5 },
+                    label: {
+                        color: '#fecaca',
+                        fontFamily: CHART_FONT_FAMILY,
+                        fontSize: 14,
+                        fontWeight: 700,
+                        formatter: `${props.filters?.bufferKm ?? '--'}km`
+                    },
                     data: [{ yAxis: Number(props.filters?.bufferKm) || 0 }]
                 },
                 markArea: {
@@ -484,50 +501,42 @@ const renderTrackChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#38bdf8',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 }
-        },
+        tooltip: chartTooltipStyle({ trigger: 'axis' }),
         legend: {
             top: 0,
-            textStyle: { color: '#dbe7f7', fontSize: 12 },
+            textStyle: chartLegendText(),
             data: hasDistanceSeries.value ? ['风速', '距离区域'] : ['风速']
         },
         grid: {
-            top: 42,
-            left: 44,
-            right: hasDistanceSeries.value ? 44 : 22,
-            bottom: 46
+            top: 48,
+            left: 50,
+            right: hasDistanceSeries.value ? 52 : 24,
+            bottom: 44
         },
         xAxis: {
             type: 'category',
             data: timeLabels,
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: {
-                color: '#f8fafc',
-                fontSize: 11,
-                hideOverlap: true
-            }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel({ hideOverlap: true })
         },
         yAxis: [
             {
                 type: 'value',
                 name: '风速 kt',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
-                splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
+                nameTextStyle: chartAxisName(),
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
+                splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
             },
             ...(hasDistanceSeries.value ? [{
                 type: 'value',
                 name: '距离 km',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
+                nameTextStyle: chartAxisName(),
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
                 splitLine: { show: false }
             }] : [])
         ],
@@ -655,8 +664,8 @@ onBeforeUnmount(() => {
 }
 
 .metric-label {
-    font-size: 13px;
-    color: #aebed2;
+    font-size: 14px;
+    color: #9bbad0;
 }
 
 .metric-value {
@@ -669,8 +678,8 @@ onBeforeUnmount(() => {
 
 .metric-unit {
     margin-top: 6px;
-    font-size: 12px;
-    color: #64748b;
+    font-size: 14px;
+    color: #9bbad0;
 }
 
 .window-summary-grid {
@@ -684,17 +693,17 @@ onBeforeUnmount(() => {
     border: 1px solid rgba(71, 85, 105, 0.78);
     border-radius: 4px;
     background: rgba(15, 23, 42, 0.68);
-    padding: 8px 9px;
+    padding: 9px 10px;
 }
 
 .window-summary-card span,
 .window-summary-card em {
     display: block;
     overflow: hidden;
-    color: #94a3b8;
-    font-size: 11px;
+    color: #9bbad0;
+    font-size: 14px;
     font-style: normal;
-    font-weight: 700;
+    font-weight: 500;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -704,8 +713,9 @@ onBeforeUnmount(() => {
     overflow: hidden;
     margin: 4px 0 3px;
     color: #ffffff;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -714,22 +724,22 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    color: #cbd5e1;
-    font-size: 12px;
-    font-weight: 700;
+    gap: 20px;
+    color: #d7e6f2;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .window-legend span {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
 }
 
 .window-color {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
 }
 
 .window-color-active {
@@ -764,7 +774,7 @@ onBeforeUnmount(() => {
     background: rgba(71, 52, 12, 0.36);
     padding: 14px;
     color: #fde68a;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 1.7;
     text-align: center;
 }
@@ -772,47 +782,50 @@ onBeforeUnmount(() => {
 .loading-box,
 .empty-box {
     text-align: center;
-    color: #94a3b8;
+    color: #9bbad0;
     font-size: 16px;
 }
 
 .detail-title {
-    color: #94a3b8;
-    font-size: 13px;
+    color: #9bbad0;
+    font-size: 14px;
 }
 
 .detail-name {
     margin-top: 4px;
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 700;
-    color: #f8fafc;
+    color: #ffffff;
 }
 
 .detail-meta {
     margin-top: 5px;
     color: #67e8f9;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .info-card {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 11px 12px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 9px 10px;
 }
 
 .info-label {
-    color: rgba(147, 197, 253, 0.9);
+    color: #9bbad0;
     font-size: 14px;
+    font-weight: 500;
 }
 
 .info-value {
-    max-width: 58%;
-    color: #f8fafc;
-    font-size: 14px;
-    font-weight: 700;
-    text-align: right;
-    word-break: break-word;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

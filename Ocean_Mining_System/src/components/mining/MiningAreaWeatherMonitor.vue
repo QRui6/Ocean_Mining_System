@@ -12,92 +12,92 @@
             </div>
 
             <!-- 标题 -->
-            <div class="flex items-center mb-6 border-b-2 border-orange-500/30 pb-3">
+            <div class="flex items-center mb-5 border-b-2 border-orange-500/30 pb-3">
                 <div class="w-1.5 h-6 bg-orange-400 mr-3 shadow-[0_0_10px_#fb923c]"></div>
-                <h3 class="text-2xl font-bold text-white tracking-wider flex-1">矿区气象监测</h3>
+                <h3 class="text-[26px] leading-tight font-bold text-white tracking-wider flex-1">矿区气象监测</h3>
                 <button class="floating-panel-close-btn floating-panel-close-btn--inline" type="button" title="关闭" aria-label="关闭矿区气象监测" @click="$emit('close')">✕</button>
             </div>
 
             <!-- 阈值设置 -->
-            <div class="mb-6 bg-slate-900/50 border border-orange-500/30 rounded-sm p-4">
-                <div class="text-orange-400 font-bold mb-3 flex items-center">
+            <div class="mb-5 bg-slate-900/50 border border-orange-500/30 rounded-sm p-4">
+                <div class="text-[17px] text-orange-300 font-bold mb-3 flex items-center">
                     <span class="mr-2">⚙️</span>
                     预警阈值设置
                 </div>
                 <div class="grid grid-cols-3 gap-3">
                     <div>
-                        <label class="text-xs text-slate-400 mb-1 block">风速(m/s)</label>
+                        <label class="text-[14px] text-slate-400 mb-1 block">风速(m/s)</label>
                         <input v-model.number="thresholds.windSpeed" type="number"
-                            class="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-sm" />
+                            class="w-full px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-[16px] font-bold" />
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 mb-1 block">浪高(m)</label>
+                        <label class="text-[14px] text-slate-400 mb-1 block">浪高(m)</label>
                         <input v-model.number="thresholds.waveHeight" type="number"
-                            class="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-sm" />
+                            class="w-full px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-[16px] font-bold" />
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 mb-1 block">洋流(m/s)</label>
+                        <label class="text-[14px] text-slate-400 mb-1 block">洋流(m/s)</label>
                         <input v-model.number="thresholds.currentSpeed" type="number" step="0.1"
-                            class="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-sm" />
+                            class="w-full px-2.5 py-2 bg-slate-800/50 border border-slate-700 text-white rounded-sm focus:outline-none focus:border-orange-500 transition-colors text-[16px] font-bold" />
                     </div>
                 </div>
             </div>
 
             <!-- 监测的矿区列表 -->
             <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div class="text-orange-400 text-sm font-bold flex items-center mb-3">
+                <div class="text-orange-300 text-[16px] font-bold flex items-center mb-3">
                     <div class="w-1.5 h-1.5 bg-orange-400 rounded-full mr-2.5"></div>
                     监测矿区 ({{ monitoredAreas.length }})
                 </div>
 
-                <div v-if="monitoredAreas.length === 0" class="text-center py-8 text-slate-500">
+                <div v-if="monitoredAreas.length === 0" class="text-center py-8 text-slate-400">
                     <div class="text-4xl mb-2">📍</div>
-                    <div class="text-sm">暂无监测矿区</div>
-                    <div class="text-xs mt-1">请在地图上点击矿区添加监测</div>
+                    <div class="text-[16px]">暂无监测矿区</div>
+                    <div class="text-[14px] mt-1">请在地图上点击矿区添加监测</div>
                 </div>
 
                 <div v-for="area in monitoredAreas" :key="area.id"
                     class="bg-slate-800/40 border border-slate-700 rounded-sm p-4 space-y-3 hover:border-orange-500/50 transition-all">
                     <!-- 矿区名称和状态 -->
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="text-white font-bold text-base">{{ area.name }}</div>
-                            <div class="text-xs text-slate-400 mt-1">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-white font-bold text-[18px] truncate">{{ area.name }}</div>
+                            <div class="text-[14px] text-slate-400 mt-1 truncate">
                                 {{ area.contractor }} · {{ area.mineral }}
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 shrink-0">
                             <span v-if="area.warningCount > 0"
-                                class="text-xs px-2 py-1 bg-red-900/50 text-red-400 border border-red-500/50 rounded-sm animate-pulse">
+                                class="text-[14px] font-bold px-2.5 py-1 bg-red-900/50 text-red-300 border border-red-500/50 rounded-sm animate-pulse">
                                 ⚠️ {{ area.warningCount }} 个预警
                             </span>
                             <span v-else
-                                class="text-xs px-2 py-1 bg-green-900/50 text-green-400 border border-green-500/50 rounded-sm">
+                                class="text-[14px] font-bold px-2.5 py-1 bg-green-900/50 text-green-300 border border-green-500/50 rounded-sm">
                                 ✓ 正常
                             </span>
                         </div>
                     </div>
 
                     <!-- 最新气象数据 -->
-                    <div v-if="area.latestWeather" class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-700/50">
+                    <div v-if="area.latestWeather" class="grid grid-cols-3 gap-2 pt-2.5 border-t border-slate-700/50">
                         <div class="text-center">
-                            <div class="text-xs text-slate-500">风速</div>
-                            <div class="text-sm font-bold mt-1"
-                                :class="area.latestWeather.windSpeed > thresholds.windSpeed ? 'text-red-400' : 'text-cyan-400'">
+                            <div class="text-[14px] text-slate-400">风速</div>
+                            <div class="text-[17px] font-bold mt-1 tabular-nums"
+                                :class="area.latestWeather.windSpeed > thresholds.windSpeed ? 'text-red-400' : 'text-cyan-300'">
                                 {{ area.latestWeather.windSpeed.toFixed(1) }} m/s
                             </div>
                         </div>
                         <div class="text-center">
-                            <div class="text-xs text-slate-500">浪高</div>
-                            <div class="text-sm font-bold mt-1"
-                                :class="area.latestWeather.waveHeight > thresholds.waveHeight ? 'text-red-400' : 'text-cyan-400'">
+                            <div class="text-[14px] text-slate-400">浪高</div>
+                            <div class="text-[17px] font-bold mt-1 tabular-nums"
+                                :class="area.latestWeather.waveHeight > thresholds.waveHeight ? 'text-red-400' : 'text-cyan-300'">
                                 {{ area.latestWeather.waveHeight.toFixed(1) }} m
                             </div>
                         </div>
                         <div class="text-center">
-                            <div class="text-xs text-slate-500">洋流</div>
-                            <div class="text-sm font-bold mt-1"
-                                :class="area.latestWeather.currentSpeed > thresholds.currentSpeed ? 'text-red-400' : 'text-cyan-400'">
+                            <div class="text-[14px] text-slate-400">洋流</div>
+                            <div class="text-[17px] font-bold mt-1 tabular-nums"
+                                :class="area.latestWeather.currentSpeed > thresholds.currentSpeed ? 'text-red-400' : 'text-cyan-300'">
                                 {{ area.latestWeather.currentSpeed.toFixed(2) }} m/s
                             </div>
                         </div>
@@ -106,15 +106,15 @@
                     <!-- 操作按钮 -->
                     <div class="flex gap-2 pt-2">
                         <button @click="showWeatherDetail(area)"
-                            class="flex-1 px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-sm transition-all text-xs shadow-lg hover:shadow-cyan-500/50">
-                            气象监测
+                            class="flex-1 px-3 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-500 hover:to-cyan-600 text-white font-bold rounded-sm transition-all text-[15px] shadow-lg hover:shadow-cyan-500/50">
+                            气象详情
                         </button>
                         <button @click="locateArea(area)"
-                            class="flex-1 px-3 py-1.5 bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 font-bold rounded-sm transition-all text-xs">
+                            class="flex-1 px-3 py-2 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60 font-bold rounded-sm transition-all text-[15px]">
                             定位
                         </button>
                         <button @click="removeArea(area.id)"
-                            class="px-3 py-1.5 bg-slate-800/50 text-red-400 hover:bg-red-900/30 font-bold rounded-sm transition-all text-xs">
+                            class="px-3.5 py-2 bg-slate-800/60 text-red-400 hover:bg-red-900/30 font-bold rounded-sm transition-all text-[15px]">
                             移除
                         </button>
                     </div>
@@ -128,30 +128,30 @@
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto"
                 @click.self="closeDetailDialog">
                 <div
-                    class="w-[50rem] max-h-[80vh] bg-slate-900/95 border-2 border-cyan-500/50 rounded-lg shadow-2xl overflow-hidden">
+                    class="w-[54rem] max-h-[82vh] bg-slate-900/95 border-2 border-cyan-500/50 rounded-lg shadow-2xl overflow-hidden">
                     <!-- 标题栏 -->
                     <div
                         class="flex items-center justify-between bg-gradient-to-r from-cyan-900/60 to-transparent px-6 py-4 border-b border-cyan-500/30">
                         <div class="flex items-center gap-3">
                             <div class="w-2 h-2 bg-cyan-400 rotate-45 shadow-[0_0_6px_#22d3ee]"></div>
-                            <h3 class="text-xl font-bold text-white">{{ selectedAreaDetail.name }} - 气象详情</h3>
+                            <h3 class="text-[24px] font-bold text-white">{{ selectedAreaDetail.name }} - 气象详情</h3>
                         </div>
                         <button @click="closeDetailDialog"
-                            class="w-8 h-8 flex items-center justify-center border border-cyan-500/50 rounded-sm hover:bg-cyan-500 hover:text-black transition-colors">
+                            class="w-9 h-9 flex items-center justify-center border border-cyan-500/50 rounded-sm text-[18px] hover:bg-cyan-500 hover:text-black transition-colors">
                             ✕
                         </button>
                     </div>
 
                     <!-- 内容区域 -->
-                    <div class="p-6 overflow-y-auto max-h-[calc(80vh-80px)] custom-scrollbar">
+                    <div class="p-6 overflow-y-auto max-h-[calc(82vh-80px)] custom-scrollbar">
                         <!-- 矿区基本信息 -->
                         <div v-if="weatherDetailData && weatherDetailData.miningArea"
                             class="mb-6 bg-slate-800/40 border border-slate-700 rounded-sm p-4">
-                            <div class="text-cyan-400 font-bold mb-3 flex items-center">
+                            <div class="text-[17px] text-cyan-300 font-bold mb-3 flex items-center">
                                 <span class="mr-2">📍</span>
                                 矿区信息
                             </div>
-                            <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div class="grid grid-cols-2 gap-3 text-[16px]">
                                 <div class="flex justify-between">
                                     <span class="text-slate-400">承包者：</span>
                                     <span class="text-white font-bold">{{ weatherDetailData.miningArea.contractor
@@ -174,14 +174,14 @@
                             <div
                                 class="inline-block w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin">
                             </div>
-                            <div class="text-slate-400 mt-4">正在加载气象数据...</div>
+                            <div class="text-[16px] text-slate-300 mt-4">正在加载气象数据...</div>
                         </div>
 
                         <!-- 气象统计数据 -->
                         <div v-else-if="weatherDetailData && weatherDetailData.statistics" class="space-y-6">
                             <!-- 实时统计卡片 -->
                             <div class="bg-slate-800/40 border border-slate-700 rounded-sm p-4">
-                                <div class="text-cyan-400 font-bold mb-4 flex items-center">
+                                <div class="text-[17px] text-cyan-300 font-bold mb-4 flex items-center">
                                     <span class="mr-2">🌊</span>
                                     实时气象统计
                                 </div>
@@ -190,39 +190,39 @@
                                     <!-- 风速统计 -->
                                     <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
                                         <div class="text-center mb-3">
-                                            <div class="text-xs text-slate-500 mb-1">风速</div>
-                                            <div class="text-3xl font-bold"
+                                            <div class="text-[14px] text-slate-400 mb-1">风速</div>
+                                            <div class="text-4xl font-bold tabular-nums"
                                                 :class="getStatusColor(weatherDetailData.statistics.windSpeed.current, weatherDetailData.statistics.windSpeed.threshold)">
                                                 {{ weatherDetailData.statistics.windSpeed.current.toFixed(1) }}
                                             </div>
-                                            <div class="text-xs text-slate-500 mt-1">m/s</div>
+                                            <div class="text-[14px] text-slate-400 mt-1">m/s</div>
                                         </div>
-                                        <div class="space-y-1 text-xs">
+                                        <div class="space-y-1.5 text-[14px]">
                                             <div class="flex justify-between text-slate-400">
                                                 <span>平均:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.windSpeed.avg.toFixed(1) }} m/s</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最大:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.windSpeed.max.toFixed(1) }} m/s</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最小:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.windSpeed.min.toFixed(1) }} m/s</span>
                                             </div>
                                             <div
                                                 class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
                                                 <span>阈值:</span>
-                                                <span class="text-orange-400">{{
+                                                <span class="text-orange-300 font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.windSpeed.threshold.toFixed(1) }}
                                                     m/s</span>
                                             </div>
                                         </div>
                                         <div class="mt-3 text-center">
-                                            <span class="text-xs px-2 py-1 rounded-sm"
+                                            <span class="text-[14px] font-semibold px-2.5 py-1 rounded-sm"
                                                 :class="getStatusBadge(weatherDetailData.statistics.windSpeed.current, weatherDetailData.statistics.windSpeed.threshold)">
                                                 {{ getStatusText(weatherDetailData.statistics.windSpeed.current,
                                                 weatherDetailData.statistics.windSpeed.threshold) }}
@@ -233,39 +233,39 @@
                                     <!-- 浪高统计 -->
                                     <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
                                         <div class="text-center mb-3">
-                                            <div class="text-xs text-slate-500 mb-1">浪高</div>
-                                            <div class="text-3xl font-bold"
+                                            <div class="text-[14px] text-slate-400 mb-1">浪高</div>
+                                            <div class="text-4xl font-bold tabular-nums"
                                                 :class="getStatusColor(weatherDetailData.statistics.waveHeight.current, weatherDetailData.statistics.waveHeight.threshold)">
                                                 {{ weatherDetailData.statistics.waveHeight.current.toFixed(1) }}
                                             </div>
-                                            <div class="text-xs text-slate-500 mt-1">m</div>
+                                            <div class="text-[14px] text-slate-400 mt-1">m</div>
                                         </div>
-                                        <div class="space-y-1 text-xs">
+                                        <div class="space-y-1.5 text-[14px]">
                                             <div class="flex justify-between text-slate-400">
                                                 <span>平均:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.waveHeight.avg.toFixed(1) }} m</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最大:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.waveHeight.max.toFixed(1) }} m</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最小:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.waveHeight.min.toFixed(1) }} m</span>
                                             </div>
                                             <div
                                                 class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
                                                 <span>阈值:</span>
-                                                <span class="text-orange-400">{{
+                                                <span class="text-orange-300 font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.waveHeight.threshold.toFixed(1) }}
                                                     m</span>
                                             </div>
                                         </div>
                                         <div class="mt-3 text-center">
-                                            <span class="text-xs px-2 py-1 rounded-sm"
+                                            <span class="text-[14px] font-semibold px-2.5 py-1 rounded-sm"
                                                 :class="getStatusBadge(weatherDetailData.statistics.waveHeight.current, weatherDetailData.statistics.waveHeight.threshold)">
                                                 {{ getStatusText(weatherDetailData.statistics.waveHeight.current,
                                                 weatherDetailData.statistics.waveHeight.threshold) }}
@@ -276,42 +276,42 @@
                                     <!-- 洋流统计 -->
                                     <div class="bg-slate-900/50 rounded-sm p-4 border border-slate-700">
                                         <div class="text-center mb-3">
-                                            <div class="text-xs text-slate-500 mb-1">洋流</div>
-                                            <div class="text-3xl font-bold"
+                                            <div class="text-[14px] text-slate-400 mb-1">洋流</div>
+                                            <div class="text-4xl font-bold tabular-nums"
                                                 :class="getStatusColor(weatherDetailData.statistics.currentSpeed.current, weatherDetailData.statistics.currentSpeed.threshold)">
                                                 {{ weatherDetailData.statistics.currentSpeed.current.toFixed(2) }}
                                             </div>
-                                            <div class="text-xs text-slate-500 mt-1">m/s</div>
+                                            <div class="text-[14px] text-slate-400 mt-1">m/s</div>
                                         </div>
-                                        <div class="space-y-1 text-xs">
+                                        <div class="space-y-1.5 text-[14px]">
                                             <div class="flex justify-between text-slate-400">
                                                 <span>平均:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.currentSpeed.avg.toFixed(2) }}
                                                     m/s</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最大:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.currentSpeed.max.toFixed(2) }}
                                                     m/s</span>
                                             </div>
                                             <div class="flex justify-between text-slate-400">
                                                 <span>最小:</span>
-                                                <span class="text-white">{{
+                                                <span class="text-white font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.currentSpeed.min.toFixed(2) }}
                                                     m/s</span>
                                             </div>
                                             <div
                                                 class="flex justify-between text-slate-400 pt-2 border-t border-slate-700">
                                                 <span>阈值:</span>
-                                                <span class="text-orange-400">{{
+                                                <span class="text-orange-300 font-semibold tabular-nums">{{
                                                     weatherDetailData.statistics.currentSpeed.threshold.toFixed(2) }}
                                                     m/s</span>
                                             </div>
                                         </div>
                                         <div class="mt-3 text-center">
-                                            <span class="text-xs px-2 py-1 rounded-sm"
+                                            <span class="text-[14px] font-semibold px-2.5 py-1 rounded-sm"
                                                 :class="getStatusBadge(weatherDetailData.statistics.currentSpeed.current, weatherDetailData.statistics.currentSpeed.threshold)">
                                                 {{ getStatusText(weatherDetailData.statistics.currentSpeed.current,
                                                 weatherDetailData.statistics.currentSpeed.threshold) }}
@@ -323,7 +323,7 @@
 
                             <!-- 气象趋势图表 -->
                             <div class="bg-slate-800/40 border border-slate-700 rounded-sm p-4">
-                                <div class="text-cyan-400 font-bold mb-4 flex items-center">
+                                <div class="text-[17px] text-cyan-300 font-bold mb-4 flex items-center">
                                     <span class="mr-2">📈</span>
                                     气象趋势（未来24小时）
                                 </div>
@@ -333,21 +333,21 @@
                             <!-- 预警信息 -->
                             <div v-if="weatherDetailData.warnings && weatherDetailData.warnings.length > 0"
                                 class="bg-slate-800/40 border border-orange-500/50 rounded-sm p-4">
-                                <div class="text-orange-400 font-bold mb-4 flex items-center">
+                                <div class="text-[17px] text-orange-300 font-bold mb-4 flex items-center">
                                     <span class="mr-2">⚠️</span>
                                     预警信息 ({{ weatherDetailData.warnings.length }} 条)
                                 </div>
                                 <div class="space-y-2">
                                     <div v-for="(warning, index) in weatherDetailData.warnings" :key="index"
-                                        class="flex items-start gap-3 p-3 bg-slate-900/50 rounded-sm border"
+                                        class="flex items-start gap-3 p-3.5 bg-slate-900/50 rounded-sm border"
                                         :class="warning.severity === 'high' ? 'border-red-500/50' : 'border-yellow-500/50'">
                                         <div class="text-2xl"
                                             :class="warning.severity === 'high' ? 'text-red-400' : 'text-yellow-400'">
                                             {{ warning.severity === 'high' ? '🔴' : '🟡' }}
                                         </div>
                                         <div class="flex-1">
-                                            <div class="text-white font-bold text-sm mb-1">{{ warning.message }}</div>
-                                            <div class="text-xs text-slate-400">
+                                            <div class="text-white font-bold text-[16px] mb-1">{{ warning.message }}</div>
+                                            <div class="text-[14px] text-slate-400">
                                                 时间: {{ formatWarningTime(warning.startTime) }}
                                             </div>
                                         </div>
@@ -357,18 +357,18 @@
 
                             <!-- 无预警 -->
                             <div v-else class="bg-slate-800/40 border border-green-500/50 rounded-sm p-4">
-                                <div class="text-green-400 font-bold mb-2 flex items-center">
+                                <div class="text-[17px] text-green-300 font-bold mb-2 flex items-center">
                                     <span class="mr-2">✅</span>
                                     气象状况良好
                                 </div>
-                                <div class="text-sm text-slate-400">未来24小时内无气象预警</div>
+                                <div class="text-[15px] text-slate-300">未来24小时内无气象预警</div>
                             </div>
                         </div>
 
                         <!-- 无数据 -->
-                        <div v-else class="text-center py-12 text-slate-500">
+                        <div v-else class="text-center py-12 text-slate-400">
                             <div class="text-4xl mb-2">📊</div>
-                            <div class="text-sm">暂无气象数据</div>
+                            <div class="text-[16px]">暂无气象数据</div>
                         </div>
                     </div>
                 </div>
@@ -389,6 +389,14 @@ import {
 } from '../../api/miningmonitoring.js';
 import * as echarts from 'echarts';
 import { API_BASE_URL } from '../../api/config.js';
+import {
+    CHART_FONT_FAMILY,
+    CHART_COLORS,
+    chartAxisLabel,
+    chartAxisName,
+    chartLegendText,
+    chartTooltipStyle
+} from '../../utils/chartTypography.js';
 
 export default {
     props: {
@@ -648,27 +656,18 @@ export default {
 
             const option = {
                 backgroundColor: 'transparent',
-                tooltip: {
-                    trigger: 'axis',
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    borderColor: '#22d3ee',
-                    borderWidth: 1,
-                    textStyle: {
-                        color: '#fff'
-                    }
-                },
+                textStyle: { fontFamily: CHART_FONT_FAMILY },
+                tooltip: chartTooltipStyle({ trigger: 'axis' }),
                 legend: {
                     data: ['风速', '风速阈值', '浪高', '浪高阈值', '洋流', '洋流阈值'],
-                    textStyle: {
-                        color: '#94a3b8'
-                    },
-                    top: 10
+                    textStyle: chartLegendText(),
+                    top: 6
                 },
                 grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    top: '15%',
+                    left: '4%',
+                    right: '5%',
+                    bottom: '4%',
+                    top: '18%',
                     containLabel: true
                 },
                 xAxis: {
@@ -677,45 +676,40 @@ export default {
                     data: times,
                     axisLine: {
                         lineStyle: {
-                            color: '#475569'
+                            color: CHART_COLORS.axisLine
                         }
                     },
-                    axisLabel: {
-                        color: '#f8fafc',
-                        rotate: 45
-                    }
+                    axisLabel: chartAxisLabel({ rotate: 35 })
                 },
                 yAxis: [
                     {
                         type: 'value',
                         name: '风速/浪高',
+                        nameTextStyle: chartAxisName(),
                         position: 'left',
                         axisLine: {
                             lineStyle: {
-                                color: '#475569'
+                                color: CHART_COLORS.axisLine
                             }
                         },
-                        axisLabel: {
-                            color: '#f8fafc'
-                        },
+                        axisLabel: chartAxisLabel(),
                         splitLine: {
                             lineStyle: {
-                                color: '#334155'
+                                color: CHART_COLORS.splitLine
                             }
                         }
                     },
                     {
                         type: 'value',
                         name: '洋流',
+                        nameTextStyle: chartAxisName(),
                         position: 'right',
                         axisLine: {
                             lineStyle: {
-                                color: '#475569'
+                                color: CHART_COLORS.axisLine
                             }
                         },
-                        axisLabel: {
-                            color: '#f8fafc'
-                        },
+                        axisLabel: chartAxisLabel(),
                         splitLine: {
                             show: false
                         }

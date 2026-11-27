@@ -1,26 +1,26 @@
 <template>
-    <div class="absolute top-36 bottom-6 left-8 w-[28rem] z-40 flex flex-col gap-4 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft">
+    <div class="absolute top-36 bottom-6 left-8 w-[29rem] z-40 flex flex-col gap-4 pointer-events-none font-['Noto_Sans_SC'] animate-slideInLeft">
         
         <!-- 1. 矿区查询面板 - 增强科技感 -->
         <transition name="slide-down">
-            <div v-if="showQueryPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group shrink-0 flex flex-col overflow-hidden" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
+            <div v-if="showQueryPanel" class="tech-panel-enhanced p-5 pointer-events-auto relative group shrink-0 flex flex-col overflow-hidden" style="clip-path: polygon(0 0, 100% 0, 100% 95%, 92% 100%, 0 100%);">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-tl scale-125"></div>
                 <div class="corner-decoration corner-tr scale-125"></div>
             
-            <div class="flex items-center mb-5 border-b-2 pb-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.4);">
+            <div class="flex items-center mb-4 border-b-2 pb-3 shrink-0" style="border-color: rgba(0, 212, 255, 0.4);">
                 <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
-                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区查询分类</h3>
+                <h3 class="text-[26px] leading-tight font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区查询分类</h3>
             </div>
 
             <div class="min-h-0 flex-1 pr-1 space-y-4">
-                <div class="space-y-3">
+                <div class="space-y-2.5">
                     <div class="flex items-center justify-between">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="text-cyan-300 text-[17px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>区域查询
                         </div>
-                        <div class="text-xs text-slate-400">
+                        <div class="text-[15px] text-slate-400 tabular-nums">
                             {{ regionLoading ? '加载中...' : `共 ${regionOptions.length} 个` }}
                         </div>
                     </div>
@@ -32,10 +32,10 @@
                             @click="selectRegion(region)"
                             :title="region.regionName || region.regionCode || `区域 ${region.id}`"
                             :class="[
-                                'min-w-0 rounded-sm border px-2 py-1.5 text-center text-base transition-all duration-200 skew-x-[-10deg]',
+                                'min-w-0 rounded-sm border px-2 py-2 text-center text-[16px] transition-all duration-200 skew-x-[-10deg]',
                                 selectedRegionId === String(region.id)
                                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-300 text-white shadow-[0_0_10px_rgba(37,99,235,0.6)] font-bold'
-                                    : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-200'
+                                    : 'bg-slate-800/55 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-100'
                             ]"
                         >
                             <div class="skew-x-[10deg] overflow-hidden text-ellipsis whitespace-nowrap font-bold leading-6">
@@ -46,28 +46,28 @@
 
                     <div
                         v-else
-                        class="rounded-sm border border-dashed border-slate-700/50 py-4 text-center text-sm text-slate-500"
+                        class="rounded-sm border border-dashed border-slate-700/50 py-4 text-center text-[15px] text-slate-400"
                     >
                         {{ regionLoading ? '正在加载区域列表...' : '暂无区域总览数据' }}
                     </div>
                 </div>
 
                 <!-- Level 1: 矿种类型（支持多选） -->
-                <div class="space-y-2">
-                    <div class="text-cyan-400 text-base font-bold flex items-center">
+                <div class="space-y-2.5">
+                    <div class="text-cyan-300 text-[17px] font-bold flex items-center">
                         <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>矿种类型
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <button v-for="m in MINERAL_TYPES" :key="m"
                             @click="toggleMineral(m)"
                             :class="[
-                                'w-full text-base px-4 py-1.5 rounded-sm transition-all duration-200 border skew-x-[-10deg]',
+                                'w-full text-[16px] px-3 py-2 rounded-sm transition-all duration-200 border skew-x-[-10deg]',
                                 activeMinerals.includes(m)
                                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 border-blue-300 text-white shadow-[0_0_10px_rgba(37,99,235,0.6)] font-bold' 
-                                    : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-200'
+                                    : 'bg-slate-800/55 border-slate-700 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-100'
                             ]"
                         >
-                            <span class="block skew-x-[10deg] whitespace-nowrap">{{ m }}</span>
+                            <span class="block skew-x-[10deg] whitespace-nowrap font-semibold">{{ m }}</span>
                         </button>
                     </div>
                 </div>
@@ -89,7 +89,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2 flex-1">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div>
-                            <span class="text-cyan-400 text-base font-bold">所属国家</span>
+                            <span class="text-cyan-300 text-[17px] font-bold">所属国家</span>
                             
                             <!-- 展开/收起箭头 -->
                             <button 
@@ -112,7 +112,7 @@
                             <button 
                                 v-if="activeCountries.length > 0"
                                 @click="clearCountries"
-                                class="px-2 py-1 bg-red-600/80 border border-red-500 text-white rounded-sm text-xs font-medium transition-all hover:bg-red-700"
+                                class="px-2.5 py-1 bg-red-600/80 border border-red-500 text-white rounded-sm text-[14px] font-semibold transition-all hover:bg-red-700"
                                 title="清空所有国家筛选"
                             >
                                 清空
@@ -125,12 +125,12 @@
                         <div 
                             v-for="c in activeCountries" 
                             :key="c"
-                            class="flex items-center gap-1 px-3 py-1 bg-yellow-500 text-black text-sm font-bold rounded-sm shadow-[0_0_8px_rgba(250,204,21,0.4)]"
+                            class="flex items-center gap-1.5 px-3 py-1 bg-yellow-500 text-black text-[15px] font-bold rounded-sm shadow-[0_0_8px_rgba(250,204,21,0.4)]"
                         >
                             <span>{{ c }}</span>
                             <button 
                                 @click="removeCountry(c)"
-                                class="ml-1 hover:text-red-600 transition-colors"
+                                class="ml-1 hover:text-red-700 transition-colors"
                                 title="移除"
                             >
                                 ✕
@@ -146,53 +146,50 @@
                                 :key="c"
                                 @click="toggleCountry(c)"
                                 :class="[
-                                    'text-sm px-3 py-1.5 rounded-sm transition-all border',
+                                    'text-[15px] px-3 py-1.5 rounded-sm transition-all border',
                                     activeCountries.includes(c)
                                         ? 'bg-yellow-500 text-black font-bold shadow-[0_0_10px_#facc15] border-yellow-400' 
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600'
+                                        : 'bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600'
                                 ]"
                             >
                                 {{ c }}
                             </button>
-                            <span v-if="currentCountries.length === 0" class="text-slate-500 text-sm">加载中...</span>
+                            <span v-if="currentCountries.length === 0" class="text-slate-400 text-[15px]">加载中...</span>
                         </div>
                     </transition>
                 </div>
 
-                    <div class="min-h-0 flex flex-1 flex-col space-y-3 pt-2 border-t border-dashed border-slate-700/50">
+                    <div class="min-h-0 flex flex-1 flex-col space-y-3 pt-2.5 border-t border-dashed border-slate-700/50">
                     <div class="flex items-center justify-between">
-                        <div class="text-cyan-400 text-base font-bold flex items-center">
+                        <div class="text-cyan-300 text-[17px] font-bold flex items-center">
                             <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2.5"></div>矿区列表
                         </div>
-                        <div class="text-xs text-slate-400">共 {{ miningAreas.length }} 个</div>
+                        <div class="text-[15px] text-slate-400 tabular-nums">共 {{ miningAreas.length }} 个</div>
                     </div>
 
-                    <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                    <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2.5">
                         <button
                             v-for="area in miningAreas"
                             :key="area.areaKey || area.id"
                             @click="selectArea(area, $event)"
                             :class="[
-                                'w-full text-left rounded-sm border px-3 py-3 transition-all',
+                                'w-full text-left rounded-sm border px-3.5 py-3 transition-all',
                                 selectedAreaId === (area.areaKey || area.id)
-                                    ? 'bg-cyan-600/20 border-cyan-400/45 shadow-[0_0_12px_rgba(34,211,238,0.12)]'
-                                    : 'bg-slate-900/55 border-slate-700/70 hover:border-cyan-500/35 hover:bg-slate-800/70'
+                                    ? 'bg-cyan-600/20 border-cyan-400/55 shadow-[0_0_12px_rgba(34,211,238,0.16)]'
+                                    : 'bg-slate-900/55 border-slate-700/70 hover:border-cyan-500/40 hover:bg-slate-800/70'
                             ]"
                         >
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="text-sm font-bold text-white truncate">{{ area.contractor || area.name || area.id }}</div>
-                                    <div class="text-xs text-slate-400 mt-1 truncate">{{ area.id }} · {{ area.location }}</div>
-                                </div>
-                                <div class="text-xs text-cyan-300 whitespace-nowrap">{{ area.mineral }}</div>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0 text-[17px] font-bold text-white truncate">{{ area.contractor || area.name || area.id }}</div>
+                                <div class="text-[14px] font-semibold text-cyan-300 whitespace-nowrap shrink-0">{{ area.mineral }}</div>
                             </div>
-                            <div class="flex items-center justify-between mt-2 text-xs text-slate-400">
-                                <span>{{ area.sponsor || '未知担保国' }}</span>
-                                <span>{{ formatArea(area.area) }}</span>
+                            <div class="flex items-center justify-between mt-1.5 text-[15px] text-slate-400">
+                                <span class="truncate">{{ area.sponsor || '未知担保国' }}</span>
+                                <span class="shrink-0 ml-2 text-slate-300 tabular-nums">{{ formatArea(area.area) }}</span>
                             </div>
                         </button>
 
-                        <div v-if="miningAreas.length === 0" class="text-sm text-slate-500 text-center py-6 border border-dashed border-slate-700/50 rounded-sm">
+                        <div v-if="miningAreas.length === 0" class="text-[15px] text-slate-400 text-center py-6 border border-dashed border-slate-700/50 rounded-sm">
                             当前筛选下暂无矿区
                         </div>
                     </div>
@@ -203,7 +200,7 @@
 
         <!-- 2. 图层控制面板 - 矿区地理分区控制 -->
         <transition name="slide-down">
-            <div v-if="showLayersPanel" class="tech-panel-enhanced p-6 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
+            <div v-if="showLayersPanel" class="tech-panel-enhanced p-5 pointer-events-auto relative group" style="clip-path: polygon(0 0, 92% 0, 100% 5%, 100% 100%, 0 100%);">
                 <!-- 动态扫描线 -->
                 <div class="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
                 <div class="corner-decoration corner-bl scale-125"></div>
@@ -211,7 +208,7 @@
              
              <div class="flex items-center mb-4 border-b-2 pb-3" style="border-color: rgba(0, 212, 255, 0.4);">
                 <div class="w-1.5 h-6 mr-3" style="background: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);"></div>
-                <h3 class="text-2xl font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区图层控制</h3>
+                <h3 class="text-[26px] leading-tight font-bold tracking-wider flex-1" style="color: #ffffff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);">矿区图层控制</h3>
             </div>
              
              <div class="space-y-3 mt-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -224,16 +221,16 @@
                                 <div :class="['w-2.5 h-2.5 rotate-45 transition-all duration-300', region.active ? 'bg-cyan-400 shadow-[0_0_8px_cyan]' : 'bg-slate-600']"></div>
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span :class="['text-lg font-bold transition-colors', region.active ? 'text-white' : 'text-slate-400']">{{ region.label }}</span>
-                                        <span v-if="region.count > 0" class="text-xs px-2 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono">
+                                        <span :class="['text-[19px] font-bold transition-colors', region.active ? 'text-white' : 'text-slate-400']">{{ region.label }}</span>
+                                        <span v-if="region.count > 0" class="text-[14px] px-2 py-0.5 rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 font-mono">
                                             {{ region.count }}
                                         </span>
                                     </div>
                                 </div>
                             </div>
                             <!-- 开关 -->
-                            <div :class="['w-9 h-4 relative transition-colors duration-300 rounded-full', region.active ? 'bg-cyan-600' : 'bg-slate-700']">
-                                <div :class="['absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm', region.active ? 'left-[22px]' : 'left-0.5']"></div>
+                            <div :class="['w-10 h-5 relative transition-colors duration-300 rounded-full', region.active ? 'bg-cyan-600' : 'bg-slate-700']">
+                                <div :class="['absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm', region.active ? 'left-[22px]' : 'left-0.5']"></div>
                             </div>
                         </div>
                         
@@ -241,7 +238,7 @@
                         <div class="border-t border-slate-700/30 px-4 py-2 bg-slate-900/30">
                             <button 
                                 @click.stop="locateRegion(region.id)"
-                                class="w-full flex items-center justify-center gap-2 py-1.5 px-3 bg-slate-700/50 hover:bg-cyan-600/80 border border-slate-600 hover:border-cyan-400 rounded-sm transition-all text-sm font-medium text-slate-300 hover:text-white"
+                                class="w-full flex items-center justify-center gap-2 py-2 px-3 bg-slate-700/50 hover:bg-cyan-600/80 border border-slate-600 hover:border-cyan-400 rounded-sm transition-all text-[16px] font-semibold text-slate-200 hover:text-white"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -546,7 +543,7 @@ export default {
 
         const formatRegionLabel = (region) => {
             const label = region?.regionName || region?.regionCode || `区域 ${region?.id}`;
-            return String(label);
+            return String(label).replace(/\s*\(CCZ\)\s*/i, '');
         };
 
         const getRegionAreaCount = (region) => {

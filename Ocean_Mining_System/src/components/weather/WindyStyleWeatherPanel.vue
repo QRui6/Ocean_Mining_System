@@ -868,7 +868,7 @@ export default {
 
 /* 左侧占位区域（与数据行标签列对齐） */
 .timeline-label-spacer {
-    width: 100px;
+    width: 118px;
     flex-shrink: 0;
     background: rgba(25, 25, 35, 0.8);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -894,12 +894,12 @@ export default {
 }
 
 .date-group {
-    padding: 6px 8px;
+    padding: 8px 10px;
     text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+    font-weight: 700;
+    color: #e2eff7;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
     white-space: nowrap;
 }
 
@@ -921,14 +921,14 @@ export default {
 }
 
 .hour-slot {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 600;
+    color: #cbd5e1;
     cursor: pointer;
     border-right: 1px solid rgba(255, 255, 255, 0.03);
     transition: all 0.15s;
@@ -991,8 +991,8 @@ export default {
 }
 
 .tip {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    color: #9bbad0;
 }
 
 /* 动画 */

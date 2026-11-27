@@ -4,28 +4,28 @@
             v-if="show && region"
             class="absolute inset-0 z-40 pointer-events-none font-['Noto_Sans_SC']"
         >
-            <div class="absolute bottom-6 left-8 top-36 flex w-[29rem] flex-col pointer-events-none">
+            <div class="absolute bottom-6 left-8 top-36 flex w-[30rem] flex-col pointer-events-none">
                 <div class="workspace-panel pointer-events-auto flex min-h-0 flex-1 flex-col overflow-hidden">
                     <div class="panel-scan-line"></div>
                     <div class="border-b border-cyan-500/25 bg-gradient-to-r from-cyan-900/45 via-slate-900/30 to-transparent px-5 py-4">
-                        <div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-start gap-3"><div class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-yellow-300/40 bg-yellow-400/10 text-lg text-yellow-200">◈</div><div class="min-w-0"><div class="text-xl font-bold tracking-wide text-white">矿区预报报告</div><div class="mt-1 truncate text-xs text-cyan-200">{{ region.regionName || region.regionCode || '--' }}<span v-if="selectedArea"> / {{ selectedArea.name || selectedArea.contractor || '当前矿区' }}</span></div></div></div><div class="flex shrink-0 items-center gap-2"><button v-if="selectedArea" type="button" class="border border-cyan-400/45 bg-cyan-500/10 px-2 py-1 text-[11px] font-bold text-cyan-100 transition-colors hover:bg-cyan-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-40" :disabled="!selectedSite?.matched || (!reportDailyRecords.length && !reportHourlyRecords.length)" title="下载当前小矿区预报报告" @click="downloadSiteForecastReport">下载小矿区报告</button><span class="rounded-full border border-cyan-400/35 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-100">常规预报</span></div></div>
-                        <div class="mt-2 flex gap-4 text-xs text-slate-200"><span>经度：{{ formatCoordinate(selectedArea?.pickedPoint?.lng ?? selectedSite?.lng ?? region.centerLng, 'E') }}</span><span>纬度：{{ formatCoordinate(selectedArea?.pickedPoint?.lat ?? selectedSite?.lat ?? region.centerLat, 'N') }}</span></div>
-                        <div class="mt-3 flex items-center justify-between rounded border border-slate-700/70 bg-slate-950/45 px-3 py-2 text-xs"><span class="text-slate-500">当前预报状态</span><span :class="['rounded-full border px-2.5 py-1 font-bold', reportStatusClass]">{{ reportStatusLabel }}</span></div>
+                        <div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-start gap-3"><div class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded border border-yellow-300/40 bg-yellow-400/10 text-lg text-yellow-200">◈</div><div class="min-w-0"><div class="text-[24px] leading-tight font-bold tracking-wide text-white">矿区预报报告</div><div class="mt-1 truncate text-[15px] text-cyan-200">{{ region.regionName || region.regionCode || '--' }}<span v-if="selectedArea"> / {{ selectedArea.name || selectedArea.contractor || '当前矿区' }}</span></div></div></div><div class="flex shrink-0 items-center gap-2"><button v-if="selectedArea" type="button" class="border border-cyan-400/45 bg-cyan-500/10 px-2.5 py-1.5 text-[14px] font-bold text-cyan-100 transition-colors hover:bg-cyan-400 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-40" :disabled="!selectedSite?.matched || (!reportDailyRecords.length && !reportHourlyRecords.length)" title="下载当前小矿区预报报告" @click="downloadSiteForecastReport">下载报告</button></div></div>
+                        <div class="mt-2.5 flex gap-4 text-[15px] text-slate-200 tabular-nums"><span>经度 {{ formatCoordinate(selectedArea?.pickedPoint?.lng ?? selectedSite?.lng ?? region.centerLng, 'E') }}</span><span>纬度 {{ formatCoordinate(selectedArea?.pickedPoint?.lat ?? selectedSite?.lat ?? region.centerLat, 'N') }}</span></div>
+                        <div class="mt-3 flex items-center justify-between rounded border border-slate-700/70 bg-slate-950/45 px-3 py-2 text-[15px]"><span class="text-slate-400">预报状态</span><span :class="['rounded-full border px-3 py-0.5 text-[14px] font-bold', reportStatusClass]">{{ reportStatusLabel }}</span></div>
                     </div>
-                    <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-3">
-                        <section class="relative mb-4 overflow-hidden rounded border border-cyan-400/30 bg-gradient-to-br from-cyan-950/60 via-slate-950/60 to-slate-950/90 p-4"><div class="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-cyan-300 to-blue-600"></div><div class="pl-2"><div class="flex items-center justify-between"><div class="text-xs font-bold tracking-widest text-cyan-200">预报结论</div><span class="text-[10px] text-slate-600">综合判读</span></div><div class="mt-3 text-[15px] font-medium leading-7 text-slate-100">{{ reportConclusion }}</div></div></section>
-                        <section class="mb-4"><div class="mb-2 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-yellow-300 shadow-[0_0_8px_#fde68a]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">关键指标</h4></div><div class="grid grid-cols-2 gap-2"><div v-for="metric in reportMetricCards" :key="metric.label" class="rounded border border-slate-700/80 bg-slate-950/55 px-3 py-3"><div class="text-[11px] text-slate-500">{{ metric.label }}</div><div :class="['mt-1.5 text-xl font-bold', metric.className]">{{ metric.value }}<span class="ml-1 text-[11px] font-normal text-slate-500">{{ metric.unit }}</span></div></div></div></section>
-                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3"><div class="mb-3 flex items-center justify-between"><div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">预报信息</h4></div><span class="text-[10px] text-slate-600">数据概况</span></div><div class="grid grid-cols-2 gap-y-3 text-xs"><div><div class="text-slate-500">预报基准</div><strong class="mt-1 block text-slate-200">{{ reportBaseDate }}</strong></div><div><div class="text-slate-500">有效至</div><strong class="mt-1 block text-slate-200">{{ forecastStatus.validUntil }}</strong></div><div><div class="text-slate-500">逐日数据</div><strong class="mt-1 block text-slate-200">{{ reportDailyRecords.length }} 条</strong></div><div><div class="text-slate-500">逐小时数据</div><strong class="mt-1 block text-slate-200">{{ reportHourlyRecords.length }} 条</strong></div></div></section>
-                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3"><div class="mb-3 flex items-center justify-between"><div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_#c4b5fd]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">当日预报摘要</h4></div><span class="text-[10px] text-slate-600">当前选中日期</span></div><div v-if="reportCurrentDayRows.length" class="space-y-2"><div v-for="row in reportCurrentDayRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3 py-2.5"><div class="flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">{{ row.label }}</span><span class="text-[11px] text-cyan-200">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1.5 text-[11px] text-slate-500">最大阵风 {{ row.gust }} m/s <span class="mx-1 text-slate-700">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-xs text-slate-500">暂无当前日期逐日预报数据</div></section>
-                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3"><div class="mb-3 flex items-center justify-between"><div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9]"></span><h4 class="text-xs font-bold tracking-widest text-cyan-200">未来逐日预报</h4></div><span class="text-[10px] text-slate-600">按时间顺序</span></div><div v-if="reportDailyRows.length" class="max-h-64 space-y-2 overflow-y-auto pr-1"><div v-for="row in reportDailyRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3 py-2"><div class="flex items-center justify-between gap-2"><span class="text-xs font-bold text-slate-200">{{ row.label }}</span><span class="text-[11px] text-cyan-200">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1 text-[11px] text-slate-500">最大阵风 {{ row.gust }} m/s <span class="mx-1 text-slate-700">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-xs text-slate-500">暂无未来逐日预报数据</div></section>
-                        <section class="relative overflow-hidden rounded border border-amber-400/35 bg-gradient-to-r from-amber-950/55 to-slate-950/70 p-4"><div class="absolute bottom-0 left-0 top-0 w-1 bg-amber-400"></div><div class="pl-2"><div class="flex items-center justify-between"><h4 class="text-xs font-bold tracking-widest text-amber-200">作业建议</h4><span class="text-[10px] text-amber-300/60">辅助判断</span></div><div class="mt-2.5 text-sm leading-6 text-slate-100">{{ reportOperationAdvice }}</div><div class="mt-2 text-[10px] leading-5 text-slate-500">建议基于当前预报指标生成，仅作作业安排参考；严重气象事件请以预警中心为准。</div></div></section>
-                        <div v-if="selectedArea" class="mt-1 flex justify-end"><button type="button" :class="['text-[10px] transition-colors', demoWarningEnabled ? 'text-amber-300/80 hover:text-amber-200' : 'text-slate-700 hover:text-slate-400']" @click="toggleDemoWarning">{{ demoWarningEnabled ? '关闭演示预警' : '演示预警' }}</button></div>
+                    <div class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-3.5">
+                        <section class="relative mb-4 overflow-hidden rounded border border-cyan-400/30 bg-gradient-to-br from-cyan-950/60 via-slate-950/60 to-slate-950/90 p-4"><div class="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-cyan-300 to-blue-600"></div><div class="pl-2"><div class="text-[17px] font-bold tracking-wider text-cyan-300">预报结论</div><div class="mt-2.5 text-[16px] font-medium leading-7 text-slate-100">{{ reportConclusion }}</div></div></section>
+                        <section class="mb-4"><div class="mb-2.5 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-yellow-300 shadow-[0_0_8px_#fde68a]"></span><h4 class="text-[17px] font-bold tracking-wider text-cyan-300">关键指标</h4></div><div class="grid grid-cols-2 gap-2.5"><div v-for="metric in reportMetricCards" :key="metric.label" class="rounded border border-slate-700/80 bg-slate-950/55 px-3.5 py-3"><div class="text-[14px] text-slate-400">{{ metric.label }}</div><div :class="['mt-1.5 text-[24px] leading-tight font-extrabold tabular-nums', metric.className]">{{ metric.value }}<span class="ml-1 text-[14px] font-normal text-slate-400">{{ metric.unit }}</span></div></div></div></section>
+                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3.5"><div class="mb-3 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9]"></span><h4 class="text-[17px] font-bold tracking-wider text-cyan-300">预报信息</h4></div><div class="grid grid-cols-2 gap-y-3 text-[15px]"><div><div class="text-[14px] text-slate-400">预报基准</div><strong class="mt-1 block text-[16px] text-white tabular-nums">{{ reportBaseDate }}</strong></div><div><div class="text-[14px] text-slate-400">有效至</div><strong class="mt-1 block text-[16px] text-white tabular-nums">{{ forecastStatus.validUntil }}</strong></div><div><div class="text-[14px] text-slate-400">逐日数据</div><strong class="mt-1 block text-[16px] text-white tabular-nums">{{ reportDailyRecords.length }} 条</strong></div><div><div class="text-[14px] text-slate-400">逐小时数据</div><strong class="mt-1 block text-[16px] text-white tabular-nums">{{ reportHourlyRecords.length }} 条</strong></div></div></section>
+                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3.5"><div class="mb-3 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_#c4b5fd]"></span><h4 class="text-[17px] font-bold tracking-wider text-cyan-300">当日预报摘要</h4></div><div v-if="reportCurrentDayRows.length" class="space-y-2"><div v-for="row in reportCurrentDayRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3.5 py-2.5"><div class="flex items-center justify-between gap-2"><span class="text-[16px] font-bold text-white tabular-nums">{{ row.label }}</span><span class="text-[15px] font-semibold text-cyan-200 tabular-nums">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1.5 text-[14px] text-slate-400 tabular-nums">阵风 {{ row.gust }} m/s <span class="mx-1.5 text-slate-600">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-[15px] text-slate-400">暂无当前日期逐日预报数据</div></section>
+                        <section class="mb-4 rounded border border-slate-700/80 bg-slate-950/45 p-3.5"><div class="mb-3 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#67e8f9]"></span><h4 class="text-[17px] font-bold tracking-wider text-cyan-300">未来逐日预报</h4></div><div v-if="reportDailyRows.length" class="max-h-64 space-y-2 overflow-y-auto pr-1"><div v-for="row in reportDailyRows" :key="row.key" class="rounded border border-slate-800 bg-slate-900/55 px-3.5 py-2.5"><div class="flex items-center justify-between gap-2"><span class="text-[16px] font-bold text-white tabular-nums">{{ row.label }}</span><span class="text-[15px] font-semibold text-cyan-200 tabular-nums">风 {{ row.wind }} m/s · 浪 {{ row.wave }} m</span></div><div class="mt-1 text-[14px] text-slate-400 tabular-nums">阵风 {{ row.gust }} m/s <span class="mx-1.5 text-slate-600">|</span> 流速 {{ row.current }} m/s</div></div></div><div v-else class="py-3 text-[15px] text-slate-400">暂无未来逐日预报数据</div></section>
+                        <section class="relative overflow-hidden rounded border border-amber-400/35 bg-gradient-to-r from-amber-950/55 to-slate-950/70 p-4"><div class="absolute bottom-0 left-0 top-0 w-1 bg-amber-400"></div><div class="pl-2"><h4 class="text-[17px] font-bold tracking-wider text-amber-200">作业建议</h4><div class="mt-2.5 text-[16px] leading-7 text-slate-100">{{ reportOperationAdvice }}</div></div></section>
+                        <div v-if="selectedArea" class="mt-2 flex justify-end"><button type="button" :class="['text-[14px] transition-colors', demoWarningEnabled ? 'text-amber-300 hover:text-amber-200' : 'text-slate-500 hover:text-slate-300']" @click="toggleDemoWarning">{{ demoWarningEnabled ? '关闭演示预警' : '演示预警' }}</button></div>
                     </div>
                 </div>
             </div>
 
             <div
-                class="absolute right-6 top-36 bottom-6 flex w-[30rem] flex-col gap-5"
+                class="absolute right-6 top-36 bottom-6 flex w-[31rem] flex-col gap-5"
             >
                 <div
                     class="workspace-panel relative min-h-0 flex-1 pointer-events-auto overflow-hidden"
@@ -35,8 +35,8 @@
                         <div class="flex min-w-0 items-center gap-3">
                             <div class="h-5 w-1.5 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
                             <div class="min-w-0">
-                                <div class="text-xl font-bold tracking-wide text-white">预报中心 · {{ selectedArea ? '矿区预报' : '区域预报' }}</div>
-                                <div class="mt-1 truncate text-xs text-cyan-200">
+                                <div class="text-[22px] leading-tight font-bold tracking-wide text-white">{{ selectedArea ? '矿区预报' : '区域预报' }}</div>
+                                <div class="mt-1 truncate text-[14px] text-cyan-200">
                                     {{ region.regionName || region.regionCode || '--' }}
                                     <span v-if="selectedArea"> / {{ selectedArea.name || selectedArea.contractor || selectedSite?.displayName || '当前矿区' }}</span>
                                 </div>
@@ -46,16 +46,16 @@
                             <button
                                 type="button"
                                 @click="emit('backToForecastCenter')"
-                                class="rounded-sm border border-cyan-400/45 bg-cyan-500/10 px-2 py-1 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-400 hover:text-slate-950"
+                                class="rounded-sm border border-cyan-400/45 bg-cyan-500/10 px-2.5 py-1.5 text-[14px] font-bold text-cyan-100 transition-colors hover:bg-cyan-400 hover:text-slate-950"
                                 title="返回区域预报"
                             >
-                                返回预报中心
+                                返回预报
                             </button>
                             <button
                                 v-if="selectedArea"
                                 type="button"
                                 @click="emit('backToOverview')"
-                                class="rounded-sm border border-yellow-400/45 bg-yellow-500/10 px-2 py-1 text-xs font-bold text-yellow-100 transition-colors hover:bg-yellow-400 hover:text-slate-950"
+                                class="rounded-sm border border-yellow-400/45 bg-yellow-500/10 px-2.5 py-1.5 text-[14px] font-bold text-yellow-100 transition-colors hover:bg-yellow-400 hover:text-slate-950"
                                 title="返回矿区总览"
                             >
                                 返回总览
@@ -63,7 +63,7 @@
                             <button
                                 type="button"
                                 @click="emit('close')"
-                                class="flex h-8 w-8 items-center justify-center rounded-sm border border-cyan-500/35 text-cyan-200 transition-colors hover:bg-cyan-500 hover:text-slate-950"
+                                class="flex h-8 w-8 items-center justify-center rounded-sm border border-cyan-500/35 text-[16px] text-cyan-200 transition-colors hover:bg-cyan-500 hover:text-slate-950"
                                 title="关闭区域预报"
                             >
                                 ✕
@@ -71,23 +71,23 @@
                         </div>
                     </div>
 
-                    <div v-if="loading" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
+                    <div v-if="loading" class="flex h-[calc(100%-4rem)] items-center justify-center text-[16px] text-slate-300">
                         <div class="flex min-w-0 items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
                             <span>正在加载区域逐天预报...</span>
                         </div>
                     </div>
 
-                    <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
-                        <div class="mb-3 flex items-center justify-between gap-3 text-sm">
-                            <div class="text-slate-200">
-                                当前区域: <span class="font-semibold text-cyan-200">{{ region.regionName || region.regionCode || '--' }}</span>
+                    <div v-else class="flex h-[calc(100%-4rem)] min-h-0 flex-col px-4 pb-4 pt-3">
+                        <div class="mb-2 flex items-center justify-between gap-3 text-[15px]">
+                            <div class="text-slate-300 truncate">
+                                当前区域 <span class="font-bold text-cyan-200">{{ region.regionName || region.regionCode || '--' }}</span>
                             </div>
-                            <div :class="['rounded-sm border px-2 py-1 text-sm', forecastStatus.className]">
+                            <div :class="['shrink-0 rounded-sm border px-2.5 py-0.5 text-[14px] font-semibold', forecastStatus.className]">
                                 {{ forecastStatus.label }}
                             </div>
                         </div>
-                        <div class="mb-3 text-xs text-slate-400">基准 {{ forecastStatus.baseDate }} · 有效至 {{ forecastStatus.validUntil }} · {{ forecastStatus.detail }}</div>
+                        <div class="mb-2 text-[14px] text-slate-400 tabular-nums">基准 {{ forecastStatus.baseDate }} · 有效至 {{ forecastStatus.validUntil }}</div>
                         <div ref="dailyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -100,29 +100,28 @@
                         <div class="flex min-w-0 items-center gap-3">
                             <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
                             <div>
-                                <div class="text-xl font-bold tracking-wide text-white">区域逐 3 小时预报</div>
+                                <div class="text-[22px] leading-tight font-bold tracking-wide text-white">区域逐 3 小时预报</div>
                             </div>
                         </div>
-                        <div class="rounded-sm border border-sky-500/25 bg-sky-500/10 px-2 py-1 text-sm text-sky-200">
+                        <div class="rounded-sm border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[15px] font-semibold text-sky-200 tabular-nums">
                             {{ selectedForecastDate || '--' }}
                         </div>
                     </div>
 
-                    <div v-if="loadingHourly" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
+                    <div v-if="loadingHourly" class="flex h-[calc(100%-3.5rem)] items-center justify-center text-[16px] text-slate-300">
                         <div class="flex min-w-0 flex-1 items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-sky-500/20 border-t-sky-400 animate-spin"></span>
                             <span>正在加载逐小时预报...</span>
                         </div>
                     </div>
 
-                    <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
-                        <div class="mb-3 flex items-center justify-between text-sm">
-                            <div class="text-slate-200">
-                                选中日期:
-                                <span class="font-semibold text-sky-200">{{ selectedForecastDate || '--' }}</span>
-                            </div>
+                    <div v-else class="flex h-[calc(100%-3.5rem)] min-h-0 flex-col px-4 pb-4 pt-3">
+                        <div class="mb-2 flex items-center justify-between text-[15px]">
                             <div class="text-slate-300">
-                                点击上方逐天图切换日期
+                                选中日期 <span class="font-bold text-sky-200 tabular-nums">{{ selectedForecastDate || '--' }}</span>
+                            </div>
+                            <div class="text-[14px] text-slate-400">
+                                点击上方逐天图切换
                             </div>
                         </div>
                         <div ref="hourlyChartRef" class="min-h-0 flex-1 w-full"></div>
@@ -130,34 +129,34 @@
                 </div>
             </div>
 
-            <div v-if="selectedSite" class="absolute bottom-7 left-1/2 flex w-[50rem] -translate-x-1/2 gap-5 pointer-events-none">
+            <div v-if="selectedSite" class="absolute bottom-7 left-1/2 flex w-[52rem] -translate-x-1/2 gap-5 pointer-events-none">
                 <div class="workspace-panel relative h-[22rem] min-w-0 flex-1 pointer-events-auto overflow-hidden">
                     <div class="panel-scan-line"></div>
                     <div class="flex items-center border-b border-cyan-500/25 bg-gradient-to-r from-cyan-900/35 to-transparent px-4 py-3">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
                             <div class="h-5 w-1.5 bg-yellow-400 shadow-[0_0_10px_#facc15]"></div>
-                            <div class="flex min-w-0 flex-1 items-baseline text-lg font-bold tracking-wide text-white">
+                            <div class="flex min-w-0 flex-1 items-baseline text-[19px] font-bold tracking-wide text-white">
                                 <span class="min-w-0 truncate" :title="selectedSiteDisplayName">{{ selectedSiteDisplayName }}</span>
                                 <span class="shrink-0">逐日预报</span>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="loadingSite" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
+                    <div v-if="loadingSite" class="flex h-[calc(100%-3.5rem)] items-center justify-center text-[16px] text-slate-300">
                         <div class="flex min-w-0 flex-1 items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></span>
                             <span>正在加载单矿区逐天预报...</span>
                         </div>
                     </div>
 
-                    <div v-else-if="!selectedSite.matched" class="flex h-[calc(100%-3.25rem)] items-center justify-center px-8 text-center">
+                    <div v-else-if="!selectedSite.matched" class="flex h-[calc(100%-3.5rem)] items-center justify-center px-8 text-center">
                         <div>
                             <div class="text-xl font-bold text-amber-100">暂无逐天站点</div>
                             <div class="mt-2 text-base text-amber-200/80">当前矿区未匹配到单矿区风浪站点数据</div>
                         </div>
                     </div>
 
-                    <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
+                    <div v-else class="flex h-[calc(100%-3.5rem)] min-h-0 flex-col px-4 pb-4 pt-3">
                         <div ref="siteDailyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -167,31 +166,31 @@
                     <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-cyan-500/25 bg-gradient-to-r from-sky-900/35 to-transparent px-4 py-3">
                         <div class="flex min-w-0 items-center gap-3">
                             <div class="h-5 w-1.5 bg-sky-400 shadow-[0_0_10px_#38bdf8]"></div>
-                            <div class="flex min-w-0 flex-1 items-baseline text-lg font-bold tracking-wide text-white">
+                            <div class="flex min-w-0 flex-1 items-baseline text-[19px] font-bold tracking-wide text-white">
                                 <span class="min-w-0 truncate" :title="selectedSiteDisplayName">{{ selectedSiteDisplayName }}</span>
                                 <span class="shrink-0">逐 3 小时预报</span>
                             </div>
                         </div>
-                        <div class="min-w-[5.5rem] shrink-0 whitespace-nowrap rounded-sm border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 text-center text-sm text-sky-100">
+                        <div class="min-w-[5.5rem] shrink-0 whitespace-nowrap rounded-sm border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-center text-[15px] font-semibold text-sky-100 tabular-nums">
                             {{ selectedForecastMonthDay }}
                         </div>
                     </div>
 
-                    <div v-if="loadingSiteHourly" class="flex h-[calc(100%-3.25rem)] items-center justify-center text-slate-300">
+                    <div v-if="loadingSiteHourly" class="flex h-[calc(100%-3.5rem)] items-center justify-center text-[16px] text-slate-300">
                         <div class="flex items-center gap-3">
                             <span class="inline-block h-8 w-8 rounded-full border-4 border-sky-500/20 border-t-sky-400 animate-spin"></span>
                             <span>正在加载单矿区逐小时预报...</span>
                         </div>
                     </div>
 
-                    <div v-else-if="!selectedSite.matched" class="flex h-[calc(100%-3.25rem)] items-center justify-center px-8 text-center">
+                    <div v-else-if="!selectedSite.matched" class="flex h-[calc(100%-3.5rem)] items-center justify-center px-8 text-center">
                         <div>
                             <div class="text-xl font-bold text-amber-100">暂无逐小时站点</div>
                             <div class="mt-2 text-base text-amber-200/80">当前矿区未匹配到单矿区风浪站点数据</div>
                         </div>
                     </div>
 
-                    <div v-else class="flex h-[calc(100%-3.25rem)] min-h-0 flex-col px-4 pb-4 pt-3">
+                    <div v-else class="flex h-[calc(100%-3.5rem)] min-h-0 flex-col px-4 pb-4 pt-3">
                         <div ref="siteHourlyChartRef" class="min-h-0 flex-1 w-full"></div>
                     </div>
                 </div>
@@ -205,6 +204,13 @@ import { monitoringRequest } from '../../api/monitoring.js';
 import { forecastInitialTime } from '../../utils/forecastReportText.js';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import * as echarts from 'echarts';
+import {
+    CHART_FONT_FAMILY,
+    CHART_COLORS,
+    chartAxisLabel,
+    chartLegendText,
+    chartTooltipStyle
+} from '../../utils/chartTypography.js';
 
 const props = defineProps({
     show: {
@@ -725,44 +731,38 @@ const renderDailyChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#22d3ee',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 }
-        },
+        tooltip: chartTooltipStyle({ trigger: 'axis' }),
         legend: {
             top: 0,
-            textStyle: { color: '#dbe7f7', fontSize: 12 },
+            textStyle: chartLegendText(),
             data: ['风速均值', '风速最大', '最大阵风', '浪高均值', '浪高最大']
         },
         grid: {
-            top: 38,
-            left: 40,
-            right: 40,
-            bottom: 34
+            top: 46,
+            left: 44,
+            right: 44,
+            bottom: 36
         },
         xAxis: {
             type: 'category',
             data: xAxisData,
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 12 }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel()
         },
         yAxis: [
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
-                splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
+                splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
             },
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
                 splitLine: { show: false }
             }
         ],
@@ -812,10 +812,10 @@ const renderDailyChart = async () => {
                             show: true,
                             position: 'insideEndTop',
                             color: '#fef9c3',
-                            fontSize: 11,
-                            fontWeight: 800,
-                            backgroundColor: 'rgba(120, 53, 15, 0.88)',
-                            padding: [3, 6],
+                            fontSize: 14,
+                            fontWeight: 700,
+                            backgroundColor: 'rgba(120, 53, 15, 0.9)',
+                            padding: [3, 7],
                             formatter: '已选日期'
                         },
                         lineStyle: {
@@ -864,45 +864,39 @@ const renderHourlyChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#38bdf8',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 }
-        },
+        tooltip: chartTooltipStyle({ trigger: 'axis' }),
         legend: {
             top: 0,
-            textStyle: { color: '#dbe7f7', fontSize: 12 },
+            textStyle: chartLegendText(),
             data: ['风速均值', '风速最大', '最大阵风', '浪高均值', '浪高最大']
         },
         grid: {
-            top: 38,
-            left: 40,
-            right: 40,
-            bottom: 42
+            top: 46,
+            left: 44,
+            right: 44,
+            bottom: 40
         },
         xAxis: {
             type: 'category',
             boundaryGap: false,
             data: props.hourlyForecast.map((item) => formatHourlyLabel(item)),
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 12 }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel()
         },
         yAxis: [
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
-                splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.55)' } }
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
+                splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
             },
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
                 splitLine: { show: false }
             }
         ],
@@ -980,44 +974,38 @@ const renderSiteDailyChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#22d3ee',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 }
-        },
+        tooltip: chartTooltipStyle({ trigger: 'axis' }),
         legend: {
             top: 0,
-            textStyle: { color: '#dbe7f7', fontSize: 12 },
+            textStyle: chartLegendText(),
             data: ['平均风速', '最大风速', '最大阵风', '平均浪高', '最大浪高']
         },
         grid: {
-            top: 34,
-            left: 34,
-            right: 34,
-            bottom: 28
+            top: 44,
+            left: 42,
+            right: 42,
+            bottom: 32
         },
         xAxis: {
             type: 'category',
             data: props.siteDailyForecast.map((record) => formatDailyLabel(record.forecastDate)),
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 12 }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel()
         },
         yAxis: [
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
-                splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.45)' } }
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
+                splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
             },
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
                 splitLine: { show: false }
             }
         ],
@@ -1088,45 +1076,39 @@ const renderSiteHourlyChart = async () => {
     chart.setOption({
         backgroundColor: 'transparent',
         textStyle: {
-            fontFamily: 'Noto Sans SC',
-            fontWeight: 700
+            fontFamily: CHART_FONT_FAMILY,
+            fontWeight: 600
         },
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            borderColor: '#38bdf8',
-            borderWidth: 1,
-            textStyle: { color: '#f8fafc', fontFamily: 'Noto Sans SC', fontWeight: 700 }
-        },
+        tooltip: chartTooltipStyle({ trigger: 'axis' }),
         legend: {
             top: 0,
-            textStyle: { color: '#dbe7f7', fontSize: 12 },
+            textStyle: chartLegendText(),
             data: ['风速', '阵风', '浪高', '波周期']
         },
         grid: {
-            top: 34,
-            left: 34,
-            right: 34,
+            top: 44,
+            left: 42,
+            right: 42,
             bottom: 36
         },
         xAxis: {
             type: 'category',
             boundaryGap: false,
             data: props.siteHourlyForecast.map((item) => formatHourlyLabel(item)),
-            axisLine: { lineStyle: { color: '#334155' } },
-            axisLabel: { color: '#f8fafc', fontSize: 12 }
+            axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+            axisLabel: chartAxisLabel()
         },
         yAxis: [
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
-                splitLine: { lineStyle: { color: 'rgba(71, 85, 105, 0.45)' } }
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
+                splitLine: { lineStyle: { color: CHART_COLORS.splitLine } }
             },
             {
                 type: 'value',
-                axisLine: { lineStyle: { color: '#334155' } },
-                axisLabel: { color: '#f8fafc', fontSize: 12 },
+                axisLine: { lineStyle: { color: CHART_COLORS.axisLine } },
+                axisLabel: chartAxisLabel(),
                 splitLine: { show: false }
             }
         ],
@@ -1368,22 +1350,22 @@ onBeforeUnmount(() => {
 }
 
 .metric-label {
-    font-size: 12px;
-    color: #aebed2;
+    font-size: 14px;
+    color: #9bbad0;
 }
 
 .metric-value {
     margin-top: 6px;
     font-family: 'Rajdhani', 'Noto Sans SC', sans-serif;
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     line-height: 1;
 }
 
 .metric-unit {
     margin-top: 6px;
-    font-size: 11px;
-    color: #64748b;
+    font-size: 14px;
+    color: #9bbad0;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
